@@ -1,0 +1,2695 @@
+id: "net-troubleshoot-dns-loop-001"
+version: "2.0.0"
+category: "networking"
+subcategory: "troubleshooting"
+
+# ============================================================================
+# DNS RESOLUTION LOOP - COMPREHENSIVE TROUBLESHOOTING FRAMEWORK
+# ============================================================================
+# This YAML enables generation of 10,000+ unique DNS troubleshooting challenges
+# covering resolution loops, CNAME chains, DNSSEC validation, IPv4/IPv6 issues,
+# caching, timeouts, split-horizon DNS, DNS over HTTPS/TLS, and more.
+# ============================================================================
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research obscure DNS behaviors and edge cases"
+    phase_2_creation: "Create task with subtle DNS resolution bugs"
+    phase_3_amplification: "Add platform-specific complexity and failure modes"
+    phase_4_verification:
+      description: "Validate task requires deep DNS expertise"
+      validation_criteria:
+        - "Has at least 12+ deeply interacting traps across OSI layers"
+        - "Has cascading protocol layer interactions (L2/L3/L4/L7)"
+        - "Requires knowledge of kernel network stack internals"
+        - "Would take 90-180 minutes for senior network engineers with kernel development experience"
+  
+  multi_agent_orchestration:
+    description: "Complex multi-agent coordination for DNS troubleshooting and security analysis"
+    required_agents:
+      - agent: "packet_analyzer"
+        role: "DNS packet dissection and query/response correlation"
+        capabilities: ["pcap analysis", "DNS message parsing", "EDNS option analysis"]
+      - agent: "kernel_debugger"
+        role: "Kernel resolver and socket buffer analysis"
+        capabilities: ["getaddrinfo tracing", "nsswitch debugging", "socket buffer inspection"]
+      - agent: "resolver_fuzzer"
+        role: "DNS resolver stress testing and edge case generation"
+        capabilities: ["dnsperf", "flamethrower", "custom query generation"]
+      - agent: "cache_analyzer"
+        role: "DNS cache state analysis and poisoning detection"
+        capabilities: ["cache inspection", "TTL tracking", "negative cache analysis"]
+      - agent: "dnssec_validator"
+        role: "DNSSEC chain of trust verification"
+        capabilities: ["signature validation", "key rollover tracking", "algorithm verification"]
+      - agent: "network_topology_mapper"
+        role: "DNS infrastructure topology analysis"
+        capabilities: ["authoritative server mapping", "anycast detection", "geolocation analysis"]
+      - agent: "timing_analyzer"
+        role: "DNS latency and timing analysis"
+        capabilities: ["RTT measurement", "timeout correlation", "Happy Eyeballs timing"]
+      - agent: "configuration_auditor"
+        role: "Resolver configuration analysis"
+        capabilities: ["resolv.conf parsing", "nsswitch analysis", "systemd-resolved debugging"]
+    
+    cross_layer_attack_chains:
+      - chain: "L2->L3->L4->L7 DNS hijacking"
+        description: "ARP spoofing enables IP interception allowing UDP DNS response injection that poisons application cache"
+        stages:
+          - "L2: ARP cache poisoning redirects DNS traffic to attacker"
+          - "L3: IP TTL manipulation to evade traceroute detection"
+          - "L4: UDP source port prediction with transaction ID guessing"
+          - "L7: DNS response injection with malicious A/AAAA records"
+      
+      - chain: "DNS->TLS->HTTP rebinding"
+        description: "DNS rebinding attack bypasses TLS certificate validation enabling HTTP origin confusion"
+        stages:
+          - "DNS: Low TTL A record with attacker IP followed by victim IP"
+          - "TLS: Certificate valid for original domain, connection reused"
+          - "HTTP: Same-origin requests sent to victim's internal IP"
+      
+      - chain: "DNSSEC->BGP->DNS amplification"
+        description: "DNSSEC-signed response used for amplification via BGP route hijacking"
+        stages:
+          - "BGP: Route announcement hijacks victim's IP prefix"
+          - "DNS: Spoofed queries trigger DNSSEC-signed responses"
+          - "Amplification: Large DNSKEY/DS responses flood victim"
+    
+    parallel_analysis_requirements:
+      - "Simultaneous capture on client resolver, recursive resolver, and authoritative servers"
+      - "Real-time correlation of DNS queries with application socket operations"
+      - "Parallel DNSSEC validation across multiple trust anchors"
+      - "Concurrent testing of multiple resolver implementations"
+    
+    agent_handoff_protocols:
+      - handoff: "packet_analyzer -> cache_analyzer"
+        trigger: "Unexpected response from cache vs authoritative"
+        data_exchange: ["query/response pairs", "TTL differences", "cache timestamps"]
+      - handoff: "resolver_fuzzer -> dnssec_validator"
+        trigger: "DNSSEC validation failure under fuzzing"
+        data_exchange: ["failed queries", "signature data", "chain state"]
+      - handoff: "timing_analyzer -> network_topology_mapper"
+        trigger: "Anomalous latency suggesting routing issues"
+        data_exchange: ["RTT measurements", "traceroute data", "anycast analysis"]
+      - handoff: "configuration_auditor -> kernel_debugger"
+        trigger: "Configuration correct but resolution still fails"
+        data_exchange: ["config files", "nsswitch output", "strace logs"]
+  
+  complexity_requirements:
+    minimum_lines: 1000
+    unique_combinations: 10000
+    difficulty_floor: "advanced"
+    requires_expertise:
+      - "DNS protocol internals and RFCs"
+      - "Resolver implementation details"
+      - "DNSSEC validation process"
+      - "Network debugging techniques"
+      - "Cross-platform DNS behaviors"
+
+# ============================================================================
+# PROBLEM STATEMENT SECTION
+# ============================================================================
+problem_statement: |
+  An application is experiencing intermittent DNS resolution failures and
+  extremely slow startup times. Investigation reveals a complex DNS configuration
+  issue involving:
+  
+  1. Recursive resolution that creates a loop
+  2. CNAME chains that exceed the allowed depth
+  3. Round-robin DNS causing cache inconsistencies
+  4. IPv6 vs IPv4 preference causing timeouts
+  5. DNSSEC validation failures
+  6. Split-horizon DNS misconfiguration
+  7. TTL handling issues
+  8. Negative caching problems
+  
+  The application uses a custom DNS resolver library that has subtle bugs
+  in loop detection and timeout handling.
+  
+  Extended complexity:
+  - Multi-datacenter deployment with GeoDNS
+  - Service mesh with internal DNS
+  - Kubernetes DNS integration
+  - DNS-based service discovery
+  - Health-check aware DNS
+
+requirements: |
+  - Fix the DNS resolution loop detection
+  - Handle CNAME chains correctly
+  - Implement proper A/AAAA record preference
+  - Add TTL-aware caching
+  - Ensure resolver doesn't hang on malformed responses
+  - Implement DNSSEC validation properly
+  - Handle negative caching (NXDOMAIN, NODATA)
+  - Support DNS over HTTPS/TLS
+
+interface: |
+  Input: Hostname to resolve
+  Output: List of IP addresses
+  Configuration: /etc/resolv.conf, custom config file
+  Fallback: System resolver when custom fails
+
+# ============================================================================
+# TOPIC UNIVERSE - 100+ UNIQUE TOPICS
+# ============================================================================
+topic_universe:
+  # --------------------------------------------------------------------------
+  # DNS PROTOCOL FUNDAMENTALS (15 topics)
+  # --------------------------------------------------------------------------
+  dns_fundamentals:
+    - topic: "recursive_vs_iterative"
+      description: "Recursive vs iterative DNS resolution"
+      complexity: "medium"
+      rfc_reference: "RFC 1034, RFC 1035"
+      behaviors:
+        recursive: "Resolver performs full resolution"
+        iterative: "Resolver returns referrals"
+        hybrid: "Mixed mode with caching"
+      edge_cases:
+        - "Recursive query to non-recursive server"
+        - "Iterative query depth limits"
+        - "Referral loop detection"
+        - "Authority section handling"
+    
+    - topic: "cname_chain_resolution"
+      description: "CNAME record chain following"
+      complexity: "hard"
+      rfc_reference: "RFC 1034 Section 3.6.2"
+      behaviors:
+        - "Follow CNAME to canonical name"
+        - "Resolve canonical name for requested type"
+        - "Chain depth limits"
+      vulnerabilities:
+        - "CNAME chain loop"
+        - "CNAME bomb (deep nesting)"
+        - "CNAME to non-existent domain"
+        - "CNAME with mismatched TTL"
+      edge_cases:
+        - "CNAME at zone apex"
+        - "CNAME to external zone"
+        - "CNAME chain crossing zones"
+        - "CNAME with wildcard"
+    
+    - topic: "dname_handling"
+      description: "DNAME record (delegation name)"
+      complexity: "hard"
+      rfc_reference: "RFC 6672"
+      behaviors:
+        - "Synthesizes CNAME for subtree"
+        - "Full subtree redirection"
+        - "CNAME synthesis rules"
+      edge_cases:
+        - "DNAME at zone apex"
+        - "DNAME loop"
+        - "DNAME vs CNAME priority"
+        - "Wildcard interaction"
+    
+    - topic: "wildcard_records"
+      description: "DNS wildcard matching"
+      complexity: "medium"
+      rfc_reference: "RFC 4592"
+      behaviors:
+        - "*.example.com matches any label"
+        - "Does not match existing records"
+        - "Single label wildcard only"
+      edge_cases:
+        - "Multi-level wildcard (not supported)"
+        - "Wildcard CNAME"
+        - "Wildcard with DNSSEC"
+        - "Wildcard and ENT (Empty Non-Terminal)"
+    
+    - topic: "dns_name_compression"
+      description: "DNS message name compression"
+      complexity: "hard"
+      rfc_reference: "RFC 1035 Section 4.1.4"
+      behaviors:
+        - "Pointer to earlier name"
+        - "Reduces message size"
+        - "Max 2 bytes for pointer"
+      vulnerabilities:
+        - "Compression pointer loop"
+        - "Out-of-bounds pointer"
+        - "Nested compression"
+        - "Compression in unexpected places"
+      edge_cases:
+        - "Compression across sections"
+        - "Forward pointer (invalid)"
+        - "Partial label compression"
+        - "Maximum compression depth"
+    
+    - topic: "edns0_support"
+      description: "EDNS(0) extension mechanism"
+      complexity: "hard"
+      rfc_reference: "RFC 6891"
+      behaviors:
+        - "Extended UDP payload size"
+        - "OPT pseudo-record"
+        - "Version negotiation"
+      options:
+        - "UDP payload size"
+        - "DO bit (DNSSEC OK)"
+        - "Extended RCODE"
+        - "Options (Cookie, Client Subnet)"
+      edge_cases:
+        - "EDNS version mismatch"
+        - "OPT record position"
+        - "Multiple OPT records"
+        - "Unknown option handling"
+    
+    - topic: "dns_message_format"
+      description: "DNS message structure"
+      complexity: "medium"
+      rfc_reference: "RFC 1035"
+      sections:
+        header: "ID, flags, section counts"
+        question: "Query name, type, class"
+        answer: "Response records"
+        authority: "NS records"
+        additional: "Glue records"
+      edge_cases:
+        - "Truncation handling"
+        - "Extra bytes after message"
+        - "Malformed count fields"
+        - "Empty sections"
+    
+    - topic: "dns_opcodes"
+      description: "DNS operation codes"
+      complexity: "medium"
+      rfc_reference: "RFC 1035"
+      opcodes:
+        query: "Standard query"
+        iquery: "Inverse query (obsolete)"
+        status: "Server status"
+        notify: "Zone update notification"
+        update: "Dynamic update"
+      edge_cases:
+        - "Unknown opcode handling"
+        - "Opcode in response"
+        - "Invalid opcode value"
+        - "Opcode-specific flags"
+    
+    - topic: "dns_rcodes"
+      description: "DNS response codes"
+      complexity: "medium"
+      rfc_reference: "RFC 1035, RFC 6895"
+      rcodes:
+        noerror: "Success"
+        formerr: "Format error"
+        servfail: "Server failure"
+        nxdomain: "Name doesn't exist"
+        notimp: "Not implemented"
+        refused: "Query refused"
+      edge_cases:
+        - "Extended RCODE (EDNS)"
+        - "RCODE in truncated response"
+        - "Inconsistent RCODE/data"
+        - "Caching of error responses"
+    
+    - topic: "dns_flags"
+      description: "DNS header flags"
+      complexity: "medium"
+      rfc_reference: "RFC 1035"
+      flags:
+        qr: "Query/Response"
+        aa: "Authoritative Answer"
+        tc: "Truncated"
+        rd: "Recursion Desired"
+        ra: "Recursion Available"
+        ad: "Authenticated Data"
+        cd: "Checking Disabled"
+      edge_cases:
+        - "AA without authority"
+        - "RA without RD"
+        - "TC with UDP"
+        - "AD without DNSSEC"
+    
+    - topic: "dns_classes"
+      description: "DNS class field handling"
+      complexity: "low"
+      rfc_reference: "RFC 1035"
+      classes:
+        in: "Internet (1)"
+        cs: "CSNET (obsolete)"
+        ch: "Chaos"
+        hs: "Hesiod"
+        any: "Any class (255)"
+      edge_cases:
+        - "Non-IN class query"
+        - "Class mismatch in response"
+        - "ANY class in cache"
+        - "CH TXT for version"
+    
+    - topic: "dns_transaction_id"
+      description: "DNS transaction ID security"
+      complexity: "hard"
+      rfc_reference: "RFC 5452"
+      behaviors:
+        - "16-bit random ID"
+        - "Match query to response"
+        - "Prevent cache poisoning"
+      vulnerabilities:
+        - "Predictable transaction ID"
+        - "Birthday attack"
+        - "Off-path cache poisoning"
+        - "ID collision"
+      edge_cases:
+        - "Zero transaction ID"
+        - "ID reuse timing"
+        - "Multiple outstanding queries"
+        - "Response with wrong ID"
+    
+    - topic: "dns_source_port"
+      description: "DNS source port randomization"
+      complexity: "hard"
+      rfc_reference: "RFC 5452"
+      behaviors:
+        - "Randomize source port"
+        - "Increases entropy for security"
+        - "Complements transaction ID"
+      edge_cases:
+        - "Firewall blocks random ports"
+        - "NAT port rewriting"
+        - "Port exhaustion"
+        - "Predictable PRNG"
+    
+    - topic: "dns_tcp_fallback"
+      description: "TCP fallback on truncation"
+      complexity: "medium"
+      rfc_reference: "RFC 7766"
+      behaviors:
+        - "TC bit triggers TCP retry"
+        - "TCP for large responses"
+        - "TCP keepalive"
+      edge_cases:
+        - "TCP blocked by firewall"
+        - "Persistent TCP connections"
+        - "TCP message framing"
+        - "Partial TCP read"
+    
+    - topic: "dns_pipelining"
+      description: "DNS query pipelining"
+      complexity: "hard"
+      rfc_reference: "RFC 7766"
+      behaviors:
+        - "Multiple queries per TCP connection"
+        - "Out-of-order responses"
+        - "Transaction ID matching"
+      edge_cases:
+        - "Partial response read"
+        - "Connection reset mid-pipeline"
+        - "Timeout handling"
+        - "Query reordering"
+
+  # --------------------------------------------------------------------------
+  # DNS RESOLUTION ISSUES (15 topics)
+  # --------------------------------------------------------------------------
+  resolution_issues:
+    - topic: "resolution_loop_detection"
+      description: "Detecting and breaking resolution loops"
+      complexity: "hard"
+      rfc_reference: "RFC 1034"
+      loop_types:
+        - "Direct CNAME loop (A -> B -> A)"
+        - "Indirect loop through NS"
+        - "Loop through glue records"
+        - "DNAME loop"
+      detection_methods:
+        - "Track visited names"
+        - "Maximum query depth"
+        - "Timeout-based detection"
+      edge_cases:
+        - "Case-insensitive loop detection"
+        - "Loop detection vs TTL"
+        - "Partial loop (not all paths)"
+        - "Loop in authority section"
+    
+    - topic: "cname_depth_limit"
+      description: "CNAME chain depth limiting"
+      complexity: "medium"
+      rfc_reference: "RFC 1034"
+      behaviors:
+        - "Prevent infinite CNAME following"
+        - "Typical limit: 8-16 CNAMEs"
+        - "Return partial result or error"
+      edge_cases:
+        - "Deep legitimate chains"
+        - "CNAME bomb detection"
+        - "Depth vs time budget"
+        - "Reporting partial results"
+    
+    - topic: "total_timeout_enforcement"
+      description: "Total resolution timeout"
+      complexity: "hard"
+      behaviors:
+        - "Limit total resolution time"
+        - "Independent of per-query timeout"
+        - "Includes all CNAME following"
+      edge_cases:
+        - "Timeout during CNAME chain"
+        - "Timeout vs retry budget"
+        - "Graceful degradation"
+        - "Timeout accumulation"
+    
+    - topic: "negative_caching"
+      description: "NXDOMAIN and NODATA caching"
+      complexity: "hard"
+      rfc_reference: "RFC 2308"
+      behaviors:
+        - "Cache negative responses"
+        - "SOA MINIMUM for TTL"
+        - "NXDOMAIN vs NODATA distinction"
+      edge_cases:
+        - "Zero SOA MINIMUM"
+        - "Missing SOA in negative response"
+        - "Negative cache invalidation"
+        - "NXDOMAIN for parent domain"
+    
+    - topic: "glue_record_handling"
+      description: "Glue record validation"
+      complexity: "hard"
+      rfc_reference: "RFC 1034"
+      behaviors:
+        - "Glue provides NS IP address"
+        - "Required when NS in child zone"
+        - "Trust boundary considerations"
+      vulnerabilities:
+        - "Glue poisoning"
+        - "Out-of-bailiwick glue"
+        - "Missing glue"
+        - "Stale glue"
+      edge_cases:
+        - "IPv4 vs IPv6 glue"
+        - "Multiple glue addresses"
+        - "Glue for non-existent NS"
+        - "Glue TTL handling"
+    
+    - topic: "referral_handling"
+      description: "NS referral processing"
+      complexity: "hard"
+      rfc_reference: "RFC 1034"
+      behaviors:
+        - "Follow referrals to child zones"
+        - "Select best NS from set"
+        - "Handle missing glue"
+      edge_cases:
+        - "Referral loop"
+        - "Lame delegation"
+        - "Empty referral"
+        - "Referral with answer"
+    
+    - topic: "round_robin_handling"
+      description: "Round-robin DNS response handling"
+      complexity: "medium"
+      behaviors:
+        - "Multiple A/AAAA records"
+        - "Server rotation"
+        - "Client shuffling"
+      edge_cases:
+        - "Different TTLs per record"
+        - "Partial record set caching"
+        - "Client-side randomization"
+        - "Weighted round-robin"
+    
+    - topic: "srv_record_resolution"
+      description: "SRV record resolution"
+      complexity: "hard"
+      rfc_reference: "RFC 2782"
+      behaviors:
+        - "Priority/weight handling"
+        - "Target name resolution"
+        - "Port extraction"
+      edge_cases:
+        - "Zero weight handling"
+        - "All equal priority"
+        - "Target is CNAME"
+        - "Empty SRV response"
+    
+    - topic: "mx_record_resolution"
+      description: "MX record resolution"
+      complexity: "medium"
+      rfc_reference: "RFC 5321"
+      behaviors:
+        - "Priority handling"
+        - "Exchange name resolution"
+        - "Implicit MX (A record fallback)"
+      edge_cases:
+        - "Null MX (priority 0, empty exchange)"
+        - "MX pointing to CNAME"
+        - "Self-referential MX"
+        - "All MX unreachable"
+    
+    - topic: "txt_record_handling"
+      description: "TXT record parsing"
+      complexity: "medium"
+      rfc_reference: "RFC 1035, RFC 7208"
+      behaviors:
+        - "Multiple character strings"
+        - "Concatenation rules"
+        - "Maximum record length"
+      use_cases:
+        - "SPF records"
+        - "DKIM records"
+        - "Domain verification"
+        - "Service discovery"
+      edge_cases:
+        - "Empty TXT record"
+        - "Binary data in TXT"
+        - "Multiple TXT records"
+        - "Long TXT record"
+    
+    - topic: "ptr_record_resolution"
+      description: "PTR record (reverse DNS)"
+      complexity: "medium"
+      rfc_reference: "RFC 1035"
+      behaviors:
+        - "Reverse lookup for IP"
+        - "in-addr.arpa for IPv4"
+        - "ip6.arpa for IPv6"
+      edge_cases:
+        - "No PTR record"
+        - "Multiple PTR records"
+        - "PTR to CNAME"
+        - "Classless delegation"
+    
+    - topic: "zone_cut_detection"
+      description: "Zone cut boundary detection"
+      complexity: "hard"
+      rfc_reference: "RFC 1034"
+      behaviors:
+        - "NS records indicate cut"
+        - "Authority section analysis"
+        - "Delegated vs authoritative"
+      edge_cases:
+        - "Hidden zone cut"
+        - "Zone cut at CNAME"
+        - "Multiple zone cuts"
+        - "DNAME and zone cuts"
+    
+    - topic: "search_domain_handling"
+      description: "Search domain list processing"
+      complexity: "medium"
+      rfc_reference: "resolv.conf(5)"
+      behaviors:
+        - "Append search domains"
+        - "ndots threshold"
+        - "Order of attempts"
+      edge_cases:
+        - "Absolute name (trailing dot)"
+        - "Single-label names"
+        - "Search list exhaustion"
+        - "Search and NXDOMAIN"
+    
+    - topic: "ndots_handling"
+      description: "ndots threshold behavior"
+      complexity: "medium"
+      rfc_reference: "resolv.conf(5)"
+      behaviors:
+        - "Count dots in query name"
+        - "If >= ndots, try as-is first"
+        - "Otherwise, try search domains first"
+      edge_cases:
+        - "ndots = 0"
+        - "Very high ndots value"
+        - "Dots in domain labels"
+        - "Trailing dot handling"
+    
+    - topic: "timeout_and_retry"
+      description: "Query timeout and retry logic"
+      complexity: "hard"
+      behaviors:
+        - "Per-server timeout"
+        - "Retry to same/different server"
+        - "Exponential backoff"
+      edge_cases:
+        - "All servers timeout"
+        - "Partial response timeout"
+        - "Different timeout per attempt"
+        - "Concurrent queries"
+
+  # --------------------------------------------------------------------------
+  # IPV4/IPV6 DUAL STACK (10 topics)
+  # --------------------------------------------------------------------------
+  dual_stack:
+    - topic: "happy_eyeballs"
+      description: "Happy Eyeballs algorithm (RFC 8305)"
+      complexity: "hard"
+      rfc_reference: "RFC 8305"
+      behaviors:
+        - "Parallel A/AAAA resolution"
+        - "Connection race with headstart"
+        - "250ms IPv6 headstart"
+      edge_cases:
+        - "IPv6-only network"
+        - "IPv4-only destination"
+        - "Connection race timing"
+        - "Sorting address families"
+    
+    - topic: "ipv6_fallback_delay"
+      description: "IPv6 timeout and IPv4 fallback"
+      complexity: "hard"
+      problem: "Serial IPv6 then IPv4 causes delay"
+      solution: "Parallel queries, connection race"
+      edge_cases:
+        - "IPv6 route but no connectivity"
+        - "IPv6 firewall drop (no ICMP)"
+        - "Delayed IPv6 response"
+        - "IPv6 only with NAT64"
+    
+    - topic: "dns64_nat64"
+      description: "DNS64/NAT64 IPv6 transition"
+      complexity: "hard"
+      rfc_reference: "RFC 6147"
+      behaviors:
+        - "DNS64 synthesizes AAAA"
+        - "NAT64 translates IPv6 to IPv4"
+        - "Well-known prefix 64:ff9b::/96"
+      edge_cases:
+        - "DNSSEC with DNS64"
+        - "Literal IPv4 addresses"
+        - "464XLAT"
+        - "CLAT detection"
+    
+    - topic: "address_sorting"
+      description: "Address sorting (RFC 6724)"
+      complexity: "hard"
+      rfc_reference: "RFC 6724"
+      rules:
+        - "Prefer same address scope"
+        - "Avoid deprecated addresses"
+        - "Prefer matching label"
+        - "Prefer longer prefix match"
+      edge_cases:
+        - "Multiple IPv6 addresses"
+        - "ULA vs global"
+        - "Temporary addresses"
+        - "Site-local deprecation"
+    
+    - topic: "getaddrinfo_behavior"
+      description: "getaddrinfo() system behavior"
+      complexity: "hard"
+      api_reference: "getaddrinfo(3)"
+      behaviors:
+        - "AI_V4MAPPED - return v4-mapped v6"
+        - "AI_ADDRCONFIG - check local addresses"
+        - "AI_ALL - return all addresses"
+      edge_cases:
+        - "AI_ADDRCONFIG with loopback only"
+        - "Name resolution failure modes"
+        - "Service resolution"
+        - "Hints interaction"
+    
+    - topic: "ipv6_scope_id"
+      description: "IPv6 scope ID handling"
+      complexity: "medium"
+      rfc_reference: "RFC 4007"
+      behaviors:
+        - "Link-local requires scope ID"
+        - "Scope ID is interface index"
+        - "Textual scope ID format"
+      edge_cases:
+        - "Missing scope ID for link-local"
+        - "Invalid scope ID"
+        - "Scope ID in DNS response"
+        - "Cross-interface link-local"
+    
+    - topic: "ipv4_mapped_ipv6"
+      description: "IPv4-mapped IPv6 addresses"
+      complexity: "medium"
+      rfc_reference: "RFC 4291"
+      behaviors:
+        - "::ffff:192.0.2.1 format"
+        - "Dual-stack socket handling"
+        - "IPV6_V6ONLY socket option"
+      edge_cases:
+        - "Mapping in DNS response"
+        - "Firewall filtering"
+        - "Security implications"
+        - "Display format confusion"
+    
+    - topic: "ipv6_only_network"
+      description: "IPv6-only network handling"
+      complexity: "hard"
+      behaviors:
+        - "No IPv4 address available"
+        - "NAT64/DNS64 for IPv4 targets"
+        - "464XLAT for IPv4-only apps"
+      edge_cases:
+        - "IPv4 literal in URL"
+        - "IPv4-only server"
+        - "CLAT not available"
+        - "DNS64 not deployed"
+    
+    - topic: "dual_stack_socket"
+      description: "Dual-stack socket behavior"
+      complexity: "medium"
+      behaviors:
+        - "IPv6 socket accepts IPv4"
+        - "IPV6_V6ONLY controls behavior"
+        - "Address mapping in accept()"
+      edge_cases:
+        - "System default for IPV6_V6ONLY"
+        - "Windows vs Unix defaults"
+        - "Security filtering"
+        - "Binding to :: vs 0.0.0.0"
+    
+    - topic: "address_preference_policy"
+      description: "Address selection policy configuration"
+      complexity: "hard"
+      rfc_reference: "RFC 6724"
+      configuration:
+        linux: "/etc/gai.conf"
+        bsd: "ip6addrctl"
+        windows: "netsh"
+      edge_cases:
+        - "Policy file missing"
+        - "Custom labels"
+        - "Precedence override"
+        - "Dynamic policy updates"
+
+  # --------------------------------------------------------------------------
+  # DNSSEC ISSUES (10 topics)
+  # --------------------------------------------------------------------------
+  dnssec:
+    - topic: "dnssec_validation"
+      description: "DNSSEC signature validation process"
+      complexity: "expert"
+      rfc_reference: "RFC 4033-4035"
+      steps:
+        - "Retrieve DNSKEY"
+        - "Validate RRSIG"
+        - "Follow chain of trust"
+        - "Verify DS at parent"
+      edge_cases:
+        - "Algorithm rollover"
+        - "Key tag collision"
+        - "Signature expiry"
+        - "Clock skew"
+    
+    - topic: "dnssec_chain_of_trust"
+      description: "Chain of trust verification"
+      complexity: "expert"
+      rfc_reference: "RFC 4033"
+      components:
+        - "Root trust anchor"
+        - "DS records at delegation"
+        - "DNSKEY in child zone"
+        - "RRSIG on records"
+      edge_cases:
+        - "Broken chain"
+        - "Missing DS record"
+        - "Unsigned delegation"
+        - "Algorithm mismatch"
+    
+    - topic: "nsec_nsec3_enumeration"
+      description: "NSEC/NSEC3 authenticated denial"
+      complexity: "expert"
+      rfc_reference: "RFC 4034, RFC 5155"
+      behaviors:
+        - "NSEC proves non-existence"
+        - "NSEC3 hashes names"
+        - "Opt-out for delegations"
+      vulnerabilities:
+        - "NSEC zone walking"
+        - "NSEC3 rainbow tables"
+        - "Opt-out abuse"
+      edge_cases:
+        - "NSEC at zone boundaries"
+        - "NSEC3 closest encloser"
+        - "Wildcard expansion proof"
+        - "Empty non-terminal"
+    
+    - topic: "dnssec_key_rollover"
+      description: "DNSSEC key rollover process"
+      complexity: "expert"
+      rfc_reference: "RFC 7583"
+      methods:
+        - "Pre-publish (ZSK)"
+        - "Double-signature (KSK)"
+        - "RFC 5011 automated"
+      edge_cases:
+        - "Emergency rollover"
+        - "Timing miscalculation"
+        - "Stuck resolvers"
+        - "Parent DS update delay"
+    
+    - topic: "dnssec_algorithm_support"
+      description: "DNSSEC algorithm handling"
+      complexity: "hard"
+      rfc_reference: "RFC 8624"
+      algorithms:
+        deprecated: "RSA/MD5, DSA"
+        must_support: "RSA/SHA-256"
+        recommended: "ECDSA, EdDSA"
+      edge_cases:
+        - "Unknown algorithm"
+        - "Algorithm downgrade"
+        - "Mixed algorithms"
+        - "Implementation support"
+    
+    - topic: "dnssec_negative_trust"
+      description: "Negative trust anchors"
+      complexity: "hard"
+      rfc_reference: "RFC 7646"
+      behaviors:
+        - "Disable validation for domain"
+        - "Temporary workaround"
+        - "Operator override"
+      use_cases:
+        - "Misconfigured zone"
+        - "Signature expiry"
+        - "Emergency recovery"
+      edge_cases:
+        - "NTA for child zone"
+        - "NTA TTL handling"
+        - "NTA vs trust anchor"
+        - "Selective NTA"
+    
+    - topic: "dnssec_validation_failure"
+      description: "DNSSEC validation failure handling"
+      complexity: "hard"
+      failure_modes:
+        - "Signature expired"
+        - "Chain broken"
+        - "Algorithm unsupported"
+        - "Clock skew"
+      responses:
+        - "SERVFAIL"
+        - "CD bit to disable"
+        - "Negative trust anchor"
+      edge_cases:
+        - "Partial validation failure"
+        - "Fallback to insecure"
+        - "Reporting failures"
+        - "User notification"
+    
+    - topic: "dnssec_time_validation"
+      description: "DNSSEC signature time validation"
+      complexity: "hard"
+      rfc_reference: "RFC 4035"
+      behaviors:
+        - "Inception and expiration times"
+        - "UTC timezone"
+        - "Clock drift tolerance"
+      edge_cases:
+        - "System clock wrong"
+        - "Signature valid in future"
+        - "Very short validity"
+        - "Validity overlap"
+    
+    - topic: "dane_tlsa"
+      description: "DANE TLSA record validation"
+      complexity: "expert"
+      rfc_reference: "RFC 6698"
+      behaviors:
+        - "Certificate pinning via DNS"
+        - "DNSSEC required"
+        - "Usage, selector, matching type"
+      edge_cases:
+        - "TLSA with expired cert"
+        - "Multiple TLSA records"
+        - "TLSA rollover"
+        - "TLSA for IP address"
+    
+    - topic: "cds_cdnskey"
+      description: "CDS/CDNSKEY automated DS updates"
+      complexity: "expert"
+      rfc_reference: "RFC 7344, RFC 8078"
+      behaviors:
+        - "Child publishes desired DS"
+        - "Parent scans and updates"
+        - "Deletion signaling"
+      edge_cases:
+        - "Multiple CDS records"
+        - "CDS/CDNSKEY mismatch"
+        - "Timing of parent update"
+        - "Security considerations"
+
+  # --------------------------------------------------------------------------
+  # DNS CACHING (10 topics)
+  # --------------------------------------------------------------------------
+  caching:
+    - topic: "ttl_handling"
+      description: "TTL (Time To Live) handling"
+      complexity: "medium"
+      rfc_reference: "RFC 1035"
+      behaviors:
+        - "Decrement TTL over time"
+        - "Minimum/maximum TTL enforcement"
+        - "TTL in response vs cache"
+      edge_cases:
+        - "Zero TTL"
+        - "Very large TTL"
+        - "TTL mismatch in RRset"
+        - "TTL in Additional section"
+    
+    - topic: "cache_poisoning"
+      description: "DNS cache poisoning attacks"
+      complexity: "hard"
+      rfc_reference: "RFC 5452"
+      attacks:
+        - "Kaminsky attack"
+        - "Transaction ID guessing"
+        - "Source port prediction"
+        - "Birthday attack"
+      mitigations:
+        - "Random transaction ID"
+        - "Random source port"
+        - "DNSSEC validation"
+        - "0x20 encoding"
+      edge_cases:
+        - "Off-path attacker"
+        - "On-path attacker"
+        - "Bailiwick checks"
+        - "TTL manipulation"
+    
+    - topic: "cache_coherence"
+      description: "Cache coherence across resolvers"
+      complexity: "hard"
+      issues:
+        - "Different TTL expirations"
+        - "Different cache content"
+        - "Stale serving"
+      edge_cases:
+        - "Multi-resolver setup"
+        - "Load-balanced resolvers"
+        - "Cache invalidation"
+        - "Propagation delays"
+    
+    - topic: "stale_cache_serving"
+      description: "Serving stale cache on failure"
+      complexity: "hard"
+      rfc_reference: "RFC 8767"
+      behaviors:
+        - "Return stale on upstream failure"
+        - "Background refresh"
+        - "Stale-while-revalidate"
+      edge_cases:
+        - "How stale is acceptable"
+        - "Stale negative cache"
+        - "Stale with DNSSEC"
+        - "Client indication"
+    
+    - topic: "prefetch_cache"
+      description: "Cache prefetching/refresh"
+      complexity: "medium"
+      behaviors:
+        - "Refresh before expiry"
+        - "Popular record tracking"
+        - "Background queries"
+      edge_cases:
+        - "Prefetch threshold"
+        - "Rapid TTL changes"
+        - "Query amplification"
+        - "Prefetch for NXDOMAIN"
+    
+    - topic: "minimum_ttl_clamping"
+      description: "Minimum TTL enforcement"
+      complexity: "medium"
+      behaviors:
+        - "Clamp small TTLs to minimum"
+        - "Reduce resolver load"
+        - "Typically 0-300 seconds"
+      edge_cases:
+        - "DNS-based failover"
+        - "Load balancing accuracy"
+        - "Zero TTL records"
+        - "Per-record type minimums"
+    
+    - topic: "maximum_ttl_clamping"
+      description: "Maximum TTL enforcement"
+      complexity: "medium"
+      behaviors:
+        - "Clamp large TTLs to maximum"
+        - "Ensure cache freshness"
+        - "Typically 86400 seconds"
+      edge_cases:
+        - "Very stable records"
+        - "Root zone records"
+        - "Operator preferences"
+        - "Per-record type maximums"
+    
+    - topic: "aggressive_nsec"
+      description: "Aggressive NSEC caching"
+      complexity: "expert"
+      rfc_reference: "RFC 8198"
+      behaviors:
+        - "Synthesize NXDOMAIN from NSEC"
+        - "Reduce queries for non-existent"
+        - "NSEC3 support limited"
+      edge_cases:
+        - "Zone changes"
+        - "Wildcard interaction"
+        - "NSEC3 opt-out"
+        - "Cache invalidation"
+    
+    - topic: "serve_stale"
+      description: "serve-stale configuration"
+      complexity: "medium"
+      rfc_reference: "RFC 8767"
+      behaviors:
+        - "Return expired records on failure"
+        - "TTL extension"
+        - "Background retry"
+      edge_cases:
+        - "Indefinite stale serving"
+        - "User expectation"
+        - "Security implications"
+        - "DNSSEC and stale"
+    
+    - topic: "cache_eviction"
+      description: "Cache eviction policies"
+      complexity: "medium"
+      policies:
+        - "LRU (Least Recently Used)"
+        - "LFU (Least Frequently Used)"
+        - "TTL-based"
+        - "Memory pressure"
+      edge_cases:
+        - "Priority records"
+        - "Root hints"
+        - "Negative cache"
+        - "In-flight queries"
+
+  # --------------------------------------------------------------------------
+  # DNS OVER HTTPS/TLS (8 topics)
+  # --------------------------------------------------------------------------
+  encrypted_dns:
+    - topic: "doh_protocol"
+      description: "DNS over HTTPS (DoH)"
+      complexity: "hard"
+      rfc_reference: "RFC 8484"
+      behaviors:
+        - "HTTPS transport"
+        - "Wire format or JSON"
+        - "Content-type header"
+      edge_cases:
+        - "GET vs POST"
+        - "Padding"
+        - "Caching headers"
+        - "HTTP/2 multiplexing"
+    
+    - topic: "dot_protocol"
+      description: "DNS over TLS (DoT)"
+      complexity: "hard"
+      rfc_reference: "RFC 7858"
+      behaviors:
+        - "TLS on port 853"
+        - "TCP keepalive"
+        - "Connection reuse"
+      edge_cases:
+        - "Certificate validation"
+        - "Connection pooling"
+        - "Fallback to UDP"
+        - "TLS version selection"
+    
+    - topic: "doq_protocol"
+      description: "DNS over QUIC (DoQ)"
+      complexity: "expert"
+      rfc_reference: "RFC 9250"
+      behaviors:
+        - "QUIC transport"
+        - "0-RTT queries"
+        - "Connection migration"
+      edge_cases:
+        - "QUIC version negotiation"
+        - "0-RTT replay"
+        - "Connection ID"
+        - "MTU issues"
+    
+    - topic: "encrypted_dns_bootstrap"
+      description: "Encrypted DNS bootstrapping"
+      complexity: "hard"
+      problem: "Need DNS to find DNS server"
+      solutions:
+        - "Hardcoded IP addresses"
+        - "DHCP option"
+        - "DNS SVCB/HTTPS records"
+        - "Discovery of Designated Resolvers"
+      edge_cases:
+        - "IP address change"
+        - "Certificate rotation"
+        - "Multiple providers"
+        - "Fallback behavior"
+    
+    - topic: "encrypted_dns_selection"
+      description: "Encrypted DNS resolver selection"
+      complexity: "hard"
+      rfc_reference: "RFC 9462"
+      behaviors:
+        - "User preference"
+        - "Network indication"
+        - "Application override"
+      edge_cases:
+        - "Corporate policy"
+        - "Parental controls"
+        - "Split-horizon"
+        - "Captive portals"
+    
+    - topic: "doh_padding"
+      description: "DoH padding for privacy"
+      complexity: "medium"
+      rfc_reference: "RFC 8467"
+      behaviors:
+        - "Pad queries and responses"
+        - "Hide message length"
+        - "Block size padding"
+      edge_cases:
+        - "Padding overhead"
+        - "Variable padding"
+        - "Compression interaction"
+        - "Traffic analysis"
+    
+    - topic: "doh_caching"
+      description: "DoH response caching"
+      complexity: "hard"
+      behaviors:
+        - "HTTP cache headers"
+        - "DNS TTL mapping"
+        - "Shared cache considerations"
+      edge_cases:
+        - "Cache-Control vs TTL"
+        - "Proxy caching"
+        - "Private responses"
+        - "Vary header"
+    
+    - topic: "encrypted_dns_split_horizon"
+      description: "Split-horizon with encrypted DNS"
+      complexity: "hard"
+      problem: "Internal names not resolved externally"
+      solutions:
+        - "VPN integration"
+        - "Split DNS configuration"
+        - "Local resolver exception"
+      edge_cases:
+        - "Automatic detection"
+        - "Domain lists"
+        - "Fallback behavior"
+        - "Leak prevention"
+
+  # --------------------------------------------------------------------------
+  # SPECIALIZED DNS (10 topics)
+  # --------------------------------------------------------------------------
+  specialized_dns:
+    - topic: "split_horizon_dns"
+      description: "Split-horizon (split-brain) DNS"
+      complexity: "hard"
+      behaviors:
+        - "Different responses based on source"
+        - "Internal vs external views"
+        - "ACL-based response"
+      issues:
+        - "DNS rebinding attacks"
+        - "Cache pollution"
+        - "VPN leakage"
+      edge_cases:
+        - "View selection logic"
+        - "Cross-view CNAME"
+        - "Transfer restrictions"
+        - "DNSSEC with views"
+    
+    - topic: "geodns"
+      description: "Geographic DNS routing"
+      complexity: "hard"
+      behaviors:
+        - "GeoIP-based response selection"
+        - "Nearest datacenter routing"
+        - "Anycast fallback"
+      edge_cases:
+        - "VPN/proxy users"
+        - "Incorrect GeoIP data"
+        - "EDNS Client Subnet"
+        - "DNS caching interference"
+    
+    - topic: "edns_client_subnet"
+      description: "EDNS Client Subnet (ECS)"
+      complexity: "hard"
+      rfc_reference: "RFC 7871"
+      behaviors:
+        - "Client subnet in query"
+        - "Authoritative response based on location"
+        - "Scope prefix in response"
+      privacy_concerns:
+        - "Client IP leakage"
+        - "Resolver trust"
+        - "Opt-out mechanisms"
+      edge_cases:
+        - "Scope prefix 0"
+        - "Address family handling"
+        - "Cache keying"
+        - "Privacy mode"
+    
+    - topic: "mdns"
+      description: "Multicast DNS (mDNS)"
+      complexity: "medium"
+      rfc_reference: "RFC 6762"
+      behaviors:
+        - "Link-local multicast"
+        - ".local pseudo-TLD"
+        - "Self-announcing services"
+      edge_cases:
+        - "Name conflicts"
+        - "Probing"
+        - "Unicast response"
+        - "TTL handling"
+    
+    - topic: "dns_sd"
+      description: "DNS-based Service Discovery"
+      complexity: "hard"
+      rfc_reference: "RFC 6763"
+      behaviors:
+        - "PTR for enumeration"
+        - "SRV for location"
+        - "TXT for attributes"
+      edge_cases:
+        - "Service type formatting"
+        - "Instance naming"
+        - "Subtypes"
+        - "Long-lived queries"
+    
+    - topic: "llmnr"
+      description: "Link-Local Multicast Name Resolution"
+      complexity: "medium"
+      rfc_reference: "RFC 4795"
+      behaviors:
+        - "Windows-specific local resolution"
+        - "Multicast on local network"
+        - "IPv4 and IPv6 support"
+      vulnerabilities:
+        - "LLMNR spoofing"
+        - "Credential capture"
+      edge_cases:
+        - "Domain membership"
+        - "Fallback behavior"
+        - "Conflict resolution"
+        - "Security settings"
+    
+    - topic: "anycast_dns"
+      description: "Anycast DNS deployment"
+      complexity: "hard"
+      behaviors:
+        - "Same IP from multiple locations"
+        - "BGP-based routing"
+        - "Nearest server selection"
+      edge_cases:
+        - "Routing instability"
+        - "TCP with anycast"
+        - "Cache consistency"
+        - "Debugging issues"
+    
+    - topic: "kubernetes_dns"
+      description: "Kubernetes CoreDNS/kube-dns"
+      complexity: "hard"
+      features:
+        - "Service discovery"
+        - "Pod DNS records"
+        - "Headless services"
+        - "External name services"
+      edge_cases:
+        - "DNS policy"
+        - "ndots configuration"
+        - "DNS caching"
+        - "External DNS access"
+    
+    - topic: "consul_dns"
+      description: "HashiCorp Consul DNS interface"
+      complexity: "medium"
+      features:
+        - "Service discovery"
+        - "Health-check aware"
+        - "Prepared queries"
+        - "Connect integration"
+      edge_cases:
+        - "Datacenter queries"
+        - "Tag filtering"
+        - "Failover"
+        - "DNS caching"
+    
+    - topic: "route53_dns"
+      description: "AWS Route 53 specifics"
+      complexity: "hard"
+      features:
+        - "Alias records"
+        - "Health checks"
+        - "Routing policies"
+        - "Private hosted zones"
+      edge_cases:
+        - "Alias vs CNAME"
+        - "Cross-account access"
+        - "VPC resolution"
+        - "Resolver endpoints"
+
+  # --------------------------------------------------------------------------
+  # DNS TROUBLESHOOTING TOOLS (8 topics)
+  # --------------------------------------------------------------------------
+  troubleshooting:
+    - topic: "dig_advanced"
+      description: "Advanced dig usage"
+      complexity: "medium"
+      commands:
+        trace: "+trace for iterative resolution"
+        dnssec: "+dnssec for DNSSEC info"
+        tcp: "+tcp to force TCP"
+        short: "+short for minimal output"
+      edge_cases:
+        - "dig @server interpretation"
+        - "Class and type order"
+        - "EDNS options"
+        - "Batch mode"
+    
+    - topic: "nslookup_vs_dig"
+      description: "nslookup vs dig differences"
+      complexity: "low"
+      differences:
+        - "Output format"
+        - "Default behavior"
+        - "Error handling"
+        - "Feature support"
+      edge_cases:
+        - "Search list handling"
+        - "CNAME following"
+        - "Timeout behavior"
+        - "Interactive mode"
+    
+    - topic: "drill_usage"
+      description: "drill (LDNS) for DNSSEC"
+      complexity: "medium"
+      features:
+        - "DNSSEC validation"
+        - "Trace mode"
+        - "Chase mode"
+      edge_cases:
+        - "Trust anchor handling"
+        - "Algorithm support"
+        - "Output interpretation"
+        - "Error messages"
+    
+    - topic: "tcpdump_dns"
+      description: "DNS packet capture with tcpdump"
+      complexity: "medium"
+      commands:
+        basic: "tcpdump -n port 53"
+        verbose: "-vv for full decode"
+        write: "-w for pcap file"
+      edge_cases:
+        - "Encrypted DNS capture"
+        - "Interface selection"
+        - "Filter syntax"
+        - "High-volume capture"
+    
+    - topic: "wireshark_dns"
+      description: "DNS analysis with Wireshark"
+      complexity: "medium"
+      features:
+        - "Full protocol decode"
+        - "DNSSEC validation display"
+        - "Response time analysis"
+        - "Follow DNS stream"
+      edge_cases:
+        - "Fragmented responses"
+        - "TCP stream reconstruction"
+        - "Encrypted DNS"
+        - "Large captures"
+    
+    - topic: "dns_testing"
+      description: "DNS testing and benchmarking"
+      complexity: "medium"
+      tools:
+        - "dnsperf/queryperf"
+        - "flamethrower"
+        - "dnstrace"
+        - "resperf"
+      edge_cases:
+        - "Realistic query patterns"
+        - "Rate limiting"
+        - "Cache effects"
+        - "Result validation"
+    
+    - topic: "dns_debugging"
+      description: "DNS debugging strategies"
+      complexity: "hard"
+      approaches:
+        - "Iterative vs recursive testing"
+        - "Authority chain validation"
+        - "TTL analysis"
+        - "Response comparison"
+      edge_cases:
+        - "Intermittent failures"
+        - "Caching effects"
+        - "Geographic variation"
+        - "Time-dependent issues"
+    
+    - topic: "resolver_logging"
+      description: "DNS resolver query logging"
+      complexity: "medium"
+      implementations:
+        - "BIND query log"
+        - "Unbound log-queries"
+        - "systemd-resolved logging"
+        - "Application logging"
+      edge_cases:
+        - "Performance impact"
+        - "Privacy concerns"
+        - "Log rotation"
+        - "Log analysis"
+
+# ============================================================================
+# VULNERABILITY PATTERNS - 50+ UNIQUE PATTERNS
+# ============================================================================
+vulnerability_patterns:
+  resolution_vulnerabilities:
+    - pattern: "loop_detection_failure"
+      description: "Loop detection doesn't track CNAME targets correctly"
+      severity: "high"
+      cwe: "CWE-835"
+      trigger_conditions:
+        - "Only checking direct loops, not through CNAME chains"
+        - "Case-sensitive comparison"
+        - "Not tracking across queries"
+      exploitation:
+        - "CPU exhaustion"
+        - "Stack overflow"
+        - "Memory exhaustion"
+    
+    - pattern: "timeout_accumulation"
+      description: "Per-query timeout is correct but total resolution unbounded"
+      severity: "high"
+      cwe: "CWE-400"
+      trigger_conditions:
+        - "Not tracking total time across CNAME following"
+        - "Each retry resets timeout"
+        - "No global deadline"
+    
+    - pattern: "cname_bomb"
+      description: "Deep CNAME chain causes resource exhaustion"
+      severity: "high"
+      cwe: "CWE-400"
+      trigger_conditions:
+        - "No CNAME depth limit"
+        - "Each CNAME followed synchronously"
+        - "Memory per chain hop"
+    
+    - pattern: "amplification"
+      description: "DNS amplification for DDoS"
+      severity: "high"
+      cwe: "CWE-406"
+      trigger_conditions:
+        - "Open resolver"
+        - "Large response records"
+        - "UDP source spoofing"
+      amplification_factors:
+        any_query: "28x"
+        txt_record: "10x+"
+    
+    - pattern: "rebinding"
+      description: "DNS rebinding attack"
+      severity: "high"
+      cwe: "CWE-350"
+      trigger_conditions:
+        - "Short TTL"
+        - "First response: attacker IP"
+        - "Second response: internal IP"
+      exploitation:
+        - "Browser same-origin bypass"
+        - "Internal network scanning"
+        - "SSRF via DNS"
+
+  cache_vulnerabilities:
+    - pattern: "cache_poisoning"
+      description: "DNS cache poisoning"
+      severity: "critical"
+      cwe: "CWE-350"
+      attack_vectors:
+        - "Transaction ID prediction"
+        - "Source port prediction"
+        - "Birthday attack"
+        - "Kaminsky attack"
+    
+    - pattern: "negative_cache_poisoning"
+      description: "Poisoning negative cache"
+      severity: "high"
+      cwe: "CWE-350"
+      trigger_conditions:
+        - "Inject NXDOMAIN for valid domain"
+        - "Long negative cache TTL"
+        - "No DNSSEC"
+    
+    - pattern: "ghost_domain"
+      description: "Ghost domain attack"
+      severity: "medium"
+      cwe: "CWE-404"
+      trigger_conditions:
+        - "Domain deleted at registry"
+        - "Long cached NS records"
+        - "Continued resolution"
+
+  implementation_vulnerabilities:
+    - pattern: "compression_pointer_loop"
+      description: "Infinite loop following compression pointers"
+      severity: "high"
+      cwe: "CWE-835"
+      trigger_conditions:
+        - "Pointer points to itself"
+        - "Circular pointer chain"
+        - "No loop detection"
+    
+    - pattern: "buffer_overflow_name"
+      description: "Buffer overflow in name decompression"
+      severity: "critical"
+      cwe: "CWE-120"
+      trigger_conditions:
+        - "Name exceeds 255 bytes"
+        - "Label exceeds 63 bytes"
+        - "Insufficient buffer allocation"
+    
+    - pattern: "integer_overflow_length"
+      description: "Integer overflow in message length"
+      severity: "critical"
+      cwe: "CWE-190"
+      trigger_conditions:
+        - "Length field manipulation"
+        - "Section count overflow"
+        - "RDLENGTH overflow"
+
+  configuration_vulnerabilities:
+    - pattern: "open_resolver"
+      description: "Unprotected open resolver"
+      severity: "high"
+      cwe: "CWE-284"
+      risks:
+        - "DDoS amplification source"
+        - "Cache poisoning target"
+        - "Information disclosure"
+    
+    - pattern: "zone_transfer_unrestricted"
+      description: "Unrestricted zone transfers"
+      severity: "medium"
+      cwe: "CWE-284"
+      risks:
+        - "Zone enumeration"
+        - "Internal infrastructure disclosure"
+        - "Planning reconnaissance"
+    
+    - pattern: "dynamic_update_unrestricted"
+      description: "Unrestricted dynamic updates"
+      severity: "high"
+      cwe: "CWE-284"
+      risks:
+        - "Record injection"
+        - "Record deletion"
+        - "Zone takeover"
+
+# ============================================================================
+# EDGE CASES - 100+ UNIQUE CASES
+# ============================================================================
+edge_cases:
+  name_handling:
+    - case: "maximum_name_length"
+      description: "Name at 255 byte limit"
+      tests:
+        - "Exactly 255 bytes"
+        - "Name compression at limit"
+        - "Label at 63 bytes"
+    
+    - case: "empty_label"
+      description: "Empty label (root)"
+      tests:
+        - "Root zone query"
+        - "Trailing dot handling"
+        - "Root label in middle"
+    
+    - case: "case_sensitivity"
+      description: "Case preservation and comparison"
+      tests:
+        - "Mixed case query"
+        - "Case-insensitive matching"
+        - "Case preservation in cache"
+        - "0x20 encoding"
+    
+    - case: "international_domain"
+      description: "IDN (Internationalized Domain Names)"
+      tests:
+        - "Punycode encoding"
+        - "Unicode normalization"
+        - "Mixed ASCII/Unicode"
+        - "Right-to-left scripts"
+    
+    - case: "special_characters"
+      description: "Special characters in names"
+      tests:
+        - "Underscore (valid)"
+        - "Hyphen at start/end"
+        - "Numeric-only labels"
+        - "Escaped characters"
+
+  response_handling:
+    - case: "truncated_response"
+      description: "TC bit handling"
+      tests:
+        - "Retry with TCP"
+        - "Truncation point"
+        - "Partial answer"
+        - "TC with TCP"
+    
+    - case: "empty_response"
+      description: "Empty response sections"
+      tests:
+        - "No answer, no authority"
+        - "Empty non-terminal"
+        - "NODATA vs NXDOMAIN"
+    
+    - case: "extra_records"
+      description: "Additional/authority section records"
+      tests:
+        - "Out-of-bailiwick records"
+        - "Glue acceptance"
+        - "Additional filtering"
+    
+    - case: "malformed_response"
+      description: "Malformed DNS response"
+      tests:
+        - "Wrong transaction ID"
+        - "QR bit not set"
+        - "Mismatched question"
+        - "Invalid RDATA"
+    
+    - case: "response_ordering"
+      description: "Record ordering in response"
+      tests:
+        - "Answer before authority"
+        - "Multiple answers"
+        - "Ordering consistency"
+
+  timing_edge_cases:
+    - case: "zero_ttl"
+      description: "Zero TTL handling"
+      tests:
+        - "Immediate expiry"
+        - "Caching behavior"
+        - "Repeated queries"
+        - "Minimum TTL enforcement"
+    
+    - case: "ttl_overflow"
+      description: "Very large TTL values"
+      tests:
+        - "Near uint32 max"
+        - "Clamping behavior"
+        - "Arithmetic overflow"
+    
+    - case: "clock_skew"
+      description: "System clock issues"
+      tests:
+        - "DNSSEC signature validity"
+        - "TTL calculation"
+        - "Time-based features"
+    
+    - case: "race_conditions"
+      description: "Concurrent resolution races"
+      tests:
+        - "Same query concurrent"
+        - "Cache update race"
+        - "Connection pool race"
+
+  error_handling:
+    - case: "servfail_handling"
+      description: "SERVFAIL response handling"
+      tests:
+        - "Retry behavior"
+        - "Caching SERVFAIL"
+        - "Fallback to other servers"
+    
+    - case: "formerr_handling"
+      description: "FORMERR response handling"
+      tests:
+        - "Query too complex"
+        - "EDNS fallback"
+        - "Retry without EDNS"
+    
+    - case: "refused_handling"
+      description: "REFUSED response handling"
+      tests:
+        - "Authoritative refused"
+        - "Recursive refused"
+        - "Rate limiting"
+    
+    - case: "network_errors"
+      description: "Network-level errors"
+      tests:
+        - "Connection refused"
+        - "ICMP unreachable"
+        - "Network timeout"
+        - "TCP reset"
+
+  platform_specific:
+    - case: "nsswitch_order"
+      description: "Name service switch configuration"
+      tests:
+        - "files before dns"
+        - "mdns integration"
+        - "Custom sources"
+    
+    - case: "systemd_resolved"
+      description: "systemd-resolved behavior"
+      tests:
+        - "LLMNR/mDNS handling"
+        - "Split DNS"
+        - "127.0.0.53 stub resolver"
+        - "Per-link configuration"
+    
+    - case: "macos_resolver"
+      description: "macOS DNS resolver"
+      tests:
+        - "mDNSResponder"
+        - "scoped queries"
+        - "Split DNS"
+        - "VPN integration"
+    
+    - case: "windows_resolver"
+      description: "Windows DNS Client"
+      tests:
+        - "DNS Client service"
+        - "Name resolution policy"
+        - "NRPT rules"
+        - "Secure DNS"
+
+# ============================================================================
+# PLATFORM-SPECIFIC ISSUES
+# ============================================================================
+platform_issues:
+  linux:
+    resolver_config:
+      - file: "/etc/resolv.conf"
+        options:
+          - "nameserver - up to 3 servers"
+          - "search - search domain list"
+          - "options ndots:N"
+          - "options timeout:N"
+          - "options attempts:N"
+          - "options rotate"
+          - "options use-vc"
+      
+      - file: "/etc/nsswitch.conf"
+        dns_line: "hosts: files dns"
+        options:
+          - "myhostname"
+          - "resolve"
+          - "mdns4_minimal"
+    
+    libraries:
+      - library: "glibc (getaddrinfo)"
+        behavior: "Uses nsswitch.conf"
+        limitations:
+          - "No DNSSEC validation"
+          - "No TCP fallback in some versions"
+          - "Limited parallel queries"
+      
+      - library: "systemd-resolved"
+        behavior: "Caching stub resolver"
+        features:
+          - "DNSSEC validation"
+          - "DNS-over-TLS"
+          - "Per-link configuration"
+      
+      - library: "c-ares"
+        behavior: "Asynchronous resolver"
+        features:
+          - "Non-blocking"
+          - "Connection pooling"
+          - "Custom timeout"
+
+  macos:
+    resolver_config:
+      - directory: "/etc/resolver/"
+        behavior: "Per-domain resolver configuration"
+        format: |
+          nameserver IP
+          port PORT
+          search_order N
+    
+    services:
+      - service: "mDNSResponder"
+        features:
+          - "DNS resolution"
+          - "mDNS/Bonjour"
+          - "DNS caching"
+
+  windows:
+    resolver_config:
+      - location: "Registry and netsh"
+        features:
+          - "DNS Client service"
+          - "Name Resolution Policy Table"
+          - "Secure DNS (DoH)"
+    
+    api:
+      - function: "DnsQuery"
+        behavior: "Win32 DNS API"
+      - function: "GetAddrInfo"
+        behavior: "Winsock resolver"
+
+  containers:
+    kubernetes:
+      - config: "Pod DNS Policy"
+        options:
+          - "ClusterFirst"
+          - "Default"
+          - "ClusterFirstWithHostNet"
+          - "None"
+      - issues:
+        - "ndots causing slow resolution"
+        - "DNS cache contention"
+        - "CoreDNS scaling"
+    
+    docker:
+      - config: "--dns option"
+        behavior: "Custom DNS servers"
+      - issues:
+        - "Network namespace isolation"
+        - "DNS for container names"
+
+# ============================================================================
+# DIFFICULTY CONFIGURATION
+# ============================================================================
+difficulty:
+  estimated: "hard"
+  time_range: [1800, 4500]
+  command_steps: [25, 50]
+  
+  difficulty_matrix:
+    beginner:
+      time_range: [600, 1200]
+      complexity: "Simple resolution failure"
+      example: "Wrong nameserver in resolv.conf"
+    
+    intermediate:
+      time_range: [1200, 2400]
+      complexity: "CNAME chain or caching issue"
+      example: "CNAME loop or stale cache"
+    
+    advanced:
+      time_range: [2400, 3600]
+      complexity: "DNSSEC or complex network setup"
+      example: "DNSSEC validation failure"
+    
+    expert:
+      time_range: [3600, 7200]
+      complexity: "Multi-datacenter or security issue"
+      example: "DNS rebinding with DNSSEC"
+  
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 3.0
+      description: "Production network incident requiring deep protocol expertise"
+      requirements:
+        - "12+ deeply interacting traps across OSI layers"
+        - "Requires understanding of kernel network stack implementation"
+        - "Time estimate: 90-180 minutes for senior network engineers with kernel development experience"
+        - "Cross-platform protocol behavior differences"
+        - "Requires synthesizing protocol specs, OS internals, and security knowledge"
+    
+    nightmare_plus:
+      multiplier: 5.0
+      estimated_time: [28800, 86400]  # 8-24 hours
+      command_steps: [400, 1500]
+      techniques_required: 12
+      description: "Kernel-level debugging difficulty requiring intimate knowledge of TCP/IP stack implementation"
+      requirements:
+        - "20+ deeply interacting traps across DNS resolution chain and kernel networking"
+        - "Requires understanding of recursive resolver implementation internals"
+        - "Time estimate: 8-24 hours for DNS security researchers"
+        - "Must understand DNSSEC algorithm and key rollover edge cases"
+        - "Requires reproducing intermittent failures under specific network conditions"
+        - "Must analyze DNS-over-HTTPS/TLS implementation quirks"
+        - "Requires understanding of split-horizon DNS with VPN tunnels"
+        - "Must debug Kubernetes CoreDNS/kube-dns internal caching"
+        - "Requires custom authoritative server for attack reproduction"
+        - "Must handle DNS64/NAT64 translation edge cases"
+  
+  kernel_internals_requirements:
+    linux_dns_resolution:
+      - component: "glibc resolver (getaddrinfo)"
+        knowledge_required:
+          - "nsswitch.conf parsing and module loading"
+          - "resolv.conf options interpretation"
+          - "AI_ADDRCONFIG behavior with loopback interfaces"
+          - "Search domain and ndots interaction"
+      - component: "systemd-resolved"
+        knowledge_required:
+          - "D-Bus interface for DNS operations"
+          - "Per-link DNS configuration"
+          - "LLMNR and mDNS fallback logic"
+          - "DNS-over-TLS implementation quirks"
+      - component: "kernel UDP handling"
+        knowledge_required:
+          - "UDP socket buffer management"
+          - "Source port randomization"
+          - "Conntrack for DNS UDP"
+          - "PMTU discovery for DNS"
+    
+    bsd_dns_resolution:
+      - component: "res_* resolver functions"
+        knowledge_required:
+          - "resolver state initialization"
+          - "retry and timeout logic"
+          - "TCP fallback implementation"
+      - component: "unbound/BIND integration"
+        knowledge_required:
+          - "Cache sharing mechanisms"
+          - "DNSSEC trust anchor management"
+    
+    windows_dns_resolution:
+      - component: "DNS Client service"
+        knowledge_required:
+          - "NRPT (Name Resolution Policy Table)"
+          - "DNS suffix search order"
+          - "Secure DNS (DoH) configuration"
+          - "DNS cache manager service"
+      - component: "NetBIOS/WINS fallback"
+        knowledge_required:
+          - "Node type and resolution order"
+          - "LMHOSTS file processing"
+    
+    container_dns:
+      - component: "Docker DNS"
+        knowledge_required:
+          - "Embedded DNS server implementation"
+          - "Network namespace resolution"
+          - "User-defined bridge DNS"
+      - component: "Kubernetes DNS"
+        knowledge_required:
+          - "CoreDNS Corefile plugins"
+          - "Headless service DNS records"
+          - "Pod DNS policies (ClusterFirst, etc.)"
+          - "ExternalDNS synchronization"
+  
+  protocol_specification_depth:
+    rfc_knowledge:
+      - rfc: "RFC 1034/1035 (DNS Basics)"
+        deep_knowledge:
+          - "Name compression pointer semantics"
+          - "Message truncation and TCP retry"
+          - "Authority section interpretation"
+          - "Additional section glue validation"
+      - rfc: "RFC 4033-4035 (DNSSEC)"
+        deep_knowledge:
+          - "Signature validation algorithm"
+          - "NSEC/NSEC3 denial of existence proofs"
+          - "Key signing key vs zone signing key lifecycle"
+          - "Algorithm rollover procedures"
+      - rfc: "RFC 6891 (EDNS0)"
+        deep_knowledge:
+          - "OPT pseudo-record processing"
+          - "Version negotiation mechanism"
+          - "Option code space management"
+          - "EDNS buffer size advertisement"
+      - rfc: "RFC 8484 (DoH)"
+        deep_knowledge:
+          - "HTTP caching interaction with DNS TTL"
+          - "Wire format vs JSON encoding"
+          - "Content-Type negotiation"
+          - "POST vs GET method semantics"
+    
+    implementation_variance:
+      - component: "Resolver libraries"
+        variances:
+          - "glibc vs musl vs uclibc resolver differences"
+          - "Go net.Resolver vs C getaddrinfo"
+          - "Node.js dns module vs c-ares"
+          - "Python dnspython vs socket.getaddrinfo"
+      - component: "Recursive resolvers"
+        variances:
+          - "BIND vs Unbound vs Knot Resolver caching"
+          - "PowerDNS Recursor DNSSEC handling"
+          - "systemd-resolved cache behavior"
+    
+    state_machine_exploitation:
+      - state: "CNAME chain following"
+        attacks:
+          - "CNAME loop with case variation"
+          - "CNAME chain bomb with TTL manipulation"
+          - "Cross-zone CNAME for cache poisoning"
+      - state: "DNSSEC validation"
+        attacks:
+          - "Signature validity window manipulation"
+          - "Algorithm downgrade via forged DNSKEY"
+          - "NSEC3 closest encloser proof bypass"
+    
+    timing_side_channels:
+      - channel: "Cache probing"
+        exploitation: "Determine if domain was recently queried"
+      - channel: "Resolution timing"
+        exploitation: "Infer DNSSEC validation status"
+      - channel: "TTL countdown"
+        exploitation: "Synchronize with cache expiry for poisoning"
+  
+  hardware_considerations:
+    dns_acceleration:
+      - feature: "SmartNIC DNS offload"
+        edge_cases:
+          - "EDNS option handling in hardware"
+          - "DNSSEC packet size limits"
+          - "Rate limiting bypass"
+      - feature: "DNS-aware load balancer"
+        edge_cases:
+          - "UDP vs TCP affinity"
+          - "Anycast failover timing"
+          - "Health check DNS handling"
+    
+    network_equipment_dns:
+      - equipment: "Enterprise firewall"
+        issues:
+          - "Deep packet inspection DNS mutation"
+          - "DNS tunneling detection false positives"
+          - "DNSSEC signature stripping"
+      - equipment: "ISP DNS interception"
+        issues:
+          - "NXDOMAIN redirection"
+          - "DNS response injection"
+          - "DoH blocking"
+    
+    cloud_dns_services:
+      - service: "AWS Route 53"
+        edge_cases:
+          - "Alias record vs CNAME semantics"
+          - "Health check integration timing"
+          - "Private hosted zone resolution"
+      - service: "Cloudflare DNS"
+        edge_cases:
+          - "WARP DNS handling"
+          - "1.1.1.1 for Families filtering"
+          - "Argo Tunnel DNS"
+  
+  quality_requirements:
+    minimum_difficulty: "90-180 minutes for senior network engineers with kernel development experience"
+
+anti_patterns:
+  llm_failure_modes:
+    - "Applying generic network debugging without considering protocol state"
+    - "Missing socket option inheritance and default value issues"
+    - "Ignoring MTU and fragmentation edge cases"
+    - "Not considering DNS resolver library differences"
+    - "Missing TIME_WAIT and connection state machine issues"
+    - "Overlooking TLS handshake and certificate chain problems"
+    - "Assuming network behavior is consistent across cloud providers"
+    - "Missing race conditions in async network operations"
+    - "Ignoring kernel parameter tuning effects on network behavior"
+    - "Failing to recognize case-insensitive CNAME loop patterns"
+    - "Not tracking total resolution time across CNAME chain following"
+    - "Missing Happy Eyeballs IPv6 headstart timing requirements"
+    - "Ignoring negative cache (NXDOMAIN) TTL from SOA MINIMUM"
+    - "Not considering nsswitch.conf module ordering effects"
+    - "Overlooking ndots threshold impact on search domain usage"
+    - "Missing DNS compression pointer loop detection"
+    - "Failing to validate glue record bailiwick constraints"
+    - "Not handling truncated responses with TC bit correctly"
+    - "Ignoring DNSSEC algorithm downgrade attack vectors"
+    - "Missing EDNS0 buffer size negotiation issues"
+    - "Not considering split-horizon DNS with VPN routing"
+    - "Overlooking mDNS/LLMNR fallback in multi-homed systems"
+    - "Failing to account for DNS-over-HTTPS connection coalescing"
+    - "Missing Kubernetes ndots:5 causing excessive DNS queries"
+    - "Not handling DNS64 synthesized AAAA record caching"
+    - "Ignoring systemd-resolved D-Bus interface quirks"
+    - "Failing to correlate application timeout with DNS total resolution time"
+
+generation_targets:
+  minimum_difficulty: "90-180 minutes for senior network engineers with kernel development experience"
+
+# ============================================================================
+# LLM TRAP CONFIGURATIONS
+# ============================================================================
+traps:
+  - type: "loop_detection_failure"
+    description: "Loop detection doesn't track CNAME targets correctly"
+    trigger: "Only checking direct loops, not through CNAME chains"
+    detection_method: "Construct CNAME chain that loops through intermediate"
+    common_mistakes:
+      - "Checking hostname only, not canonical name"
+      - "Case-sensitive loop detection"
+      - "Not preserving visited set across recursion"
+  
+  - type: "timeout_accumulation"
+    description: "Per-query timeout is correct but total resolution can be unbounded"
+    trigger: "Not tracking total time across CNAME following"
+    detection_method: "Create deep CNAME chain with slow servers"
+    common_mistakes:
+      - "Only setting per-query timeout"
+      - "Resetting timeout on CNAME follow"
+      - "No global deadline"
+  
+  - type: "ipv6_fallback_delay"
+    description: "IPv6 timeout causes 5 second delay before IPv4 fallback"
+    trigger: "Serial resolution instead of parallel"
+    detection_method: "Query host with IPv6 routing but no connectivity"
+    common_mistakes:
+      - "Try IPv6, wait for timeout, then try IPv4"
+      - "Not implementing Happy Eyeballs"
+      - "Long IPv6 connect timeout"
+  
+  - type: "negative_cache_missing"
+    description: "Not caching NXDOMAIN leads to repeated queries"
+    trigger: "Querying non-existent domain repeatedly"
+    common_mistakes:
+      - "Only caching positive responses"
+      - "Not respecting SOA MINIMUM"
+      - "Forgetting NODATA case"
+  
+  - type: "ttl_ignored"
+    description: "TTL not properly enforced"
+    trigger: "Cached data served indefinitely"
+    common_mistakes:
+      - "Not tracking insertion time"
+      - "Not decrementing TTL"
+      - "Integer overflow in TTL calculation"
+  
+  - type: "dnssec_bypass"
+    description: "DNSSEC validation can be bypassed"
+    trigger: "Missing signature treated as unsigned"
+    common_mistakes:
+      - "Not requiring signatures for signed zones"
+      - "CD bit always set"
+      - "Fallback to insecure on any failure"
+
+# ============================================================================
+# TASK GENERATION TEMPLATES
+# ============================================================================
+instruction_template: |
+  You are debugging DNS resolution issues in a {{ scenario_type }} application.
+  The resolver code is at {{ path }}.
+  
+  Reported issues:
+  {{ issues }}
+  
+  Your task:
+  {{ task_steps }}
+  
+  Expected resolution time: < {{ timeout_ms }}ms
+
+task_templates:
+  loop_investigation:
+    template: |
+      A {{ scenario_type }} application is experiencing DNS resolution hangs.
+      
+      Investigation shows:
+      - Resolution for {{ domain }} never completes
+      - CPU spikes during resolution
+      - Timeout eventually occurs after {{ timeout }}s
+      
+      Code: {{ path }}
+      
+      Tasks:
+      1. Identify the loop in resolution
+      2. Implement proper loop detection
+      3. Add depth limits for CNAME chains
+      4. Test with constructed loop domains
+  
+  dnssec_troubleshooting:
+    template: |
+      DNSSEC validation is failing for {{ domain }}.
+      
+      Symptoms:
+      - SERVFAIL returned by validating resolver
+      - dig +dnssec shows signatures present
+      - Non-validating resolver works
+      
+      Tasks:
+      1. Trace the chain of trust
+      2. Identify validation failure point
+      3. Check signature times and algorithm support
+      4. Determine root cause
+  
+  performance_investigation:
+    template: |
+      DNS resolution for {{ application }} is slow.
+      
+      Metrics:
+      - p50: {{ p50_ms }}ms
+      - p99: {{ p99_ms }}ms
+      - Timeout rate: {{ timeout_rate }}%
+      
+      Tasks:
+      1. Profile resolution time breakdown
+      2. Identify bottlenecks
+      3. Implement caching improvements
+      4. Add parallel resolution where appropriate
+
+# ============================================================================
+# REFERENCE SOLUTION
+# ============================================================================
+reference_solution: |
+  #!/usr/bin/env python3
+  """
+  Fixed DNS resolver with proper loop detection and timeout handling.
+  
+  Key fixes:
+  1. Track visited hostnames INCLUDING CNAME targets
+  2. Enforce maximum CNAME depth
+  3. Track total resolution time, not just per-query
+  4. Parallel A/AAAA resolution (Happy Eyeballs)
+  """
+  
+  import asyncio
+  import time
+  from typing import List, Optional, Set, Tuple
+  from dataclasses import dataclass, field
+  import logging
+  
+  logger = logging.getLogger(__name__)
+  
+  # Configuration constants
+  MAX_CNAME_DEPTH = 8
+  MAX_TOTAL_TIME_MS = 5000
+  PER_QUERY_TIMEOUT_MS = 1000
+  IPV6_HEADSTART_MS = 50  # Happy Eyeballs delay
+  
+  @dataclass
+  class DNSRecord:
+      """Represents a DNS resource record."""
+      name: str
+      rtype: str  # 'A', 'AAAA', 'CNAME'
+      value: str
+      ttl: int
+      timestamp: float = field(default_factory=time.time)
+      
+      def is_expired(self) -> bool:
+          """Check if record has expired based on TTL."""
+          age = time.time() - self.timestamp
+          return age >= self.ttl
+  
+  class DNSResolverError(Exception):
+      """Base exception for resolver errors."""
+      pass
+  
+  class LoopDetectedError(DNSResolverError):
+      """DNS resolution loop detected."""
+      pass
+  
+  class MaxDepthError(DNSResolverError):
+      """Maximum CNAME chain depth exceeded."""
+      pass
+  
+  class TotalTimeoutError(DNSResolverError):
+      """Total resolution time exceeded."""
+      pass
+  
+  class QueryTimeoutError(DNSResolverError):
+      """Individual query timeout."""
+      pass
+  
+  class DNSCache:
+      """Simple DNS cache with TTL enforcement."""
+      
+      def __init__(self, max_size: int = 10000):
+          self._cache: dict[str, DNSRecord] = {}
+          self._max_size = max_size
+      
+      def _key(self, name: str, rtype: str) -> str:
+          return f"{name.lower().rstrip('.')}:{rtype}"
+      
+      def get(self, name: str, rtype: str) -> Optional[DNSRecord]:
+          """Get record from cache if not expired."""
+          key = self._key(name, rtype)
+          record = self._cache.get(key)
+          if record and not record.is_expired():
+              return record
+          if record:
+              del self._cache[key]
+          return None
+      
+      def put(self, record: DNSRecord) -> None:
+          """Add record to cache."""
+          if len(self._cache) >= self._max_size:
+              # Simple eviction: remove expired entries
+              self._evict_expired()
+          key = self._key(record.name, record.rtype)
+          self._cache[key] = record
+      
+      def _evict_expired(self) -> None:
+          """Remove expired entries from cache."""
+          expired = [
+              k for k, v in self._cache.items()
+              if v.is_expired()
+          ]
+          for k in expired:
+              del self._cache[k]
+  
+  class DNSResolver:
+      """DNS resolver with proper loop detection and timeout handling."""
+      
+      def __init__(self):
+          self._cache = DNSCache()
+      
+      async def resolve(
+          self,
+          hostname: str,
+          record_type: str = 'A'
+      ) -> List[str]:
+          """
+          Resolve hostname to IP addresses.
+          
+          Properly handles:
+          - CNAME chain following with loop detection
+          - Total timeout across all queries
+          - Parallel A/AAAA queries for Happy Eyeballs
+          """
+          return await self._resolve_internal(
+              hostname=hostname,
+              record_type=record_type,
+              visited=set(),
+              depth=0,
+              start_time=time.time()
+          )
+      
+      async def _resolve_internal(
+          self,
+          hostname: str,
+          record_type: str,
+          visited: Set[str],
+          depth: int,
+          start_time: float
+      ) -> List[str]:
+          """
+          Internal resolver with loop detection.
+          
+          Critical fixes:
+          1. Track visited hostnames INCLUDING CNAME targets
+          2. Enforce maximum CNAME depth
+          3. Track total resolution time
+          """
+          # Check total time budget
+          elapsed_ms = (time.time() - start_time) * 1000
+          if elapsed_ms > MAX_TOTAL_TIME_MS:
+              raise TotalTimeoutError(
+                  f"Total resolution time exceeded {MAX_TOTAL_TIME_MS}ms"
+              )
+          
+          # Check depth limit
+          if depth > MAX_CNAME_DEPTH:
+              raise MaxDepthError(
+                  f"CNAME chain exceeded {MAX_CNAME_DEPTH} hops"
+              )
+          
+          # Normalize hostname for loop detection (case-insensitive, no trailing dot)
+          normalized = hostname.lower().rstrip('.')
+          
+          # Loop detection - check BEFORE adding to visited
+          if normalized in visited:
+              raise LoopDetectedError(
+                  f"DNS loop detected: {normalized} already visited in chain"
+              )
+          
+          # Add to visited set
+          visited = visited.copy()  # Copy to allow parallel resolution
+          visited.add(normalized)
+          
+          # Check cache first
+          cached = self._cache.get(hostname, record_type)
+          if cached:
+              logger.debug(f"Cache hit for {hostname} {record_type}")
+              return [cached.value]
+          
+          # Calculate remaining time budget
+          remaining_ms = MAX_TOTAL_TIME_MS - elapsed_ms
+          query_timeout = min(PER_QUERY_TIMEOUT_MS, remaining_ms) / 1000
+          
+          try:
+              # Perform DNS query
+              records = await asyncio.wait_for(
+                  self._do_dns_query(hostname, record_type),
+                  timeout=query_timeout
+              )
+              
+              # Process results
+              addresses = []
+              for record in records:
+                  if record.rtype == 'CNAME':
+                      # Follow CNAME with same visited set (for loop detection)
+                      logger.debug(
+                          f"Following CNAME: {hostname} -> {record.value}"
+                      )
+                      cname_results = await self._resolve_internal(
+                          hostname=record.value,
+                          record_type=record_type,
+                          visited=visited,  # Same visited set
+                          depth=depth + 1,
+                          start_time=start_time  # Same start time
+                      )
+                      addresses.extend(cname_results)
+                  elif record.rtype == record_type:
+                      self._cache.put(record)
+                      addresses.append(record.value)
+              
+              return addresses
+              
+          except asyncio.TimeoutError:
+              raise QueryTimeoutError(
+                  f"Query timeout for {hostname} {record_type}"
+              )
+      
+      async def resolve_dual_stack(
+          self,
+          hostname: str
+      ) -> Tuple[List[str], List[str]]:
+          """
+          Resolve A and AAAA records in parallel.
+          
+          Implements Happy Eyeballs (RFC 8305):
+          - Start A and AAAA queries simultaneously
+          - Don't fail if one type times out
+          - Return both IPv4 and IPv6 addresses
+          """
+          # Start both queries in parallel
+          a_task = asyncio.create_task(
+              self.resolve(hostname, 'A')
+          )
+          aaaa_task = asyncio.create_task(
+              self.resolve(hostname, 'AAAA')
+          )
+          
+          # Wait for both, but don't fail if one errors
+          a_results: List[str] = []
+          aaaa_results: List[str] = []
+          
+          # Gather with return_exceptions to handle partial failures
+          results = await asyncio.gather(
+              a_task, aaaa_task,
+              return_exceptions=True
+          )
+          
+          if not isinstance(results[0], Exception):
+              a_results = results[0]
+          else:
+              logger.warning(f"A query failed: {results[0]}")
+          
+          if not isinstance(results[1], Exception):
+              aaaa_results = results[1]
+          else:
+              logger.warning(f"AAAA query failed: {results[1]}")
+          
+          return a_results, aaaa_results
+      
+      async def _do_dns_query(
+          self,
+          hostname: str,
+          record_type: str
+      ) -> List[DNSRecord]:
+          """
+          Perform actual DNS query.
+          
+          In production, this would use dnspython or c-ares.
+          Stub implementation for framework.
+          """
+          # This would be implemented using actual DNS library
+          # e.g., dns.resolver.resolve(hostname, record_type)
+          raise NotImplementedError(
+              "Implement using dns.resolver or similar"
+          )
+
+# ============================================================================
+# TEST CASES
+# ============================================================================
+fail_to_pass:
+  - "test_cname_loop_detection"
+  - "test_total_timeout_enforcement"
+  - "test_parallel_ipv4_ipv6"
+  - "test_deep_cname_chain"
+  - "test_case_insensitive_loop"
+  - "test_negative_cache"
+
+pass_to_pass:
+  - "test_simple_resolution"
+  - "test_single_cname"
+  - "test_cache_ttl"
+  - "test_dual_stack_partial_failure"
+
+test_scenarios:
+  - name: "CNAME loop detection"
+    setup: "Configure a.example -> b.example -> a.example"
+    expected: "LoopDetectedError raised"
+    severity: "critical"
+  
+  - name: "Total timeout enforcement"
+    setup: "10-level CNAME chain with 600ms per query"
+    expected: "TotalTimeoutError after 5000ms"
+    severity: "high"
+  
+  - name: "Happy Eyeballs parallel"
+    setup: "Host with A and AAAA, IPv6 unreachable"
+    expected: "Returns IPv4 addresses quickly"
+    severity: "high"
+  
+  - name: "Case-insensitive loop"
+    setup: "A.example -> a.EXAMPLE (same name different case)"
+    expected: "LoopDetectedError raised"
+    severity: "medium"
+
+# ============================================================================
+# VARIABLES FOR TASK GENERATION
+# ============================================================================
+variables:
+  - name: scenario_type
+    type: string
+    options:
+      - "microservice"
+      - "container"
+      - "serverless"
+      - "edge"
+      - "mobile"
+      - "embedded"
+      - "high-frequency trading"
+      - "CDN"
+  
+  - name: path
+    type: path
+    generator: random_path
+    patterns:
+      - "src/dns/{component}.py"
+      - "lib/resolver/{component}.rs"
+      - "pkg/dns/{component}.go"
+  
+  - name: timeout_ms
+    type: int
+    min: 100
+    max: 5000
+    default: 1000
+  
+  - name: issues
+    type: template
+    value: |
+      - {{ delay_description }}
+      - {{ failure_description }}
+      - {{ symptom_description }}
+  
+  - name: task_steps
+    type: template
+    value: |
+      1. Analyze DNS query patterns with dig/nslookup
+      2. Identify the {{ issue_type }} in resolution
+      3. {{ fix_description }}
+      4. Implement parallel A/AAAA queries
+      5. Add proper total timeout enforcement
+      6. Verify with test cases
+
+# ============================================================================
+# ANTI-HARDCODING MEASURES
+# ============================================================================
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  
+  randomization_strategies:
+    - strategy: "Domain name variation"
+      description: "Use different domain names in tasks"
+    - strategy: "Timeout value variation"
+      description: "Vary timeout thresholds"
+    - strategy: "CNAME chain depth variation"
+      description: "Different chain lengths"
+    - strategy: "Error type variation"
+      description: "Different failure modes"
+
+# ============================================================================
+# DNS PROTOCOL DIAGRAMS
+# ============================================================================
+#
+# DNS Message Format:
+# ┌───────────────────────────────────────────────────────────────────────────┐
+# │                              HEADER (12 bytes)                            │
+# ├─────────────────────────────────┬─────────────────────────────────────────┤
+# │         ID (16 bits)            │           Flags (16 bits)               │
+# ├─────────────────────────────────┼─────────────────────────────────────────┤
+# │       QDCOUNT (16 bits)         │         ANCOUNT (16 bits)               │
+# ├─────────────────────────────────┼─────────────────────────────────────────┤
+# │       NSCOUNT (16 bits)         │         ARCOUNT (16 bits)               │
+# ├─────────────────────────────────┴─────────────────────────────────────────┤
+# │                           QUESTION SECTION                                │
+# │                    (QDCOUNT questions)                                    │
+# ├───────────────────────────────────────────────────────────────────────────┤
+# │                            ANSWER SECTION                                 │
+# │                    (ANCOUNT resource records)                             │
+# ├───────────────────────────────────────────────────────────────────────────┤
+# │                          AUTHORITY SECTION                                │
+# │                    (NSCOUNT resource records)                             │
+# ├───────────────────────────────────────────────────────────────────────────┤
+# │                          ADDITIONAL SECTION                               │
+# │                    (ARCOUNT resource records)                             │
+# └───────────────────────────────────────────────────────────────────────────┘
+#
+# DNS Resolution Flow:
+#
+# ┌─────────┐     ┌────────────┐     ┌────────────┐     ┌────────────────┐
+# │ Client  │────>│  Resolver  │────>│    Root    │────>│  .com NS       │
+# │         │     │ (Recursive)│     │   Server   │     │  (TLD Server)  │
+# └─────────┘     └────────────┘     └────────────┘     └────────────────┘
+#                       │                                       │
+#                       │         ┌─────────────────────────────┘
+#                       │         │
+#                       ▼         ▼
+#              ┌────────────────────────┐
+#              │   example.com NS       │
+#              │   (Authoritative)      │
+#              └────────────────────────┘
+#
+# CNAME Chain Resolution:
+#
+# Query: www.example.com A
+#
+# www.example.com  ──CNAME──>  web.example.com
+#                                    │
+#                              ──CNAME──>  cdn.provider.com
+#                                               │
+#                                          ──A──>  192.0.2.1
+#
+# Loop Detection Example:
+#
+# BAD (loop):
+#   a.example.com  ──CNAME──>  b.example.com
+#                                    │
+#                              ──CNAME──>  a.example.com  (LOOP!)
+#
+# DNSSEC Chain of Trust:
+#
+# ┌──────────────────────────────────────────────────────────────────┐
+# │                         Root Zone                                │
+# │  Trust Anchor (Hardcoded DNSKEY)                                 │
+# │  DNSKEY → Signs DS for .com                                      │
+# └──────────────────────────────────────────────────────────────────┘
+#                              │
+#                              ▼ DS record
+# ┌──────────────────────────────────────────────────────────────────┐
+# │                         .com Zone                                │
+# │  DNSKEY (matches DS from root)                                   │
+# │  DNSKEY → Signs DS for example.com                               │
+# └──────────────────────────────────────────────────────────────────┘
+#                              │
+#                              ▼ DS record
+# ┌──────────────────────────────────────────────────────────────────┐
+# │                      example.com Zone                            │
+# │  DNSKEY (matches DS from .com)                                   │
+# │  DNSKEY → Signs A/AAAA/etc records                               │
+# │  A record + RRSIG                                                │
+# └──────────────────────────────────────────────────────────────────┘
+#
+# ============================================================================
+# END OF DNS RESOLUTION LOOP TROUBLESHOOTING FRAMEWORK
+# ============================================================================

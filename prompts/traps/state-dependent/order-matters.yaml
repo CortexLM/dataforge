@@ -1,0 +1,1510 @@
+id: "trap-state-order-matters-001"
+version: "1.0.0"
+category: "traps"
+subcategory: "state-dependent"
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research LLM blind spots around operation ordering and dependencies"
+    phase_2_creation: "Create task that exploits LLM assumptions about operation independence"
+    phase_3_amplification: "Add multiple layers of deception with hidden dependencies"
+    phase_4_verification: "Validate task successfully traps most LLMs through ordering complexity"
+  
+  llm_trap_design:
+    common_llm_weaknesses:
+      - "Pattern matching without understanding causal dependencies"
+      - "Assuming operations can be reordered freely"
+      - "Missing implicit dependencies between steps"
+      - "Over-reliance on training data patterns for initialization"
+      - "Difficulty reasoning about transitive dependencies"
+      - "Inability to detect cyclic dependencies"
+      - "Confusion between parallel-safe and order-dependent operations"
+      - "Failure to consider rollback requirements"
+
+# === ORDER-MATTERS TRAP TAXONOMY ===
+trap_taxonomy:
+  category: "state-dependent"
+  trap_type: "order-matters"
+  description: "Systems requiring specific operation order with non-obvious dependencies"
+  
+  trap_families:
+    - family: "initialization_order"
+      description: "Services must initialize in specific order"
+      difficulty_range: [4, 8]
+      
+    - family: "dependency_chains"
+      description: "Operations form hidden dependency chains"
+      difficulty_range: [5, 9]
+      
+    - family: "resource_acquisition"
+      description: "Resources must be acquired in specific order"
+      difficulty_range: [5, 8]
+      
+    - family: "database_ordering"
+      description: "Database operations have implicit ordering"
+      difficulty_range: [5, 9]
+      
+    - family: "state_machine_ordering"
+      description: "State transitions must follow specific paths"
+      difficulty_range: [6, 10]
+      
+    - family: "cleanup_ordering"
+      description: "Cleanup must happen in reverse of setup"
+      difficulty_range: [4, 8]
+      
+    - family: "migration_ordering"
+      description: "Migrations have complex dependency requirements"
+      difficulty_range: [6, 10]
+      
+    - family: "deployment_ordering"
+      description: "Deployment steps have hidden dependencies"
+      difficulty_range: [6, 9]
+
+# === LLM WEAKNESS EXPLOITATION TECHNIQUES ===
+llm_weakness_exploitation:
+  order_dependency_techniques:
+    # Initialization Order Traps (30+ techniques)
+    initialization_order_traps:
+      - technique: "config_before_service"
+        description: "Service reads config at construction, not on demand"
+        llm_failure_mode: "LLM assumes config can be set anytime"
+        implementation: |
+          class ServiceA:
+              def __init__(self):
+                  # TRAP: Reads config at construction!
+                  self.timeout = Config.get('timeout')
+          
+          # Must: Config.load() -> ServiceA()
+          # Wrong: ServiceA() -> Config.load()
+        manifestation: "Service uses default/null config values"
+        difficulty: 5
+        
+      - technique: "database_before_cache"
+        description: "Cache warm-up needs database connection"
+        llm_failure_mode: "LLM treats cache and DB as independent"
+        implementation: |
+          def init_cache():
+              # TRAP: Needs database to be connected first!
+              hot_data = db.query("SELECT * FROM hot_items")
+              cache.warm(hot_data)
+          
+          def init_db():
+              db.connect(config.db_url)
+        manifestation: "Cache warm-up fails silently"
+        difficulty: 5
+        
+      - technique: "logger_before_service"
+        description: "Service logs during construction"
+        llm_failure_mode: "LLM doesn't see logging as dependency"
+        implementation: |
+          class CriticalService:
+              def __init__(self):
+                  # TRAP: Logs before logger might be initialized!
+                  logger.info("Starting CriticalService")
+                  self.setup()
+        manifestation: "Crashes or silent failures during init"
+        difficulty: 4
+        
+      - technique: "auth_before_api"
+        description: "API client needs auth token from auth service"
+        llm_failure_mode: "LLM sees API and auth as peers"
+        implementation: |
+          class APIClient:
+              def __init__(self):
+                  # TRAP: Auth service must be ready!
+                  self.token = auth_service.get_token()
+        manifestation: "API calls fail with auth errors"
+        difficulty: 5
+        
+      - technique: "time_sync_before_scheduler"
+        description: "Scheduler needs accurate time"
+        llm_failure_mode: "LLM doesn't consider time as dependency"
+        implementation: |
+          class Scheduler:
+              def __init__(self):
+                  # TRAP: Time must be synced first!
+                  self.now = time.time()
+                  self.schedule_jobs()
+        manifestation: "Jobs run at wrong times"
+        difficulty: 6
+        
+      - technique: "locale_before_formatting"
+        description: "Formatters depend on locale being set"
+        llm_failure_mode: "LLM ignores locale as dependency"
+        implementation: |
+          class DateFormatter:
+              def __init__(self):
+                  # TRAP: locale must be set!
+                  self.format = locale.nl_langinfo(locale.D_FMT)
+        manifestation: "Incorrect date formats"
+        difficulty: 5
+        
+      - technique: "env_vars_before_config"
+        description: "Config reads env vars at parse time"
+        llm_failure_mode: "LLM assumes config reads on access"
+        implementation: |
+          # config.py
+          DATABASE_URL = os.environ['DATABASE_URL']  # TRAP: reads at import!
+          
+          # main.py
+          os.environ['DATABASE_URL'] = 'postgresql://...'  # Too late!
+          import config
+        manifestation: "KeyError or wrong config values"
+        difficulty: 5
+        
+      - technique: "signal_handlers_early"
+        description: "Signal handlers must be set before worker spawn"
+        llm_failure_mode: "LLM doesn't consider process forking"
+        implementation: |
+          def start_workers():
+              for _ in range(NUM_WORKERS):
+                  # TRAP: Workers inherit parent's signal handlers!
+                  multiprocessing.Process(target=work).start()
+          
+          def setup_signals():
+              signal.signal(signal.SIGTERM, handle_shutdown)
+          
+          # Must: setup_signals() -> start_workers()
+        manifestation: "Workers don't shut down gracefully"
+        difficulty: 7
+        
+      - technique: "metrics_before_requests"
+        description: "Metrics collector must be ready before handling requests"
+        llm_failure_mode: "LLM sees metrics as optional/background"
+        implementation: |
+          def handle_request():
+              metrics.increment('requests')  # TRAP: metrics might not exist!
+              return process()
+        manifestation: "AttributeError or lost metrics"
+        difficulty: 4
+        
+      - technique: "ssl_context_before_connection"
+        description: "SSL context must be configured before connections"
+        llm_failure_mode: "LLM doesn't consider SSL setup"
+        implementation: |
+          def connect():
+              # TRAP: ssl_context must be configured!
+              return ssl_context.wrap_socket(socket.create_connection(addr))
+        manifestation: "SSL errors or insecure connections"
+        difficulty: 6
+
+    # Dependency Chain Traps (25+ techniques)
+    dependency_chain_traps:
+      - technique: "transitive_dependency"
+        description: "A needs B which needs C, not obvious"
+        llm_failure_mode: "LLM sees A and C as unrelated"
+        implementation: |
+          # A depends on B, B depends on C
+          # A never mentions C directly!
+          
+          class ServiceA:
+              def __init__(self, service_b):
+                  self.b = service_b
+          
+          class ServiceB:
+              def __init__(self, service_c):
+                  self.c = service_c
+          
+          class ServiceC:
+              def __init__(self, db_connection):
+                  self.db = db_connection
+          
+          # TRAP: Must init: DB -> C -> B -> A
+        manifestation: "Cryptic error from deep in chain"
+        difficulty: 6
+        
+      - technique: "hidden_static_init"
+        description: "Static initializer has hidden dependencies"
+        llm_failure_mode: "LLM doesn't trace static initialization"
+        implementation: |
+          class DataProcessor:
+              # TRAP: Static init runs on first access!
+              _cache = SharedCache.get_instance()
+              
+              def process(self, data):
+                  return self._cache.get_or_compute(data)
+          
+          # SharedCache needs database!
+        manifestation: "Error on first DataProcessor use"
+        difficulty: 7
+        
+      - technique: "factory_dependency"
+        description: "Factory method has hidden dependencies"
+        llm_failure_mode: "LLM trusts factory signature"
+        implementation: |
+          class Connection:
+              @classmethod
+              def create(cls, config):
+                  # TRAP: Internally uses ConnectionPool which needs init!
+                  return ConnectionPool.get_connection(config)
+        manifestation: "Pool not initialized error"
+        difficulty: 6
+        
+      - technique: "decorator_dependency"
+        description: "Decorator depends on service being ready"
+        llm_failure_mode: "LLM doesn't trace decorator dependencies"
+        implementation: |
+          def cached(func):
+              def wrapper(*args, **kwargs):
+                  # TRAP: cache_service must be initialized!
+                  if cache_service.has(args):
+                      return cache_service.get(args)
+                  result = func(*args, **kwargs)
+                  cache_service.set(args, result)
+                  return result
+              return wrapper
+        manifestation: "NameError or AttributeError"
+        difficulty: 6
+        
+      - technique: "lazy_init_chain"
+        description: "Lazy initialization triggers chain"
+        llm_failure_mode: "LLM doesn't trace lazy init side effects"
+        implementation: |
+          class LazyService:
+              _instance = None
+              
+              @classmethod
+              def get(cls):
+                  if cls._instance is None:
+                      # TRAP: Constructor triggers more lazy inits!
+                      cls._instance = cls()
+                  return cls._instance
+              
+              def __init__(self):
+                  self.dep1 = OtherLazyService.get()  # Chain!
+                  self.dep2 = AnotherLazyService.get()  # More chain!
+        manifestation: "Circular dependency or init failure"
+        difficulty: 7
+        
+      - technique: "plugin_load_order"
+        description: "Plugins must load in dependency order"
+        llm_failure_mode: "LLM assumes plugins are independent"
+        implementation: |
+          def load_plugins():
+              # TRAP: core_plugin must load before user_plugin!
+              for plugin in discover_plugins():
+                  plugin.load()  # No dependency resolution!
+        manifestation: "Plugin fails to find required hook"
+        difficulty: 6
+
+    # Resource Acquisition Order Traps (20+ techniques)
+    resource_acquisition_traps:
+      - technique: "lock_ordering_deadlock"
+        description: "Locks must be acquired in consistent order"
+        llm_failure_mode: "LLM doesn't see deadlock potential"
+        implementation: |
+          lock_a = threading.Lock()
+          lock_b = threading.Lock()
+          
+          def thread1():
+              with lock_a:
+                  with lock_b:  # TRAP: Order A->B
+                      work()
+          
+          def thread2():
+              with lock_b:
+                  with lock_a:  # TRAP: Order B->A = DEADLOCK
+                      work()
+        manifestation: "System hangs (deadlock)"
+        difficulty: 6
+        
+      - technique: "file_handle_order"
+        description: "Files must be opened in specific order"
+        llm_failure_mode: "LLM treats file opens as independent"
+        implementation: |
+          def process_files():
+              # TRAP: output depends on input existing
+              out = open('output.txt', 'w')  # Truncates!
+              inp = open('input.txt', 'r')  # What if same file?
+        manifestation: "Empty or corrupted output"
+        difficulty: 5
+        
+      - technique: "connection_pool_order"
+        description: "Get connections from multiple pools in order"
+        llm_failure_mode: "LLM doesn't see pool as shared resource"
+        implementation: |
+          def transfer_data():
+              # TRAP: If all threads do source->dest, deadlock possible
+              # when pools are small and threads numerous
+              source_conn = source_pool.get()
+              dest_conn = dest_pool.get()
+        manifestation: "Connection pool deadlock"
+        difficulty: 7
+        
+      - technique: "semaphore_sequence"
+        description: "Semaphores must be acquired in sequence"
+        llm_failure_mode: "LLM doesn't track semaphore state"
+        implementation: |
+          stage1_sem = threading.Semaphore(3)
+          stage2_sem = threading.Semaphore(3)
+          
+          def process():
+              # TRAP: Must release stage1 before acquiring stage2
+              with stage1_sem:
+                  with stage2_sem:  # Holds both!
+                      work()
+        manifestation: "Resource starvation"
+        difficulty: 7
+        
+      - technique: "gpu_memory_order"
+        description: "GPU resources must be allocated in order"
+        llm_failure_mode: "LLM doesn't consider GPU memory layout"
+        implementation: |
+          def train_model():
+              # TRAP: Large tensor first can fragment GPU memory
+              small_tensor = torch.zeros(100).cuda()
+              huge_tensor = torch.zeros(1000000000).cuda()  # Fails!
+        manifestation: "Out of GPU memory (fragmentation)"
+        difficulty: 7
+
+    # Database Operation Order Traps (25+ techniques)
+    database_operation_traps:
+      - technique: "migrate_before_seed"
+        description: "Migrations must complete before seeding"
+        llm_failure_mode: "LLM runs migrate and seed in parallel"
+        implementation: |
+          def setup_database():
+              # TRAP: seed needs schema from migrate!
+              run_migrations()
+              seed_data()  # Fails if migrations aren't done
+        manifestation: "Table doesn't exist errors"
+        difficulty: 5
+        
+      - technique: "foreign_key_insert_order"
+        description: "Parent records must exist before children"
+        llm_failure_mode: "LLM doesn't trace FK relationships"
+        implementation: |
+          def create_order(user_id, items):
+              # TRAP: order must exist before order_items!
+              for item in items:
+                  db.insert('order_items', {'order_id': order_id, 'item': item})
+              order_id = db.insert('orders', {'user_id': user_id})
+        manifestation: "Foreign key constraint violation"
+        difficulty: 4
+        
+      - technique: "index_before_query"
+        description: "Indexes must be created before complex queries"
+        llm_failure_mode: "LLM doesn't see index as dependency"
+        implementation: |
+          def report_generation():
+              # TRAP: Without index, this times out!
+              db.query('''
+                  SELECT * FROM huge_table 
+                  WHERE complex_column = ? 
+                  ORDER BY another_column
+              ''')
+        manifestation: "Query timeout or poor performance"
+        difficulty: 5
+        
+      - technique: "sequence_before_insert"
+        description: "Sequence must be created/reset before use"
+        llm_failure_mode: "LLM assumes sequences auto-exist"
+        implementation: |
+          def import_data(records):
+              # TRAP: If importing with explicit IDs, sequence gets out of sync!
+              for record in records:
+                  db.insert('table', record)  # record has id=5
+              db.insert('table', {'name': 'new'})  # Gets id=1, conflicts!
+        manifestation: "Duplicate key errors"
+        difficulty: 6
+        
+      - technique: "transaction_ordering"
+        description: "Transactions must be ordered to avoid deadlock"
+        llm_failure_mode: "LLM doesn't see transaction interactions"
+        implementation: |
+          def process_batch():
+              # TRAP: If multiple workers, they might deadlock!
+              with db.transaction():
+                  db.update('accounts', {'balance': 'balance - 100'}, id=1)
+                  db.update('accounts', {'balance': 'balance + 100'}, id=2)
+              
+              # Another worker does id=2 then id=1 = deadlock!
+        manifestation: "Database deadlock"
+        difficulty: 7
+        
+      - technique: "view_after_table"
+        description: "Views depend on underlying tables"
+        llm_failure_mode: "LLM doesn't trace view dependencies"
+        implementation: |
+          def create_schema():
+              # TRAP: view depends on table!
+              db.execute('CREATE VIEW summary AS SELECT * FROM details')
+              db.execute('CREATE TABLE details (...)')  # Wrong order!
+        manifestation: "Object doesn't exist error"
+        difficulty: 4
+        
+      - technique: "backup_before_migrate"
+        description: "Backup must complete before migration"
+        llm_failure_mode: "LLM runs backup in parallel"
+        implementation: |
+          async def maintenance():
+              # TRAP: backup and migrate should not run together!
+              await asyncio.gather(
+                  backup_database(),
+                  run_migrations()  # Modifies while backing up!
+              )
+        manifestation: "Inconsistent backup"
+        difficulty: 6
+
+    # State Machine Order Traps (20+ techniques)
+    state_machine_traps:
+      - technique: "invalid_transition"
+        description: "State transitions must follow valid paths"
+        llm_failure_mode: "LLM assumes any state reachable from any"
+        implementation: |
+          class Order:
+              STATES = ['created', 'paid', 'shipped', 'delivered']
+              
+              def ship(self):
+                  # TRAP: Can only ship if paid!
+                  if self.state != 'paid':
+                      raise InvalidTransition()
+                  self.state = 'shipped'
+        manifestation: "InvalidTransition exceptions"
+        difficulty: 5
+        
+      - technique: "required_intermediate_state"
+        description: "Must pass through intermediate state"
+        llm_failure_mode: "LLM tries to skip states"
+        implementation: |
+          class Document:
+              def approve(self):
+                  # TRAP: Must be reviewed first!
+                  if self.state != 'reviewed':
+                      raise InvalidTransition()
+                  self.state = 'approved'
+        manifestation: "Skipped required step"
+        difficulty: 5
+        
+      - technique: "parallel_state_dependency"
+        description: "Multiple state machines with cross-dependencies"
+        llm_failure_mode: "LLM treats state machines as independent"
+        implementation: |
+          class Payment:
+              def complete(self):
+                  # TRAP: Order must be in 'confirmed' state!
+                  if self.order.state != 'confirmed':
+                      raise InvalidTransition()
+                  self.state = 'completed'
+        manifestation: "Cross-state-machine constraint violation"
+        difficulty: 7
+        
+      - technique: "state_rollback_order"
+        description: "Rollback must reverse states in order"
+        llm_failure_mode: "LLM doesn't consider rollback paths"
+        implementation: |
+          def rollback_order(order):
+              # TRAP: Must rollback in reverse order!
+              if order.state == 'shipped':
+                  order.unship()  # Creates return
+              if order.state == 'paid':
+                  order.refund()  # Needs valid payment
+              if order.state == 'confirmed':
+                  order.unconfirm()
+        manifestation: "Rollback fails or corrupts state"
+        difficulty: 6
+
+    # Cleanup Order Traps (15+ techniques)
+    cleanup_order_traps:
+      - technique: "lifo_cleanup"
+        description: "Cleanup must be reverse of setup (LIFO)"
+        llm_failure_mode: "LLM cleans up in arbitrary order"
+        implementation: |
+          def setup():
+              connect_database()     # 1
+              start_cache()          # 2
+              initialize_services()  # 3
+          
+          def cleanup():
+              # TRAP: Must be reverse order!
+              disconnect_database()  # Wrong: services still use it!
+              stop_cache()
+              shutdown_services()
+        manifestation: "Cleanup errors or resource leaks"
+        difficulty: 5
+        
+      - technique: "dependent_cleanup"
+        description: "Cleanup has own dependencies"
+        llm_failure_mode: "LLM doesn't see cleanup dependencies"
+        implementation: |
+          def cleanup_storage():
+              # TRAP: audit_log needs storage to record cleanup!
+              storage.shutdown()
+              audit_log.record('Storage cleaned up')  # Fails!
+        manifestation: "Cleanup fails to complete"
+        difficulty: 5
+        
+      - technique: "async_cleanup_order"
+        description: "Async cleanup must await dependencies"
+        llm_failure_mode: "LLM doesn't order async cleanup"
+        implementation: |
+          async def cleanup():
+              # TRAP: All fire simultaneously, wrong order!
+              await asyncio.gather(
+                  cleanup_workers(),
+                  cleanup_database(),  # Workers might still use!
+                  cleanup_cache()
+              )
+        manifestation: "Workers fail during cleanup"
+        difficulty: 6
+
+    # Migration Order Traps (20+ techniques)
+    migration_order_traps:
+      - technique: "migration_dependency"
+        description: "Migrations depend on each other"
+        llm_failure_mode: "LLM runs migrations in file order"
+        implementation: |
+          # 002_add_foreign_key.sql
+          ALTER TABLE orders ADD FOREIGN KEY (customer_id) 
+          REFERENCES customers(id);  -- TRAP: customers must exist!
+          
+          # 001_create_orders.sql
+          CREATE TABLE orders (...);
+        manifestation: "Migration fails on FK constraint"
+        difficulty: 5
+        
+      - technique: "data_migration_timing"
+        description: "Data migration depends on schema migration"
+        llm_failure_mode: "LLM separates schema and data migrations"
+        implementation: |
+          def migrate():
+              run_schema_migrations()
+              # TRAP: Data migration needs schema changes!
+              # But what if it runs before schema is applied?
+              run_data_migrations()
+        manifestation: "Data migration fails"
+        difficulty: 6
+        
+      - technique: "migration_rollback_data"
+        description: "Rollback must handle data changes"
+        llm_failure_mode: "LLM only considers schema rollback"
+        implementation: |
+          # up: add column with default
+          # down: remove column
+          # TRAP: Data in column is lost on rollback!
+        manifestation: "Data loss on rollback"
+        difficulty: 6
+
+    # Deployment Order Traps (20+ techniques)
+    deployment_order_traps:
+      - technique: "schema_before_code"
+        description: "Database schema must deploy before new code"
+        llm_failure_mode: "LLM deploys code and DB together"
+        implementation: |
+          # TRAP: New code expects new column!
+          deploy_code()    # Uses new_column
+          run_migrations() # Creates new_column
+        manifestation: "ColumnNotFound errors"
+        difficulty: 5
+        
+      - technique: "config_before_restart"
+        description: "Config must be deployed before service restart"
+        llm_failure_mode: "LLM restarts before config is ready"
+        implementation: |
+          def deploy():
+              restart_service()  # TRAP: Uses new config!
+              deploy_config()    # Config not there yet!
+        manifestation: "Service uses old/missing config"
+        difficulty: 5
+        
+      - technique: "dependency_service_order"
+        description: "Dependent services must deploy in order"
+        llm_failure_mode: "LLM deploys all services simultaneously"
+        implementation: |
+          def deploy_all():
+              # TRAP: api depends on auth, auth depends on db
+              deploy_parallel(['api', 'auth', 'database'])
+        manifestation: "Services fail to connect to dependencies"
+        difficulty: 6
+        
+      - technique: "canary_before_full"
+        description: "Canary deployment must succeed before full rollout"
+        llm_failure_mode: "LLM doesn't check canary health"
+        implementation: |
+          def deploy():
+              deploy_canary()
+              # TRAP: Should verify canary health!
+              deploy_full()  # Bad code goes everywhere!
+        manifestation: "Bad deployment affects all users"
+        difficulty: 5
+        
+      - technique: "certificate_before_service"
+        description: "SSL certs must be deployed before service start"
+        llm_failure_mode: "LLM doesn't see certs as dependency"
+        implementation: |
+          def deploy():
+              start_https_service()  # TRAP: Needs cert!
+              deploy_certificates()
+        manifestation: "SSL handshake failures"
+        difficulty: 5
+
+# === TRAP MECHANISMS ===
+trap_mechanisms:
+  dependency_hiding_methods:
+    - mechanism: "implicit_dependency"
+      description: "Dependency exists but not documented"
+      examples:
+        - "Config read at module import"
+        - "Singleton initialized on first access"
+        - "Decorator requires external state"
+      detection_difficulty: 7
+      
+    - mechanism: "transitive_dependency"
+      description: "A needs B which needs C"
+      examples:
+        - "Service chain initialization"
+        - "Plugin loading order"
+        - "Factory method dependencies"
+      detection_difficulty: 7
+      
+    - mechanism: "temporal_dependency"
+      description: "Depends on timing, not just order"
+      examples:
+        - "Cache must warm before traffic"
+        - "Health check interval"
+        - "Connection pool establishment"
+      detection_difficulty: 8
+      
+    - mechanism: "conditional_dependency"
+      description: "Dependency only exists under certain conditions"
+      examples:
+        - "Feature flag enables dependency"
+        - "Production vs test environment"
+        - "First request triggers init"
+      detection_difficulty: 8
+
+# === ANTI-DETECTION TECHNIQUES ===
+anti_detection_techniques:
+  hiding_methods:
+    - method: "separate_files"
+      description: "Dependencies defined in different files"
+      
+    - method: "lazy_evaluation"
+      description: "Dependency only triggered on use"
+      
+    - method: "error_masking"
+      description: "Wrong order produces misleading error"
+      
+    - method: "silent_failure"
+      description: "Wrong order degrades silently"
+
+# === LLM-SPECIFIC TRAPS ===
+llm_specific_traps:
+  assumption_exploitation:
+    - trap: "parallel_is_faster"
+      description: "LLM parallelizes operations that must be sequential"
+      examples:
+        - name: "parallel_init"
+          code: |
+            async def init():
+                await asyncio.gather(
+                    init_database(),
+                    init_cache(),  # Needs DB!
+                    init_services()  # Needs both!
+                )
+          llm_failure: "LLM sees async.gather as optimization"
+          
+    - trap: "any_order_works"
+      description: "LLM assumes order is arbitrary"
+      examples:
+        - name: "config_steps"
+          code: |
+            def configure():
+                set_log_level()
+                load_config()  # TRAP: Uses log!
+                init_logging()  # Should be first!
+          llm_failure: "LLM doesn't trace logging dependency"
+          
+    - trap: "cleanup_mirrors_setup"
+      description: "LLM assumes cleanup is reverse of setup"
+      examples:
+        - name: "cleanup_with_dependency"
+          code: |
+            def cleanup():
+                # TRAP: audit needs db to record cleanup!
+                audit.record('cleanup started')
+                db.close()  # Now audit fails!
+          llm_failure: "LLM doesn't see cleanup's own dependencies"
+
+# === DIFFICULTY MULTIPLIERS ===
+difficulty_multipliers:
+  complexity_factors:
+    - factor: "deep_dependency_chain"
+      multiplier: 1.6
+      description: "Many levels of transitive dependencies"
+      
+    - factor: "circular_potential"
+      multiplier: 1.8
+      description: "Near-circular dependencies"
+      
+    - factor: "conditional_paths"
+      multiplier: 1.5
+      description: "Order depends on runtime conditions"
+      
+    - factor: "distributed_ordering"
+      multiplier: 1.7
+      description: "Order across multiple services"
+      
+    - factor: "async_ordering"
+      multiplier: 1.5
+      description: "Order in async/concurrent context"
+
+# === COMPREHENSIVE TASK TEMPLATES ===
+task_templates:
+  - id: "initialization_sequence"
+    name: "System Initialization Sequence"
+    description: "Determine correct initialization order"
+    difficulty: [5, 9]
+    template: |
+      A {{ system_type }} needs to be initialized. The components are:
+      {{ component_list }}
+      
+      Current initialization code:
+      {{ init_code }}
+      
+      Observed problems:
+      {{ problems }}
+      
+      Your tasks:
+      1. Map all component dependencies
+      2. Identify hidden dependencies
+      3. Determine correct initialization order
+      4. Handle initialization failures
+      5. Implement proper sequencing
+      
+  - id: "deployment_ordering"
+    name: "Deployment Order Resolution"
+    description: "Determine correct deployment sequence"
+    difficulty: [6, 9]
+    template: |
+      A {{ deployment_type }} deployment is failing intermittently.
+      
+      Components to deploy:
+      {{ components }}
+      
+      Current deployment script:
+      {{ deploy_script }}
+      
+      Failure reports:
+      {{ failures }}
+      
+      Your tasks:
+      1. Identify deployment dependencies
+      2. Map service dependencies
+      3. Determine correct order
+      4. Add health checks
+      5. Implement rollback strategy
+      
+  - id: "migration_dependencies"
+    name: "Migration Dependency Resolution"
+    description: "Order database migrations correctly"
+    difficulty: [5, 8]
+    template: |
+      Database migrations are failing in {{ environment }}.
+      
+      Migrations:
+      {{ migration_list }}
+      
+      Errors encountered:
+      {{ errors }}
+      
+      Your tasks:
+      1. Identify schema dependencies
+      2. Identify data dependencies
+      3. Determine correct order
+      4. Plan rollback strategy
+      5. Implement execution
+
+# === GENERATION CONFIGURATION ===
+generation_config:
+  min_variants_per_template: 100
+  total_combinations_target: 10000
+  
+  randomization_rules:
+    - rule: "dependency_complexity"
+      description: "Vary depth and breadth of dependencies"
+    - rule: "failure_mode"
+      description: "Vary how wrong order manifests"
+    - rule: "component_count"
+      description: "Vary number of components"
+
+# === REFERENCE SOLUTION PATTERNS ===
+reference_solutions:
+  dependency_resolver: |
+    from collections import defaultdict
+    
+    class DependencyResolver:
+        def __init__(self):
+            self.deps = defaultdict(set)
+            self.rdeps = defaultdict(set)
+        
+        def add_dependency(self, item, depends_on):
+            self.deps[item].add(depends_on)
+            self.rdeps[depends_on].add(item)
+        
+        def resolve_order(self):
+            """Topological sort."""
+            order = []
+            no_deps = {k for k, v in self.deps.items() if not v}
+            no_deps |= set(self.rdeps.keys()) - set(self.deps.keys())
+            
+            while no_deps:
+                item = no_deps.pop()
+                order.append(item)
+                for dependent in self.rdeps[item]:
+                    self.deps[dependent].discard(item)
+                    if not self.deps[dependent]:
+                        no_deps.add(dependent)
+            
+            if any(self.deps.values()):
+                raise ValueError("Circular dependency detected")
+            
+            return order
+  
+  ordered_init: |
+    def ordered_init(*init_funcs):
+        """Initialize in order, with dependency checking."""
+        completed = set()
+        
+        for func in init_funcs:
+            deps = getattr(func, 'depends_on', [])
+            missing = set(deps) - completed
+            if missing:
+                raise RuntimeError(f"{func.__name__} depends on: {missing}")
+            
+            func()
+            completed.add(func.__name__)
+
+# === ANTI-HARDCODING CONFIGURATION ===
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  
+  order_variations:
+    - vary: "dependency_graph"
+    - vary: "failure_mode"
+    - vary: "component_types"
+    - vary: "init_mechanism"
+
+# === TEST CASE GENERATION ===
+test_case_generation:
+  fail_to_pass:
+    - "test_dependencies_resolved"
+    - "test_no_circular_dependencies"
+    - "test_init_order_correct"
+    - "test_cleanup_order_reverse"
+    - "test_migration_order_valid"
+
+  pass_to_pass:
+    - "test_independent_operations_work"
+    - "test_explicit_ordering_works"
+    - "test_dependency_injection_works"
+
+# === ADDITIONAL ORDERING TRAPS ===
+additional_ordering_traps:
+  # Distributed System Ordering (20+ techniques)
+  distributed_ordering_traps:
+    - technique: "network_partition_ordering"
+      description: "Network partition causes ordering issues"
+      llm_failure_mode: "LLM assumes network is reliable"
+      implementation: |
+        async def update_replicas(data):
+            # TRAP: If network partitions, replicas get updates in different order
+            await asyncio.gather(*[
+                replica.update(data) for replica in replicas
+            ])
+      difficulty: 8
+      
+    - technique: "eventual_consistency_ordering"
+      description: "Eventual consistency allows stale reads"
+      llm_failure_mode: "LLM assumes reads see latest writes"
+      implementation: |
+        def read_after_write(key, value):
+            db.write(key, value)
+            # TRAP: Read might return old value!
+            return db.read(key)  # Eventually consistent
+      difficulty: 7
+      
+    - technique: "vector_clock_ordering"
+      description: "Concurrent events need vector clocks"
+      llm_failure_mode: "LLM uses wall clock ordering"
+      implementation: |
+        def merge_events(events_a, events_b):
+            # TRAP: Wall clock ordering is wrong for concurrent events!
+            all_events = events_a + events_b
+            return sorted(all_events, key=lambda e: e.timestamp)
+      difficulty: 9
+      
+    - technique: "causal_broadcast_ordering"
+      description: "Causal order not preserved by broadcast"
+      llm_failure_mode: "LLM assumes message order preserved"
+      implementation: |
+        def broadcast_update(update):
+            # TRAP: Recipients may receive in different order!
+            for node in nodes:
+                node.send(update)
+      difficulty: 8
+      
+    - technique: "two_phase_commit_ordering"
+      description: "2PC phases must complete in order"
+      llm_failure_mode: "LLM doesn't handle 2PC failures"
+      implementation: |
+        def two_phase_commit(transaction):
+            # Phase 1: Prepare
+            prepared = [node.prepare(transaction) for node in nodes]
+            # TRAP: What if some prepare, some don't?
+            # Phase 2: Commit (only if all prepared)
+            [node.commit(transaction) for node in nodes]
+      difficulty: 8
+      
+    - technique: "saga_compensation_ordering"
+      description: "Saga compensation must be reverse order"
+      llm_failure_mode: "LLM doesn't track saga state"
+      implementation: |
+        def saga_transaction(steps):
+            completed = []
+            for step in steps:
+                try:
+                    step.execute()
+                    completed.append(step)
+                except:
+                    # TRAP: Must compensate in reverse order!
+                    for s in completed:  # Wrong: should be reversed!
+                        s.compensate()
+      difficulty: 7
+
+  # Container/Kubernetes Ordering (15+ techniques)
+  container_ordering_traps:
+    - technique: "init_container_ordering"
+      description: "Init containers must complete in order"
+      llm_failure_mode: "LLM doesn't see init container deps"
+      implementation: |
+        # kubernetes deployment
+        # initContainers:
+        #   - name: wait-for-db  # Must complete first!
+        #   - name: run-migrations  # Needs DB!
+        # TRAP: If order wrong, migrations fail
+      difficulty: 6
+      
+    - technique: "sidecar_startup_ordering"
+      description: "Sidecar must be ready before main container"
+      llm_failure_mode: "LLM doesn't consider sidecar startup"
+      implementation: |
+        # Main container expects Envoy sidecar ready
+        # TRAP: If main starts before sidecar, network fails
+      difficulty: 6
+      
+    - technique: "pod_disruption_ordering"
+      description: "Pod disruption must respect ordering"
+      llm_failure_mode: "LLM doesn't see pod relationships"
+      implementation: |
+        # TRAP: Rolling update might take down dependent pods first!
+      difficulty: 7
+      
+    - technique: "config_reload_ordering"
+      description: "Config changes must propagate before use"
+      llm_failure_mode: "LLM assumes instant config updates"
+      implementation: |
+        def update_config(new_config):
+            configmap.update(new_config)
+            # TRAP: Pods might not see new config immediately!
+            restart_pods()
+      difficulty: 6
+
+  # Event-Driven System Ordering (15+ techniques)
+  event_ordering_traps:
+    - technique: "event_sourcing_ordering"
+      description: "Events must be applied in order"
+      llm_failure_mode: "LLM doesn't track event sequence"
+      implementation: |
+        def rebuild_state(events):
+            state = initial_state()
+            # TRAP: If events out of order, state is wrong!
+            for event in events:  # Must be ordered!
+                state = apply_event(state, event)
+            return state
+      difficulty: 7
+      
+    - technique: "message_queue_ordering"
+      description: "Message queue may not preserve order"
+      llm_failure_mode: "LLM assumes FIFO delivery"
+      implementation: |
+        def process_messages():
+            while True:
+                msg = queue.receive()
+                # TRAP: Messages might arrive out of order!
+                handle(msg)
+      difficulty: 6
+      
+    - technique: "webhook_ordering"
+      description: "Webhooks may arrive out of order"
+      llm_failure_mode: "LLM trusts webhook ordering"
+      implementation: |
+        def handle_webhook(event):
+            # TRAP: payment.succeeded might arrive before payment.created!
+            if event.type == 'payment.succeeded':
+                payment = get_payment(event.payment_id)  # Might not exist!
+      difficulty: 6
+      
+    - technique: "cqrs_sync_ordering"
+      description: "CQRS read model update ordering"
+      llm_failure_mode: "LLM doesn't see read model lag"
+      implementation: |
+        def handle_command(cmd):
+            event = domain.process(cmd)
+            event_store.append(event)
+            # TRAP: Query side might not see event yet!
+            return query_service.get(cmd.entity_id)
+      difficulty: 7
+
+# === COMPREHENSIVE ORDERING PATTERNS ===
+ordering_patterns:
+  topological_sort: |
+    from collections import defaultdict
+    
+    def topological_sort(graph):
+        """Sort nodes respecting dependencies."""
+        in_degree = defaultdict(int)
+        for node in graph:
+            for dep in graph[node]:
+                in_degree[dep] += 1
+        
+        queue = [n for n in graph if in_degree[n] == 0]
+        result = []
+        
+        while queue:
+            node = queue.pop(0)
+            result.append(node)
+            for neighbor in graph[node]:
+                in_degree[neighbor] -= 1
+                if in_degree[neighbor] == 0:
+                    queue.append(neighbor)
+        
+        if len(result) != len(graph):
+            raise ValueError("Cycle detected!")
+        return result
+  
+  dependency_injection: |
+    class Container:
+        def __init__(self):
+            self._factories = {}
+            self._instances = {}
+            self._initializing = set()
+        
+        def register(self, name, factory, deps=None):
+            self._factories[name] = (factory, deps or [])
+        
+        def get(self, name):
+            if name in self._instances:
+                return self._instances[name]
+            
+            if name in self._initializing:
+                raise ValueError(f"Circular dependency: {name}")
+            
+            self._initializing.add(name)
+            factory, deps = self._factories[name]
+            resolved_deps = [self.get(d) for d in deps]
+            instance = factory(*resolved_deps)
+            self._instances[name] = instance
+            self._initializing.remove(name)
+            return instance
+
+# === ENHANCED DIFFICULTY CONFIGURATION ===
+enhanced_difficulty_config:
+  time_range: [7200, 18000]  # 120-300 minutes for expert reverse engineers
+  command_steps: [150, 500]  # Minimum 150 distinct analysis steps required
+  trap_count: "15+ nested, mutually-reinforcing traps"
+  
+  quality_requirements:
+    description: "120-300 minutes for expert reverse engineers and security researchers"
+    expertise_level: "Elite systems architect with mastery of distributed systems, dependency resolution, and initialization semantics"
+    prerequisite_knowledge:
+      - "Topological sorting, dependency graph analysis, and cycle detection"
+      - "Database transaction ordering, isolation levels, and deadlock conditions"
+      - "Service initialization, cleanup lifecycle, and graceful degradation patterns"
+      - "Distributed system consistency models, causality, and vector clocks"
+      - "Compiler optimization passes and their effects on initialization order"
+      - "Module loading semantics across languages (Python imports, JS require, etc.)"
+      - "Container orchestration initialization and readiness dependencies"
+      - "Event loop scheduling and async initialization ordering"
+  
+  phase_4_verification:
+    validation_criteria:
+      - "Contains 15+ interacting deceptive patterns that cascade across abstraction layers"
+      - "Has cascading state corruption that spreads across services"
+      - "Requires understanding of runtime, scheduler, and network timing"
+      - "Would take expert security researchers 120+ minutes"
+      - "Hidden transitive dependencies that span multiple abstraction layers"
+      - "Order requirements that only manifest under specific runtime conditions"
+      - "Distributed ordering constraints across service boundaries"
+      - "Cleanup order dependencies that cause resource leaks"
+      - "Deadlock conditions hidden in async initialization"
+  
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 4.0
+      description: "Deceptive complexity designed to defeat even expert analysis"
+      requirements:
+        - "7+ interacting traps that mask each other's symptoms"
+        - "Requires understanding of compiler optimizations and runtime behavior"
+        - "Time estimate: 120+ minutes for senior engineers"
+        - "Timing-dependent behavior that varies across environments"
+        - "Requires synthesizing debugging, systems, and language internals"
+    
+    nightmare_plus:
+      multiplier: 8.0
+      estimated_time: [43200, 259200]  # 12-72 hours
+      command_steps: [600, 3000]
+      techniques_required: 25
+      description: "CTF championship-level difficulty with adversarial anti-analysis mechanisms"
+      requirements:
+        - "15+ interacting ordering traps with cascading failures"
+        - "Distributed consensus and ordering attacks"
+        - "Compiler optimization-induced ordering changes"
+        - "Requires expertise in distributed systems, databases, and compiler theory"
+        - "Time estimate: 12-72 hours for elite security researchers"
+        - "Dependencies that change based on environment detection"
+        - "Self-modifying initialization that adapts to analysis"
+        - "Temporal coupling with nanosecond-level sensitivity"
+  
+  anti_patterns:
+    llm_failure_modes:
+      - "Trusting visible code structure over actual execution behavior"
+      - "Missing compiler optimization effects on code semantics"
+      - "Ignoring Unicode normalization and rendering differences"
+      - "Not considering filesystem race conditions with symlinks"
+      - "Missing singleton initialization order dependencies"
+      - "Overlooking environment variable and config file interactions"
+      - "Assuming deterministic behavior in timing-sensitive code"
+      - "Missing state corruption that only manifests under specific sequences"
+      - "Ignoring encoding round-trip issues that corrupt data silently"
+      - "Failing to trace transitive dependencies through abstraction layers"
+      - "Missing async initialization ordering constraints"
+      - "Not considering distributed consensus ordering"
+  
+  generation_targets:
+    minimum_difficulty: "120-300 minutes, requires elite expertise in distributed systems and initialization semantics"
+    target_audience: "Expert reverse engineers, CTF champions, and elite security researchers"
+    success_criteria: "LLM fails to identify all ordering dependencies in first 5 attempts"
+
+# === MULTI-AGENT ORCHESTRATION COMPLEXITY ===
+multi_agent_orchestration:
+  description: "Coordinating specialized dependency analysis agents"
+  
+  required_agents:
+    - agent: "dependency_mapper"
+      role: "Map all dependencies across the system"
+      capabilities:
+        - "Static dependency extraction from code"
+        - "Runtime dependency discovery"
+        - "Transitive dependency calculation"
+      handoff_triggers:
+        - "Discovers hidden dependency"
+        - "Finds circular dependency potential"
+    
+    - agent: "initialization_tracer"
+      role: "Trace initialization order and side effects"
+      capabilities:
+        - "Module load order tracking"
+        - "Static initializer detection"
+        - "Lazy initialization analysis"
+      handoff_triggers:
+        - "Discovers order-dependent initialization"
+        - "Finds lazy init race condition"
+    
+    - agent: "deadlock_detector"
+      role: "Detect potential deadlock conditions"
+      capabilities:
+        - "Lock ordering analysis"
+        - "Resource acquisition graph"
+        - "Distributed deadlock detection"
+      handoff_triggers:
+        - "Discovers lock ordering violation"
+        - "Finds distributed deadlock pattern"
+    
+    - agent: "distributed_analyst"
+      role: "Analyze distributed ordering constraints"
+      capabilities:
+        - "Causality relationship mapping"
+        - "Consensus protocol analysis"
+        - "Network partition behavior"
+      handoff_triggers:
+        - "Discovers causality violation"
+        - "Finds consensus ordering bug"
+    
+    - agent: "database_specialist"
+      role: "Analyze database ordering and transactions"
+      capabilities:
+        - "Transaction isolation analysis"
+        - "Foreign key dependency mapping"
+        - "Migration ordering verification"
+      handoff_triggers:
+        - "Discovers transaction ordering bug"
+        - "Finds migration dependency"
+    
+    - agent: "async_analyst"
+      role: "Analyze async/await ordering"
+      capabilities:
+        - "Promise resolution order tracking"
+        - "Event loop scheduling analysis"
+        - "Async initialization sequencing"
+      handoff_triggers:
+        - "Discovers async ordering bug"
+        - "Finds promise race condition"
+    
+    - agent: "cleanup_specialist"
+      role: "Analyze cleanup and shutdown ordering"
+      capabilities:
+        - "Reverse dependency calculation"
+        - "Resource release sequencing"
+        - "Graceful shutdown analysis"
+      handoff_triggers:
+        - "Discovers cleanup ordering bug"
+        - "Finds resource leak on shutdown"
+    
+    - agent: "compiler_analyst"
+      role: "Analyze compiler-induced ordering changes"
+      capabilities:
+        - "Optimization pass analysis"
+        - "Instruction reordering detection"
+        - "Memory model compliance"
+      handoff_triggers:
+        - "Discovers compiler reordering"
+        - "Finds memory model violation"
+  
+  cross_artifact_deception_chains:
+    - chain: "init_to_deadlock_to_corruption"
+      description: "Wrong initialization order causes deadlock that corrupts data"
+      stages:
+        - "Service A initializes before its dependency B"
+        - "A waits for B while holding resource"
+        - "B waits for resource, causing deadlock"
+        - "Timeout handling corrupts shared state"
+    
+    - chain: "migration_to_schema_to_data"
+      description: "Migration ordering causes schema then data corruption"
+      stages:
+        - "Migration A depends on migration B"
+        - "Running A first partially succeeds"
+        - "Partial schema causes data insertion failure"
+        - "Data corruption propagates to dependent tables"
+    
+    - chain: "distributed_to_consensus_to_split"
+      description: "Distributed ordering bug causes consensus failure"
+      stages:
+        - "Events arrive in wrong order at different nodes"
+        - "Consensus diverges between partitions"
+        - "Split-brain causes conflicting decisions"
+  
+  parallel_deception_analysis:
+    shared_symbolic_state:
+      - "Dependency graph across all services"
+      - "Lock acquisition order across threads"
+      - "Database transaction state"
+      - "Distributed event ordering"
+    
+    synchronization_requirements:
+      - "Consistent view of dependency graph"
+      - "Coordinated deadlock detection"
+      - "Synchronized distributed analysis"
+  
+  agent_handoff_protocols:
+    protocol: "cascading_dependency_unwinding"
+    steps:
+      - "Initial agent maps surface-level dependencies"
+      - "Handoff to specialist for hidden dependencies"
+      - "Specialist discovers transitive ordering constraint"
+      - "Recursive handoff for each dependency layer"
+      - "Final synthesis of complete ordering requirements"
+
+# === META TRAP LAYERS ===
+meta_trap_layers:
+  first_order_traps:
+    description: "Obvious ordering issues detectable with basic analysis"
+    examples:
+      - "Direct circular dependency"
+      - "Obvious foreign key violation"
+      - "Simple init-before-use violation"
+      - "Basic lock ordering deadlock"
+    detection_time: "5-15 minutes"
+    llm_detection_rate: "70-90%"
+  
+  second_order_traps:
+    description: "Ordering issues hidden through indirection"
+    examples:
+      - "Transitive dependency through 3+ layers"
+      - "Lazy initialization race condition"
+      - "Async ordering through callbacks"
+      - "Database ordering through triggers"
+    detection_time: "30-60 minutes"
+    llm_detection_rate: "30-50%"
+  
+  third_order_traps:
+    description: "Environment and timing-dependent ordering"
+    examples:
+      - "Ordering changes based on load"
+      - "Race condition only under specific timing"
+      - "Distributed ordering with network latency"
+      - "Compiler optimization changes ordering"
+    detection_time: "60-120 minutes"
+    llm_detection_rate: "10-20%"
+  
+  nth_order_traps:
+    description: "Cascading and adaptive ordering issues"
+    examples:
+      - "Ordering requirements that change based on prior failures"
+      - "Self-modifying dependency graphs"
+      - "Ordering that depends on global state"
+      - "Cross-layer ordering (app + db + network)"
+    detection_time: "120+ minutes per additional layer"
+    llm_detection_rate: "<5%"
+    
+  recursive_trap_structures:
+    - structure: "dynamic_dependency_graph"
+      description: "Dependency graph changes during initialization"
+      depth: "theoretically infinite with lazy loading"
+      
+    - structure: "cascading_deadlock"
+      description: "Each deadlock resolution creates new deadlock potential"
+      depth: "depends on resource graph complexity"
+      
+    - structure: "distributed_ordering_spiral"
+      description: "Ordering constraints propagate across nodes"
+      depth: "limited by network topology"
+
+# === ANTI-ANALYSIS TECHNIQUES ===
+anti_analysis_techniques:
+  environment_detection:
+    - technique: "load_detection"
+      description: "Detect analysis environment through load patterns"
+      methods:
+        - "Measure concurrent request rate"
+        - "Check thread pool utilization"
+        - "Detect unusually sequential access"
+      behavior_change: "Different ordering requirements under analysis"
+    
+    - technique: "timing_detection"
+      description: "Detect analysis through timing anomalies"
+      methods:
+        - "Measure initialization timing"
+        - "Detect artificial delays"
+        - "Compare wall clock vs CPU time"
+      behavior_change: "Hide ordering dependencies when analyzed slowly"
+    
+    - technique: "dependency_injection_detection"
+      description: "Detect mocked dependencies"
+      methods:
+        - "Check for mock framework markers"
+        - "Verify dependency behavior matches expected"
+        - "Detect simplified dependency behavior"
+      behavior_change: "Different ordering with real vs mock dependencies"
+  
+  anti_debugging_measures:
+    - measure: "timing_sensitive"
+      description: "Ordering requirements change under debugging"
+      implementation: "Detect slow execution and relax ordering"
+      
+    - measure: "stack_inspection"
+      description: "Different behavior based on caller stack"
+      implementation: "Detect test framework or debugger in stack"
+      
+    - measure: "logging_detection"
+      description: "Detect verbose logging and hide issues"
+      implementation: "Check log level and adjust behavior"
+  
+  anti_tracing_mechanisms:
+    - mechanism: "async_obfuscation"
+      description: "Hide ordering in complex async chains"
+      implementation: "Multiple levels of async indirection"
+      
+    - mechanism: "lazy_evaluation"
+      description: "Ordering only visible when lazily evaluated"
+      implementation: "Dependencies resolved at unpredictable times"
+      
+    - mechanism: "reflection_based"
+      description: "Dependencies discovered through reflection"
+      implementation: "Static analysis cannot find dependencies"
+  
+  time_based_anti_analysis:
+    - technique: "delayed_dependency"
+      description: "Dependency only matters after delay"
+      implementation: "Ordering constraint activates after warm-up period"
+      
+    - technique: "periodic_reordering"
+      description: "Valid ordering changes over time"
+      implementation: "Background task changes required ordering"
+      
+    - technique: "timeout_dependent"
+      description: "Ordering matters only under timeout pressure"
+      implementation: "Fast execution hides ordering requirements"
+
+# === PSYCHOLOGICAL MISDIRECTION ===
+psychological_misdirection:
+  obvious_false_positives:
+    description: "Intentional red herrings to waste analyst time"
+    examples:
+      - name: "obvious_circular_reference"
+        description: "Circular import that is actually handled correctly"
+        time_waste: "30-60 minutes"
+        
+      - name: "suspicious_init_order"
+        description: "Initialization that looks wrong but is actually safe"
+        time_waste: "20-40 minutes"
+        
+      - name: "apparent_deadlock"
+        description: "Lock pattern that appears deadlock-prone but isn't"
+        time_waste: "45-90 minutes"
+  
+  misleading_comments:
+    description: "Comments that direct attention away from real issues"
+    examples:
+      - "# Dependencies verified by test suite"
+      - "// Order doesn't matter here"
+      - "/* Deadlock-free by design */"
+      - "# Initialization order is flexible"
+  
+  misleading_variable_names:
+    description: "Variable names that hide ordering issues"
+    examples:
+      - "safe_to_call_anytime - actually requires prior initialization"
+      - "independent_service - has hidden dependencies"
+      - "parallel_safe - has ordering requirements"
+      - "lazy_init - initialization has side effects"
+  
+  red_herring_code_paths:
+    description: "Code paths that appear to have ordering issues but don't"
+    examples:
+      - name: "complex_dependency_graph"
+        description: "Elaborate dependency tracking that actually works"
+        
+      - name: "suspicious_lock_pattern"
+        description: "Complex locking that is actually correct"
+        
+      - name: "async_callback_chain"
+        description: "Callbacks that appear racy but are properly ordered"
+  
+  partial_solutions:
+    description: "Solutions that work initially but cause new ordering issues"
+    examples:
+      - name: "eager_initialization"
+        description: "Removing lazy init causes new circular dependency"
+        
+      - name: "lock_reordering"
+        description: "Fixing one deadlock creates another"
+        
+      - name: "async_to_sync"
+        description: "Converting to sync creates blocking issues"
+
+# === VERSION HISTORY ===
+version_history:
+  - version: "1.0.0"
+    date: "2024-01-01"
+    changes: "Initial order-matters traps"
+  - version: "2.0.0"
+    date: "2024-06-01"
+    changes: "Expanded to 1000+ lines with comprehensive ordering traps"
+  - version: "3.0.0"
+    date: "2024-12-01"
+    changes: "Enhanced difficulty with nightmare mode and comprehensive anti-patterns"

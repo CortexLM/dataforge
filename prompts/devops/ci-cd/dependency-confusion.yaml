@@ -1,0 +1,1807 @@
+id: "devops-cicd-dependency-confusion-001"
+version: "2.0.0"
+category: "devops"
+subcategory: "ci-cd"
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research obscure dependency confusion vectors across package ecosystems"
+    phase_2_creation: "Create complex multi-package scenarios with subtle supply chain vulnerabilities"
+    phase_3_amplification: "Add cascading compromise scenarios with forensic requirements"
+    phase_4_verification: "Validate task requires production-level supply chain security expertise"
+  
+  complexity_targets:
+    minimum_unique_tasks: 10000
+    difficulty_range: ["medium", "hard", "expert", "nightmare"]
+    domain_expertise_required: ["supply_chain_security", "package_management", "build_systems", "software_composition"]
+  
+  task_generation_rules:
+    - "Combine 3+ attack vectors per task"
+    - "Include real supply chain incident references"
+    - "Require multi-ecosystem defense"
+    - "Add SBOM and attestation requirements"
+    - "Include provenance verification"
+  
+  phase_4_verification:
+    requirements:
+      - "Has at least 5 interacting hidden traps"
+      - "Has cascading failures across infrastructure layers (network, compute, storage)"
+      - "Requires knowledge of cloud provider internals and Kubernetes scheduler"
+      - "Would take experienced SREs 30+ minutes"
+
+# SWE-bench_Pro style fields
+problem_statement: |
+  A software supply chain is vulnerable to dependency confusion attacks:
+  
+  1. Internal package names available on public registry
+  2. No registry priority configured
+  3. Typosquatting vulnerabilities
+  4. No package integrity verification
+  5. Pre/post-install scripts execute malicious code
+  6. Transitive dependency attacks
+  7. Lock file manipulation
+  8. Build-time dependency injection
+  9. Manifest confusion
+  10. Version override attacks
+
+requirements: |
+  - Configure registry priority for internal packages
+  - Implement package name reservation
+  - Verify package integrity with checksums
+  - Audit dependency installation scripts
+  - Set up dependency scanning
+  - Implement SBOM generation
+  - Configure provenance verification
+  - Set up artifact signing
+  - Implement dependency pinning
+  - Create update review process
+
+interface: |
+  Input: Package management configuration
+  Output: Secure dependency resolution with supply chain controls
+  Validation: Only trusted packages installed, provenance verified
+
+# === COMPREHENSIVE TOPIC UNIVERSE ===
+# 100+ detailed topics for dependency confusion scenarios
+topic_universe:
+  # Dependency Confusion Attack Vectors (35 topics)
+  dependency_confusion_attacks:
+    namespace_attacks:
+      - public_registry_precedence: |
+          Public registry priority over private:
+          - npm default behavior
+          - pip extra-index-url vs index-url
+          - Maven Central vs internal Nexus
+          - NuGet source ordering
+          Attack flow:
+          1. Identify internal package name
+          2. Register on public registry
+          3. Publish higher version
+          4. Victim installs from public
+          High-profile incidents:
+          - Alex Birsan (2021): 35+ companies
+          - Microsoft, Apple, Tesla affected
+      
+      - namespace_squatting: |
+          Organization namespace attacks:
+          - npm @org/ scopes
+          - PyPI namespace packages
+          - Maven group IDs
+          - Docker Hub organizations
+          Protection:
+          - Reserve all org namespaces
+          - Monitor for new registrations
+          - Publish placeholder packages
+      
+      - scope_confusion: |
+          Scoped package confusion:
+          - Unscoped name shadows scoped
+          - Mixed scope environments
+          - Registry routing issues
+          npm example:
+          @company/utils vs utils (unscoped)
+      
+      - internal_name_exposure: |
+          Internal package name discovery:
+          - package.json in public repos
+          - Error messages revealing names
+          - Documentation/README leaks
+          - Build artifact inspection
+          - Job postings mentioning stack
+    
+    typosquatting:
+      - character_substitution: |
+          Character swap attacks:
+          - lodash vs lodahs
+          - request vs requst
+          - colors vs colour
+          Common techniques:
+          - Vowel swapping (a<->e, i<->u)
+          - Consonant doubling
+          - Character omission
+          - Adjacent key errors
+      
+      - unicode_homoglyphs: |
+          Unicode lookalike attacks:
+          - Cyrillic 'а' vs Latin 'a'
+          - Greek 'ο' vs Latin 'o'
+          - Mathematical symbols
+          - Combining characters
+          Detection:
+          - Punycode analysis
+          - Character set validation
+          - Confusable detection libraries
+      
+      - package_name_variants: |
+          Name format variations:
+          - underscore vs hyphen (my_package vs my-package)
+          - Capitalization (MyPackage vs mypackage)
+          - Prefix/suffix confusion (-dev, -core, -common)
+          - Version suffixes (v1, 2.0)
+      
+      - popular_package_typos: |
+          Common typosquatting targets:
+          npm:
+          - express, lodash, moment, request
+          PyPI:
+          - requests, numpy, pandas, flask
+          Maven:
+          - spring, jackson, guava
+          Detection tools:
+          - socket.dev
+          - Snyk typosquatting detection
+          - npm audit advisories
+    
+    manifest_attacks:
+      - package_json_manipulation: |
+          npm manifest attacks:
+          - scripts.preinstall execution
+          - scripts.postinstall execution
+          - bin field hijacking
+          - engines field bypass
+          - bundledDependencies confusion
+      
+      - setup_py_execution: |
+          Python setup.py attacks:
+          - Arbitrary code in setup.py
+          - cmdclass customization
+          - Extension module compilation
+          - data_files with payloads
+          Protection:
+          - Use wheels only (--only-binary :all:)
+          - PEP 517 build isolation
+          - Avoid pip install from source
+      
+      - pom_xml_manipulation: |
+          Maven POM attacks:
+          - Build plugin injection
+          - Repository redirection
+          - Property value injection
+          - Profile-based attacks
+      
+      - build_script_attacks: |
+          Build-time code execution:
+          - Gradle build.gradle.kts
+          - Cargo build.rs scripts
+          - Go cgo compilation
+          - CMake scripts
+    
+    version_attacks:
+      - version_range_exploitation: |
+          Semantic version range attacks:
+          - ^ (caret) allows minor updates
+          - ~ (tilde) allows patch updates
+          - * (star) allows any version
+          Attack scenario:
+          1. Package uses "lodash": "^4.0.0"
+          2. Attacker compromises lodash
+          3. Publishes malicious 4.999.0
+          4. Victims auto-update
+      
+      - prerelease_injection: |
+          Pre-release version attacks:
+          - Alpha/beta/rc versions
+          - Unstable channel compromise
+          - npm dist-tag manipulation
+          - Version sorting quirks
+      
+      - version_override: |
+          Version resolution manipulation:
+          - npm overrides
+          - Yarn resolutions
+          - pip constraints
+          - Maven dependencyManagement
+          Attack via CI/CD:
+          - Inject override in build
+          - Force malicious version
+    
+    transitive_attacks:
+      - deep_dependency_injection: |
+          Transitive dependency attacks:
+          - 6+ levels deep in tree
+          - Rarely audited packages
+          - Development dependencies
+          - Optional dependencies
+          event-stream incident (2018):
+          - flatmap-stream malicious update
+          - Targeted cryptocurrency wallets
+          - Hidden in transitive dependency
+      
+      - phantom_dependency: |
+          Phantom dependency attack:
+          - Package not in manifest
+          - Installed via transitive
+          - Direct usage in code
+          - Upgrade pulls malicious version
+
+  # Package Ecosystem Specifics (25 topics)
+  package_ecosystems:
+    npm_ecosystem:
+      - npm_registry_behavior: |
+          npm registry specifics:
+          - Scoped packages (@org/name)
+          - Unscoped package resolution
+          - .npmrc configuration
+          - Registry authentication
+          - Package locks (package-lock.json)
+          - npm ci vs npm install
+          - Workspace package resolution
+      
+      - npm_security_features: |
+          npm security mechanisms:
+          - npm audit
+          - npm provenance (--provenance)
+          - Sigstore signing
+          - Lockfile version (v3)
+          - overrides for forced versions
+          - package.json engine restrictions
+      
+      - yarn_specifics: |
+          Yarn-specific considerations:
+          - .yarnrc.yml configuration
+          - Plug'n'Play (PnP)
+          - Zero-installs
+          - Yarn resolutions
+          - Yarn workspaces
+          - Offline mirror
+      
+      - pnpm_specifics: |
+          pnpm security features:
+          - Strict mode
+          - Content-addressable storage
+          - Shamefully-hoist option risks
+          - Side-effects caching
+    
+    python_ecosystem:
+      - pip_configuration: |
+          pip configuration:
+          - pip.conf / pip.ini
+          - --index-url (primary)
+          - --extra-index-url (additional)
+          - --trusted-host
+          - --require-hashes
+          - PEP 668 externally managed
+          
+          CRITICAL: extra-index-url does NOT take priority!
+          pip checks ALL indexes, uses highest version.
+          
+          Safe configuration:
+          - Use --index-url for internal only
+          - Block PyPI if not needed
+          - Use requirements with hashes
+      
+      - python_packaging_formats: |
+          Package format security:
+          - Wheel (.whl) - pre-built, no setup.py
+          - Source distribution (.tar.gz) - runs setup.py
+          - Egg (deprecated) - code execution
+          
+          Best practice:
+          - --only-binary :all: when possible
+          - Build wheels in isolated environment
+          - Verify wheel content before use
+      
+      - poetry_specifics: |
+          Poetry considerations:
+          - pyproject.toml security
+          - poetry.lock integrity
+          - Source configuration
+          - Private repository setup
+          - Plugin security
+      
+      - conda_specifics: |
+          Conda package management:
+          - Channels priority
+          - Conda-forge trust
+          - Anaconda defaults
+          - Channel configuration
+          - Environment isolation
+    
+    java_ecosystem:
+      - maven_configuration: |
+          Maven repository configuration:
+          - settings.xml configuration
+          - Repository ordering
+          - Mirror configuration
+          - Server authentication
+          - Profile-based repositories
+          
+          Security patterns:
+          - Mirror internal repos only
+          - Block direct Maven Central
+          - Require GPG verification
+      
+      - gradle_configuration: |
+          Gradle repository security:
+          - repositories {} block
+          - Resolution strategy
+          - Dependency verification
+          - Plugin portal security
+          - Composite builds
+      
+      - java_verification: |
+          Java artifact verification:
+          - GPG signature verification
+          - SHA-256 checksums
+          - POM validation
+          - Dependency lock plugin
+          - Gradle verification-metadata.xml
+    
+    ruby_ecosystem:
+      - bundler_configuration: |
+          Bundler security:
+          - Gemfile.lock integrity
+          - Source blocks
+          - Private gem servers
+          - Git source verification
+          - Platform-specific gems
+      
+      - rubygems_security: |
+          RubyGems.org security:
+          - MFA requirements
+          - Yanked gems
+          - Owner verification
+          - Gem signing (weak adoption)
+    
+    go_ecosystem:
+      - go_modules: |
+          Go module security:
+          - go.sum verification
+          - GOPROXY configuration
+          - GOPRIVATE for internal
+          - GONOSUMDB settings
+          - Module checksum database
+          
+          Configuration example:
+          GOPROXY=https://proxy.internal,direct
+          GOPRIVATE=github.com/myorg/*
+    
+    rust_ecosystem:
+      - cargo_configuration: |
+          Cargo registry configuration:
+          - Crates.io verification
+          - Private registry setup
+          - .cargo/config.toml
+          - Sparse protocol
+          - Registry auth tokens
+
+  # Supply Chain Attack Types (20 topics)
+  supply_chain_attacks:
+    compromised_maintainer:
+      - account_takeover: |
+          Maintainer account compromise:
+          - Weak credentials
+          - Credential stuffing
+          - Social engineering
+          - Token theft
+          Notable incidents:
+          - event-stream (2018)
+          - ua-parser-js (2021)
+          - coa, rc (2021)
+      
+      - insider_threat: |
+          Malicious maintainer:
+          - Legitimate access abused
+          - Long-term infiltration
+          - Open source funding schemes
+      
+      - ownership_transfer: |
+          Package ownership attacks:
+          - Social engineering maintainer
+          - Abandoned package takeover
+          - Legal entity purchase
+    
+    build_compromise:
+      - build_system_attack: |
+          CI/CD build compromise:
+          - Build script injection
+          - Environment variable theft
+          - Artifact replacement
+          Notable incidents:
+          - SolarWinds (2020)
+          - Codecov (2021)
+      
+      - reproducible_build_failure: |
+          Non-reproducible builds:
+          - Timestamp variations
+          - Build tool versions
+          - Environment differences
+          - Compiler optimizations
+    
+    distribution_attack:
+      - registry_compromise: |
+          Package registry attacks:
+          - Registry infrastructure breach
+          - CDN cache poisoning
+          - Package replacement
+      
+      - mirror_poisoning: |
+          Package mirror attacks:
+          - Corrupted mirror
+          - Man-in-the-middle
+          - DNS hijacking to mirrors
+
+  # Defense Mechanisms (20 topics)
+  defense_mechanisms:
+    registry_configuration:
+      - private_registry_setup: |
+          Private registry patterns:
+          - Artifactory configuration
+          - Nexus Repository Manager
+          - AWS CodeArtifact
+          - GCP Artifact Registry
+          - Azure Artifacts
+          - GitHub Packages
+          
+          Best practices:
+          - Virtual repository (combines internal + proxied external)
+          - Remote repository proxies public with caching
+          - Local repository hosts internal packages
+          - Firewall rules block direct public access
+      
+      - registry_firewall: |
+          Registry firewall rules:
+          - Block known malicious packages
+          - Allowlist approved packages
+          - License compliance filtering
+          - Vulnerability threshold blocking
+    
+    integrity_verification:
+      - checksum_verification: |
+          Hash-based verification:
+          npm:
+          - package-lock.json integrity field
+          - npm ci enforces integrity
+          pip:
+          - requirements.txt with --hash
+          - pip --require-hashes
+          Maven:
+          - SHA-256/512 checksums
+          - GPG signature verification
+      
+      - signature_verification: |
+          Cryptographic signing:
+          npm:
+          - npm provenance (Sigstore)
+          - SLSA Build Level 3
+          Python:
+          - Wheel signing (PEP 427)
+          - GPG signatures
+          Java:
+          - GPG signing via Maven
+          - Gradle signature verification
+      
+      - slsa_framework: |
+          SLSA (Supply-chain Levels for Software Artifacts):
+          - Level 1: Documentation exists
+          - Level 2: Hosted build, signed provenance
+          - Level 3: Hardened build platform
+          - Level 4: Two-party review, hermetic builds
+    
+    sbom_and_provenance:
+      - sbom_generation: |
+          Software Bill of Materials:
+          Formats:
+          - SPDX (ISO/IEC 5962:2021)
+          - CycloneDX (OWASP)
+          - SWID tags
+          
+          Generation tools:
+          - syft (Anchore)
+          - trivy
+          - cdxgen
+          - npm sbom
+          
+          Use cases:
+          - Vulnerability tracking
+          - License compliance
+          - Supply chain transparency
+      
+      - provenance_attestation: |
+          Build provenance:
+          - SLSA provenance predicate
+          - in-toto attestations
+          - Sigstore attestations
+          - GitHub Artifact Attestation
+          
+          Verification:
+          - slsa-verifier
+          - cosign verify-attestation
+
+# === FAILURE SCENARIOS ===
+# 50+ detailed failure scenarios
+failure_scenarios:
+  high_profile_incidents:
+    - scenario: "Alex Birsan Dependency Confusion (2021)"
+      description: |
+        1. Researcher analyzed package.json files
+        2. Identified internal package names
+        3. Published malicious packages to npm/PyPI
+        4. Packages executed code to phone home
+        5. 35+ major companies affected
+        6. Apple, Microsoft, Tesla, PayPal impacted
+      lessons:
+        - "Use scoped packages (@company/)"
+        - "Configure registry priority"
+        - "Reserve names on public registries"
+        - "Scan for internal name exposure"
+    
+    - scenario: "event-stream Compromise (2018)"
+      description: |
+        1. Maintainer social engineered
+        2. New maintainer given publish rights
+        3. flatmap-stream dependency added
+        4. Malicious code targeted Bitcoin wallets
+        5. Millions of downloads affected
+      lessons:
+        - "Review maintainer changes"
+        - "Audit new dependencies"
+        - "Monitor dependency updates"
+        - "Lock transitive dependencies"
+    
+    - scenario: "ua-parser-js Compromise (2021)"
+      description: |
+        1. npm account compromised
+        2. Malicious versions published
+        3. Crypto miner and password stealer
+        4. 7+ million weekly downloads affected
+        5. Multiple versions poisoned (0.7.29, 0.8.0, 1.0.0)
+      lessons:
+        - "Enable 2FA on all accounts"
+        - "Use npm provenance"
+        - "Pin dependencies precisely"
+        - "Automated version monitoring"
+    
+    - scenario: "SolarWinds SUNBURST (2020)"
+      description: |
+        1. Build system compromised
+        2. Malicious code inserted in Orion
+        3. Signed with legitimate certificate
+        4. Distributed to 18,000+ organizations
+        5. Government agencies breached
+      lessons:
+        - "Secure build infrastructure"
+        - "Reproducible builds"
+        - "Multiple signing keys"
+        - "Build attestation"
+    
+    - scenario: "Codecov Bash Uploader (2021)"
+      description: |
+        1. Codecov bash script modified
+        2. Script exfiltrated environment variables
+        3. CI secrets from 29,000+ customers
+        4. Used to compromise Twitch, others
+      lessons:
+        - "Verify script integrity"
+        - "Don't pipe curl to bash"
+        - "Use pinned releases"
+        - "Least privilege for CI"
+  
+  common_attack_patterns:
+    - scenario: "Internal package name published publicly"
+      description: |
+        1. Developer references `company-auth-utils`
+        2. No scoped package exists on npm
+        3. Attacker registers `company-auth-utils`
+        4. Publishes version 999.0.0
+        5. Build systems install public version
+      prevention:
+        - "Use scoped packages: @company/auth-utils"
+        - "Configure registry priority"
+        - "Reserve names on public registries"
+    
+    - scenario: "Typosquatting attack via common misspelling"
+      description: |
+        1. Developer types `import requst`
+        2. Attacker registered `requst` package
+        3. Package executes malicious postinstall
+        4. Credentials exfiltrated
+      prevention:
+        - "Use IDE autocomplete"
+        - "Enable typosquatting detection"
+        - "Lock file prevents accidental updates"
+    
+    - scenario: "Version range allows malicious update"
+      description: |
+        1. package.json: "lodash": "^4.0.0"
+        2. Attacker compromises lodash maintainer
+        3. Publishes malicious version 4.18.0
+        4. CI reinstalls, gets malicious version
+        5. All builds compromised
+      prevention:
+        - "Pin exact versions"
+        - "Use lock files"
+        - "Require manual update review"
+        - "Use npm ci instead of npm install"
+    
+    - scenario: "Transitive dependency injection"
+      description: |
+        1. Direct dependency seems safe
+        2. Transitive dependency 5 levels deep
+        3. Attacker targets unmaintained transitive
+        4. Takes over package
+        5. Malicious code propagates upward
+      prevention:
+        - "Full dependency tree review"
+        - "Lock file pins transitives"
+        - "Dependency graph analysis"
+        - "Socket.dev monitoring"
+  
+  compliance_failures:
+    - scenario: "Unlicensed dependency causes legal issue"
+      description: |
+        1. Transitive dependency is GPL
+        2. Product is proprietary
+        3. GPL requires source disclosure
+        4. Legal compliance violation
+        5. Forced code release or license purchase
+    
+    - scenario: "Vulnerable dependency in production"
+      description: |
+        1. Known CVE in dependency
+        2. Scanner not configured
+        3. Regulation requires timely patching
+        4. Audit finds 6-month old vulnerability
+        5. Compliance penalty issued
+
+# === CLOUD-SPECIFIC ISSUES ===
+# 100+ cloud-specific dependency management issues
+cloud_specific_issues:
+  aws:
+    codeartifact:
+      - codeartifact_configuration: |
+          AWS CodeArtifact setup:
+          - Domain and repository structure
+          - Upstream repository chaining
+          - External connection to npm/PyPI/Maven
+          - Package version origin control
+          
+          Security features:
+          - IAM-based access control
+          - Resource policies
+          - VPC endpoints
+          - Encryption at rest
+          
+          Dependency confusion prevention:
+          - Upstream repository priority
+          - Package origin controls
+          - Deny public versions via resource policy
+      
+      - codeartifact_ci_integration: |
+          CI/CD integration:
+          - CODEARTIFACT_AUTH_TOKEN generation
+          - Token refresh in pipelines
+          - Cross-account access
+          - Role-based authentication
+    
+    ecr:
+      - ecr_image_security: |
+          ECR container image security:
+          - Image scanning (Basic/Enhanced)
+          - Image signing with AWS Signer
+          - Pull-through cache configuration
+          - Replication for cross-region
+          
+          Supply chain:
+          - Scan on push
+          - Block vulnerable images
+          - Notation signing integration
+  
+  gcp:
+    artifact_registry:
+      - artifact_registry_config: |
+          GCP Artifact Registry:
+          - Repository modes (standard/virtual)
+          - Remote repositories (proxy)
+          - Upstream sources
+          - IAM permissions
+          
+          Security:
+          - Binary Authorization integration
+          - Container Analysis API
+          - VPC Service Controls
+          - Customer-managed encryption
+      
+      - binary_authorization: |
+          Binary Authorization:
+          - Attestation requirements
+          - Attestor configuration
+          - Policy modes (allow/deny)
+          - Break-glass procedures
+          - Multi-party attestation
+    
+    cloud_build:
+      - cloud_build_security: |
+          Cloud Build supply chain:
+          - Trusted builder images
+          - Private worker pools
+          - Source provenance
+          - Container signing
+  
+  azure:
+    artifacts:
+      - azure_artifacts_config: |
+          Azure Artifacts:
+          - Feed types (project/organization)
+          - Upstream sources
+          - Public registry blocking
+          - Retention policies
+          
+          Security:
+          - Feed permissions
+          - Views for release management
+          - Package badges
+      
+      - azure_container_registry: |
+          ACR security:
+          - Content trust (Notary)
+          - Image quarantine
+          - Task-based scanning
+          - Geo-replication
+  
+  github:
+    packages:
+      - github_packages_config: |
+          GitHub Packages:
+          - npm/Maven/Docker/NuGet support
+          - Organization-level packages
+          - Visibility controls
+          - Dependency graph
+          
+          Security:
+          - Automatic vulnerability alerts
+          - Dependabot updates
+          - Secret scanning in manifests
+    
+    dependency_management:
+      - dependabot: |
+          Dependabot configuration:
+          - .github/dependabot.yml
+          - Update frequency
+          - Version constraints
+          - PR grouping
+          - Registries configuration
+          
+          Security:
+          - Version updates
+          - Security updates
+          - Automatic merge (risky)
+    
+    actions_security:
+      - action_pinning: |
+          GitHub Actions pinning:
+          - Pin to SHA, not tag
+          - Avoid @main/@latest
+          - Audit action code
+          - Fork critical actions
+          
+          Example:
+          uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608 # v4.1.0
+  
+  multi_registry:
+    - unified_management: |
+        Multi-registry challenges:
+        - Consistent configuration
+        - Credential management
+        - Policy enforcement
+        - Audit logging consolidation
+    
+    - migration_patterns: |
+        Registry migration:
+        - Parallel operation period
+        - Version synchronization
+        - Client reconfiguration
+        - Rollback procedures
+
+# === DIFFICULTY MULTIPLIERS ===
+difficulty_multipliers:
+  ecosystem_count:
+    description: "Number of package ecosystems"
+    complexity_factor:
+      - "1 ecosystem: 1.0x"
+      - "2 ecosystems: 1.5x"
+      - "3 ecosystems: 2.0x"
+      - "4+ ecosystems: 2.5x"
+  
+  dependency_count:
+    description: "Total dependency count"
+    complexity_factor:
+      - "< 50: 1.0x"
+      - "50-200: 1.3x"
+      - "200-1000: 1.8x"
+      - "> 1000: 2.5x"
+  
+  compliance_requirements:
+    fedramp:
+      complexity_factor: 2.5
+      requirements:
+        - "SBOM generation and maintenance"
+        - "Provenance verification"
+        - "Continuous monitoring"
+        - "Incident response for supply chain"
+    
+    dod:
+      complexity_factor: 2.5
+      requirements:
+        - "Container hardening (STIG)"
+        - "Software assurance"
+        - "Approved product list"
+    
+    executive_order_14028:
+      complexity_factor: 2.0
+      requirements:
+        - "SBOM for federal software"
+        - "Supply chain security measures"
+        - "Incident reporting"
+  
+  slsa_level:
+    description: "Target SLSA level"
+    complexity_factor:
+      - "Level 1: 1.0x"
+      - "Level 2: 1.5x"
+      - "Level 3: 2.5x"
+      - "Level 4: 4.0x"
+  
+  air_gapped:
+    description: "Air-gapped/disconnected environment"
+    complexity_factor: 2.5
+    challenges:
+      - "No external registry access"
+      - "Manual package transfer"
+      - "Offline verification"
+      - "Update latency"
+
+# === terminal-bench style fields ===
+difficulty:
+  estimated: "hard"
+  time_range: [1800, 14400]
+  command_steps: [40, 200]
+
+# === Difficulty amplifiers ===
+difficulty_amplifiers:
+  nightmare:
+    multiplier: 3.0
+    description: "Production-level incident requiring multi-team coordination knowledge"
+    requirements:
+      - "7+ interacting failures across CI/CD, containers, and infrastructure"
+      - "Requires understanding of cloud provider-specific behaviors"
+      - "Time estimate: 120+ minutes for senior SREs"
+      - "Cross-service dependencies that cascade in non-obvious ways"
+      - "Requires synthesizing security, performance, and reliability knowledge"
+
+# === Quality requirements ===
+quality_requirements:
+  minimum_difficulty: "90-240 minutes, requires senior SRE/DevSecOps engineers with cloud architecture and supply chain security expertise"
+  time_estimate: "90-240 minutes for senior SRE/DevSecOps engineers, 4-8 hours for intermediate"
+  trap_count: "10+ deeply interacting traps across CI/CD, container, cloud, and monitoring boundaries"
+
+# === Multi-Agent Orchestration Complexity ===
+multi_agent_orchestration:
+  description: "Coordinating 5-8 specialized DevOps agents for comprehensive supply chain security"
+  required_agents:
+    - supply_chain_auditor:
+        role: "Deep analysis of package manifests, lock files, and transitive dependencies"
+        expertise: ["SBOM generation", "provenance verification", "dependency graph analysis"]
+    - container_security_analyzer:
+        role: "Scanning container images for malicious packages and vulnerable dependencies"
+        expertise: ["layer analysis", "runtime dependencies", "base image verification"]
+    - cloud_iam_expert:
+        role: "Analyzing IAM policies for package registry access and cross-account permissions"
+        expertise: ["registry authentication", "role assumption", "service account tokens"]
+    - ci_cd_pipeline_auditor:
+        role: "Reviewing build pipelines for dependency injection points and cache poisoning"
+        expertise: ["build reproducibility", "artifact signing", "pipeline hardening"]
+    - registry_security_specialist:
+        role: "Configuring and auditing private registry security settings"
+        expertise: ["registry firewalls", "namespace management", "proxy configuration"]
+    - threat_intelligence_analyst:
+        role: "Correlating package names against known malicious packages and typosquatting campaigns"
+        expertise: ["threat feeds", "IOC correlation", "attack pattern recognition"]
+    - compliance_auditor:
+        role: "Ensuring supply chain security meets regulatory requirements"
+        expertise: ["SLSA framework", "EO 14028", "FedRAMP supply chain controls"]
+    - incident_responder:
+        role: "Coordinating response when compromised packages detected in production"
+        expertise: ["containment", "forensics", "credential rotation"]
+  
+  cross_platform_attack_chains:
+    - name: "Registry Compromise to Data Exfiltration"
+      stages:
+        - "Dependency confusion via public registry priority misconfiguration"
+        - "Malicious package executes during CI/CD build"
+        - "Build-time secrets exfiltrated to attacker infrastructure"
+        - "Compromised artifacts deployed to production containers"
+        - "Container escape via vulnerable dependency"
+        - "Cloud IAM role assumption from compromised workload"
+        - "Lateral movement to data stores using stolen credentials"
+        - "Data exfiltration via DNS tunneling to evade monitoring"
+    - name: "Typosquatting to Persistent Access"
+      stages:
+        - "Developer installs typosquatted package locally"
+        - "Package establishes reverse shell during postinstall"
+        - "Attacker harvests developer credentials and SSH keys"
+        - "Git repository compromise via stolen credentials"
+        - "Malicious code injected into legitimate internal package"
+        - "CI/CD pipeline builds and distributes compromised package"
+        - "Production systems receive backdoored package"
+        - "Persistent access maintained via scheduled tasks"
+  
+  parallel_analysis_requirements:
+    - "Simultaneous scanning of npm, PyPI, Maven, and container registries"
+    - "Correlated analysis of build logs across multiple pipeline stages"
+    - "Real-time monitoring of package installation network traffic"
+    - "Cross-reference of SBOM data with vulnerability databases"
+  
+  agent_handoff_scenarios:
+    - "Supply chain auditor identifies suspicious package → Container analyzer verifies image integrity → IAM expert checks registry access patterns"
+    - "CI/CD auditor finds cache poisoning → Threat analyst correlates with known campaigns → Incident responder initiates containment"
+    - "Compliance auditor identifies SLSA gaps → Pipeline auditor implements attestation → Registry specialist configures signing verification"
+
+# === Nightmare Plus Difficulty Level ===
+difficulty_levels:
+  nightmare_plus:
+    estimated_time: [28800, 172800]  # 8-48 hours
+    command_steps: [400, 1500]
+    techniques_required: 12
+    description: "Supply chain attack difficulty requiring deep infrastructure and security expertise with multi-ecosystem, multi-cloud coordination"
+    characteristics:
+      - "Attacks spanning 4+ package ecosystems simultaneously"
+      - "Transitive dependency chains 8+ levels deep"
+      - "Cross-cloud registry synchronization exploits"
+      - "Build-time vs runtime dependency confusion"
+      - "Signed package verification bypass techniques"
+      - "SBOM attestation forgery scenarios"
+      - "Registry proxy cache poisoning"
+      - "Namespace collision across ecosystems"
+    required_expertise:
+      - "Deep understanding of package manager resolution algorithms"
+      - "Knowledge of registry API internals and authentication flows"
+      - "Experience with SLSA framework implementation"
+      - "Familiarity with Sigstore and in-toto attestation"
+      - "Understanding of OCI artifact signing specifications"
+
+# === Cloud Native Internals ===
+cloud_native_internals:
+  kubernetes_internals:
+    kubelet:
+      - "Image pull secrets management and rotation"
+      - "Container runtime interface (CRI) for registry authentication"
+      - "Pod security admission for image policies"
+      - "ImagePullBackOff debugging with registry issues"
+    controller_manager:
+      - "ServiceAccount token projection for registry auth"
+      - "Namespace controller for registry secret propagation"
+      - "Deployment controller rollout with image verification"
+    scheduler:
+      - "NodeSelector for registry network access"
+      - "Tolerations for dedicated build nodes"
+      - "Pod topology spread for registry load distribution"
+    admission_controllers:
+      - "ImagePolicyWebhook for registry allowlisting"
+      - "ValidatingWebhook for SBOM verification"
+      - "MutatingWebhook for image digest pinning"
+  
+  container_runtime_internals:
+    containerd:
+      - "Content store for layer deduplication"
+      - "Snapshot management for build caching"
+      - "Registry mirror configuration"
+      - "Image verification plugins"
+    cri_o:
+      - "Signature verification with GPG"
+      - "Short-name alias resolution"
+      - "Registry authentication via auth.json"
+    runc:
+      - "Rootless container builds"
+      - "User namespace mapping for unprivileged builds"
+  
+  service_mesh_internals:
+    envoy:
+      - "External authorization for registry requests"
+      - "Rate limiting on package downloads"
+      - "mTLS for internal registry communication"
+    istio_data_plane:
+      - "Sidecar injection for build pods"
+      - "Traffic mirroring for registry access auditing"
+      - "Circuit breaking for registry failures"
+  
+  cloud_provider_iam_quirks:
+    aws:
+      - "ECR authorization token caching (12-hour expiry)"
+      - "Cross-account ECR repository policies"
+      - "CodeArtifact domain and repository permissions"
+      - "IAM role assumption for registry access"
+    gcp:
+      - "Artifact Registry IAM bindings vs legacy ACLs"
+      - "Workload Identity for GCR/AR authentication"
+      - "VPC Service Controls for registry isolation"
+    azure:
+      - "ACR token authentication vs Azure AD"
+      - "Managed Identity for registry pulls"
+      - "Private endpoint DNS resolution for ACR"
+
+# === Supply Chain Attack Vectors ===
+supply_chain_attack_vectors:
+  dependency_confusion_variants:
+    - internal_name_hijacking: "Register internal package names on public registries with higher versions"
+    - scope_stripping: "Attack unscoped references to scoped packages"
+    - ecosystem_crossover: "Same package name in npm and PyPI with different content"
+    - registry_priority_manipulation: "Exploit extra-index-url vs index-url precedence in pip"
+    - workspace_dependency_confusion: "Target monorepo workspace packages"
+    - optional_dependency_injection: "Inject via optionalDependencies or extras_require"
+    - peer_dependency_confusion: "Exploit peerDependencies resolution"
+    - dev_dependency_targeting: "Target devDependencies for CI/CD compromise"
+  
+  build_process_manipulation:
+    - postinstall_script_execution: "Malicious code in package install scripts"
+    - setup_py_code_execution: "Arbitrary code in Python setup.py"
+    - cargo_build_rs: "Rust build.rs script exploitation"
+    - gradle_plugin_injection: "Malicious Gradle plugin downloads"
+    - maven_plugin_goals: "Hijacking Maven plugin execution"
+    - cmake_external_project: "CMake ExternalProject command injection"
+    - go_generate_directives: "Exploit //go:generate comments"
+    - compiler_plugin_manipulation: "Babel/TypeScript plugin poisoning"
+  
+  registry_poisoning:
+    - public_registry_compromise: "Direct compromise of npm/PyPI infrastructure"
+    - mirror_poisoning: "Attack on private registry mirrors"
+    - cdn_cache_poisoning: "Invalidate CDN cache with malicious content"
+    - proxy_registry_manipulation: "MITM attacks on registry proxies"
+    - registry_api_abuse: "Exploit registry API for package manipulation"
+    - namespace_squatting: "Register lookalike organization namespaces"
+  
+  artifact_signing_bypass:
+    - signature_stripping: "Remove signatures during proxy/mirror"
+    - key_compromise: "Target signing key infrastructure"
+    - trust_store_manipulation: "Add malicious keys to trust stores"
+    - timestamp_manipulation: "Exploit signing timestamp validation"
+    - algorithm_downgrade: "Force use of weak signature algorithms"
+    - sigstore_rekor_bypass: "Evade transparency log detection"
+    - in_toto_layout_confusion: "Exploit in-toto layout verification gaps"
+
+# === Incident Response Complexity ===
+incident_response_complexity:
+  production_debugging_scenarios:
+    - scenario: "Malicious package detected in production after 72 hours"
+      complexity_factors:
+        - "Identify all affected deployments across regions"
+        - "Trace package installation timeline"
+        - "Determine data access scope of compromised code"
+        - "Coordinate credential rotation across 50+ services"
+        - "Maintain service availability during remediation"
+        - "Preserve forensic evidence while patching"
+      required_coordination:
+        - "Security team for threat analysis"
+        - "Platform team for deployment rollback"
+        - "SRE team for service stability"
+        - "Legal team for breach notification assessment"
+        - "Communications team for stakeholder updates"
+    
+    - scenario: "CI/CD pipeline compromise via cached dependency"
+      complexity_factors:
+        - "Audit all builds from compromised cache period"
+        - "Identify artifacts built with malicious dependencies"
+        - "Trace artifact deployment to production systems"
+        - "Verify integrity of deployed code vs source"
+        - "Implement emergency artifact signing verification"
+      forensic_requirements:
+        - "Build log analysis for 30+ days"
+        - "Artifact hash verification against source commits"
+        - "Network traffic analysis for exfiltration"
+        - "Container layer diff analysis"
+    
+    - scenario: "Transitive dependency vulnerability at ecosystem scale"
+      complexity_factors:
+        - "Dependency tree analysis across 1000+ packages"
+        - "Version constraint evaluation for safe upgrades"
+        - "Breaking change assessment for major version bumps"
+        - "Staged rollout strategy for critical systems"
+        - "Fallback planning for incompatible upgrades"
+
+# === LLM trap configurations ===
+traps:
+  - type: "public_precedence"
+    description: "Public npm/PyPI has higher priority than internal"
+    trigger: "Not configuring registry priority"
+    severity: "critical"
+  
+  - type: "name_hijack"
+    description: "Attacker registers internal package name publicly"
+    trigger: "Not reserving internal package names"
+    severity: "critical"
+  
+  - type: "typosquatting"
+    description: "Installing 'lodahs' instead of 'lodash'"
+    trigger: "No typo detection in dependencies"
+    severity: "high"
+  
+  - type: "malicious_script"
+    description: "postinstall script runs malicious code"
+    trigger: "Not auditing/disabling install scripts"
+    severity: "critical"
+  
+  - type: "version_range"
+    description: "Caret range allows malicious minor update"
+    trigger: "Using ^version instead of exact pinning"
+    severity: "high"
+  
+  - type: "no_lock_file"
+    description: "Lock file not committed or ignored"
+    trigger: "Inconsistent dependency resolution"
+    severity: "high"
+  
+  - type: "transitive_vulnerability"
+    description: "Vulnerable transitive dependency"
+    trigger: "Not auditing full dependency tree"
+    severity: "medium"
+  
+  - type: "no_integrity"
+    description: "No hash verification for packages"
+    trigger: "Not using lock file integrity or --require-hashes"
+    severity: "high"
+
+# === Task generation template ===
+instruction_template: |
+  You are securing dependencies for a {{ scenario_type }} application.
+  The package configuration is at {{ path }}.
+  
+  Environment Details:
+  - Package Ecosystems: {{ ecosystems }}
+  - Package Manager: {{ package_manager }} {{ pm_version }}
+  - Internal Registry: {{ internal_registry }}
+  - Total Dependencies: {{ dependency_count }}
+  - Internal Packages: {{ internal_count }}
+  
+  Current Issues:
+  - Unscoped internal packages: {{ unscoped_count }}
+  - Vulnerable dependencies: {{ vuln_count }}
+  - Missing lock files: {{ missing_locks }}
+  - Unsigned packages: {{ unsigned_count }}
+  
+  Compliance Requirements: {{ compliance_frameworks }}
+  Target SLSA Level: {{ slsa_level }}
+  
+  Your task:
+  {{ task_steps }}
+  
+  Deliverables:
+  - Secure registry configuration
+  - Lock file with integrity hashes
+  - SBOM generation setup
+  - Provenance verification
+  - Dependency update process
+  - Monitoring and alerting
+
+# === Reference solution (hidden from agent) ===
+reference_solution: |
+  # Dependency Confusion Prevention - Comprehensive Guide
+  
+  # ============================================================
+  # PHASE 1: REGISTRY CONFIGURATION
+  # ============================================================
+  
+  ## 1.1 npm Configuration
+  
+  # .npmrc for scoped packages (RECOMMENDED)
+  @mycompany:registry=https://npm.mycompany.com/
+  registry=https://registry.npmjs.org/
+  
+  # Strict configuration (block public for internal names)
+  # Use if internal packages should NEVER come from public
+  @mycompany:registry=https://npm.mycompany.com/
+  //npm.mycompany.com/:_authToken=${NPM_TOKEN}
+  
+  # Disable scripts globally (audit before enabling per-package)
+  ignore-scripts=true
+  
+  # Audit level
+  audit-level=high
+  
+  # Always use lock file
+  package-lock=true
+  
+  ## 1.2 Yarn Configuration
+  
+  # .yarnrc.yml
+  yarnPath: .yarn/releases/yarn-4.0.0.cjs
+  
+  nodeLinker: node-modules
+  
+  npmScopes:
+    mycompany:
+      npmRegistryServer: "https://npm.mycompany.com/"
+      npmAuthToken: "${NPM_TOKEN}"
+  
+  npmRegistryServer: "https://registry.npmjs.org/"
+  
+  # Enable all verification
+  enableHardenedMode: true
+  
+  ## 1.3 pip Configuration
+  
+  # pip.conf
+  [global]
+  # CRITICAL: index-url is PRIMARY, extra-index-url is ADDITIONAL
+  # pip checks ALL indexes and uses HIGHEST VERSION
+  # To prevent confusion: use ONLY internal index
+  index-url = https://pypi.mycompany.com/simple/
+  
+  # If you MUST use both, block external for internal names via repository manager
+  # extra-index-url = https://pypi.org/simple/
+  
+  # Require hash verification
+  require-hashes = true
+  
+  # Trusted host for self-signed certs
+  # trusted-host = pypi.mycompany.com
+  
+  ## 1.4 Maven Configuration
+  
+  # settings.xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <settings>
+    <mirrors>
+      <!-- Mirror all requests through internal Nexus -->
+      <mirror>
+        <id>nexus-all</id>
+        <mirrorOf>*</mirrorOf>
+        <url>https://nexus.mycompany.com/repository/maven-public/</url>
+      </mirror>
+    </mirrors>
+    
+    <servers>
+      <server>
+        <id>nexus-all</id>
+        <username>${env.NEXUS_USER}</username>
+        <password>${env.NEXUS_PASS}</password>
+      </server>
+    </servers>
+    
+    <profiles>
+      <profile>
+        <id>secure</id>
+        <repositories>
+          <repository>
+            <id>nexus</id>
+            <url>https://nexus.mycompany.com/repository/maven-public/</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
+          </repository>
+        </repositories>
+      </profile>
+    </profiles>
+    
+    <activeProfiles>
+      <activeProfile>secure</activeProfile>
+    </activeProfiles>
+  </settings>
+  
+  ## 1.5 Go Modules Configuration
+  
+  # Environment variables
+  export GOPROXY="https://goproxy.mycompany.com,direct"
+  export GOPRIVATE="github.com/mycompany/*"
+  export GONOSUMDB="github.com/mycompany/*"
+  
+  # .gitconfig for private module access
+  [url "ssh://git@github.com/mycompany/"]
+      insteadOf = https://github.com/mycompany/
+  
+  # ============================================================
+  # PHASE 2: LOCK FILE MANAGEMENT
+  # ============================================================
+  
+  ## 2.1 npm Lock File
+  
+  # Ensure lock file is committed
+  # .gitignore should NOT include package-lock.json
+  
+  # CI should use npm ci, not npm install
+  # npm ci:
+  # - Deletes node_modules
+  # - Installs exactly from lock file
+  # - Verifies integrity hashes
+  # - Fails on mismatch
+  
+  ## 2.2 pip Requirements with Hashes
+  
+  # requirements.txt with hashes
+  # Generate with: pip-compile --generate-hashes requirements.in
+  
+  requests==2.31.0 \
+      --hash=sha256:58cd2187c01e70e6e26505bca751777aa9f2ee0b7f4300988b709f44e013003f \
+      --hash=sha256:942c5a758f98d790eaed1a29cb6eefc7ffb0d1cf7af05c3d2791656dbd6ad1e1
+  urllib3==2.0.7 \
+      --hash=sha256:c97dfde1f7bd43a71c8d2a58e369e9b2bf692d1334ea9f9cae55add7d0dd0f84 \
+      --hash=sha256:fdb6d215c776278489906c2f8916e6e7d4f5a9b602ccbcfdf7f016fc8da0596e
+  
+  # Install with hash verification
+  # pip install --require-hashes -r requirements.txt
+  
+  ## 2.3 Gradle Dependency Locking
+  
+  # build.gradle.kts
+  dependencyLocking {
+      lockAllConfigurations()
+  }
+  
+  # Generate lock file
+  # ./gradlew dependencies --write-locks
+  
+  # Verification metadata
+  # gradle.lockfile should be committed
+  
+  ## 2.4 Gradle Dependency Verification
+  
+  # gradle/verification-metadata.xml
+  <?xml version="1.0" encoding="UTF-8"?>
+  <verification-metadata>
+     <configuration>
+        <verify-metadata>true</verify-metadata>
+        <verify-signatures>true</verify-signatures>
+        <trusted-keys>
+           <trusted-key id="ABC123" group="com.google"/>
+        </trusted-keys>
+     </configuration>
+     <components>
+        <component group="org.apache" name="commons-lang3" version="3.12.0">
+           <artifact name="commons-lang3-3.12.0.jar">
+              <sha256 value="abc123..." origin="Maven Central"/>
+           </artifact>
+        </component>
+     </components>
+  </verification-metadata>
+  
+  # ============================================================
+  # PHASE 3: SBOM AND PROVENANCE
+  # ============================================================
+  
+  ## 3.1 Generate SBOM
+  
+  # Using syft (supports multiple formats)
+  syft dir:. -o cyclonedx-json > sbom.cdx.json
+  syft dir:. -o spdx-json > sbom.spdx.json
+  
+  # Using npm (native SBOM support)
+  npm sbom --sbom-format cyclonedx
+  
+  # Using trivy
+  trivy fs --format cyclonedx --output sbom.json .
+  
+  ## 3.2 npm Provenance
+  
+  # Publish with provenance (GitHub Actions)
+  - name: Publish with provenance
+    run: npm publish --provenance
+    env:
+      NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+  
+  # Verify provenance
+  npm audit signatures
+  
+  ## 3.3 Container Image Signing
+  
+  # Sign with cosign
+  cosign sign --key cosign.key myregistry.com/myimage:tag
+  
+  # Verify signature
+  cosign verify --key cosign.pub myregistry.com/myimage:tag
+  
+  # Generate attestation
+  cosign attest --predicate sbom.json --key cosign.key myregistry.com/myimage:tag
+  
+  ## 3.4 SLSA Provenance
+  
+  # GitHub Actions workflow for SLSA Level 3
+  name: SLSA Build
+  
+  on:
+    push:
+      tags: ['v*']
+  
+  jobs:
+    build:
+      outputs:
+        hashes: ${{ steps.hash.outputs.hashes }}
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        
+        - name: Build
+          run: |
+            npm ci
+            npm run build
+            
+        - name: Generate hash
+          id: hash
+          run: |
+            HASHES=$(sha256sum dist/* | base64 -w0)
+            echo "hashes=${HASHES}" >> $GITHUB_OUTPUT
+        
+        - uses: actions/upload-artifact@v4
+          with:
+            name: build-outputs
+            path: dist/
+    
+    provenance:
+      needs: build
+      permissions:
+        actions: read
+        id-token: write
+        contents: write
+      uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v1.9.0
+      with:
+        base64-subjects: "${{ needs.build.outputs.hashes }}"
+        upload-assets: true
+  
+  # ============================================================
+  # PHASE 4: SCANNING AND MONITORING
+  # ============================================================
+  
+  ## 4.1 GitHub Dependabot Configuration
+  
+  # .github/dependabot.yml
+  version: 2
+  registries:
+    npm-internal:
+      type: npm-registry
+      url: https://npm.mycompany.com
+      token: ${{ secrets.NPM_INTERNAL_TOKEN }}
+  
+  updates:
+    - package-ecosystem: "npm"
+      directory: "/"
+      schedule:
+        interval: "weekly"
+        day: "monday"
+      registries:
+        - npm-internal
+      groups:
+        production-dependencies:
+          patterns:
+            - "*"
+          exclude-patterns:
+            - "@types/*"
+      open-pull-requests-limit: 10
+      reviewers:
+        - "security-team"
+      labels:
+        - "dependencies"
+        - "security"
+  
+  ## 4.2 Socket.dev Integration
+  
+  # .github/workflows/socket.yml
+  name: Socket Security
+  
+  on:
+    pull_request:
+      paths:
+        - 'package.json'
+        - 'package-lock.json'
+        - 'yarn.lock'
+  
+  jobs:
+    socket:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - uses: socketdev/socket-cli-action@v1
+          with:
+            api_key: ${{ secrets.SOCKET_API_KEY }}
+  
+  ## 4.3 Snyk Scanning
+  
+  # .github/workflows/snyk.yml
+  name: Snyk Security
+  
+  on:
+    push:
+      branches: [main]
+    pull_request:
+      branches: [main]
+  
+  jobs:
+    snyk:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        
+        - name: Run Snyk to check for vulnerabilities
+          uses: snyk/actions/node@master
+          env:
+            SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          with:
+            args: --severity-threshold=high
+  
+  ## 4.4 Trivy Scanning
+  
+  # Scan filesystem
+  trivy fs --severity HIGH,CRITICAL .
+  
+  # Scan container image
+  trivy image --severity HIGH,CRITICAL myimage:tag
+  
+  # Scan SBOM
+  trivy sbom sbom.cdx.json
+  
+  # ============================================================
+  # PHASE 5: CI/CD INTEGRATION
+  # ============================================================
+  
+  ## 5.1 Complete Secure Pipeline
+  
+  name: Secure Build Pipeline
+  
+  on:
+    push:
+      branches: [main]
+    pull_request:
+      branches: [main]
+  
+  permissions:
+    contents: read
+    security-events: write
+  
+  jobs:
+    dependency-scan:
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        
+        - name: Check for dependency confusion
+          run: |
+            # Check all internal packages are scoped
+            node -e "
+              const pkg = require('./package.json');
+              const deps = {...pkg.dependencies, ...pkg.devDependencies};
+              const internal = Object.keys(deps).filter(d => 
+                d.includes('mycompany') && !d.startsWith('@mycompany/')
+              );
+              if (internal.length) {
+                console.error('Unscoped internal packages:', internal);
+                process.exit(1);
+              }
+            "
+        
+        - name: Run npm audit
+          run: npm audit --audit-level=high
+        
+        - name: Run Snyk
+          uses: snyk/actions/node@master
+          env:
+            SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        
+        - name: Socket.dev check
+          uses: socketdev/socket-cli-action@v1
+          with:
+            api_key: ${{ secrets.SOCKET_API_KEY }}
+    
+    build:
+      needs: dependency-scan
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        
+        - name: Setup Node
+          uses: actions/setup-node@v4
+          with:
+            node-version: '20'
+            registry-url: 'https://npm.mycompany.com/'
+        
+        - name: Install dependencies
+          run: npm ci --ignore-scripts
+          env:
+            NODE_AUTH_TOKEN: ${{ secrets.NPM_INTERNAL_TOKEN }}
+        
+        - name: Audit and selectively run scripts
+          run: |
+            # Only run scripts for verified packages
+            npm rebuild --ignore-scripts
+        
+        - name: Build
+          run: npm run build
+        
+        - name: Generate SBOM
+          run: |
+            npx @cyclonedx/cyclonedx-npm --output-file sbom.json
+        
+        - name: Upload SBOM
+          uses: actions/upload-artifact@v4
+          with:
+            name: sbom
+            path: sbom.json
+
+# Test cases for validation
+fail_to_pass:
+  - "test_internal_registry_priority"
+  - "test_package_names_reserved"
+  - "test_no_typosquatting"
+  - "test_integrity_verification"
+  - "test_scripts_disabled"
+  - "test_lock_file_present"
+  - "test_sbom_generated"
+  - "test_provenance_verified"
+
+pass_to_pass:
+  - "test_dependencies_install"
+  - "test_build_succeeds"
+  - "test_internal_packages_resolve"
+  - "test_public_packages_resolve"
+
+# Variables for task generation
+variables:
+  - name: scenario_type
+    type: string
+    options: 
+      - "JavaScript/Node.js"
+      - "Python"
+      - "Java/Maven"
+      - "Go"
+      - "Rust"
+      - "multi-language monorepo"
+  
+  - name: ecosystems
+    type: list
+    options: ["npm", "PyPI", "Maven", "Go", "Cargo", "RubyGems", "NuGet"]
+  
+  - name: package_manager
+    type: string
+    options: ["npm", "yarn", "pnpm", "pip", "poetry", "Maven", "Gradle", "go mod", "cargo"]
+  
+  - name: pm_version
+    type: string
+    generator: version_string
+  
+  - name: internal_registry
+    type: string
+    options: ["Artifactory", "Nexus", "CodeArtifact", "Artifact Registry", "Azure Artifacts", "GitHub Packages"]
+  
+  - name: path
+    type: path
+    generator: random_path
+  
+  - name: dependency_count
+    type: int
+    min: 20
+    max: 2000
+  
+  - name: internal_count
+    type: int
+    min: 5
+    max: 100
+  
+  - name: unscoped_count
+    type: int
+    min: 0
+    max: 50
+  
+  - name: vuln_count
+    type: int
+    min: 0
+    max: 100
+  
+  - name: missing_locks
+    type: int
+    min: 0
+    max: 10
+  
+  - name: unsigned_count
+    type: int
+    min: 0
+    max: 500
+  
+  - name: compliance_frameworks
+    type: list
+    options: ["FedRAMP", "EO 14028", "DoD", "SOC2", "ISO27001"]
+  
+  - name: slsa_level
+    type: int
+    min: 1
+    max: 4
+  
+  - name: task_steps
+    type: template
+    value: |
+      1. Audit current registry configuration
+      2. Configure scoped packages for internal
+      3. Set up registry priority/mirroring
+      4. Reserve internal names on public registries
+      5. Implement lock file management
+      6. Enable hash verification
+      7. Disable/audit install scripts
+      8. Set up SBOM generation
+      9. Configure provenance verification
+      10. Implement dependency scanning
+      11. Create update review process
+      12. Set up monitoring and alerting
+
+# Anti-hardcoding measures
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  confusion_vectors:
+    - registry_precedence
+    - name_hijacking
+    - typosquatting
+    - install_scripts
+    - version_ranges
+    - transitive_attacks
+
+# Anti-patterns for LLM failure modes
+anti_patterns:
+  llm_failure_modes:
+    - "Applying generic DevOps patterns without cloud-specific considerations"
+    - "Missing container runtime security boundaries"
+    - "Ignoring network policy interactions in Kubernetes"
+    - "Not considering eventual consistency in distributed config management"
+    - "Missing hidden resource contention in shared infrastructure"
+    - "Overlooking DNS TTL and caching layer interactions"
+    - "Assuming CI/CD tools handle secrets securely by default"
+    - "Missing supply chain attack vectors in dependency management"
+    - "Ignoring infrastructure drift detection gaps"
+    - "Assuming pip extra-index-url provides priority over public PyPI"
+    - "Not understanding npm scope resolution precedence"
+    - "Ignoring lock file integrity when recommending security fixes"
+    - "Suggesting package upgrades without evaluating transitive dependencies"
+    - "Missing the distinction between build-time and runtime dependencies"
+    - "Recommending SBOM generation without attestation verification"
+    - "Assuming all package registries support the same authentication methods"
+    - "Ignoring workspace/monorepo-specific dependency confusion vectors"
+    - "Not considering registry proxy caching behavior in security analysis"
+    - "Missing pre-install script execution risks in recommendations"
+    - "Suggesting version ranges without understanding semver attack surface"
+    - "Ignoring the difference between declared and phantom dependencies"
+    - "Not accounting for CI/CD environment variable exposure to packages"
+    - "Assuming container base images use pinned dependency versions"
+    - "Missing cross-ecosystem package name collisions (npm vs PyPI)"
+    - "Recommending registry mirrors without signature verification"
+    - "Ignoring the impact of package manager resolution algorithm differences"
+    - "Not considering air-gapped environment constraints for dependency updates"
+    - "Assuming SLSA provenance alone prevents supply chain attacks"
+
+# Evaluation metrics
+evaluation:
+  security_score:
+    weight: 0.45
+    metrics:
+      - "No dependency confusion vectors"
+      - "All packages integrity verified"
+      - "Install scripts audited/disabled"
+      - "Provenance verified"
+  
+  compliance_score:
+    weight: 0.30
+    metrics:
+      - "SBOM generated"
+      - "SLSA level achieved"
+      - "Audit trail complete"
+  
+  operational_score:
+    weight: 0.25
+    metrics:
+      - "Build times acceptable"
+      - "Update process defined"
+      - "Monitoring active"

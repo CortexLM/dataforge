@@ -1,0 +1,1594 @@
+id: "db-nosql-sharding-trap-001"
+version: "2.0.0"
+category: "databases"
+subcategory: "nosql"
+
+# =============================================================================
+# LLM GENERATION FRAMEWORK
+# =============================================================================
+# This configuration enables generation of 10,000+ unique, complex tasks
+# related to database sharding, partitioning, and data distribution.
+# =============================================================================
+
+generation_framework:
+  # Difficulty parameters - SIGNIFICANTLY increased for database architect-level challenges
+  time_range: [5400, 14400]  # 90-240 minutes for database architects with internals expertise
+  command_steps: [80, 200]   # Requires extensive multi-layer investigation and debugging
+  
+  generation_targets:
+    minimum_difficulty: "90+ minutes, requires deep database kernel and distributed systems internals expertise"
+    target_audience: "Principal Database Architects and distributed systems engineers with 10+ years experience"
+    complexity_level: "Nightmare - requires synthesizing knowledge across sharding algorithms, rebalancing protocols, and distributed query execution"
+  
+  multi_agent_orchestration:
+    description: "Coordinate 5-8 specialized database agents for complex sharding debugging"
+    required_agents:
+      - name: "shard_key_analyzer"
+        role: "Analyze shard key distribution, cardinality, and access patterns"
+        expertise: ["consistent hashing", "range partitioning", "composite keys", "hot spot detection"]
+      - name: "rebalancing_coordinator"
+        role: "Debug chunk migration, split operations, and balancer behavior"
+        expertise: ["chunk splitting", "data migration", "balancer scheduling", "orphaned chunks"]
+      - name: "cross_shard_query_optimizer"
+        role: "Optimize scatter-gather queries and cross-shard joins"
+        expertise: ["query routing", "aggregation pushdown", "broadcast joins", "colocation"]
+      - name: "distributed_transaction_debugger"
+        role: "Debug cross-shard transactions and 2PC edge cases"
+        expertise: ["two-phase commit", "saga patterns", "transaction coordination", "lock management"]
+      - name: "topology_change_analyst"
+        role: "Analyze shard addition, removal, and resharding operations"
+        expertise: ["online resharding", "zero-downtime migration", "metadata consistency", "routing updates"]
+      - name: "storage_distribution_expert"
+        role: "Debug data distribution and storage layer interactions"
+        expertise: ["chunk size optimization", "storage engine sharding", "replication factor", "data locality"]
+      - name: "network_topology_simulator"
+        role: "Model cross-datacenter sharding and network partition scenarios"
+        expertise: ["geo-sharding", "zone awareness", "cross-region replication", "latency optimization"]
+      - name: "performance_profiler"
+        role: "Profile shard-level performance and identify bottlenecks"
+        expertise: ["per-shard metrics", "query distribution", "resource utilization", "tail latencies"]
+    
+    cross_engine_attack_chains:
+      - chain: "shard_key_skew -> hot_shard -> rebalancing_storm -> metadata_overload -> cluster_instability"
+        description: "Poor shard key creates hot shard that triggers aggressive rebalancing causing metadata server overload"
+      - chain: "cross_shard_query -> scatter_gather -> memory_exhaustion -> coordinator_crash -> orphaned_operations"
+        description: "Scatter-gather query exhausts coordinator memory leaving operations in unknown state"
+      - chain: "resharding_during_traffic -> chunk_migration -> stale_routing -> data_duplication -> integrity_violation"
+        description: "Resharding under load causes routing inconsistencies leading to data corruption"
+      - chain: "zone_failure -> quorum_loss -> write_rejection -> application_backpressure -> cascade_timeout"
+        description: "Zone failure causes quorum loss that cascades through application layer"
+    
+    parallel_analysis_requirements:
+      - "Concurrent chunk distribution analysis across all shards"
+      - "Parallel query plan comparison for scatter-gather optimization"
+      - "Simultaneous migration tracking across multiple chunk moves"
+      - "Coordinated failover testing across zone boundaries"
+    
+    agent_handoff_scenarios:
+      - from: "shard_key_analyzer"
+        to: "rebalancing_coordinator"
+        trigger: "Skewed distribution requires rebalancing intervention"
+      - from: "cross_shard_query_optimizer"
+        to: "distributed_transaction_debugger"
+        trigger: "Query optimization reveals transaction coordination issues"
+      - from: "topology_change_analyst"
+        to: "network_topology_simulator"
+        trigger: "Topology changes interact with network partition scenarios"
+  
+  multi_conversation_workflow:
+    phase_1_research: |
+      Research advanced sharding concepts and edge cases:
+      - Shard key selection strategies
+      - Consistent hashing algorithms
+      - Hot shard detection and mitigation
+      - Cross-shard query optimization
+      - Resharding and rebalancing techniques
+    
+    phase_2_creation: |
+      Create task with hidden complexity and traps including:
+      - Subtle shard key design flaws
+      - Query patterns that cause scatter-gather
+      - Cross-shard transaction challenges
+      - Data locality issues
+      - Rebalancing complications
+    
+    phase_3_amplification: |
+      Add difficulty multipliers and edge cases:
+      - Multi-tenant sharding scenarios
+      - Geographic distribution requirements
+      - Real-time data access patterns
+      - Compliance and data residency
+      - Disaster recovery across shards
+    
+    phase_4_verification: |
+      Validate task requires deep sharding expertise:
+      - Must understand data distribution algorithms at implementation level
+      - Must know database-specific sharding, routing, and metadata management behaviors
+      - Cannot be solved by simple configuration or obvious shard key choices
+      - Requires deep performance analysis, bottleneck identification, and multi-layer tuning
+      - Tests understanding of distributed data placement, migration, and consistency
+      - Has at least 10+ deeply interacting traps across sharding/routing/storage/query layers
+      - Has cascading failure modes that span metadata, routing, storage, and application layers
+      - Requires knowledge of consistent hashing internals, chunk management, and distributed query execution
+      - Would take experienced database architects 90+ minutes
+      - Involves cross-datacenter sharding with zone awareness and regulatory constraints
+  
+  quality_requirements:
+    - "Must require understanding of data distribution at algorithm and implementation level"
+    - "Must have at least 8 non-obvious failure modes with complex shard interactions"
+    - "Must not be solvable by default sharding configuration or simple shard key selection"
+    - "Must require careful shard key design with multi-dimensional access pattern analysis"
+    - "Must involve real-world sharding challenges with production-scale complexity"
+    - "90+ minutes for experienced database architects, 180+ for senior engineers"
+    - "Requires synthesizing consistent hashing, rebalancing protocols, cross-shard query optimization, and distributed transaction coordination"
+    - "Must involve multi-region sharding complexity with data residency requirements"
+    - "Requires understanding of chunk migration internals, split/merge operations, and metadata consistency"
+
+# =============================================================================
+# TOPIC UNIVERSE - 150+ Sharding Topics
+# =============================================================================
+
+topic_universe:
+  # ---------------------------------------------------------------------------
+  # Shard Key Strategies
+  # ---------------------------------------------------------------------------
+  shard_key_strategies:
+    hashed_sharding:
+      description: "Hash function distributes data evenly"
+      advantages:
+        - "Even data distribution"
+        - "Random write distribution"
+        - "Prevents hot spots from monotonic keys"
+      disadvantages:
+        - "Cannot do range queries efficiently"
+        - "Scatter-gather for range scans"
+      use_cases:
+        - "High write throughput"
+        - "No range query requirements"
+        - "Even distribution priority"
+      databases:
+        mongodb: "sh.shardCollection('db.col', {key: 'hashed'})"
+        cassandra: "Token-based with Murmur3"
+        dynamodb: "Partition key hashing"
+    
+    range_sharding:
+      description: "Contiguous ranges on different shards"
+      advantages:
+        - "Efficient range queries"
+        - "Data locality for related records"
+        - "Sequential access patterns"
+      disadvantages:
+        - "Hot spots on recent data"
+        - "Uneven distribution possible"
+        - "Requires careful range selection"
+      use_cases:
+        - "Time-series data"
+        - "Range queries common"
+        - "Data locality needed"
+      databases:
+        mongodb: "sh.shardCollection('db.col', {key: 1})"
+        cockroachdb: "Range-based partitioning"
+    
+    compound_sharding:
+      description: "Multiple fields in shard key"
+      advantages:
+        - "Query locality for compound queries"
+        - "More even distribution"
+        - "Supports multiple access patterns"
+      design_rules:
+        - "High cardinality field first"
+        - "Frequently queried fields"
+        - "Order matches query patterns"
+      examples:
+        - "tenant_id + user_id"
+        - "region + timestamp"
+        - "category + product_id"
+    
+    zone_sharding:
+      description: "Data routed to specific shards by zone"
+      use_cases:
+        - "Geographic data locality"
+        - "Regulatory compliance"
+        - "Multi-tenant isolation"
+      databases:
+        mongodb: "Zone sharding with sh.addShardTag()"
+        cockroachdb: "Zone configs"
+    
+    directory_based_sharding:
+      description: "Lookup table maps keys to shards"
+      advantages:
+        - "Flexible assignment"
+        - "Easy rebalancing"
+      disadvantages:
+        - "Lookup overhead"
+        - "Directory as bottleneck"
+        - "Single point of failure"
+
+  # ---------------------------------------------------------------------------
+  # Consistent Hashing
+  # ---------------------------------------------------------------------------
+  consistent_hashing:
+    basic_algorithm:
+      description: "Hash ring with virtual nodes"
+      components:
+        hash_ring: "Circular hash space (0 to 2^32-1)"
+        node_placement: "Nodes placed at hash positions"
+        key_assignment: "Key goes to next node clockwise"
+      advantages:
+        - "Minimal remapping on node changes"
+        - "Only K/N keys move on rebalance"
+      databases:
+        - "Cassandra"
+        - "Dynamo"
+        - "Riak"
+    
+    virtual_nodes:
+      description: "Multiple positions per physical node"
+      purpose:
+        - "Even distribution"
+        - "Handle heterogeneous nodes"
+        - "Smooth rebalancing"
+      configuration:
+        cassandra: "num_tokens (default 256)"
+        mongodb: "Chunk-based (not virtual nodes)"
+    
+    jump_consistent_hash:
+      description: "Memory-efficient consistent hash"
+      advantages:
+        - "O(1) memory"
+        - "Fast computation"
+        - "Even distribution"
+      limitations:
+        - "Only sequential bucket assignment"
+        - "Cannot remove arbitrary buckets"
+    
+    rendezvous_hashing:
+      description: "Highest Random Weight hashing"
+      algorithm: "Key goes to node with highest hash(key, node)"
+      advantages:
+        - "No virtual nodes needed"
+        - "Deterministic assignment"
+        - "Handles weights well"
+
+  # ---------------------------------------------------------------------------
+  # Hot Shard Management
+  # ---------------------------------------------------------------------------
+  hot_shard_management:
+    detection:
+      metrics:
+        - "Operations per second per shard"
+        - "Data size per shard"
+        - "Latency per shard"
+        - "CPU/memory usage per shard"
+      tools:
+        mongodb: "sh.status(), mongostat"
+        cassandra: "nodetool tablestats"
+        dynamodb: "CloudWatch metrics"
+    
+    causes:
+      monotonic_keys:
+        description: "Sequential keys write to same shard"
+        examples:
+          - "Auto-increment IDs"
+          - "Timestamps"
+          - "Sequential UUIDs (v1)"
+        solutions:
+          - "Use hashed sharding"
+          - "Prefix with random value"
+          - "Use UUIDv4 or ULID"
+      
+      popular_values:
+        description: "Certain key values accessed more"
+        examples:
+          - "Celebrity user accounts"
+          - "Viral content"
+          - "Default category"
+        solutions:
+          - "Compound shard key"
+          - "Scatter popular values"
+          - "Caching layer"
+      
+      temporal_patterns:
+        description: "Time-based access patterns"
+        examples:
+          - "Current day's data"
+          - "Peak hours"
+          - "Recent orders"
+        solutions:
+          - "Time-based partitioning"
+          - "Spread writes across time"
+    
+    mitigation:
+      split_hot_shards:
+        mongodb: "Manual split or auto-split threshold"
+        cassandra: "Rebalance with vnodes"
+      
+      redistribute_data:
+        description: "Move data to other shards"
+        considerations:
+          - "Network bandwidth"
+          - "Read/write during migration"
+          - "Consistency during move"
+      
+      shard_key_redesign:
+        description: "Change shard key to fix distribution"
+        challenge: "Usually requires data migration"
+
+  # ---------------------------------------------------------------------------
+  # Cross-Shard Operations
+  # ---------------------------------------------------------------------------
+  cross_shard_operations:
+    scatter_gather_queries:
+      description: "Query sent to all shards"
+      causes:
+        - "Query doesn't include shard key"
+        - "Range query across shards"
+        - "Aggregation across shards"
+      performance_impact:
+        - "Latency = slowest shard"
+        - "Network overhead"
+        - "Resource consumption"
+      optimization:
+        - "Include shard key in queries"
+        - "Pre-aggregate data"
+        - "Materialized views"
+    
+    cross_shard_transactions:
+      two_phase_commit:
+        description: "Coordinate transaction across shards"
+        phases:
+          prepare: "All shards prepare"
+          commit: "Coordinator commits all"
+        problems:
+          - "Coordinator failure"
+          - "Participant failure"
+          - "Network partition"
+        databases:
+          mongodb: "Multi-document transactions (4.0+)"
+          cockroachdb: "Distributed transactions"
+      
+      saga_pattern:
+        description: "Compensating transactions"
+        when_to_use:
+          - "Long-running processes"
+          - "Cross-service transactions"
+          - "Eventually consistent acceptable"
+    
+    cross_shard_joins:
+      challenges:
+        - "Data on different shards"
+        - "Network data transfer"
+        - "Memory for merge"
+      strategies:
+        broadcast_join: "Small table sent to all shards"
+        shuffle_join: "Both tables redistributed"
+        colocation: "Keep related data on same shard"
+    
+    global_secondary_indexes:
+      description: "Index across all shards"
+      implementations:
+        mongodb: "Global index on sharded collection"
+        dynamodb: "Global Secondary Index"
+        cassandra: "Materialized views"
+      tradeoffs:
+        - "Write amplification"
+        - "Consistency lag"
+        - "Storage overhead"
+
+  # ---------------------------------------------------------------------------
+  # Resharding and Rebalancing
+  # ---------------------------------------------------------------------------
+  resharding:
+    reasons:
+      - "Uneven data distribution"
+      - "Hot shard mitigation"
+      - "Capacity changes"
+      - "Shard key change"
+      - "Schema evolution"
+    
+    online_resharding:
+      description: "Resharding without downtime"
+      techniques:
+        double_write:
+          description: "Write to both old and new scheme"
+          steps:
+            - "Start writing to both"
+            - "Backfill new shards"
+            - "Verify consistency"
+            - "Switch reads"
+            - "Stop old writes"
+        
+        shadow_migration:
+          description: "Build new shards in background"
+          steps:
+            - "Create new shard scheme"
+            - "Replicate data"
+            - "Catch up with changes"
+            - "Atomic switchover"
+      
+      database_specific:
+        mongodb:
+          - "Automatic chunk splitting"
+          - "Balancer process"
+          - "Manual split/merge"
+        cassandra:
+          - "nodetool repair"
+          - "nodetool cleanup"
+          - "Add/remove nodes"
+        dynamodb:
+          - "Adaptive capacity"
+          - "On-demand mode"
+    
+    offline_resharding:
+      description: "Full migration during downtime"
+      when_used:
+        - "Major shard key change"
+        - "Database version upgrade"
+        - "Architecture change"
+    
+    rebalancing:
+      triggers:
+        - "Data size threshold"
+        - "Operation count threshold"
+        - "Node addition/removal"
+      strategies:
+        linear: "Move one chunk at a time"
+        parallel: "Multiple chunks simultaneously"
+        priority: "Hot chunks first"
+
+  # ---------------------------------------------------------------------------
+  # Multi-Tenant Sharding
+  # ---------------------------------------------------------------------------
+  multi_tenant:
+    strategies:
+      tenant_per_shard:
+        description: "Each tenant on dedicated shard"
+        advantages:
+          - "Isolation"
+          - "Easy tenant migration"
+          - "Predictable performance"
+        disadvantages:
+          - "May waste resources for small tenants"
+          - "Many shards needed"
+      
+      shared_shards:
+        description: "Multiple tenants per shard"
+        shard_key: "tenant_id as first field"
+        advantages:
+          - "Resource efficiency"
+          - "Fewer shards to manage"
+        disadvantages:
+          - "Noisy neighbor problem"
+          - "Tenant isolation challenges"
+      
+      hybrid:
+        description: "Large tenants isolated, small shared"
+        implementation:
+          - "Tier tenants by size"
+          - "Route large tenants to dedicated"
+          - "Pack small tenants together"
+    
+    tenant_migration:
+      description: "Move tenant between shards"
+      challenges:
+        - "Data consistency during move"
+        - "Updating routing"
+        - "Handling in-flight requests"
+
+  # ---------------------------------------------------------------------------
+  # Geographic Sharding
+  # ---------------------------------------------------------------------------
+  geographic_sharding:
+    data_residency:
+      description: "Keep data in specific regions"
+      requirements:
+        - "GDPR compliance"
+        - "Data sovereignty laws"
+        - "Latency requirements"
+      implementation:
+        mongodb: "Zone sharding by region"
+        cockroachdb: "Zone configurations"
+        dynamodb: "Global tables with region preference"
+    
+    geo_routing:
+      description: "Route requests to nearest shard"
+      techniques:
+        - "DNS-based routing"
+        - "Application-level routing"
+        - "Database proxy routing"
+    
+    cross_region_replication:
+      modes:
+        synchronous: "Wait for all regions"
+        asynchronous: "Eventually consistent"
+        semi_synchronous: "Wait for some regions"
+      conflict_resolution:
+        - "Last write wins"
+        - "Region priority"
+        - "Merge logic"
+
+  # ---------------------------------------------------------------------------
+  # Database-Specific Sharding
+  # ---------------------------------------------------------------------------
+  database_specific:
+    mongodb:
+      components:
+        mongos: "Query router"
+        config_servers: "Metadata storage"
+        shards: "Data nodes (replica sets)"
+      shard_key_selection:
+        rules:
+          - "High cardinality"
+          - "Low frequency"
+          - "Non-monotonic"
+        immutable: "Cannot change after creation"
+      chunk_management:
+        chunk_size: "64MB default"
+        splitting: "Automatic on size"
+        migration: "Balancer moves chunks"
+    
+    cassandra:
+      components:
+        tokens: "Hash ring positions"
+        vnodes: "Virtual nodes"
+        partitioner: "Hash function"
+      partition_key:
+        selection:
+          - "Even distribution"
+          - "Query patterns"
+          - "Cluster size"
+      data_model:
+        - "Denormalization"
+        - "Query-first design"
+        - "Materialized views"
+    
+    dynamodb:
+      partition_key:
+        selection:
+          - "High cardinality"
+          - "Even access"
+        hot_partition: "Adaptive capacity helps"
+      sort_key:
+        purpose: "Range queries within partition"
+        patterns:
+          - "Hierarchical data"
+          - "Time-series"
+      capacity:
+        provisioned: "Set RCU/WCU"
+        on_demand: "Auto-scaling"
+        adaptive: "Redistributes capacity"
+    
+    cockroachdb:
+      ranges:
+        description: "Automatic range-based sharding"
+        size: "64MB default"
+        splitting: "Automatic on size or load"
+      zone_configs:
+        purpose: "Control data placement"
+        options:
+          - "Region constraints"
+          - "Replication factor"
+          - "Lease holder preferences"
+
+# =============================================================================
+# TRAP TYPES - 75+ Sharding Traps
+# =============================================================================
+
+trap_types:
+  # ---------------------------------------------------------------------------
+  # Shard Key Design Traps
+  # ---------------------------------------------------------------------------
+  shard_key_design:
+    - trap_id: "SK-001"
+      name: "Monotonic Shard Key"
+      description: "Sequential key sends all writes to one shard"
+      trigger: "Using timestamp or auto-increment as shard key"
+      difficulty: "medium"
+      example: |
+        Shard key: created_at
+        All new documents go to the shard with latest timestamp range
+        Result: One shard handles all writes
+      mitigation: "Use hashed sharding or compound key"
+    
+    - trap_id: "SK-002"
+      name: "Low Cardinality Shard Key"
+      description: "Few unique values limit distribution"
+      trigger: "Using enum or boolean as shard key"
+      difficulty: "medium"
+      example: |
+        Shard key: status (active/inactive)
+        Only 2 possible values = max 2 effective shards
+      mitigation: "Use compound key with high-cardinality field"
+    
+    - trap_id: "SK-003"
+      name: "Query Pattern Mismatch"
+      description: "Shard key not in common queries"
+      trigger: "Queries don't include shard key"
+      difficulty: "medium"
+      consequence: "All queries become scatter-gather"
+    
+    - trap_id: "SK-004"
+      name: "Shard Key Too Granular"
+      description: "Very high cardinality causes too many chunks"
+      trigger: "Using unique ID as sole shard key"
+      difficulty: "hard"
+      consequence: "Excessive chunk metadata, balancer overhead"
+    
+    - trap_id: "SK-005"
+      name: "Immutable Shard Key Mistake"
+      description: "Cannot change shard key after collection created"
+      trigger: "Poor initial shard key choice"
+      difficulty: "hard"
+      consequence: "Requires recreating collection"
+      databases: ["MongoDB"]
+
+  # ---------------------------------------------------------------------------
+  # Query Pattern Traps
+  # ---------------------------------------------------------------------------
+  query_patterns:
+    - trap_id: "QP-001"
+      name: "Missing Shard Key in Query"
+      description: "Query without shard key hits all shards"
+      trigger: "Query filter doesn't include shard key"
+      difficulty: "easy"
+      example: |
+        Shard key: customer_id
+        Query: db.orders.find({status: 'pending'})
+        Result: Scatter-gather to all shards
+    
+    - trap_id: "QP-002"
+      name: "Range Query on Hashed Key"
+      description: "Range queries inefficient on hashed sharding"
+      trigger: "Range query on hashed shard key"
+      difficulty: "medium"
+      example: |
+        Shard key: order_id (hashed)
+        Query: db.orders.find({order_id: {$gt: 1000}})
+        Result: Must scan all shards
+    
+    - trap_id: "QP-003"
+      name: "Sort Without Shard Key"
+      description: "Sorting requires merging from all shards"
+      trigger: "Sort on non-shard-key field"
+      difficulty: "medium"
+      consequence: "Memory-intensive merge sort"
+    
+    - trap_id: "QP-004"
+      name: "Large In-Memory Aggregation"
+      description: "Aggregation exceeds memory on merging shard"
+      trigger: "Large GROUP BY across shards"
+      difficulty: "hard"
+      mitigation: "Use allowDiskUse or pre-aggregate"
+
+  # ---------------------------------------------------------------------------
+  # Cross-Shard Transaction Traps
+  # ---------------------------------------------------------------------------
+  transactions:
+    - trap_id: "TX-001"
+      name: "Cross-Shard Transaction Timeout"
+      description: "Transaction spans too many shards, times out"
+      trigger: "Transaction touching many shards"
+      difficulty: "hard"
+      mitigation: "Design for single-shard transactions"
+    
+    - trap_id: "TX-002"
+      name: "Entity Split Across Shards"
+      description: "Related data on different shards"
+      trigger: "Order on shard 1, items on shard 2"
+      difficulty: "medium"
+      solution: "Use same shard key prefix for related entities"
+    
+    - trap_id: "TX-003"
+      name: "Distributed Deadlock"
+      description: "Deadlock across multiple shards"
+      trigger: "Conflicting lock orders across shards"
+      difficulty: "hard"
+      detection: "Distributed deadlock detection needed"
+    
+    - trap_id: "TX-004"
+      name: "Partial Commit Visibility"
+      description: "Transaction partially visible during commit"
+      trigger: "Reading during cross-shard commit"
+      difficulty: "hard"
+
+  # ---------------------------------------------------------------------------
+  # Hot Shard Traps
+  # ---------------------------------------------------------------------------
+  hot_shards:
+    - trap_id: "HS-001"
+      name: "Celebrity Problem"
+      description: "Popular user causes hot shard"
+      trigger: "Shard key = user_id, celebrity has millions of followers"
+      difficulty: "hard"
+      mitigation: "Sub-sharding for large entities"
+    
+    - trap_id: "HS-002"
+      name: "Time-Based Hot Shard"
+      description: "Current time range is hot"
+      trigger: "Range sharding on timestamp"
+      difficulty: "medium"
+      mitigation: "Hash time or use compound key"
+    
+    - trap_id: "HS-003"
+      name: "Default Value Hot Shard"
+      description: "Default category/status creates hot shard"
+      trigger: "Most records have default value"
+      difficulty: "medium"
+      example: |
+        Shard key: category
+        90% of products in 'general' category
+    
+    - trap_id: "HS-004"
+      name: "Burst Traffic Hot Shard"
+      description: "Event causes traffic spike to one shard"
+      trigger: "Flash sale, viral content"
+      difficulty: "hard"
+      mitigation: "Pre-splitting, caching"
+
+  # ---------------------------------------------------------------------------
+  # Rebalancing Traps
+  # ---------------------------------------------------------------------------
+  rebalancing:
+    - trap_id: "RB-001"
+      name: "Rebalancing During Peak"
+      description: "Balancer moves data during high traffic"
+      trigger: "Automatic balancing without window"
+      difficulty: "medium"
+      mitigation: "Configure balancing window"
+    
+    - trap_id: "RB-002"
+      name: "Rebalancing Cascade"
+      description: "Moving data triggers more rebalancing"
+      trigger: "Aggressive balancing threshold"
+      difficulty: "hard"
+    
+    - trap_id: "RB-003"
+      name: "Split Storm"
+      description: "Many chunks split simultaneously"
+      trigger: "Bulk insert causing many splits"
+      difficulty: "hard"
+      databases: ["MongoDB"]
+    
+    - trap_id: "RB-004"
+      name: "Orphaned Chunks"
+      description: "Data not cleaned up after migration"
+      trigger: "Failed migration, node crash"
+      difficulty: "medium"
+      consequence: "Wasted space, potential conflicts"
+
+  # ---------------------------------------------------------------------------
+  # Operational Traps
+  # ---------------------------------------------------------------------------
+  operational:
+    - trap_id: "OP-001"
+      name: "Config Server Failure"
+      description: "Metadata unavailable"
+      trigger: "Config server cluster failure"
+      difficulty: "hard"
+      consequence: "Cannot route queries"
+      databases: ["MongoDB"]
+    
+    - trap_id: "OP-002"
+      name: "Shard Addition Without Pre-Split"
+      description: "New shard receives no data initially"
+      trigger: "Adding shard without pre-splitting"
+      difficulty: "medium"
+      consequence: "Slow data distribution to new shard"
+    
+    - trap_id: "OP-003"
+      name: "Backup Inconsistency"
+      description: "Backups not consistent across shards"
+      trigger: "Non-atomic backup across shards"
+      difficulty: "hard"
+      mitigation: "Point-in-time backup coordination"
+    
+    - trap_id: "OP-004"
+      name: "Schema Change Coordination"
+      description: "Schema change not atomic across shards"
+      trigger: "ALTER TABLE on sharded table"
+      difficulty: "hard"
+      consequence: "Temporary inconsistency"
+
+  # ---------------------------------------------------------------------------
+  # Multi-Tenant Traps
+  # ---------------------------------------------------------------------------
+  multi_tenant:
+    - trap_id: "MT-001"
+      name: "Noisy Neighbor"
+      description: "One tenant affects others on same shard"
+      trigger: "Heavy tenant traffic"
+      difficulty: "hard"
+      mitigation: "Tenant isolation, rate limiting"
+    
+    - trap_id: "MT-002"
+      name: "Tenant Data Skew"
+      description: "Large tenant dominates shard"
+      trigger: "Tenant grows larger than shard capacity"
+      difficulty: "hard"
+      solution: "Split large tenants across shards"
+    
+    - trap_id: "MT-003"
+      name: "Tenant Migration Downtime"
+      description: "Moving tenant causes downtime"
+      trigger: "Non-online tenant migration"
+      difficulty: "medium"
+
+# =============================================================================
+# EDGE CASES - 100+ Edge Cases
+# =============================================================================
+
+edge_cases:
+  # ---------------------------------------------------------------------------
+  # Data Distribution Edge Cases
+  # ---------------------------------------------------------------------------
+  distribution:
+    - case_id: "DD-001"
+      name: "UUID Version Matters"
+      description: "UUIDv1 is time-based, UUIDv4 is random"
+      impact: "v1 causes hot shards like timestamps"
+    
+    - case_id: "DD-002"
+      name: "Hash Collision"
+      description: "Different keys hash to same shard"
+      impact: "Localized hot spot"
+    
+    - case_id: "DD-003"
+      name: "Empty Shard"
+      description: "Shard has no data due to key distribution"
+      impact: "Wasted resources"
+    
+    - case_id: "DD-004"
+      name: "Jumbo Chunk"
+      description: "Chunk too large to split"
+      impact: "Cannot balance, migration fails"
+      databases: ["MongoDB"]
+
+  # ---------------------------------------------------------------------------
+  # Query Edge Cases
+  # ---------------------------------------------------------------------------
+  queries:
+    - case_id: "QE-001"
+      name: "Partial Shard Key Match"
+      description: "Query has some but not all compound key fields"
+      impact: "May or may not be targeted"
+    
+    - case_id: "QE-002"
+      name: "Negation Query"
+      description: "Query with $ne or NOT"
+      impact: "Cannot use shard key efficiently"
+    
+    - case_id: "QE-003"
+      name: "Regex Query"
+      description: "Regex on shard key"
+      impact: "May scatter if prefix not anchored"
+    
+    - case_id: "QE-004"
+      name: "Array Shard Key Query"
+      description: "Query on array element of shard key"
+      impact: "Complex routing behavior"
+
+  # ---------------------------------------------------------------------------
+  # Failure Edge Cases
+  # ---------------------------------------------------------------------------
+  failures:
+    - case_id: "FE-001"
+      name: "Shard Unavailable During Query"
+      description: "Shard fails mid-query"
+      impact: "Partial results or error"
+    
+    - case_id: "FE-002"
+      name: "Network Partition Between Shards"
+      description: "Some shards can't communicate"
+      impact: "Cross-shard operations fail"
+    
+    - case_id: "FE-003"
+      name: "Split Brain in Shard"
+      description: "Shard's replica set has split brain"
+      impact: "Data divergence"
+    
+    - case_id: "FE-004"
+      name: "Config Server Lag"
+      description: "Metadata out of sync"
+      impact: "Stale routing"
+
+  # ---------------------------------------------------------------------------
+  # Migration Edge Cases
+  # ---------------------------------------------------------------------------
+  migration:
+    - case_id: "MG-001"
+      name: "Migration During Heavy Write"
+      description: "Chunk moves while being heavily written"
+      impact: "Write conflicts, slow migration"
+    
+    - case_id: "MG-002"
+      name: "Circular Migration"
+      description: "Chunk bounces between shards"
+      impact: "Endless rebalancing"
+    
+    - case_id: "MG-003"
+      name: "Large Document Migration"
+      description: "Documents near size limit in migration"
+      impact: "Slow migration, memory pressure"
+
+# =============================================================================
+# DIFFICULTY MULTIPLIERS
+# =============================================================================
+
+difficulty_multipliers:
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 3.0
+      description: "Extreme difficulty requiring expert DBA knowledge across multiple systems"
+      requirements:
+        - "7+ interacting traps across storage engine, query optimizer, and lock manager"
+        - "Requires understanding of database internals and source code behavior"
+        - "Time estimate: 90+ minutes for senior database engineers"
+        - "Cross-database compatibility issues that manifest differently"
+        - "Requires synthesizing SQL, transactions, and distributed systems knowledge"
+    
+    nightmare_plus:
+      multiplier: 5.0
+      estimated_time: [28800, 172800]  # 8-48 hours
+      command_steps: [400, 1500]
+      techniques_required: 12
+      description: "Database kernel development difficulty requiring sharding internals and distributed systems expertise"
+      requirements:
+        - "12+ deeply interacting traps across sharding, routing, metadata, and storage layers"
+        - "Requires understanding of consistent hashing implementations and chunk management internals"
+        - "Time estimate: 8-48 hours for principal database architects"
+        - "Cross-engine sharding compatibility requiring deep internals knowledge"
+        - "Requires synthesizing distributed query execution, shard-level storage, and global transaction coordination"
+        - "Must debug issues spanning multiple geographic regions and availability zones"
+        - "Requires understanding of metadata server consensus and routing cache coherency"
+        - "Must handle cascading rebalancing failures and split-brain scenarios"
+  
+  storage_engine_internals:
+    btree_sharding_interaction:
+      description: "B-tree/B+tree interactions with sharding boundaries"
+      factors:
+        - "Chunk boundary alignment with B-tree pages"
+        - "Index locality within shard boundaries"
+        - "Cross-shard index maintenance overhead"
+        - "Primary key clustering across shard ranges"
+      multiplier: 1.8
+    
+    lsm_shard_compaction:
+      description: "LSM-tree compaction within sharded environment"
+      factors:
+        - "Per-shard compaction scheduling coordination"
+        - "Cross-shard compaction thundering herd"
+        - "Compaction impact on chunk migration"
+        - "SSTable generation across shard boundaries"
+      multiplier: 2.0
+    
+    wal_per_shard:
+      description: "Write-ahead log management across shards"
+      factors:
+        - "WAL segment coordination for cross-shard transactions"
+        - "Shard-local recovery vs global consistency"
+        - "WAL shipping for shard replication"
+        - "WAL truncation coordination with chunk migration"
+      multiplier: 1.7
+    
+    buffer_pool_sharding:
+      description: "Buffer pool management in sharded deployment"
+      factors:
+        - "Per-shard buffer pool allocation"
+        - "Cross-shard working set management"
+        - "Cache coherency for migrating chunks"
+        - "Memory pressure during rebalancing"
+      multiplier: 1.5
+    
+    lock_manager_distributed:
+      description: "Distributed lock management across shards"
+      factors:
+        - "Global lock coordination for cross-shard operations"
+        - "Shard-local deadlock detection scope"
+        - "Lock migration during chunk movement"
+        - "Intent lock propagation across shard boundaries"
+      multiplier: 1.9
+    
+    mvcc_shard_boundaries:
+      description: "MVCC version management across shards"
+      factors:
+        - "Snapshot isolation across shard boundaries"
+        - "Version garbage collection coordination"
+        - "Cross-shard transaction visibility"
+        - "Global transaction ID generation and ordering"
+      multiplier: 2.1
+  
+  distributed_database_complexity:
+    consensus_for_metadata:
+      raft_metadata:
+        - "Config server leader election during shard operations"
+        - "Metadata log replication during resharding"
+        - "Routing table consistency across mongos/coordinator nodes"
+        - "Chunk metadata split-brain scenarios"
+      paxos_metadata:
+        - "Multi-Paxos for shard assignment"
+        - "Learner lag causing stale routing"
+        - "Proposer contention during rebalancing storms"
+      multiplier: 2.3
+    
+    distributed_transaction_sharding:
+      cross_shard_2pc:
+        - "Coordinator failure with pending cross-shard transaction"
+        - "Participant timeout causing partial commit"
+        - "Shard unavailability during prepared state"
+        - "In-doubt transaction cleanup across shards"
+      saga_sharding:
+        - "Compensating transaction on unavailable shard"
+        - "Saga orchestrator failure mid-execution"
+        - "Concurrent saga conflicts on same shards"
+      multiplier: 2.4
+    
+    replication_within_shards:
+      shard_replica_sets:
+        - "Replica set election during chunk migration"
+        - "Replication lag impact on read consistency"
+        - "Secondary reads across shard boundaries"
+        - "Arbiter failure in odd-numbered replica sets"
+      multiplier: 1.8
+    
+    partition_handling_sharded:
+      scenarios:
+        - "Metadata server partition causing routing failures"
+        - "Shard-level partition with cross-shard transactions pending"
+        - "Zone failure with zone-aware sharding"
+        - "Network partition between coordinator and shards"
+      multiplier: 2.5
+  
+  scale_factors:
+    - factor: "hundreds_of_shards"
+      multiplier: 1.8
+      description: "Managing 100+ shards"
+    
+    - factor: "petabyte_data"
+      multiplier: 2.0
+      description: "Petabyte-scale data"
+    
+    - factor: "millions_of_tenants"
+      multiplier: 1.7
+      description: "Multi-tenant at scale"
+  
+  operational_factors:
+    - factor: "zero_downtime_resharding"
+      multiplier: 2.0
+      description: "Reshard without any downtime"
+    
+    - factor: "cross_region_sharding"
+      multiplier: 1.8
+      description: "Shards across geographic regions"
+    
+    - factor: "real_time_analytics"
+      multiplier: 1.5
+      description: "Real-time queries across shards"
+  
+  compliance_factors:
+    - factor: "data_residency"
+      multiplier: 1.5
+      description: "Data must stay in specific regions"
+    
+    - factor: "audit_trail"
+      multiplier: 1.3
+      description: "Track all data movements"
+
+# =============================================================================
+# DATABASE SYSTEM SPECIFICS
+# =============================================================================
+
+database_specifics:
+  mongodb:
+    versions: ["5.0", "6.0", "7.0"]
+    sharding_features:
+      - "Hashed and range sharding"
+      - "Zone sharding"
+      - "Chunk management"
+      - "Balancer"
+    common_issues:
+      - "Jumbo chunks"
+      - "Balancer window"
+      - "Config server dependency"
+    
+  cassandra:
+    versions: ["4.0", "4.1", "5.0"]
+    sharding_features:
+      - "Consistent hashing"
+      - "Virtual nodes"
+      - "Token-aware routing"
+    common_issues:
+      - "Hot partitions"
+      - "Tombstone accumulation"
+      - "Repair overhead"
+    
+  dynamodb:
+    sharding_features:
+      - "Automatic partitioning"
+      - "Adaptive capacity"
+      - "Global tables"
+    common_issues:
+      - "Hot partitions"
+      - "Throughput exceptions"
+      - "GSI throttling"
+    
+  cockroachdb:
+    versions: ["22.2", "23.1", "23.2"]
+    sharding_features:
+      - "Automatic range splitting"
+      - "Zone configurations"
+      - "Follower reads"
+    common_issues:
+      - "Range hotspots"
+      - "Leaseholder distribution"
+
+# =============================================================================
+# PROBLEM STATEMENT TEMPLATES
+# =============================================================================
+
+problem_statement: |
+  A {{ application_type }} using {{ database_system }} has sharding issues.
+  The cluster has {{ shard_count }} shards handling {{ data_volume }} of data.
+  
+  Observed problems:
+  {{ sharding_problems }}
+  
+  Current configuration:
+  - Shard key: {{ shard_key }}
+  - Distribution: {{ distribution_type }}
+  - Replication: {{ replication_factor }}
+  - Regions: {{ region_count }}
+  
+  Workload characteristics:
+  - Write rate: {{ write_rate }} ops/sec
+  - Read rate: {{ read_rate }} ops/sec
+  - Query patterns: {{ query_patterns }}
+
+requirements: |
+  - Achieve {{ distribution_goal }} data distribution
+  - Support {{ query_requirements }} query patterns
+  - Handle {{ transaction_requirements }} transactions
+  - Enable {{ scaling_requirements }} scaling
+  - Maintain {{ availability_target }} availability
+
+interface: |
+  Input: {{ input_description }}
+  Output: {{ output_description }}
+  Validation: {{ validation_criteria }}
+
+# =============================================================================
+# REFERENCE SOLUTION PATTERNS
+# =============================================================================
+
+reference_solution: |
+  #!/usr/bin/env python3
+  """
+  Database Sharding Best Practices
+  
+  Patterns for effective sharding in distributed databases.
+  """
+  
+  from typing import Dict, List, Optional, Tuple
+  from dataclasses import dataclass
+  import hashlib
+  from datetime import datetime
+  
+  # ============================================================
+  # PATTERN 1: Shard Key Selection
+  # ============================================================
+  
+  """
+  BAD SHARD KEY EXAMPLES:
+  
+  1. Monotonic (timestamp, auto-increment):
+     - All writes go to latest shard
+     - Creates hot shard
+     
+  2. Low cardinality (status, boolean):
+     - Limited distribution
+     - Max shards = unique values
+     
+  3. Query pattern mismatch:
+     - Shard key not in common queries
+     - All queries scatter-gather
+  """
+  
+  @dataclass
+  class ShardKeyAnalysis:
+      key_name: str
+      cardinality: str  # "low", "medium", "high"
+      distribution: str  # "even", "skewed"
+      write_pattern: str  # "append", "random", "targeted"
+      query_match: bool  # Key in common queries
+      recommendation: str
+  
+  def analyze_shard_key(proposed_key: str, sample_queries: List[str]) -> ShardKeyAnalysis:
+      """Analyze proposed shard key for common issues."""
+      
+      problematic_keys = {
+          'created_at': ShardKeyAnalysis(
+              'created_at', 'high', 'skewed', 'append', False,
+              'Monotonic timestamp causes hot shard. Use hashed or compound.'
+          ),
+          '_id': ShardKeyAnalysis(
+              '_id', 'high', 'skewed', 'append', False,
+              'ObjectId is monotonic. Use hashed _id or different key.'
+          ),
+          'status': ShardKeyAnalysis(
+              'status', 'low', 'skewed', 'targeted', False,
+              'Low cardinality limits distribution. Add high-cardinality field.'
+          ),
+      }
+      
+      if proposed_key in problematic_keys:
+          return problematic_keys[proposed_key]
+      
+      # Check if key appears in queries
+      query_match = any(proposed_key in q for q in sample_queries)
+      
+      return ShardKeyAnalysis(
+          proposed_key, 'unknown', 'unknown', 'unknown', query_match,
+          'Analyze actual data before finalizing shard key.'
+      )
+  
+  # ============================================================
+  # PATTERN 2: Compound Shard Key Design
+  # ============================================================
+  
+  """
+  COMPOUND SHARD KEY PRINCIPLES:
+  
+  1. High cardinality field FIRST for distribution
+  2. Query-matching field for locality
+  3. Consider query patterns for field order
+  
+  Example: Multi-tenant application
+  - Shard key: {tenant_id: 1, user_id: 1}
+  - Queries by tenant_id target single shard
+  - Queries by tenant_id + user_id also targeted
+  """
+  
+  @dataclass
+  class CompoundShardKeyDesign:
+      distribution_field: str  # High cardinality, even distribution
+      locality_field: str      # Query pattern match
+      
+      def validate_query(self, query_filter: Dict) -> str:
+          """Check if query is targeted or scatter-gather."""
+          if self.distribution_field in query_filter:
+              return "targeted"
+          return "scatter-gather"
+      
+      def get_mongodb_command(self, db: str, collection: str) -> str:
+          return f"""
+  sh.shardCollection(
+      "{db}.{collection}",
+      {{ {self.distribution_field}: 1, {self.locality_field}: 1 }}
+  )
+  """
+  
+  # ============================================================
+  # PATTERN 3: Hot Shard Mitigation
+  # ============================================================
+  
+  """
+  HOT SHARD DETECTION:
+  - Monitor ops/sec per shard
+  - Track data size distribution
+  - Watch latency percentiles
+  
+  MITIGATION STRATEGIES:
+  """
+  
+  def add_random_prefix(key: str, num_buckets: int = 10) -> str:
+      """
+      Add random prefix to spread writes.
+      Use when natural key is monotonic.
+      """
+      bucket = hash(key) % num_buckets
+      return f"{bucket}:{key}"
+  
+  def hash_timestamp(timestamp: datetime, precision: str = 'hour') -> str:
+      """
+      Hash time-based key for distribution.
+      Preserves some locality within precision.
+      """
+      if precision == 'hour':
+          key = timestamp.strftime('%Y%m%d%H')
+      elif precision == 'day':
+          key = timestamp.strftime('%Y%m%d')
+      else:
+          key = timestamp.isoformat()
+      
+      return hashlib.md5(key.encode()).hexdigest()[:8]
+  
+  class WriteSpreadingClient:
+      """
+      Client that spreads writes across shards.
+      """
+      
+      def __init__(self, db_client, spread_factor: int = 10):
+          self.db = db_client
+          self.spread_factor = spread_factor
+      
+      def insert_with_spread(
+          self,
+          collection: str,
+          document: Dict,
+          natural_key_field: str
+      ) -> str:
+          """
+          Insert with artificial distribution field.
+          """
+          natural_key = document.get(natural_key_field, '')
+          spread_key = hash(natural_key) % self.spread_factor
+          
+          document['_spread_key'] = spread_key
+          
+          result = self.db[collection].insert_one(document)
+          return str(result.inserted_id)
+      
+      def find_with_spread(
+          self,
+          collection: str,
+          natural_key: str,
+          query: Dict
+      ) -> List[Dict]:
+          """
+          Query all spread buckets.
+          """
+          spread_key = hash(natural_key) % self.spread_factor
+          query['_spread_key'] = spread_key
+          return list(self.db[collection].find(query))
+  
+  # ============================================================
+  # PATTERN 4: Cross-Shard Query Optimization
+  # ============================================================
+  
+  """
+  SCATTER-GATHER AVOIDANCE:
+  
+  1. Always include shard key in queries
+  2. Design schema for query patterns
+  3. Use covered queries where possible
+  """
+  
+  class QueryAnalyzer:
+      """Analyze queries for sharding efficiency."""
+      
+      def __init__(self, shard_key_fields: List[str]):
+          self.shard_key_fields = shard_key_fields
+      
+      def analyze_query(self, query_filter: Dict) -> Dict:
+          """Determine if query is targeted or scatter-gather."""
+          # Check if query includes shard key prefix
+          for i, field in enumerate(self.shard_key_fields):
+              if field in query_filter:
+                  if i == 0:
+                      return {
+                          'type': 'targeted',
+                          'reason': f'Query includes shard key prefix: {field}'
+                      }
+                  else:
+                      return {
+                          'type': 'partial',
+                          'reason': f'Query includes {field} but not prefix fields'
+                      }
+          
+          return {
+              'type': 'scatter-gather',
+              'reason': 'Query does not include shard key',
+              'suggestion': f'Add {self.shard_key_fields[0]} to query filter'
+          }
+  
+  # ============================================================
+  # PATTERN 5: Entity Colocation
+  # ============================================================
+  
+  """
+  KEEP RELATED DATA ON SAME SHARD:
+  
+  Order and OrderItems should use same shard key prefix
+  so transactions don't span shards.
+  """
+  
+  @dataclass
+  class EntityColocationStrategy:
+      """Strategy for keeping related entities on same shard."""
+      
+      primary_entity: str
+      primary_shard_key: str
+      related_entities: Dict[str, str]  # entity -> shard key field
+      
+      def validate_schema(self, schemas: Dict[str, List[str]]) -> List[str]:
+          """Validate all entities have compatible shard keys."""
+          issues = []
+          
+          # Check primary entity has shard key
+          if self.primary_shard_key not in schemas.get(self.primary_entity, []):
+              issues.append(f"{self.primary_entity} missing {self.primary_shard_key}")
+          
+          # Check related entities
+          for entity, field in self.related_entities.items():
+              if field not in schemas.get(entity, []):
+                  issues.append(f"{entity} missing {field}")
+          
+          return issues
+      
+      def get_shard_key_value(self, document: Dict) -> Optional[str]:
+          """Extract shard key value for routing."""
+          return document.get(self.primary_shard_key)
+  
+  # Example usage
+  order_colocation = EntityColocationStrategy(
+      primary_entity='orders',
+      primary_shard_key='customer_id',
+      related_entities={
+          'order_items': 'customer_id',  # Not order_id!
+          'order_payments': 'customer_id',
+      }
+  )
+  
+  # ============================================================
+  # PATTERN 6: Resharding Plan
+  # ============================================================
+  
+  """
+  RESHARDING WITHOUT DOWNTIME:
+  
+  1. Create new sharded collection with new key
+  2. Enable dual writes
+  3. Backfill historical data
+  4. Verify consistency
+  5. Switch reads
+  6. Disable old writes
+  7. Drop old collection
+  """
+  
+  @dataclass
+  class ReshardingPlan:
+      """Plan for resharding operation."""
+      
+      collection: str
+      old_shard_key: Dict
+      new_shard_key: Dict
+      estimated_data_size: str
+      estimated_duration: str
+      
+      def generate_steps(self) -> List[str]:
+          return [
+              "1. Create new collection with new shard key",
+              "2. Set up change stream on old collection",
+              "3. Begin dual-writing to both collections",
+              "4. Backfill existing data in batches",
+              "5. Apply change stream events to new collection",
+              "6. Verify data consistency between collections",
+              "7. Switch application reads to new collection",
+              "8. Verify reads working correctly",
+              "9. Stop writes to old collection",
+              "10. Monitor for any issues",
+              "11. Drop old collection after validation period",
+          ]
+      
+      def estimate_risk(self) -> Dict:
+          return {
+              'data_loss_risk': 'low (with proper verification)',
+              'downtime_risk': 'minimal (during read switch)',
+              'performance_impact': 'medium (dual writes)',
+              'rollback_difficulty': 'low (keep old collection)',
+          }
+
+# =============================================================================
+# TEST CASES
+# =============================================================================
+
+fail_to_pass:
+  - "test_no_hot_shards"
+  - "test_queries_targeted"
+  - "test_transactions_same_shard"
+  - "test_even_distribution"
+  - "test_rebalancing_efficient"
+  - "test_cross_shard_queries_optimized"
+
+pass_to_pass:
+  - "test_basic_sharding_works"
+  - "test_shard_key_queries_work"
+
+# =============================================================================
+# VARIABLES FOR TASK GENERATION
+# =============================================================================
+
+variables:
+  - name: application_type
+    type: string
+    options:
+      - "multi-tenant SaaS"
+      - "IoT platform"
+      - "e-commerce"
+      - "gaming backend"
+      - "social media"
+      - "financial services"
+  
+  - name: database_system
+    type: string
+    options: ["MongoDB", "Cassandra", "DynamoDB", "CockroachDB"]
+  
+  - name: shard_count
+    type: int
+    min: 3
+    max: 100
+  
+  - name: data_volume
+    type: string
+    options: ["100 GB", "1 TB", "10 TB", "100 TB", "1 PB"]
+  
+  - name: write_rate
+    type: string
+    options: ["1,000", "10,000", "100,000", "1,000,000"]
+
+# =============================================================================
+# ANTI-PATTERNS - LLM Failure Modes
+# =============================================================================
+
+anti_patterns:
+  llm_failure_modes:
+    - "Applying generic SQL patterns without considering database-specific behavior"
+    - "Missing isolation level interactions between concurrent transactions"
+    - "Ignoring lock manager implementation details"
+    - "Not considering query optimizer behavior changes across versions"
+    - "Missing hidden full table scans in seemingly optimized queries"
+    - "Overlooking index maintenance overhead during writes"
+    - "Assuming ORM generates efficient queries"
+    - "Missing deadlock potential in cross-schema operations"
+    - "Ignoring transaction log and recovery implications"
+    - "Assuming shard key cardinality automatically ensures even distribution"
+    - "Ignoring temporal hot spots from monotonic shard keys"
+    - "Missing chunk migration impact on query latency during rebalancing"
+    - "Assuming scatter-gather queries scale linearly with shard count"
+    - "Overlooking jumbo chunk formation from unbounded document growth"
+    - "Missing orphaned chunk cleanup requirements after failed migrations"
+    - "Assuming cross-shard transactions have same consistency as single-shard"
+    - "Ignoring metadata server capacity limits during large cluster operations"
+    - "Missing routing table cache staleness during rapid topology changes"
+    - "Assuming zone-aware sharding automatically handles failover correctly"
+    - "Overlooking the impact of hashed shard keys on range queries"
+    - "Missing broadcast query overhead for queries without shard key"
+    - "Assuming chunk pre-splitting prevents all hot spot scenarios"
+    - "Ignoring config server election timing during rolling upgrades"
+    - "Missing the impact of large transactions on chunk migration"
+    - "Assuming shard-local indexes provide same performance as global indexes"
+    - "Overlooking the balancer window configuration for production workloads"
+    - "Missing tag-aware sharding interaction with chunk splitting"
+  
+  query_optimizer_internals:
+    shard_targeted_optimization:
+      - "Shard key extraction from complex predicates"
+      - "Compound shard key prefix matching"
+      - "Broadcast vs targeted query decision"
+      - "Sort pushdown to shards"
+    distributed_join_strategies:
+      - "Broadcast join memory requirements"
+      - "Shard-colocation join opportunities"
+      - "Shuffle join network overhead"
+      - "Semi-join reduction for cross-shard queries"
+    aggregation_pushdown:
+      - "Partial aggregation at shard level"
+      - "Merge aggregation at coordinator"
+      - "Memory limits for shard-level aggregation"
+      - "Approximate aggregation tradeoffs"
+
+# =============================================================================
+# ANTI-HARDCODING MEASURES
+# =============================================================================
+
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  randomize_identifiers: true
+  
+  sharding_issues:
+    - "hot_shard"
+    - "scatter_gather"
+    - "cross_shard_txn"
+    - "rebalancing_storm"
+    - "jumbo_chunk"

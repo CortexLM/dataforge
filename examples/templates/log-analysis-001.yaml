@@ -1,0 +1,47 @@
+id: "log-analysis-001"
+version: "1.0.0"
+category: "debugging"
+subcategory: "log-analysis"
+
+difficulty:
+  estimated: "medium"
+  min_score: 0.35
+  max_score: 0.65
+
+variables:
+  error_count:
+    type: int
+    min: 5
+    max: 20
+    description: "Number of errors in the log file"
+
+instruction_template: |
+  You are debugging a service outage.
+  
+  The service logs are located at /var/log/app/app.log.
+  
+  Your task:
+  1. Count the number of ERROR entries in the log file
+  2. Write the count to /home/user/result.txt
+
+solution_template: |
+  #!/bin/bash
+  grep -c 'ERROR' /var/log/app/app.log > /home/user/result.txt
+
+generated_files:
+  - path: "task-deps/data/app.log"
+    generator: "log_file_generator"
+    config:
+      lines: "100"
+
+expected_outputs:
+  result_file:
+    path: "/home/user/result.txt"
+    exists: true
+
+anti_hardcoding:
+  canary_locations:
+    - "task.yaml:metadata"
+  process_validation:
+    required_patterns:
+      - "grep.*ERROR"

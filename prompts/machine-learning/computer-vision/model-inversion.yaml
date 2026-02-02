@@ -1,0 +1,1803 @@
+id: "ml-cv-model-inversion-001"
+version: "2.0.0"
+category: "machine-learning"
+subcategory: "computer-vision"
+complexity: "expert"
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research obscure ML privacy attacks and defense mechanisms"
+    phase_2_creation: "Create task with subtle privacy vulnerabilities"
+    phase_3_amplification: "Add mathematical rigor for privacy guarantees"
+    phase_4_verification:
+      description: "Validate task requires deep ML security expertise"
+      validation_criteria:
+        - "Has at least 5 interacting hidden traps"
+        - "Has cascading numerical instability issues"
+        - "Requires knowledge of framework internals (PyTorch/TensorFlow compilation)"
+        - "Would take experienced ML engineers 45+ minutes"
+        - "Combines mathematical theory with systems-level debugging"
+  
+  task_generation_strategy:
+    min_unique_tasks: 10000
+    complexity_levels: ["medium", "hard", "expert", "research"]
+    require_privacy_proofs: true
+    require_attack_simulation: true
+    require_defense_implementation: true
+    time_range: [2700, 7200]
+    command_steps: [35, 100]
+  
+  quality_requirements:
+    minimum_time: "120-240 minutes for ML researchers with PhD-level expertise"
+    depth: "Requires deep understanding of privacy attacks and differential privacy"
+    traps: "10+ deeply interacting traps across numerical stability, privacy, and framework domains"
+  
+  generation_targets:
+    minimum_difficulty: "120-240 minutes, requires PhD-level ML theory, framework internals, and security research expertise"
+    target_audience: "Senior ML security researchers and privacy engineers with publication track record"
+    failure_mode_count: 10
+  
+  multi_agent_orchestration:
+    required_agents:
+      - agent: "privacy_auditor"
+        role: "Analyzes differential privacy guarantees and information leakage bounds"
+        expertise: ["dp_accounting", "privacy_amplification", "composition_theorems"]
+      - agent: "numerical_analyst"
+        role: "Validates numerical stability of privacy mechanisms and gradient computations"
+        expertise: ["floating_point_analysis", "condition_numbers", "error_propagation"]
+      - agent: "framework_debugger"
+        role: "Debugs cross-framework issues in privacy-preserving ML pipelines"
+        expertise: ["pytorch_internals", "tensorflow_compilation", "jax_transforms"]
+      - agent: "attack_simulator"
+        role: "Simulates model inversion, membership inference, and gradient leakage attacks"
+        expertise: ["adversarial_ml", "reconstruction_attacks", "information_extraction"]
+      - agent: "defense_architect"
+        role: "Designs and validates privacy defense mechanisms"
+        expertise: ["output_perturbation", "gradient_masking", "secure_aggregation"]
+      - agent: "cryptography_specialist"
+        role: "Implements and audits cryptographic privacy primitives"
+        expertise: ["homomorphic_encryption", "secure_mpc", "zero_knowledge"]
+      - agent: "systems_optimizer"
+        role: "Optimizes privacy-preserving inference for production deployment"
+        expertise: ["cuda_optimization", "memory_efficiency", "latency_bounds"]
+    cross_framework_attack_chains:
+      - chain: "pytorch_vulnerability_to_tensorflow_exploitation"
+        description: "Exploit PyTorch autograd leakage to reconstruct TensorFlow model training data"
+        steps:
+          - "Identify gradient exposure in PyTorch model serving"
+          - "Extract gradient statistics through repeated queries"
+          - "Transfer attack to TensorFlow deployment using gradient matching"
+          - "Reconstruct training samples via optimization-based inversion"
+      - chain: "jax_bypass_to_privacy_breach"
+        description: "Use JAX JIT tracing to bypass privacy defenses and extract sensitive information"
+        steps:
+          - "Analyze JAX traced computation graph for privacy leaks"
+          - "Exploit deterministic JIT behavior for timing attacks"
+          - "Bypass DP noise through gradient accumulation patterns"
+          - "Extract membership information via model update analysis"
+    parallel_analysis_requirements:
+      - "Coordinate gradient analysis across multiple model replicas"
+      - "Share privacy budget accounting state between agents"
+      - "Maintain consistent attack context across framework boundaries"
+      - "Synchronize defense validation across heterogeneous deployments"
+    agent_handoff_protocols:
+      - protocol: "attack_chain_handoff"
+        trigger: "Cross-framework vulnerability discovered"
+        from_agent: "attack_simulator"
+        to_agent: "framework_debugger"
+        context_transfer: ["gradient_patterns", "query_sequences", "reconstruction_progress"]
+      - protocol: "defense_validation_handoff"
+        trigger: "Privacy defense implementation complete"
+        from_agent: "defense_architect"
+        to_agent: "privacy_auditor"
+        context_transfer: ["dp_parameters", "noise_calibration", "composition_state"]
+  
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 3.5
+      description: "Research-level difficulty requiring deep ML theory and systems expertise"
+      requirements:
+        - "10+ interacting numerical/computational traps across privacy and security domains"
+        - "Requires understanding of automatic differentiation internals across PyTorch, TensorFlow, and JAX"
+        - "Time estimate: 120+ minutes for senior ML researchers"
+        - "Cross-framework compatibility issues (PyTorch vs TensorFlow vs JAX)"
+        - "Requires synthesizing linear algebra, calculus, and systems programming"
+    nightmare_plus:
+      multiplier: 10.0
+      estimated_time: [43200, 172800]  # 12-48 hours
+      command_steps: [500, 2000]
+      techniques_required: 15
+      description: "Publication-grade difficulty requiring novel algorithm design and cross-framework security research"
+      requirements:
+        - "15+ deeply coupled traps requiring simultaneous resolution"
+        - "Novel privacy attack discovery and defense mechanism design"
+        - "Cross-framework attack chains spanning PyTorch, TensorFlow, JAX, and custom CUDA kernels"
+        - "Formal privacy proofs with tight composition bounds"
+        - "Information-theoretic analysis of reconstruction limits"
+        - "Production-grade implementation with sub-millisecond overhead"
+        - "Adversarial robustness against adaptive attackers"
+        - "Zero-knowledge proof integration for verifiable privacy"
+  
+  theoretical_foundations:
+    information_theoretic_bounds:
+      - theorem: "mutual_information_privacy_bound"
+        statement: "I(X; f(X), Q) ≤ ε·n + δ for (ε,δ)-DP mechanism with n queries"
+        proof_requirements: ["data_processing_inequality", "composition_theorem", "privacy_amplification"]
+        application: "Bound maximum information extractable through model inversion"
+      - theorem: "reconstruction_entropy_lower_bound"
+        statement: "H(X|M(X), Adversary) ≥ H(X) - C(M) - log(1/δ)"
+        proof_requirements: ["fano_inequality", "model_capacity_bounds", "concentration_inequalities"]
+        application: "Prove fundamental limits on training data reconstruction"
+    differential_geometry:
+      - concept: "gradient_manifold_analysis"
+        description: "Analyze privacy leakage through Riemannian geometry of gradient space"
+        requirements: ["tangent_space_decomposition", "geodesic_distance", "curvature_bounds"]
+      - concept: "fisher_information_geometry"
+        description: "Use Fisher information metric to bound parameter inference"
+        requirements: ["cramer_rao_bound", "jeffreys_prior", "natural_gradient"]
+    category_theory:
+      - concept: "privacy_functor"
+        description: "Model privacy transformations as functors preserving semantic structure"
+        requirements: ["natural_transformations", "adjunctions", "monads"]
+      - concept: "compositional_privacy"
+        description: "Prove privacy composition through categorical semantics"
+        requirements: ["monoidal_categories", "string_diagrams", "coherence_theorems"]
+    measure_theory:
+      - concept: "privacy_measure_spaces"
+        description: "Formalize DP using measure-theoretic probability"
+        requirements: ["radon_nikodym_derivative", "absolute_continuity", "sigma_algebras"]
+      - concept: "concentration_inequalities"
+        description: "Derive tight privacy bounds using measure concentration"
+        requirements: ["mcdiarmid_inequality", "talagrand_concentration", "transportation_lemma"]
+  
+  cross_framework_requirements:
+    pytorch_expertise:
+      - "Custom autograd functions with privacy-preserving backward passes"
+      - "Hook-based gradient interception and perturbation"
+      - "TorchScript compilation with privacy guarantees"
+      - "Distributed training with secure aggregation"
+      - "Opacus integration and custom DP mechanisms"
+    tensorflow_expertise:
+      - "TF Privacy library integration and customization"
+      - "XLA compilation effects on privacy mechanisms"
+      - "Keras model privacy wrapping"
+      - "TensorFlow Federated secure aggregation"
+      - "SavedModel privacy preservation"
+    jax_expertise:
+      - "JAX transforms (jit, vmap, pmap) with privacy preservation"
+      - "Custom VJP rules for DP gradient computation"
+      - "Flax module privacy wrapping"
+      - "Haiku transform integration"
+      - "XLA HLO-level privacy analysis"
+    cuda_triton_expertise:
+      - "Custom CUDA kernels for constant-time privacy operations"
+      - "Triton JIT compilation with timing attack resistance"
+      - "GPU memory protection for sensitive gradients"
+      - "Multi-GPU privacy-preserving communication"
+      - "Tensor core utilization without information leakage"
+  
+  anti_patterns:
+    llm_failure_modes:
+      - "Applying textbook solutions without considering numerical stability"
+      - "Missing gradient flow issues in deep architectures"
+      - "Ignoring framework-specific automatic differentiation behavior"
+      - "Not considering mixed precision training edge cases"
+      - "Missing hardware-specific numerical behavior (GPU vs CPU)"
+      - "Overlooking data pipeline bottlenecks masking as model issues"
+      - "Assuming standard initialization works for all architectures"
+      - "Missing tokenizer edge cases with unicode and special characters"
+      - "Ignoring batch normalization mode (train vs eval) effects"
+      - "Misunderstanding composition theorems for sequential DP queries"
+      - "Incorrect sensitivity calculation for gradient clipping"
+      - "Ignoring floating-point determinism requirements for DP"
+      - "Assuming Gaussian mechanism works for all sensitivity types"
+      - "Missing privacy amplification from subsampling"
+      - "Incorrect RDP to (ε,δ)-DP conversion"
+      - "Ignoring correlation between gradient dimensions"
+      - "Assuming independence of privacy losses across layers"
+      - "Missing timing side channels in privacy-preserving inference"
+      - "Incorrect handling of public vs private data in mixed pipelines"
+      - "Overlooking model update leakage in federated settings"
+      - "Assuming cryptographic primitives compose with DP automatically"
+      - "Missing reconstruction attacks through confidence scores"
+      - "Ignoring membership inference via loss value patterns"
+      - "Incorrect application of privacy blanket theorems"
+  
+  publication_requirements:
+    venue_tier: "top_ml_security"
+    target_venues: ["S&P", "CCS", "USENIX Security", "NeurIPS", "ICML", "ICLR"]
+    novel_contributions:
+      - contribution: "new_attack_vector"
+        description: "Discovery of previously unknown model inversion attack exploiting cross-framework vulnerabilities"
+        requirements: ["empirical_validation", "theoretical_analysis", "responsible_disclosure"]
+      - contribution: "improved_defense"
+        description: "Novel privacy defense with better utility-privacy tradeoff than existing methods"
+        requirements: ["formal_privacy_proof", "extensive_evaluation", "open_source_implementation"]
+      - contribution: "tight_bounds"
+        description: "Tighter information-theoretic bounds on model inversion success"
+        requirements: ["mathematical_proof", "matching_lower_bound", "practical_implications"]
+    evaluation_requirements:
+      - "Comparison against 5+ state-of-the-art baselines"
+      - "Evaluation on 3+ standard privacy benchmark datasets"
+      - "Ablation studies for all defense components"
+      - "Computational overhead analysis"
+      - "Adaptive attack evaluation"
+
+# === COMPREHENSIVE TOPIC UNIVERSE ===
+topic_universe:
+  model_inversion_attacks:
+    - "gradient_based_inversion"
+    - "optimization_based_reconstruction"
+    - "generative_model_inversion"
+    - "deep_leakage_from_gradients"
+    - "inverting_gradients"
+    - "recursive_gradient_inversion"
+    - "batch_gradient_inversion"
+    - "federated_learning_inversion"
+    - "model_extraction_inversion"
+    - "attribute_inference_inversion"
+    - "class_representative_inversion"
+    - "confidence_based_inversion"
+    - "prediction_api_inversion"
+    - "label_only_inversion"
+    - "score_based_inversion"
+    - "decision_boundary_inversion"
+    - "transfer_inversion_attacks"
+    - "black_box_inversion"
+    - "white_box_inversion"
+    - "gray_box_inversion"
+    
+  membership_inference:
+    - "threshold_based_membership"
+    - "shadow_model_membership"
+    - "metric_based_membership"
+    - "loss_based_membership"
+    - "entropy_based_membership"
+    - "confidence_based_membership"
+    - "label_only_membership"
+    - "boundary_membership_inference"
+    - "gradient_membership_inference"
+    - "trajectory_membership_inference"
+    - "augmentation_membership_inference"
+    - "calibration_membership_inference"
+    - "differential_membership_inference"
+    - "query_based_membership"
+    - "sample_level_membership"
+    - "class_level_membership"
+    - "property_inference"
+    - "attribute_inference"
+    - "subpopulation_membership"
+    - "dataset_inference"
+    
+  data_extraction:
+    - "training_data_extraction"
+    - "memorization_extraction"
+    - "canary_extraction"
+    - "verbatim_memorization"
+    - "eidetic_memorization"
+    - "membership_extraction"
+    - "unintended_memorization"
+    - "prompt_extraction"
+    - "embedding_extraction"
+    - "representation_extraction"
+    - "feature_extraction_attack"
+    - "gradient_extraction"
+    - "parameter_extraction"
+    - "hyperparameter_extraction"
+    - "architecture_extraction"
+    - "dataset_reconstruction"
+    - "distribution_extraction"
+    - "secret_extraction"
+    - "pii_extraction"
+    - "sensitive_attribute_extraction"
+    
+  adversarial_attacks_cv:
+    - "fgsm_attack"
+    - "pgd_attack"
+    - "deepfool_attack"
+    - "carlini_wagner_attack"
+    - "autoattack"
+    - "patch_attack"
+    - "physical_adversarial"
+    - "universal_perturbation"
+    - "semantic_adversarial"
+    - "unrestricted_adversarial"
+    - "natural_adversarial"
+    - "spatial_transformation_attack"
+    - "color_manipulation_attack"
+    - "rotation_attack"
+    - "noise_injection_attack"
+    - "occlusion_attack"
+    - "backdoor_attack"
+    - "trojan_attack"
+    - "data_poisoning"
+    - "model_poisoning"
+    - "clean_label_attack"
+    - "dirty_label_attack"
+    - "gradient_masking_attack"
+    - "obfuscated_gradient_attack"
+    - "transferability_attack"
+    
+  privacy_preserving_techniques:
+    - "differential_privacy"
+    - "local_differential_privacy"
+    - "central_differential_privacy"
+    - "shuffle_differential_privacy"
+    - "label_differential_privacy"
+    - "dp_sgd"
+    - "dp_adam"
+    - "pate"
+    - "private_aggregation"
+    - "secure_aggregation"
+    - "federated_learning_privacy"
+    - "homomorphic_encryption"
+    - "secure_multi_party_computation"
+    - "trusted_execution_environment"
+    - "model_encryption"
+    - "prediction_encryption"
+    - "gradient_encryption"
+    - "secret_sharing"
+    - "functional_encryption"
+    - "oblivious_transfer"
+    - "garbled_circuits"
+    - "zero_knowledge_proofs"
+    - "verifiable_computation"
+    - "privacy_budget_management"
+    - "composition_theorems"
+    - "moments_accountant"
+    - "rdp_accounting"
+    - "privacy_amplification"
+    
+  defense_mechanisms:
+    - "confidence_masking"
+    - "prediction_purification"
+    - "output_perturbation"
+    - "input_perturbation"
+    - "gradient_masking"
+    - "defensive_distillation"
+    - "adversarial_training"
+    - "certified_defense"
+    - "randomized_smoothing"
+    - "detection_based_defense"
+    - "preprocessing_defense"
+    - "feature_squeezing"
+    - "jpeg_compression_defense"
+    - "bit_depth_reduction"
+    - "spatial_smoothing"
+    - "total_variance_minimization"
+    - "input_transformation"
+    - "model_ensemble_defense"
+    - "moving_target_defense"
+    - "watermarking"
+    - "fingerprinting"
+    - "traitor_tracing"
+    - "model_verification"
+    - "output_verification"
+    - "query_rate_limiting"
+    - "query_monitoring"
+    - "anomaly_detection"
+    - "honeypot_defense"
+    
+  computer_vision_specific:
+    - "face_recognition_privacy"
+    - "face_de_identification"
+    - "face_anonymization"
+    - "person_re_identification"
+    - "gait_recognition_privacy"
+    - "medical_imaging_privacy"
+    - "satellite_imagery_privacy"
+    - "surveillance_privacy"
+    - "biometric_privacy"
+    - "fingerprint_privacy"
+    - "iris_recognition_privacy"
+    - "expression_privacy"
+    - "emotion_recognition_privacy"
+    - "age_estimation_privacy"
+    - "gender_classification_privacy"
+    - "ethnicity_classification_privacy"
+    - "action_recognition_privacy"
+    - "pose_estimation_privacy"
+    - "scene_understanding_privacy"
+    - "object_detection_privacy"
+    - "semantic_segmentation_privacy"
+    - "instance_segmentation_privacy"
+    - "depth_estimation_privacy"
+    - "optical_flow_privacy"
+    - "video_privacy"
+    
+  api_security:
+    - "rate_limiting"
+    - "query_budget"
+    - "api_authentication"
+    - "api_authorization"
+    - "api_audit_logging"
+    - "api_input_validation"
+    - "api_output_sanitization"
+    - "api_versioning"
+    - "api_deprecation"
+    - "api_monitoring"
+    - "api_anomaly_detection"
+    - "api_abuse_detection"
+    - "api_ddos_protection"
+    - "api_encryption"
+    - "api_key_rotation"
+    - "api_throttling"
+    - "api_caching"
+    - "api_response_timing"
+    - "api_error_handling"
+    - "api_documentation_security"
+    
+  evaluation_metrics:
+    - "attack_success_rate"
+    - "reconstruction_quality"
+    - "ssim_metric"
+    - "psnr_metric"
+    - "lpips_metric"
+    - "fid_metric"
+    - "membership_advantage"
+    - "privacy_leakage"
+    - "information_leakage"
+    - "mutual_information"
+    - "differential_privacy_epsilon"
+    - "utility_privacy_tradeoff"
+    - "model_accuracy_post_defense"
+    - "defense_overhead"
+    - "query_complexity"
+    - "time_complexity"
+    - "data_complexity"
+    - "false_positive_rate"
+    - "false_negative_rate"
+    - "robustness_certification"
+
+# === BUG PATTERNS AND ANTI-PATTERNS ===
+bug_patterns:
+  information_leakage:
+    - pattern: "full_precision_confidence"
+      description: "Returning raw softmax probabilities enables inversion"
+      symptom: "Confidence scores have >6 decimal places precision"
+      fix: "Round confidence to 2-3 decimal places"
+      severity: "critical"
+      
+    - pattern: "gradient_leakage"
+      description: "Gradients available through API enable reconstruction"
+      symptom: "Gradients accessible or inferrable from outputs"
+      fix: "Never expose gradients; use output perturbation"
+      severity: "critical"
+      
+    - pattern: "logit_exposure"
+      description: "Raw logits before softmax enable stronger attacks"
+      symptom: "API returns pre-softmax values"
+      fix: "Only return post-softmax, quantized probabilities"
+      severity: "critical"
+      
+    - pattern: "embedding_exposure"
+      description: "Intermediate embeddings enable inversion"
+      symptom: "API returns feature vectors"
+      fix: "Hash or project embeddings before return"
+      severity: "high"
+      
+    - pattern: "loss_value_leakage"
+      description: "Training loss values reveal membership"
+      symptom: "Loss values accessible or inferrable"
+      fix: "Never expose per-sample loss values"
+      severity: "high"
+      
+    - pattern: "model_update_leakage"
+      description: "Model updates reveal training data"
+      symptom: "Parameter changes visible after updates"
+      fix: "Use DP-SGD or secure aggregation"
+      severity: "high"
+      
+    - pattern: "error_message_leakage"
+      description: "Detailed errors reveal model internals"
+      symptom: "Stack traces or model details in errors"
+      fix: "Return generic error messages"
+      severity: "medium"
+      
+    - pattern: "timing_side_channel"
+      description: "Inference time reveals input properties"
+      symptom: "Response time varies with input"
+      fix: "Add constant-time padding"
+      severity: "medium"
+      
+    - pattern: "cache_side_channel"
+      description: "Cache behavior reveals membership"
+      symptom: "Faster response for training data"
+      fix: "Disable prediction caching for sensitive data"
+      severity: "medium"
+      
+  defense_implementation_bugs:
+    - pattern: "dp_epsilon_miscalculation"
+      description: "Privacy budget computed incorrectly"
+      symptom: "Claimed ε doesn't match actual privacy"
+      fix: "Use validated DP accounting library"
+      severity: "critical"
+      
+    - pattern: "noise_scale_wrong"
+      description: "Noise magnitude doesn't match sensitivity"
+      symptom: "Privacy guarantee violated"
+      fix: "Calculate sensitivity correctly, scale noise"
+      severity: "critical"
+      
+    - pattern: "gradient_clipping_missing"
+      description: "Gradients not clipped before DP noise"
+      symptom: "Unbounded sensitivity"
+      fix: "Always clip before adding noise"
+      severity: "critical"
+      
+    - pattern: "composition_ignored"
+      description: "Multiple queries not composed"
+      symptom: "Privacy degrades with queries"
+      fix: "Track and limit total privacy budget"
+      severity: "critical"
+      
+    - pattern: "subsampling_accounting_wrong"
+      description: "Privacy amplification miscalculated"
+      symptom: "Overstated privacy guarantees"
+      fix: "Use correct subsampling theorem"
+      severity: "high"
+      
+    - pattern: "defense_bypassable"
+      description: "Defense can be circumvented"
+      symptom: "Attack still works with modified approach"
+      fix: "Evaluate against adaptive attacks"
+      severity: "high"
+      
+    - pattern: "defense_reduces_utility_too_much"
+      description: "Defense makes model unusable"
+      symptom: "Accuracy drops significantly"
+      fix: "Tune privacy-utility tradeoff"
+      severity: "medium"
+      
+    - pattern: "defense_not_applied_consistently"
+      description: "Defense missing in some code paths"
+      symptom: "Intermittent privacy leakage"
+      fix: "Apply defense at central point"
+      severity: "high"
+      
+  api_security_bugs:
+    - pattern: "no_rate_limiting"
+      description: "Unlimited queries enable attacks"
+      symptom: "Attacker can make millions of queries"
+      fix: "Implement strict rate limiting"
+      severity: "critical"
+      
+    - pattern: "no_query_logging"
+      description: "Attacks not detectable"
+      symptom: "No visibility into query patterns"
+      fix: "Log all queries for analysis"
+      severity: "high"
+      
+    - pattern: "no_anomaly_detection"
+      description: "Attack patterns not detected"
+      symptom: "Attacks proceed unnoticed"
+      fix: "Implement query pattern analysis"
+      severity: "high"
+      
+    - pattern: "weak_authentication"
+      description: "Attackers can create many accounts"
+      symptom: "Rate limits easily bypassed"
+      fix: "Strong identity verification"
+      severity: "high"
+      
+    - pattern: "predictable_responses"
+      description: "Deterministic responses aid attacks"
+      symptom: "Same input always gives same output"
+      fix: "Add randomization to responses"
+      severity: "medium"
+
+# === MATHEMATICAL RIGOR REQUIREMENTS ===
+mathematical_requirements:
+  differential_privacy:
+    - requirement: "define_dp_guarantee"
+      description: "Define (ε, δ)-differential privacy formally"
+      formula: "P[M(D) ∈ S] ≤ e^ε P[M(D') ∈ S] + δ for neighboring D, D'"
+      topics: ["differential_privacy", "mechanism_design", "randomization"]
+      
+    - requirement: "prove_dp_composition"
+      description: "Prove composition theorem for DP mechanisms"
+      formula: "k-fold composition gives (kε, kδ) under basic composition"
+      topics: ["composition", "privacy_budget", "sequential_queries"]
+      
+    - requirement: "derive_gaussian_mechanism"
+      description: "Derive noise scale for Gaussian mechanism"
+      formula: "σ ≥ √(2 ln(1.25/δ)) · Δf / ε for (ε,δ)-DP"
+      topics: ["gaussian_noise", "sensitivity", "calibration"]
+      
+    - requirement: "prove_dp_sgd_guarantee"
+      description: "Prove privacy guarantee for DP-SGD"
+      formula: "ε(σ, q, T) via moments accountant or RDP"
+      topics: ["dp_sgd", "subsampling", "amplification"]
+      
+    - requirement: "analyze_privacy_amplification"
+      description: "Prove privacy amplification by subsampling"
+      formula: "q-subsampled mechanism is (log(1 + q(e^ε - 1)), qδ)-DP"
+      topics: ["subsampling", "amplification", "batch_selection"]
+      
+  attack_analysis:
+    - requirement: "bound_inversion_success"
+      description: "Bound success rate of model inversion"
+      formula: "Success ≤ f(model_capacity, data_complexity, query_budget)"
+      topics: ["inversion", "reconstruction", "information_theory"]
+      
+    - requirement: "analyze_membership_advantage"
+      description: "Define and bound membership inference advantage"
+      formula: "Advantage = |P[A(x)=1|x∈Train] - P[A(x)=1|x∉Train]|"
+      topics: ["membership", "advantage", "detection"]
+      
+    - requirement: "derive_gradient_leakage_bound"
+      description: "Bound information leaked through gradients"
+      formula: "I(x; ∇L(x)) ≤ dim(x) · capacity(model)"
+      topics: ["gradient_leakage", "information", "reconstruction"]
+      
+    - requirement: "analyze_query_complexity"
+      description: "Derive query complexity for attacks"
+      formula: "Queries needed ≥ Ω(1/ε²) for ε-accurate reconstruction"
+      topics: ["query_complexity", "sample_complexity", "bounds"]
+      
+  defense_analysis:
+    - requirement: "prove_defense_soundness"
+      description: "Prove defense provides claimed protection"
+      formula: "For all adversaries A, Adv_A ≤ defense_bound"
+      topics: ["defense", "soundness", "security_proof"]
+      
+    - requirement: "analyze_utility_privacy_tradeoff"
+      description: "Characterize tradeoff between utility and privacy"
+      formula: "Accuracy(ε) = baseline - O(1/ε) for ε-DP"
+      topics: ["tradeoff", "pareto", "optimization"]
+      
+    - requirement: "derive_certified_radius"
+      description: "Derive certified robustness radius"
+      formula: "Certified radius r = σ · Φ^{-1}(p_A) for smoothing"
+      topics: ["certification", "robustness", "smoothing"]
+      
+    - requirement: "prove_defense_composition"
+      description: "Prove defense composes under multiple queries"
+      formula: "Security degrades at most linearly with queries"
+      topics: ["composition", "multiple_queries", "degradation"]
+      
+  information_theory:
+    - requirement: "bound_mutual_information"
+      description: "Bound information about training data in model"
+      formula: "I(Training; Model) ≤ model_capacity"
+      topics: ["information", "capacity", "leakage"]
+      
+    - requirement: "analyze_reconstruction_entropy"
+      description: "Compute entropy of reconstruction distribution"
+      formula: "H(X|f(X), Queries) measures remaining uncertainty"
+      topics: ["entropy", "uncertainty", "reconstruction"]
+      
+    - requirement: "derive_data_processing_bound"
+      description: "Apply data processing inequality"
+      formula: "I(X; Y) ≤ min(H(X), H(Y)) for any X → Model → Y"
+      topics: ["data_processing", "information", "bounds"]
+
+# === FRAMEWORK-SPECIFIC ISSUES ===
+framework_issues:
+  pytorch:
+    privacy_issues:
+      - issue: "autograd_leaks_computation"
+        description: "Autograd graph can reveal input information"
+        symptom: "Intermediate computations accessible"
+        fix: "Use torch.no_grad() for inference, clear cache"
+        
+      - issue: "inplace_operations_leak"
+        description: "Inplace ops can leak through side effects"
+        symptom: "Original values recoverable"
+        fix: "Avoid inplace operations in privacy-critical code"
+        
+      - issue: "deterministic_mode_required"
+        description: "Non-determinism complicates privacy analysis"
+        symptom: "Different outputs for same input"
+        fix: "Enable deterministic mode for consistent behavior"
+        
+      - issue: "cuda_memory_not_cleared"
+        description: "GPU memory may contain sensitive data"
+        symptom: "Previous inputs recoverable from memory"
+        fix: "Clear CUDA cache after sensitive operations"
+        
+      - issue: "opacus_integration_errors"
+        description: "Opacus DP library integration issues"
+        symptom: "Privacy guarantees violated"
+        fix: "Follow Opacus documentation exactly"
+        
+    defense_implementations:
+      - issue: "dp_sgd_not_working"
+        description: "DP-SGD hooks not attached correctly"
+        symptom: "No noise added to gradients"
+        fix: "Verify gradient hooks registered"
+        
+      - issue: "per_sample_gradient_wrong"
+        description: "Per-sample gradients computed incorrectly"
+        symptom: "Clipping doesn't work as expected"
+        fix: "Use functorch or Opacus for per-sample grads"
+        
+  tensorflow:
+    privacy_issues:
+      - issue: "tf_privacy_integration"
+        description: "TF Privacy library integration"
+        symptom: "DP not properly applied"
+        fix: "Follow TF Privacy API correctly"
+        
+      - issue: "keras_layer_compatibility"
+        description: "Not all layers support per-sample gradients"
+        symptom: "Error in gradient computation"
+        fix: "Use supported layers only"
+        
+      - issue: "eager_vs_graph_privacy"
+        description: "Privacy behavior differs in eager vs graph"
+        symptom: "Different results in different modes"
+        fix: "Test in both modes, prefer tf.function"
+        
+  jax:
+    privacy_issues:
+      - issue: "jax_dp_custom_implementation"
+        description: "JAX lacks built-in DP support"
+        symptom: "Must implement DP manually"
+        fix: "Use dp-jax or implement carefully"
+        
+      - issue: "vmap_per_sample_gradients"
+        description: "vmap for per-sample gradients tricky"
+        symptom: "Memory explosion with large batches"
+        fix: "Use chunked vmap for memory efficiency"
+        
+      - issue: "jit_compilation_side_channels"
+        description: "JIT may introduce timing variations"
+        symptom: "Timing side channels"
+        fix: "Pad computation to constant time"
+
+# === SCENARIO TEMPLATES ===
+scenario_templates:
+  face_recognition_api:
+    description: "Face recognition system with privacy requirements"
+    issues:
+      - "High-precision confidence enables face reconstruction"
+      - "Membership inference reveals if face in training set"
+      - "Embeddings can be inverted to original faces"
+    required_fixes:
+      - "Confidence quantization to 2 decimal places"
+      - "Rate limiting per user/IP"
+      - "Query pattern anomaly detection"
+      
+  medical_imaging_system:
+    description: "Medical diagnosis model with patient privacy"
+    issues:
+      - "Model memorizes patient-specific features"
+      - "Gradient updates leak patient data"
+      - "Predictions reveal sensitive diagnoses"
+    required_fixes:
+      - "DP-SGD training with strict ε budget"
+      - "Federated learning with secure aggregation"
+      - "Output aggregation to prevent individual identification"
+      
+  surveillance_system:
+    description: "Video analytics with privacy concerns"
+    issues:
+      - "Person re-identification possible"
+      - "Activity recognition reveals private behavior"
+      - "Long-term tracking enables surveillance"
+    required_fixes:
+      - "Differential privacy for tracking"
+      - "Temporal aggregation"
+      - "Blurring and anonymization"
+      
+  biometric_authentication:
+    description: "Biometric verification system"
+    issues:
+      - "Biometric templates can be reconstructed"
+      - "Template database is target for theft"
+      - "Authentication reveals template similarity"
+    required_fixes:
+      - "Cancelable biometrics"
+      - "Encrypted template storage"
+      - "Threshold-based binary response only"
+      
+  ml_as_service:
+    description: "Computer vision MLaaS platform"
+    issues:
+      - "Customers can extract model weights"
+      - "Training data reconstructable"
+      - "Model functionality can be stolen"
+    required_fixes:
+      - "Query rate limiting"
+      - "Watermarking for theft detection"
+      - "Output perturbation"
+      
+  federated_learning_vision:
+    description: "Federated learning for image classification"
+    issues:
+      - "Local updates reveal local data"
+      - "Gradient inversion possible"
+      - "Free-riding detection leaks information"
+    required_fixes:
+      - "Secure aggregation"
+      - "DP noise to updates"
+      - "Gradient compression"
+      
+  autonomous_vehicle:
+    description: "Self-driving car vision system"
+    issues:
+      - "Camera feeds capture pedestrians"
+      - "Object detection reveals locations"
+      - "Driving patterns are sensitive"
+    required_fixes:
+      - "On-device processing only"
+      - "Face/plate blurring"
+      - "Differential privacy for telemetry"
+      
+  retail_analytics:
+    description: "Store analytics with customer tracking"
+    issues:
+      - "Customer identification from images"
+      - "Shopping patterns are private"
+      - "Demographic inference is sensitive"
+    required_fixes:
+      - "Aggregate-only analytics"
+      - "No individual tracking"
+      - "Opt-out mechanisms"
+      
+  social_media_moderation:
+    description: "Content moderation with privacy"
+    issues:
+      - "Moderation model reveals training content"
+      - "User content used for training"
+      - "Decisions reveal model internals"
+    required_fixes:
+      - "User consent for training"
+      - "DP training"
+      - "Limited decision information"
+      
+  edge_deployment:
+    description: "On-device inference with privacy"
+    issues:
+      - "Model on device can be extracted"
+      - "Inference reveals sensitive inputs"
+      - "Updates reveal new training data"
+    required_fixes:
+      - "Model obfuscation/encryption"
+      - "TEE-based inference"
+      - "Secure update mechanism"
+
+# === REFERENCE SOLUTIONS ===
+reference_solutions:
+  privacy_preserving_classifier:
+    code: |
+      """
+      Privacy-preserving image classifier with defense mechanisms.
+      """
+      
+      import numpy as np
+      import torch
+      import torch.nn as nn
+      import torch.nn.functional as F
+      from typing import Dict, Optional, List, Tuple
+      import time
+      import hashlib
+      import logging
+      from collections import defaultdict
+      from dataclasses import dataclass, field
+      from threading import Lock
+      import secrets
+      
+      logger = logging.getLogger(__name__)
+      
+      @dataclass
+      class QueryRecord:
+          """Record of a single query for monitoring."""
+          client_id: str
+          timestamp: float
+          image_hash: str
+          response_time: float
+          prediction: int
+          confidence: float
+      
+      @dataclass
+      class ClientState:
+          """State tracking for a single client."""
+          queries: List[QueryRecord] = field(default_factory=list)
+          total_queries: int = 0
+          blocked_until: float = 0.0
+          suspicious_score: float = 0.0
+      
+      class PrivacyPreservingClassifier:
+          """
+          Image classifier with comprehensive privacy protections.
+          
+          Defenses against:
+          1. Model inversion attacks
+          2. Membership inference attacks
+          3. Gradient-based reconstruction
+          4. Query-based extraction
+          5. Side-channel attacks
+          """
+          
+          def __init__(
+              self,
+              model: nn.Module,
+              num_classes: int,
+              confidence_precision: int = 2,
+              temperature: float = 2.0,
+              noise_scale: float = 0.05,
+              response_time_ms: float = 100.0,
+              max_queries_per_minute: int = 10,
+              max_queries_per_day: int = 1000,
+              similarity_threshold: float = 0.8,
+              suspicious_threshold: float = 10.0,
+          ):
+              """
+              Initialize privacy-preserving classifier.
+              
+              Args:
+                  model: Trained classification model
+                  num_classes: Number of output classes
+                  confidence_precision: Decimal places for confidence
+                  temperature: Softmax temperature (higher = softer)
+                  noise_scale: Scale of Laplacian noise
+                  response_time_ms: Fixed response time
+                  max_queries_per_minute: Rate limit per minute
+                  max_queries_per_day: Rate limit per day
+                  similarity_threshold: Threshold for similar query detection
+                  suspicious_threshold: Score threshold for blocking
+              """
+              self.model = model
+              self.model.eval()
+              self.num_classes = num_classes
+              self.confidence_precision = confidence_precision
+              self.temperature = temperature
+              self.noise_scale = noise_scale
+              self.response_time_ms = response_time_ms
+              self.max_queries_per_minute = max_queries_per_minute
+              self.max_queries_per_day = max_queries_per_day
+              self.similarity_threshold = similarity_threshold
+              self.suspicious_threshold = suspicious_threshold
+              
+              # Client tracking
+              self.clients: Dict[str, ClientState] = defaultdict(ClientState)
+              self.lock = Lock()
+              
+              # Global monitoring
+              self.total_queries = 0
+              self.blocked_queries = 0
+              
+              # Random seed for consistent randomization
+              self.rng = np.random.default_rng(secrets.randbits(64))
+          
+          def _compute_image_hash(self, image: torch.Tensor) -> str:
+              """Compute perceptual hash of image."""
+              # Downsample and quantize for approximate matching
+              small = F.interpolate(
+                  image.unsqueeze(0), size=(8, 8), mode='bilinear'
+              )
+              quantized = (small * 255).byte()
+              return hashlib.sha256(quantized.numpy().tobytes()).hexdigest()
+          
+          def _apply_temperature_scaling(
+              self, logits: torch.Tensor
+          ) -> torch.Tensor:
+              """
+              Apply temperature scaling to reduce confidence leakage.
+              """
+              return logits / self.temperature
+          
+          def _add_laplacian_noise(self, probs: np.ndarray) -> np.ndarray:
+              """
+              Add calibrated Laplacian noise for differential privacy.
+              """
+              noise = self.rng.laplace(0, self.noise_scale, probs.shape)
+              noisy_probs = probs + noise
+              
+              # Project back to valid probability simplex
+              noisy_probs = np.clip(noisy_probs, 0.0, 1.0)
+              noisy_probs = noisy_probs / noisy_probs.sum()
+              
+              return noisy_probs
+          
+          def _quantize_confidence(self, probs: np.ndarray) -> np.ndarray:
+              """
+              Quantize probabilities to reduce precision.
+              """
+              scale = 10 ** self.confidence_precision
+              quantized = np.round(probs * scale) / scale
+              
+              # Ensure still sums to 1
+              quantized = quantized / quantized.sum()
+              
+              return quantized
+          
+          def _pad_response_time(self, start_time: float):
+              """
+              Pad response time to constant duration.
+              """
+              elapsed_ms = (time.time() - start_time) * 1000
+              remaining_ms = self.response_time_ms - elapsed_ms
+              
+              if remaining_ms > 0:
+                  time.sleep(remaining_ms / 1000)
+          
+          def _check_rate_limits(
+              self, client_id: str
+          ) -> Tuple[bool, Optional[str]]:
+              """
+              Check if client is within rate limits.
+              """
+              now = time.time()
+              client = self.clients[client_id]
+              
+              # Check if blocked
+              if client.blocked_until > now:
+                  return False, "Client temporarily blocked"
+              
+              # Check per-minute limit
+              minute_ago = now - 60
+              recent_queries = [
+                  q for q in client.queries
+                  if q.timestamp > minute_ago
+              ]
+              
+              if len(recent_queries) >= self.max_queries_per_minute:
+                  return False, "Rate limit exceeded (per minute)"
+              
+              # Check per-day limit
+              day_ago = now - 86400
+              daily_queries = [
+                  q for q in client.queries
+                  if q.timestamp > day_ago
+              ]
+              
+              if len(daily_queries) >= self.max_queries_per_day:
+                  return False, "Rate limit exceeded (per day)"
+              
+              return True, None
+          
+          def _detect_attack_patterns(
+              self,
+              client_id: str,
+              image_hash: str,
+          ) -> Tuple[bool, float]:
+              """
+              Detect potential attack patterns.
+              
+              Returns:
+                  (is_suspicious, suspicion_score)
+              """
+              client = self.clients[client_id]
+              score = 0.0
+              
+              # Pattern 1: Many similar images (inversion attempt)
+              similar_count = sum(
+                  1 for q in client.queries[-100:]
+                  if self._hash_similarity(q.image_hash, image_hash) > self.similarity_threshold
+              )
+              if similar_count > 5:
+                  score += similar_count * 2
+                  logger.warning(
+                      f"Client {client_id}: {similar_count} similar queries detected"
+                  )
+              
+              # Pattern 2: Systematic probing (membership inference)
+              recent = client.queries[-50:]
+              if len(recent) >= 10:
+                  confidences = [q.confidence for q in recent]
+                  variance = np.var(confidences)
+                  if variance < 0.01:  # Very similar confidences
+                      score += 5
+                      logger.warning(
+                          f"Client {client_id}: Systematic probing suspected"
+                      )
+              
+              # Pattern 3: High query rate burst
+              recent_times = [q.timestamp for q in client.queries[-20:]]
+              if len(recent_times) >= 10:
+                  intervals = np.diff(sorted(recent_times))
+                  if np.mean(intervals) < 0.5:  # Very fast queries
+                      score += 10
+                      logger.warning(
+                          f"Client {client_id}: High-rate burst detected"
+                      )
+              
+              # Update client suspicion score
+              client.suspicious_score = max(
+                  0.0,
+                  client.suspicious_score * 0.9 + score * 0.1
+              )
+              
+              is_suspicious = client.suspicious_score > self.suspicious_threshold
+              
+              if is_suspicious:
+                  # Block for 1 hour
+                  client.blocked_until = time.time() + 3600
+                  logger.warning(
+                      f"Client {client_id}: Blocked due to suspicious activity"
+                  )
+              
+              return is_suspicious, client.suspicious_score
+          
+          def _hash_similarity(self, hash1: str, hash2: str) -> float:
+              """Compute similarity between image hashes."""
+              # Hamming distance normalized
+              diff = sum(c1 != c2 for c1, c2 in zip(hash1, hash2))
+              return 1.0 - (diff / len(hash1))
+          
+          @torch.no_grad()
+          def predict(
+              self,
+              image: torch.Tensor,
+              client_id: str,
+          ) -> Dict:
+              """
+              Make prediction with privacy protections.
+              
+              Args:
+                  image: Input image tensor [C, H, W]
+                  client_id: Unique client identifier
+                  
+              Returns:
+                  Dict with prediction, confidence, or error
+              """
+              start_time = time.time()
+              
+              with self.lock:
+                  self.total_queries += 1
+                  
+                  # Rate limiting
+                  allowed, error_msg = self._check_rate_limits(client_id)
+                  if not allowed:
+                      self.blocked_queries += 1
+                      self._pad_response_time(start_time)
+                      return {
+                          "error": error_msg,
+                          "retry_after": 60,
+                      }
+                  
+                  # Compute image hash
+                  image_hash = self._compute_image_hash(image)
+                  
+                  # Attack detection
+                  is_suspicious, score = self._detect_attack_patterns(
+                      client_id, image_hash
+                  )
+                  
+                  if is_suspicious:
+                      self.blocked_queries += 1
+                      self._pad_response_time(start_time)
+                      return {
+                          "error": "Request blocked",
+                          "code": "SUSPICIOUS_ACTIVITY",
+                      }
+              
+              # Forward pass
+              logits = self.model(image.unsqueeze(0))
+              
+              # Temperature scaling
+              scaled_logits = self._apply_temperature_scaling(logits)
+              
+              # Softmax
+              probs = F.softmax(scaled_logits, dim=1).squeeze().numpy()
+              
+              # Add noise
+              noisy_probs = self._add_laplacian_noise(probs)
+              
+              # Quantize
+              final_probs = self._quantize_confidence(noisy_probs)
+              
+              # Get top prediction
+              top_idx = int(np.argmax(final_probs))
+              top_conf = float(final_probs[top_idx])
+              
+              # Only return top-k (limit information)
+              top_k = min(3, self.num_classes)
+              top_indices = np.argsort(final_probs)[-top_k:][::-1]
+              
+              result = {
+                  "prediction": top_idx,
+                  "confidence": round(top_conf, self.confidence_precision),
+                  "top_k": [
+                      {
+                          "class": int(i),
+                          "confidence": round(float(final_probs[i]), self.confidence_precision),
+                      }
+                      for i in top_indices
+                  ],
+              }
+              
+              # Record query
+              with self.lock:
+                  record = QueryRecord(
+                      client_id=client_id,
+                      timestamp=time.time(),
+                      image_hash=image_hash,
+                      response_time=time.time() - start_time,
+                      prediction=top_idx,
+                      confidence=top_conf,
+                  )
+                  self.clients[client_id].queries.append(record)
+                  self.clients[client_id].total_queries += 1
+                  
+                  # Cleanup old records
+                  cutoff = time.time() - 86400
+                  self.clients[client_id].queries = [
+                      q for q in self.clients[client_id].queries
+                      if q.timestamp > cutoff
+                  ]
+              
+              # Constant time response
+              self._pad_response_time(start_time)
+              
+              return result
+          
+          def get_statistics(self) -> Dict:
+              """Get API usage statistics."""
+              return {
+                  "total_queries": self.total_queries,
+                  "blocked_queries": self.blocked_queries,
+                  "block_rate": self.blocked_queries / max(1, self.total_queries),
+                  "active_clients": len(self.clients),
+              }
+
+  dp_training:
+    code: |
+      """
+      Differentially private training for image classifiers.
+      """
+      
+      import torch
+      import torch.nn as nn
+      import torch.optim as optim
+      from torch.utils.data import DataLoader
+      from typing import Optional, Tuple
+      import math
+      
+      class DPSGDOptimizer:
+          """
+          Differentially private SGD optimizer.
+          
+          Implements DP-SGD from "Deep Learning with Differential Privacy"
+          (Abadi et al., 2016).
+          """
+          
+          def __init__(
+              self,
+              model: nn.Module,
+              lr: float = 0.01,
+              max_grad_norm: float = 1.0,
+              noise_multiplier: float = 1.0,
+              batch_size: int = 32,
+              microbatch_size: Optional[int] = None,
+          ):
+              """
+              Initialize DP-SGD optimizer.
+              
+              Args:
+                  model: Model to optimize
+                  lr: Learning rate
+                  max_grad_norm: Maximum gradient norm (clipping threshold)
+                  noise_multiplier: Noise scale = noise_multiplier * max_grad_norm
+                  batch_size: Batch size
+                  microbatch_size: Size of microbatches (default: 1)
+              """
+              self.model = model
+              self.lr = lr
+              self.max_grad_norm = max_grad_norm
+              self.noise_multiplier = noise_multiplier
+              self.batch_size = batch_size
+              self.microbatch_size = microbatch_size or 1
+              
+              # Track privacy budget
+              self.steps = 0
+              self.epsilon_spent = 0.0
+          
+          def _compute_per_sample_gradients(
+              self,
+              model: nn.Module,
+              loss_fn: nn.Module,
+              inputs: torch.Tensor,
+              targets: torch.Tensor,
+          ) -> list:
+              """
+              Compute gradients for each sample independently.
+              """
+              per_sample_grads = []
+              
+              for i in range(len(inputs)):
+                  model.zero_grad()
+                  
+                  output = model(inputs[i:i+1])
+                  loss = loss_fn(output, targets[i:i+1])
+                  loss.backward()
+                  
+                  # Collect gradients
+                  sample_grad = []
+                  for param in model.parameters():
+                      if param.grad is not None:
+                          sample_grad.append(param.grad.clone())
+                      else:
+                          sample_grad.append(torch.zeros_like(param))
+                  
+                  per_sample_grads.append(sample_grad)
+              
+              return per_sample_grads
+          
+          def _clip_gradients(
+              self,
+              per_sample_grads: list,
+          ) -> list:
+              """
+              Clip per-sample gradients to max_grad_norm.
+              """
+              clipped_grads = []
+              
+              for sample_grad in per_sample_grads:
+                  # Compute gradient norm
+                  grad_norm = torch.sqrt(sum(
+                      g.pow(2).sum() for g in sample_grad
+                  ))
+                  
+                  # Clip if necessary
+                  clip_factor = min(1.0, self.max_grad_norm / (grad_norm + 1e-8))
+                  
+                  clipped = [g * clip_factor for g in sample_grad]
+                  clipped_grads.append(clipped)
+              
+              return clipped_grads
+          
+          def _aggregate_and_noise(
+              self,
+              clipped_grads: list,
+          ) -> list:
+              """
+              Aggregate clipped gradients and add noise.
+              """
+              num_samples = len(clipped_grads)
+              num_params = len(clipped_grads[0])
+              
+              # Sum gradients
+              summed_grads = []
+              for i in range(num_params):
+                  summed = sum(grad[i] for grad in clipped_grads)
+                  summed_grads.append(summed)
+              
+              # Add Gaussian noise
+              noise_std = self.noise_multiplier * self.max_grad_norm
+              noisy_grads = []
+              
+              for grad in summed_grads:
+                  noise = torch.randn_like(grad) * noise_std
+                  noisy_grad = (grad + noise) / num_samples
+                  noisy_grads.append(noisy_grad)
+              
+              return noisy_grads
+          
+          def step(
+              self,
+              loss_fn: nn.Module,
+              inputs: torch.Tensor,
+              targets: torch.Tensor,
+          ):
+              """
+              Perform one DP-SGD step.
+              """
+              # Compute per-sample gradients
+              per_sample_grads = self._compute_per_sample_gradients(
+                  self.model, loss_fn, inputs, targets
+              )
+              
+              # Clip gradients
+              clipped_grads = self._clip_gradients(per_sample_grads)
+              
+              # Aggregate with noise
+              noisy_grads = self._aggregate_and_noise(clipped_grads)
+              
+              # Apply gradients
+              self.model.zero_grad()
+              for param, grad in zip(self.model.parameters(), noisy_grads):
+                  param.data -= self.lr * grad
+              
+              self.steps += 1
+          
+          def compute_epsilon(
+              self,
+              delta: float = 1e-5,
+          ) -> float:
+              """
+              Compute privacy budget spent using RDP accounting.
+              
+              Simplified version - in practice, use privacy accounting libraries.
+              """
+              # Subsampling probability
+              q = self.batch_size / 60000  # Assuming CIFAR-10 size
+              
+              # RDP order
+              alpha = 1 + 1 / (self.noise_multiplier ** 2)
+              
+              # RDP guarantee per step
+              rdp_per_step = alpha * q ** 2 / (2 * self.noise_multiplier ** 2)
+              
+              # Total RDP
+              total_rdp = rdp_per_step * self.steps
+              
+              # Convert to (ε, δ)-DP
+              epsilon = total_rdp + math.log(1/delta) / (alpha - 1)
+              
+              return epsilon
+
+  membership_inference_defense:
+    code: |
+      """
+      Defenses against membership inference attacks.
+      """
+      
+      import torch
+      import torch.nn as nn
+      import torch.nn.functional as F
+      import numpy as np
+      from typing import Optional
+      
+      class MembershipDefense:
+          """
+          Defense mechanisms against membership inference attacks.
+          """
+          
+          def __init__(
+              self,
+              model: nn.Module,
+              defense_type: str = "confidence_masking",
+              temperature: float = 2.0,
+              noise_scale: float = 0.1,
+              top_k: int = 3,
+          ):
+              """
+              Initialize membership defense.
+              
+              Args:
+                  model: Target model
+                  defense_type: Type of defense
+                  temperature: Temperature for softening
+                  noise_scale: Scale of output noise
+                  top_k: Number of classes to return
+              """
+              self.model = model
+              self.defense_type = defense_type
+              self.temperature = temperature
+              self.noise_scale = noise_scale
+              self.top_k = top_k
+          
+          def _confidence_masking(
+              self,
+              probs: torch.Tensor,
+          ) -> torch.Tensor:
+              """
+              Mask extreme confidence values.
+              """
+              # Clip confidence to [0.1, 0.9]
+              masked = torch.clamp(probs, 0.1, 0.9)
+              
+              # Renormalize
+              masked = masked / masked.sum(dim=-1, keepdim=True)
+              
+              return masked
+          
+          def _temperature_scaling(
+              self,
+              logits: torch.Tensor,
+          ) -> torch.Tensor:
+              """
+              Apply temperature scaling to soften distribution.
+              """
+              return F.softmax(logits / self.temperature, dim=-1)
+          
+          def _output_perturbation(
+              self,
+              probs: torch.Tensor,
+          ) -> torch.Tensor:
+              """
+              Add noise to output probabilities.
+              """
+              noise = torch.randn_like(probs) * self.noise_scale
+              noisy = probs + noise
+              
+              # Project to valid probability simplex
+              noisy = F.relu(noisy)
+              noisy = noisy / noisy.sum(dim=-1, keepdim=True)
+              
+              return noisy
+          
+          def _top_k_only(
+              self,
+              probs: torch.Tensor,
+          ) -> torch.Tensor:
+              """
+              Return only top-k probabilities, zero others.
+              """
+              top_values, top_indices = torch.topk(probs, self.top_k, dim=-1)
+              
+              masked = torch.zeros_like(probs)
+              masked.scatter_(-1, top_indices, top_values)
+              
+              # Renormalize
+              masked = masked / masked.sum(dim=-1, keepdim=True)
+              
+              return masked
+          
+          @torch.no_grad()
+          def predict(
+              self,
+              inputs: torch.Tensor,
+          ) -> torch.Tensor:
+              """
+              Make prediction with membership defense.
+              """
+              logits = self.model(inputs)
+              
+              if self.defense_type == "confidence_masking":
+                  probs = F.softmax(logits, dim=-1)
+                  return self._confidence_masking(probs)
+              
+              elif self.defense_type == "temperature":
+                  return self._temperature_scaling(logits)
+              
+              elif self.defense_type == "perturbation":
+                  probs = F.softmax(logits, dim=-1)
+                  return self._output_perturbation(probs)
+              
+              elif self.defense_type == "top_k":
+                  probs = F.softmax(logits, dim=-1)
+                  return self._top_k_only(probs)
+              
+              elif self.defense_type == "combined":
+                  # Apply multiple defenses
+                  probs = self._temperature_scaling(logits)
+                  probs = self._output_perturbation(probs)
+                  probs = self._confidence_masking(probs)
+                  probs = self._top_k_only(probs)
+                  return probs
+              
+              else:
+                  # No defense (for comparison)
+                  return F.softmax(logits, dim=-1)
+
+# === TEST CASES ===
+test_cases:
+  fail_to_pass:
+    - "test_model_inversion_mitigation"
+    - "test_membership_inference_defense"
+    - "test_confidence_precision_limited"
+    - "test_constant_time_response"
+    - "test_rate_limiting_enforced"
+    - "test_attack_pattern_detection"
+    - "test_dp_training_privacy_guarantee"
+    - "test_gradient_leakage_prevention"
+    - "test_query_monitoring_enabled"
+    - "test_output_perturbation_calibrated"
+    
+  pass_to_pass:
+    - "test_basic_prediction"
+    - "test_accuracy_preserved"
+    - "test_top_k_correct"
+    - "test_client_tracking"
+    - "test_api_response_format"
+
+# === COMPREHENSIVE VARIABLES ===
+variables:
+  scenario_type:
+    type: string
+    options:
+      - "face_recognition"
+      - "medical_imaging"
+      - "biometric_verification"
+      - "surveillance"
+      - "document_classification"
+      - "object_detection"
+      - "semantic_segmentation"
+      - "action_recognition"
+      - "autonomous_driving"
+      - "retail_analytics"
+      - "industrial_inspection"
+      - "satellite_imagery"
+      - "wildlife_monitoring"
+      - "content_moderation"
+      - "age_verification"
+      - "emotion_recognition"
+      - "pose_estimation"
+      - "scene_understanding"
+      - "ocr_document"
+      - "art_authentication"
+      
+  attack_type:
+    type: string
+    options:
+      - "model_inversion"
+      - "membership_inference"
+      - "gradient_leakage"
+      - "data_extraction"
+      - "attribute_inference"
+      - "model_extraction"
+      - "adversarial_examples"
+      - "backdoor_attack"
+      - "data_poisoning"
+      
+  defense_type:
+    type: string
+    options:
+      - "differential_privacy"
+      - "confidence_masking"
+      - "output_perturbation"
+      - "rate_limiting"
+      - "query_monitoring"
+      - "watermarking"
+      - "adversarial_training"
+      - "model_ensemble"
+      
+  privacy_level:
+    type: string
+    options:
+      - "strict"
+      - "moderate"
+      - "relaxed"
+      
+  deployment_context:
+    type: string
+    options:
+      - "cloud_api"
+      - "edge_device"
+      - "federated"
+      - "on_premise"
+
+# === PROBLEM STATEMENT TEMPLATE ===
+problem_statement: |
+  A computer vision model deployed as an API is vulnerable to privacy attacks:
+  
+  1. Model Inversion Attack
+     - Attackers reconstruct training images by querying the API
+     - Current confidence precision: {{ confidence_precision }} decimal places
+     - Reconstruction quality (SSIM): {{ reconstruction_ssim }}
+  
+  2. Membership Inference Attack
+     - Attackers determine if images were in training set
+     - Current membership advantage: {{ membership_advantage }}%
+     - Attack success rate: {{ attack_success_rate }}%
+  
+  3. Information Leakage
+     - Gradient information inferrable from predictions
+     - Timing side channel: {{ timing_variation }}ms variance
+     - Error messages reveal model internals
+  
+  4. API Security Issues
+     - No rate limiting: unlimited queries possible
+     - No query monitoring: attacks undetected
+     - Response time varies with input
+  
+  The model is used for:
+  - Application: {{ scenario_type }}
+  - Model architecture: {{ model_architecture }}
+  - Training data size: {{ training_size }} samples
+  - Privacy requirement: {{ privacy_requirement }}
+
+requirements: |
+  - Defend against model inversion (reconstruction SSIM < {{ target_ssim }})
+  - Prevent membership inference (advantage < {{ target_advantage }}%)
+  - Hide confidence score precision (max {{ target_precision }} decimals)
+  - Ensure constant-time responses (variance < {{ target_timing }}ms)
+  - Implement rate limiting ({{ max_queries_per_minute }} queries/min)
+  - Add query pattern monitoring
+  - Maintain model accuracy above {{ target_accuracy }}%
+
+interface: |
+  Input: Image as tensor [C, H, W] or base64
+  Output: Classification with limited confidence
+  
+  API requirements:
+  - Authentication required
+  - Rate limiting enforced
+  - Audit logging enabled
+  - Constant response time
+
+# === INSTRUCTION TEMPLATE ===
+instruction_template: |
+  You are securing a {{ scenario_type }} computer vision API against privacy attacks.
+  The model code is at {{ code_path }}.
+  
+  Model: {{ model_architecture }}
+  Training data: {{ training_size }} samples
+  Current privacy: {{ privacy_level }}
+  
+  Discovered attack vectors:
+  {{ attack_vectors }}
+  
+  Privacy requirements:
+  {{ privacy_requirements }}
+  
+  Your task:
+  {{ task_steps }}
+  
+  Defense requirements:
+  {{ defense_requirements }}
+  
+  Performance constraints:
+  {{ performance_constraints }}
+
+# === TASK STEP TEMPLATES ===
+task_step_templates:
+  basic:
+    - "Implement confidence score quantization"
+    - "Add Laplacian noise to outputs"
+    - "Ensure constant-time responses"
+    - "Implement rate limiting per client"
+    - "Add query pattern monitoring"
+    - "Verify with attack simulations"
+    
+  advanced:
+    - "Implement differential privacy for training"
+    - "Design adaptive defense based on query patterns"
+    - "Create anomaly detection for attack patterns"
+    - "Implement secure API with authentication"
+    - "Add watermarking for model theft detection"
+    - "Design privacy budget management"
+    
+  expert:
+    - "Prove privacy guarantees mathematically"
+    - "Derive utility-privacy tradeoff bounds"
+    - "Implement formal verification of defenses"
+    - "Design novel defense mechanisms"
+    - "Create comprehensive attack simulation suite"
+    - "Analyze defense composition"
+
+# === ANTI-HARDCODING MEASURES ===
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  attack_variations: true
+  defense_variations: true
+  
+  parameter_ranges:
+    confidence_precision: [1, 2, 3, 4, 6]
+    temperature: [1.0, 1.5, 2.0, 3.0, 5.0]
+    noise_scale: [0.01, 0.05, 0.1, 0.2, 0.5]
+    max_queries_per_minute: [1, 5, 10, 30, 60]
+    response_time_ms: [50, 100, 200, 500]
+    epsilon: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+    delta: [1e-3, 1e-4, 1e-5, 1e-6]
+
+# === EVALUATION CRITERIA ===
+evaluation_criteria:
+  privacy:
+    - "Model inversion SSIM below threshold"
+    - "Membership inference advantage below threshold"
+    - "Differential privacy epsilon within budget"
+    - "No timing side channels"
+    - "No information in error messages"
+    
+  security:
+    - "Rate limiting enforced"
+    - "Query monitoring active"
+    - "Attack patterns detected"
+    - "Authentication required"
+    
+  utility:
+    - "Model accuracy preserved"
+    - "Response latency acceptable"
+    - "API usability maintained"
+    
+  code_quality:
+    - "Defense properly implemented"
+    - "Privacy guarantees documented"
+    - "Comprehensive logging"
+    - "Testable and auditable"
+
+# === METADATA ===
+metadata:
+  created: "2024-01-01"
+  updated: "2024-12-01"
+  author: "ML Privacy Team"
+  tags:
+    - "privacy"
+    - "security"
+    - "model_inversion"
+    - "differential_privacy"
+    - "computer_vision"
+  difficulty_levels:
+    medium: "Basic output sanitization and rate limiting"
+    hard: "Comprehensive defense implementation"
+    expert: "Formal privacy guarantees and proofs"
+    research: "Novel defense mechanisms and attack analysis"

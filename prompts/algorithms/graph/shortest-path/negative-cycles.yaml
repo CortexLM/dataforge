@@ -1,0 +1,1312 @@
+id: "algo-graph-negative-cycles-001"
+version: "2.0.0"
+category: "algorithms"
+subcategory: "graph/shortest-path"
+
+# =============================================================================
+# LLM GENERATION FRAMEWORK
+# =============================================================================
+# This file is a comprehensive generation specification for LLMs to create
+# unique, extremely challenging negative cycle detection tasks. The goal is to
+# enable generation of 10,000+ fundamentally different, genuinely hard tasks.
+# =============================================================================
+
+generation_framework:
+  overview: |
+    This specification enables LLMs to generate negative cycle detection tasks
+    that are genuinely difficult. Negative cycle detection involves subtle issues
+    around floating-point precision, cycle reconstruction, and multiple cycle handling.
+
+  multi_conversation_workflow:
+    phase_1_research:
+      description: "LLM researches negative cycle edge cases"
+      activities:
+        - "Study Bellman-Ford algorithm variants"
+        - "Research floating-point precision issues"
+        - "Investigate cycle reconstruction techniques"
+        - "Analyze financial arbitrage applications"
+        - "Study accumulating vs immediate negative cycles"
+      output: "Comprehensive list of negative cycle traps"
+    
+    phase_2_creation:
+      description: "LLM creates task with hidden cycle detection flaws"
+      activities:
+        - "Design graphs with subtle negative cycles"
+        - "Create precision-sensitive cycles"
+        - "Embed cycles that require multiple passes"
+        - "Add multiple interconnected cycles"
+        - "Include cycles that appear positive initially"
+      output: "Complete task with negative cycle traps"
+    
+    phase_3_amplification:
+      description: "LLM adds difficulty multipliers"
+      activities:
+        - "Layer multiple precision issues"
+        - "Add high-precision requirements"
+        - "Include multiple cycles to find"
+        - "Create cycles at different scales"
+        - "Add time-dependent behavior"
+      output: "Amplified task"
+    
+    phase_4_verification:
+      description: "LLM validates task is genuinely hard"
+      validation_criteria:
+        - "Cannot detect cycle with naive epsilon"
+        - "Requires understanding of precision"
+        - "Has at least 5 interacting hidden traps"
+        - "Would take experienced developers 30+ minutes"
+        - "Has cascading failure modes that interact with each other"
+        - "Requires multi-domain knowledge synthesis (algorithms + systems + performance)"
+      output: "Verified task"
+
+  quality_requirements:
+    mandatory:
+      - "Must require precision-aware detection"
+      - "Must have non-obvious negative cycles"
+      - "Must include at least 5 detection challenges"
+      - "Must have cycles at various scales"
+      - "Must resist simple thresholding"
+      - "Must take 30+ minutes for experienced developers, 45+ for intermediate"
+
+# =============================================================================
+# EXHAUSTIVE TOPIC UNIVERSE
+# =============================================================================
+
+topic_universe:
+  # ---------------------------------------------------------------------------
+  # Negative Cycle Detection Topics (30 topics)
+  # ---------------------------------------------------------------------------
+  algorithms:
+    bellman_ford_variants:
+      - bellman_ford_standard
+      - bellman_ford_queue_optimized
+      - spfa
+      - bellman_ford_early_termination
+      - bellman_ford_parent_tracking
+      - bellman_ford_multiple_sources
+    
+    cycle_detection:
+      - johnson_reweighting
+      - floyd_cycle_detection
+      - negative_cycle_enumeration
+      - minimum_mean_cycle
+      - strongly_connected_components
+      - topological_sort_failure
+    
+    specialized:
+      - arbitrage_detection
+      - currency_arbitrage
+      - shortest_path_with_negative
+      - all_pairs_negative
+      - potential_function
+      - reduced_cost
+    
+    numerical:
+      - high_precision_detection
+      - decimal_arithmetic
+      - rational_arithmetic
+      - interval_arithmetic
+      - error_bounds
+      - convergence_criteria
+
+  # ---------------------------------------------------------------------------
+  # Application Domains (25 topics)
+  # ---------------------------------------------------------------------------
+  domains:
+    finance:
+      - currency_exchange
+      - arbitrage_trading
+      - cross_exchange_arbitrage
+      - triangular_arbitrage
+      - statistical_arbitrage
+      - options_arbitrage
+      - bond_arbitrage
+    
+    optimization:
+      - minimum_cost_flow
+      - network_simplex
+      - transportation_problem
+      - assignment_problem
+      - negative_reduced_cost
+    
+    verification:
+      - constraint_satisfaction
+      - difference_constraints
+      - temporal_reasoning
+      - scheduling_validation
+    
+    games:
+      - game_balance_checking
+      - economy_balance
+      - exploit_detection
+
+# =============================================================================
+# COMPLEXITY DIMENSIONS
+# =============================================================================
+
+complexity_dimensions:
+  precision:
+    floating_point:
+      - epsilon_selection
+      - accumulation_error
+      - catastrophic_cancellation
+      - near_zero_cycles
+      - scale_dependent_precision
+    
+    high_precision:
+      - decimal_precision
+      - arbitrary_precision
+      - rational_numbers
+      - symbolic_computation
+
+  cycle_characteristics:
+    cycle_types:
+      - immediate_negative
+      - accumulating_negative
+      - borderline_negative
+      - multiple_traversal_negative
+      - interconnected_cycles
+    
+    cycle_properties:
+      - cycle_length
+      - cycle_weight
+      - mean_cycle_weight
+      - reachability_from_source
+
+  detection_challenges:
+    sensitivity:
+      - epsilon_boundary
+      - scale_variation
+      - mixed_magnitudes
+      - numerical_instability
+
+# =============================================================================
+# TRAP TAXONOMY
+# =============================================================================
+
+trap_taxonomy:
+  # ---------------------------------------------------------------------------
+  # Floating Point Precision Traps (10 types)
+  # ---------------------------------------------------------------------------
+  floating_point:
+    epsilon_too_tight:
+      trap_id: "FP001"
+      name: "Epsilon Too Tight"
+      description: "Epsilon smaller than accumulated error"
+      example: |
+        # Cycle weight: -0.0000000001
+        # But accumulated error: 0.0000001
+        # -0.0000000001 > -0.0000001 (seems positive)
+      detection_difficulty: "hard"
+      manifestation: "Negative cycle missed"
+      fix: "Use relative epsilon based on path length"
+      
+    epsilon_too_loose:
+      trap_id: "FP002"
+      name: "Epsilon Too Loose"
+      description: "Epsilon allows false positives"
+      example: |
+        # Cycle weight: 0.0001 (actually positive)
+        # Epsilon: 0.001
+        # Reported as negative cycle!
+      detection_difficulty: "medium"
+      manifestation: "False positive cycles"
+      fix: "Calibrate epsilon carefully"
+      
+    accumulation_error:
+      trap_id: "FP003"
+      name: "Accumulation Error"
+      description: "Errors accumulate over long path"
+      example: |
+        # Each edge adds 0.1
+        # After 1000 edges: 100.00...7 instead of 100.0
+        # Comparison fails
+      detection_difficulty: "hard"
+      manifestation: "Long cycles detected incorrectly"
+      fix: "Use compensated summation"
+      
+    cancellation:
+      trap_id: "FP004"
+      name: "Catastrophic Cancellation"
+      description: "Subtracting similar numbers loses precision"
+      example: |
+        # dist[v] = 1000000.0000001
+        # new_dist = 1000000.0000002
+        # Difference: lost precision
+      detection_difficulty: "very_hard"
+      manifestation: "Cycle detection randomized"
+      fix: "Use relative comparisons"
+      
+    scale_mismatch:
+      trap_id: "FP005"
+      name: "Scale Mismatch"
+      description: "Mixing very large and very small weights"
+      example: |
+        # Edges: 1e10, 1e-10, 1e10, -1e-10
+        # Small values lost to large ones
+      detection_difficulty: "hard"
+      manifestation: "Small cycles invisible"
+      fix: "Normalize or separate scales"
+      
+    nan_propagation:
+      trap_id: "FP006"
+      name: "NaN Propagation"
+      description: "NaN in computation spreads"
+      example: |
+        # One invalid edge weight produces NaN
+        # NaN propagates to all distances
+        # All comparisons fail
+      detection_difficulty: "medium"
+      manifestation: "Everything becomes NaN"
+      fix: "Validate inputs, handle NaN"
+      
+    inf_arithmetic:
+      trap_id: "FP007"
+      name: "Infinity Arithmetic Issues"
+      description: "Operations with infinity misbehave"
+      example: |
+        # INF + negative = still INF
+        # INF - INF = NaN
+        # Can't detect relaxation
+      detection_difficulty: "medium"
+      manifestation: "Relaxation logic broken"
+      fix: "Use large finite value instead"
+      
+    subnormal_numbers:
+      trap_id: "FP008"
+      name: "Subnormal Number Handling"
+      description: "Very small numbers behave differently"
+      example: |
+        # Subnormal: 1e-320
+        # Operations much slower
+        # May underflow to zero
+      detection_difficulty: "hard"
+      manifestation: "Performance or precision issues"
+      fix: "Flush subnormals or use higher precision"
+      
+    comparison_inconsistency:
+      trap_id: "FP009"
+      name: "Comparison Inconsistency"
+      description: "Floating comparisons not transitive"
+      example: |
+        # a == b (within epsilon)
+        # b == c (within epsilon)
+        # a != c (outside epsilon)
+        # Breaks cycle detection
+      detection_difficulty: "very_hard"
+      manifestation: "Inconsistent results"
+      fix: "Use robust comparison"
+      
+    logarithm_precision:
+      trap_id: "FP010"
+      name: "Logarithm Precision Loss"
+      description: "Converting to log domain loses precision"
+      example: |
+        # Rates: 1.00001, 0.99999
+        # log: very small numbers
+        # Precision lost
+      detection_difficulty: "hard"
+      manifestation: "Small arbitrage missed"
+      fix: "Use high-precision log"
+
+  # ---------------------------------------------------------------------------
+  # Cycle Detection Logic Traps (8 types)
+  # ---------------------------------------------------------------------------
+  detection_logic:
+    single_pass:
+      trap_id: "DL001"
+      name: "Single Extra Pass Insufficient"
+      description: "One extra pass misses cycles"
+      example: |
+        # Bellman-Ford: N-1 passes for shortest paths
+        # One more pass to detect cycles
+        # But need more for some graphs
+      detection_difficulty: "hard"
+      manifestation: "Some cycles missed"
+      fix: "Trace back or use more passes"
+      
+    wrong_source:
+      trap_id: "DL002"
+      name: "Cycle Unreachable from Source"
+      description: "Negative cycle not reachable from source"
+      example: |
+        # Source: A
+        # Negative cycle: C -> D -> C
+        # No path from A to cycle
+        # Not detected!
+      detection_difficulty: "medium"
+      manifestation: "Cycle missed"
+      fix: "Run from all sources or detect any cycle"
+      
+    first_cycle_only:
+      trap_id: "DL003"
+      name: "Only First Cycle Found"
+      description: "Stop after finding first cycle"
+      example: |
+        # Multiple negative cycles exist
+        # Algorithm finds one, returns
+        # Others missed
+      detection_difficulty: "medium"
+      manifestation: "Incomplete detection"
+      fix: "Find all cycles"
+      
+    cycle_overlap:
+      trap_id: "DL004"
+      name: "Overlapping Cycles Confused"
+      description: "Cycles sharing vertices confused"
+      example: |
+        # Cycle 1: A -> B -> A
+        # Cycle 2: B -> C -> B
+        # Share vertex B
+        # Reconstruction confused
+      detection_difficulty: "hard"
+      manifestation: "Wrong cycles reported"
+      fix: "Careful cycle reconstruction"
+      
+    accumulating_cycle:
+      trap_id: "DL005"
+      name: "Accumulating Negative Cycle"
+      description: "Cycle negative only after multiple traversals"
+      example: |
+        # Single traversal: +1
+        # Double traversal: +2 - 3 = -1
+        # Only negative after 2 traversals
+      detection_difficulty: "very_hard"
+      manifestation: "Needs multiple iterations"
+      fix: "Run until convergence"
+      
+    zero_weight_cycle:
+      trap_id: "DL006"
+      name: "Zero Weight Cycle Confusion"
+      description: "Zero weight cycle vs negative"
+      example: |
+        # Cycle weight: exactly 0
+        # Is it negative? Depends on epsilon
+      detection_difficulty: "medium"
+      manifestation: "Inconsistent classification"
+      fix: "Define clear boundary"
+      
+    path_dependent:
+      trap_id: "DL007"
+      name: "Detection Order Dependent"
+      description: "Result depends on edge processing order"
+      example: |
+        # Processing A->B before C->D
+        # vs C->D before A->B
+        # Different cycles found
+      detection_difficulty: "hard"
+      manifestation: "Non-deterministic"
+      fix: "Find all cycles consistently"
+      
+    positive_cycle_confusion:
+      trap_id: "DL008"
+      name: "Positive Cycle Affects Detection"
+      description: "Positive cycle interferes with detection"
+      example: |
+        # Positive cycle reachable from source
+        # Keeps improving distances
+        # Masks negative cycle detection
+      detection_difficulty: "hard"
+      manifestation: "False detection"
+      fix: "Handle cycles properly"
+
+  # ---------------------------------------------------------------------------
+  # Cycle Reconstruction Traps (6 types)
+  # ---------------------------------------------------------------------------
+  reconstruction:
+    wrong_predecessor:
+      trap_id: "RC001"
+      name: "Predecessor Chain Wrong"
+      description: "Following predecessors gives wrong cycle"
+      example: |
+        # pred[v] updated multiple times
+        # Final pred not on cycle
+        # Reconstruction fails
+      detection_difficulty: "hard"
+      manifestation: "Wrong cycle reported"
+      fix: "Track cycle membership"
+      
+    infinite_predecessor:
+      trap_id: "RC002"
+      name: "Infinite Predecessor Loop"
+      description: "Predecessor loop doesn't terminate"
+      example: |
+        # pred chain: A -> B -> C -> A -> B ...
+        # No termination condition
+        # Infinite loop
+      detection_difficulty: "medium"
+      manifestation: "Hang in reconstruction"
+      fix: "Track visited in reconstruction"
+      
+    partial_cycle:
+      trap_id: "RC003"
+      name: "Partial Cycle Reported"
+      description: "Only part of cycle reconstructed"
+      example: |
+        # Full cycle: A -> B -> C -> D -> A
+        # Reported: B -> C -> D -> B (missed A)
+      detection_difficulty: "medium"
+      manifestation: "Incomplete cycle"
+      fix: "Verify cycle completeness"
+      
+    multiple_cycles_merged:
+      trap_id: "RC004"
+      name: "Multiple Cycles Merged"
+      description: "Two cycles reported as one"
+      example: |
+        # Cycle 1: A -> B -> A
+        # Cycle 2: C -> D -> C
+        # Reported: A -> B -> A -> C -> D -> C
+      detection_difficulty: "hard"
+      manifestation: "Merged cycles"
+      fix: "Separate cycle detection"
+      
+    non_cycle_path:
+      trap_id: "RC005"
+      name: "Non-Cycle Path Reported"
+      description: "Path that isn't a cycle reported"
+      example: |
+        # Path: A -> B -> C
+        # No edge C -> A
+        # Not a cycle!
+      detection_difficulty: "easy"
+      manifestation: "Invalid cycle"
+      fix: "Verify cycle validity"
+      
+    disconnected_from_cycle:
+      trap_id: "RC006"
+      name: "Non-Cycle Nodes Included"
+      description: "Path to cycle included in cycle"
+      example: |
+        # Cycle: B -> C -> B
+        # Path: A -> B
+        # Reported: A -> B -> C -> B (A not in cycle)
+      detection_difficulty: "medium"
+      manifestation: "Extra nodes in cycle"
+      fix: "Find actual cycle start"
+
+  # ---------------------------------------------------------------------------
+  # Application-Specific Traps (6 types)
+  # ---------------------------------------------------------------------------
+  application:
+    rate_to_weight_conversion:
+      trap_id: "AP001"
+      name: "Rate to Weight Conversion Error"
+      description: "Wrong conversion from exchange rates to weights"
+      example: |
+        # Rate: 1.1 (USD -> EUR)
+        # Weight should be: -log(1.1)
+        # Using +log or forgetting negative
+      detection_difficulty: "medium"
+      manifestation: "Wrong arbitrage detection"
+      fix: "Use -log(rate) for weight"
+      
+    bidirectional_rates:
+      trap_id: "AP002"
+      name: "Bidirectional Rate Handling"
+      description: "Rate A->B vs B->A"
+      example: |
+        # USD->EUR: 0.9
+        # EUR->USD: 1.11
+        # Product: 0.9 * 1.11 = 0.999 < 1
+        # Not arbitrage!
+      detection_difficulty: "medium"
+      manifestation: "False arbitrage"
+      fix: "Check round-trip rate"
+      
+    transaction_cost:
+      trap_id: "AP003"
+      name: "Transaction Cost Ignored"
+      description: "Fees not included in calculation"
+      example: |
+        # Gross arbitrage: 0.1%
+        # Transaction fee: 0.2%
+        # Net: -0.1% (loss!)
+      detection_difficulty: "medium"
+      manifestation: "Unprofitable arbitrage"
+      fix: "Include all costs"
+      
+    time_dependency:
+      trap_id: "AP004"
+      name: "Rate Time Dependency"
+      description: "Rates change during computation"
+      example: |
+        # Rate at t0: profitable
+        # Rate at t1: not profitable
+        # Stale rate detection
+      detection_difficulty: "hard"
+      manifestation: "Stale arbitrage"
+      fix: "Use atomic snapshots"
+      
+    integer_conversion:
+      trap_id: "AP005"
+      name: "Currency Amount Rounding"
+      description: "Discrete currency amounts lose precision"
+      example: |
+        # Arbitrage profit: $0.001
+        # Minimum trade: $1
+        # After rounding: $0
+      detection_difficulty: "medium"
+      manifestation: "No real profit"
+      fix: "Account for rounding"
+      
+    slippage:
+      trap_id: "AP006"
+      name: "Market Slippage"
+      description: "Rate changes when trading"
+      example: |
+        # Quoted rate: 1.1
+        # Actual rate after trade: 1.09
+        # Arbitrage disappears
+      detection_difficulty: "hard"
+      manifestation: "Vanishing arbitrage"
+      fix: "Model slippage"
+
+# =============================================================================
+# EDGE CASE CATALOG
+# =============================================================================
+
+edge_cases:
+  graph_edge_cases:
+    - empty_graph
+    - single_node_self_loop
+    - two_node_cycle
+    - long_cycle_100_nodes
+    - multiple_disjoint_cycles
+    - nested_cycles
+    - cycles_sharing_edge
+    - cycles_sharing_vertex
+    - complete_graph_with_cycle
+
+  weight_edge_cases:
+    - exactly_zero_cycle
+    - epsilon_negative_cycle
+    - large_negative_cycle
+    - mixed_sign_cycle
+    - all_positive_no_cycle
+    - single_negative_edge_cycle
+    - alternating_signs
+
+  precision_edge_cases:
+    - machine_epsilon_boundary
+    - accumulated_error_cycle
+    - cancellation_scenario
+    - subnormal_weights
+    - overflow_potential
+    - underflow_potential
+
+  multiple_cycle_cases:
+    - two_independent_cycles
+    - three_interconnected_cycles
+    - one_positive_one_negative
+    - all_cycles_negative
+    - chain_of_cycles
+
+# =============================================================================
+# ANTI-PATTERNS
+# =============================================================================
+
+anti_patterns:
+  llm_failure_modes:
+    - "Pattern matching without understanding precision requirements"
+    - "Applying standard Bellman-Ford without precision-aware comparison"
+    - "Missing epsilon boundary cycles due to naive thresholding"
+    - "Ignoring floating-point error accumulation in long cycles"
+    - "Assuming integer arithmetic when weights are floating point"
+    - "Skipping verification of cycle reconstruction correctness"
+    - "Over-relying on single-source detection for all cycles"
+    - "Missing unreachable negative cycles in disconnected components"
+    - "Ignoring accumulating cycles requiring multiple traversals"
+    - "Failing to handle zero-weight cycles correctly"
+    - "Not considering minimum mean cycle for analysis"
+    - "Missing opportunities for SCC-based optimization"
+    - "Overlooking numerical stability in rate-to-weight conversion"
+    - "Failing to account for transaction costs in arbitrage"
+    - "Not handling multiple overlapping cycles"
+    - "Missing time-dependent edge weight considerations"
+    - "Ignoring slippage effects in practical arbitrage"
+    - "Failing to detect cycle through predecessor chain analysis"
+    - "Not implementing proper cycle enumeration"
+    - "Missing Johnson's algorithm for all-pairs analysis"
+    - "Overlooking potential function for negative cycle-free verification"
+    - "Failing to handle infinity values in distance array"
+    - "Not considering parametric shortest path techniques"
+    - "Missing SPFA optimization opportunities"
+    - "Ignoring worst-case exponential behavior of SPFA"
+
+  task_anti_patterns:
+    obvious_negative_cycle:
+      description: "Large negative edge clearly forms cycle"
+      why_bad: "No precision analysis needed"
+
+# =============================================================================
+# DIFFICULTY AMPLIFIERS
+# =============================================================================
+
+difficulty_amplifiers:
+  nightmare:
+    multiplier: 3.0
+    description: "Extreme difficulty requiring expert-level multi-domain synthesis"
+    requirements:
+      - "7+ interacting traps across multiple domains"
+      - "Requires understanding of hardware-level effects"
+      - "Time estimate: 90+ minutes for senior engineers"
+      - "Multiple red herrings that waste investigation time"
+      - "Solution requires synthesizing knowledge from 3+ distinct areas"
+
+  nightmare_plus:
+    multiplier: 5.0
+    estimated_time: [28800, 172800]  # 8-48 hours
+    command_steps: [300, 1200]
+    techniques_required: 12
+    description: "Research paper difficulty requiring novel negative cycle detection"
+    requirements:
+      - "10+ deeply interacting traps across precision/detection/reconstruction domains"
+      - "Requires novel high-precision arithmetic or symbolic computation"
+      - "Must synthesize knowledge from numerical analysis, graph algorithms, and financial mathematics"
+      - "Requires formal proof of detection correctness under numerical error"
+      - "Time estimate: 8-48 hours for competitive programmers with ICPC/IOI medal experience"
+      - "Multiple precision issues that interact with detection logic"
+      - "Must handle accumulating cycle that only becomes negative after k traversals"
+      - "Requires understanding of minimum mean cycle algorithms"
+      - "Solution involves robust numerical methods with guaranteed error bounds"
+
+# =============================================================================
+# MULTI-AGENT ORCHESTRATION COMPLEXITY
+# =============================================================================
+
+multi_agent_orchestration:
+  description: "Coordinating 4-7 specialized agents for complex negative cycle analysis"
+  
+  specialized_agents:
+    numerical_precision_analyst:
+      role: "Handle floating-point precision issues"
+      capabilities:
+        - "Epsilon bound computation"
+        - "Error propagation analysis"
+        - "High-precision arithmetic selection"
+        - "Interval arithmetic implementation"
+      handoff_triggers:
+        - "Borderline negative cycle detected"
+        - "Precision-related false positives/negatives"
+    
+    cycle_detector:
+      role: "Detect and enumerate negative cycles"
+      capabilities:
+        - "Bellman-Ford cycle detection"
+        - "SPFA optimization"
+        - "Johnson's algorithm for all-pairs"
+        - "Minimum mean cycle detection"
+      handoff_triggers:
+        - "Negative cycle detection required"
+        - "All cycles enumeration needed"
+    
+    cycle_reconstructor:
+      role: "Reconstruct detected cycles"
+      capabilities:
+        - "Predecessor chain tracing"
+        - "Cycle start identification"
+        - "Cycle weight verification"
+        - "Overlapping cycle handling"
+      handoff_triggers:
+        - "Cycle reconstruction fails"
+        - "Multiple cycles detected"
+    
+    arbitrage_analyzer:
+      role: "Apply to financial arbitrage detection"
+      capabilities:
+        - "Exchange rate to weight conversion"
+        - "Transaction cost modeling"
+        - "Slippage estimation"
+        - "Practical profitability analysis"
+      handoff_triggers:
+        - "Financial domain application"
+        - "Real-world constraints needed"
+    
+    graph_preprocessor:
+      role: "Prepare graph for cycle detection"
+      capabilities:
+        - "SCC decomposition"
+        - "Source connectivity analysis"
+        - "Weight normalization"
+        - "Graph condensation"
+      handoff_triggers:
+        - "Large graph optimization"
+        - "Multiple components"
+
+  cross_algorithm_attack_chains:
+    chain_1:
+      name: "Floating Point Error → False Positive → Phantom Cycle → Wrong Arbitrage Signal"
+      stages:
+        - "Accumulated rounding errors create apparent negative"
+        - "Bellman-Ford detects non-existent cycle"
+        - "System reports arbitrage opportunity"
+        - "Trading on false signal causes loss"
+    
+    chain_2:
+      name: "Precision Loss → Missed Cycle → Undetected Arbitrage → Lost Opportunity"
+      stages:
+        - "Epsilon too large masks small negative cycle"
+        - "Algorithm reports no negative cycles"
+        - "Real arbitrage opportunity exists"
+        - "Profitable trade missed"
+    
+    chain_3:
+      name: "Single Pass → Unreachable Cycle → Partial Detection → Incomplete Analysis"
+      stages:
+        - "Bellman-Ford run from single source"
+        - "Negative cycle unreachable from source"
+        - "Cycle not detected"
+        - "System believes graph is cycle-free"
+
+# =============================================================================
+# THEORETICAL COMPLEXITY REQUIREMENTS
+# =============================================================================
+
+theoretical_complexity_requirements:
+  cycle_detection_theory:
+    concepts:
+      - "Bellman-Ford correctness proof"
+      - "Negative cycle necessary condition"
+      - "Reachability requirements"
+      - "SPFA worst-case analysis"
+    applications:
+      - "Algorithm selection"
+      - "Coverage guarantees"
+
+  numerical_analysis:
+    concepts:
+      - "Floating point error models"
+      - "Error propagation in summation"
+      - "Condition number of cycle detection"
+      - "Guaranteed error bounds"
+    techniques:
+      - "Compensated summation (Kahan)"
+      - "Interval arithmetic"
+      - "Arbitrary precision arithmetic"
+      - "Symbolic computation"
+
+  minimum_mean_cycle:
+    concepts:
+      - "Cycle mean definition"
+      - "Karp's algorithm"
+      - "Binary search on cycle mean"
+      - "Parametric shortest paths"
+    applications:
+      - "Tightest negative cycle"
+      - "Cycle importance ranking"
+
+# =============================================================================
+# ADVERSARIAL INPUT DESIGN
+# =============================================================================
+
+adversarial_input_design:
+  worst_case_input_generation:
+    epsilon_boundary_cycle:
+      description: "Cycle weight exactly at detection threshold"
+      technique: "Weights summing to -1e-12"
+      
+    accumulating_negative:
+      description: "Cycle positive on first pass, negative after k passes"
+      technique: "Cycle with small positive + larger negative that accumulates"
+      
+    many_near_zero_cycles:
+      description: "Many cycles at boundary of detection"
+      technique: "Graph with O(n) borderline cycles"
+
+  anti_optimization_inputs:
+    no_reachable_cycle:
+      description: "Negative cycle unreachable from standard sources"
+      technique: "Cycle in separate SCC from source nodes"
+    
+    cycle_only_in_subset:
+      description: "Negative cycle in small subgraph"
+      technique: "Large graph with cycle hidden in corner"
+
+  numerical_stability_attacks:
+    cancellation_attack:
+      description: "Weights designed to cause catastrophic cancellation"
+      technique: "Large positive followed by nearly equal large negative"
+    
+    scale_variation:
+      description: "Weights varying by many orders of magnitude"
+      technique: "Mixing 1e10 and 1e-10 weights in same cycle"
+
+# =============================================================================
+# FORMAL PROOF REQUIREMENTS
+# =============================================================================
+
+formal_proof_requirements:
+  correctness_proofs:
+    detection_correctness:
+      requirements:
+        - "Prove detection is complete (no false negatives)"
+        - "Prove detection is sound (no false positives)"
+        - "Characterize precision-dependent failure modes"
+      
+    cycle_reconstruction:
+      requirements:
+        - "Prove reconstructed cycle is valid"
+        - "Prove cycle weight matches detection"
+        - "Prove all nodes in cycle are identified"
+
+  numerical_correctness:
+    error_bounds:
+      requirements:
+        - "Derive error bound for cycle weight computation"
+        - "Prove detection threshold accounts for error"
+        - "Guarantee no false positives/negatives within bounds"
+
+  precision_amplifiers:
+    high_precision_required:
+      description: "Must use Decimal or rational"
+      amplification: "Floating point fails"
+      
+    mixed_scales:
+      description: "Weights vary by many orders of magnitude"
+      amplification: "Precision varies"
+
+# =============================================================================
+# VARIATION ENGINES
+# =============================================================================
+
+variation_engines:
+  problem_type_variations:
+    detect_existence:
+      description: "Is there a negative cycle?"
+      
+    find_one_cycle:
+      description: "Find any negative cycle"
+      
+    find_all_cycles:
+      description: "Find all negative cycles"
+      
+    minimum_mean_cycle:
+      description: "Find minimum mean weight cycle"
+
+  domain_variations:
+    arbitrage:
+      context: "Currency exchange"
+      
+    scheduling:
+      context: "Temporal constraints"
+      
+    verification:
+      context: "Constraint checking"
+
+# =============================================================================
+# SWE-bench_Pro style fields
+# =============================================================================
+
+problem_statement: |
+  A financial arbitrage detection system is producing incorrect results. The system 
+  models currency exchange rates as a weighted directed graph and uses Bellman-Ford 
+  algorithm to detect arbitrage opportunities (negative cycles).
+  
+  The problem: Some negative cycles are hidden through a combination of:
+  1. Floating-point precision issues that make cycle detection miss borderline cases
+  2. Cycles that only become negative after multiple traversals
+  3. Time-dependent edges that change weight based on traversal count
+
+requirements: |
+  - Implement robust negative cycle detection using Bellman-Ford
+  - Handle floating-point precision issues correctly
+  - Detect cycles that accumulate to negative only after multiple passes
+  - Report all negative cycles, not just the first one found
+  - Provide cycle reconstruction for verification
+
+interface: |
+  Input: Exchange rate graph (adjacency list with weights)
+  Output: List of all negative cycles with their total weights
+  Precision: Handle rates with up to 8 decimal places
+
+difficulty:
+  estimated: "nightmare_plus"
+  time_range: [5400, 18000]  # 90-300 minutes for competitive programmers with ICPC/IOI medal experience
+  command_steps: [60, 200]
+  techniques_required: 12
+  trap_count: "10+ deeply interacting traps across correctness/performance/edge-case domains"
+  target_audience: "Competitive programmers with ICPC/IOI medal experience"
+
+traps:
+  - type: "floating_point"
+    description: "Cycle weight is -0.0000001, easily missed with naive comparison"
+    trigger: "Using == 0 instead of epsilon comparison"
+  
+  - type: "accumulating_negative"
+    description: "Cycle appears positive on first pass but accumulates to negative"
+    trigger: "Only checking for negative after single relaxation"
+  
+  - type: "multiple_cycles"
+    description: "Multiple interconnected negative cycles confuse detection"
+    trigger: "Stopping after finding first cycle"
+
+  - type: "unreachable_from_source"
+    description: "Negative cycle exists but unreachable from algorithm's source node"
+    trigger: "Running Bellman-Ford from single source without checking all nodes"
+
+  - type: "precision_false_positive"
+    description: "Accumulated rounding errors create apparent negative cycle"
+    trigger: "Not using compensated summation or high-precision arithmetic"
+
+  - type: "reconstruction_infinite_loop"
+    description: "Predecessor chain tracing enters infinite loop"
+    trigger: "Not tracking visited nodes during reconstruction"
+
+  - type: "zero_weight_cycle_confusion"
+    description: "Cycle weight exactly zero, ambiguous classification"
+    trigger: "Unclear handling of boundary case"
+
+  - type: "logarithm_precision_loss"
+    description: "Converting rates to log weights loses precision for near-1 rates"
+    trigger: "Using log() without high-precision for rates like 1.00001"
+
+  - type: "scale_mismatch"
+    description: "Very large and very small weights in same graph cause precision loss"
+    trigger: "Not normalizing or separating different scales"
+
+  - type: "overlapping_cycle_reconstruction"
+    description: "Multiple cycles sharing edges cause reconstruction confusion"
+    trigger: "Not properly identifying individual cycle membership"
+
+  - type: "transaction_cost_hidden"
+    description: "Gross arbitrage exists but net arbitrage doesn't after costs"
+    trigger: "Not including transaction fees in weight calculation"
+
+instruction_template: |
+  You are analyzing a {{ scenario_type }} that models exchange rates as a graph.
+  The system data is at {{ path }}.
+  
+  Traders report missing arbitrage opportunities. Your task:
+  {{ task_steps }}
+  
+  The graph contains {{ currency_count }} currencies and {{ rate_count }} exchange rates.
+  Note: Exchange rates are expressed as logarithms (negative log = profitable exchange).
+
+reference_solution: |
+  #!/usr/bin/env python3
+  from decimal import Decimal, getcontext
+  from collections import defaultdict
+  
+  getcontext().prec = 50
+  EPSILON = Decimal('1e-12')
+  
+  def parse_rates(filepath):
+      edges = []
+      with open(filepath, 'r') as f:
+          for line in f:
+              parts = line.strip().split()
+              if len(parts) >= 3:
+                  src, dst = parts[0], parts[1]
+                  rate = Decimal(parts[2])
+                  weight = -rate.ln()
+                  edges.append((src, dst, weight))
+      return edges
+  
+  def bellman_ford_all_cycles(edges, vertices):
+      n = len(vertices)
+      vertex_list = list(vertices)
+      all_cycles = []
+      
+      for start in vertex_list:
+          dist = {v: Decimal('Infinity') for v in vertices}
+          pred = {v: None for v in vertices}
+          dist[start] = Decimal(0)
+          
+          for _ in range(n - 1):
+              for src, dst, weight in edges:
+                  if dist[src] + weight < dist[dst] - EPSILON:
+                      dist[dst] = dist[src] + weight
+                      pred[dst] = src
+          
+          for src, dst, weight in edges:
+              if dist[src] + weight < dist[dst] - EPSILON:
+                  cycle = reconstruct_cycle(dst, pred, edges)
+                  if cycle and cycle not in all_cycles:
+                      cycle_weight = compute_cycle_weight(cycle, edges)
+                      all_cycles.append((cycle, cycle_weight))
+      
+      return all_cycles
+  
+  def reconstruct_cycle(start, pred, edges):
+      visited = set()
+      current = start
+      for _ in range(len(pred)):
+          if current in visited:
+              break
+          visited.add(current)
+          current = pred.get(current)
+          if current is None:
+              return None
+      
+      cycle_start = current
+      cycle = [cycle_start]
+      current = pred[cycle_start]
+      while current != cycle_start:
+          cycle.append(current)
+          current = pred[current]
+      cycle.append(cycle_start)
+      cycle.reverse()
+      return tuple(cycle)
+  
+  def compute_cycle_weight(cycle, edges):
+      edge_map = {(s, d): w for s, d, w in edges}
+      total = Decimal(0)
+      for i in range(len(cycle) - 1):
+          total += edge_map.get((cycle[i], cycle[i+1]), Decimal(0))
+      return total
+
+fail_to_pass:
+  - "test_detect_epsilon_negative_cycle"
+  - "test_detect_accumulating_cycle"
+  - "test_find_all_cycles"
+  - "test_floating_point_precision"
+
+pass_to_pass:
+  - "test_basic_cycle_detection"
+  - "test_no_negative_cycle"
+  - "test_single_negative_cycle"
+
+variables:
+  - name: scenario_type
+    type: string
+    options: ["forex trading platform", "cryptocurrency exchange", "commodities market", "cross-border payment system"]
+  - name: path
+    type: path
+    generator: random_path
+  - name: currency_count
+    type: int
+    min: 10
+    max: 50
+  - name: rate_count
+    type: int
+    min: 30
+    max: 200
+  - name: task_steps
+    type: template
+    value: |
+      1. Parse the exchange rate graph with appropriate precision
+      2. Implement negative cycle detection algorithm
+      3. Handle floating-point precision issues
+      4. Find and report ALL negative cycles
+      5. Verify cycles by computing round-trip exchange
+
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  precision_traps:
+    - epsilon_boundary_cycles
+    - accumulating_weights
+    - canceling_positive_negative
+
+generation_targets:
+  unique_tasks: 10000
+  minimum_difficulty: "experienced developer needs 30+ minutes, requires deep domain expertise"
+  trap_coverage: "all trap types used at least 100 times"
+
+# =============================================================================
+# EXTENDED NEGATIVE CYCLE DETECTION PATTERNS
+# =============================================================================
+
+extended_patterns:
+  # ---------------------------------------------------------------------------
+  # Precision Handling Strategies
+  # ---------------------------------------------------------------------------
+  precision_strategies:
+    fixed_epsilon:
+      description: "Use constant epsilon for all comparisons"
+      value: "1e-9 to 1e-12 typically"
+      pros: "Simple to implement"
+      cons: "May fail for very different scales"
+      
+    relative_epsilon:
+      description: "Epsilon relative to magnitude"
+      formula: "epsilon * max(|a|, |b|)"
+      pros: "Handles different scales"
+      cons: "More complex, still has edge cases"
+      
+    ulp_based:
+      description: "Compare based on units in last place"
+      formula: "abs(a - b) <= ulp(max(|a|, |b|)) * n"
+      pros: "Mathematically sound"
+      cons: "Complex to implement correctly"
+      
+    decimal_arithmetic:
+      description: "Use exact decimal representation"
+      python: "from decimal import Decimal"
+      pros: "No floating point errors"
+      cons: "Slower, memory overhead"
+      
+    rational_arithmetic:
+      description: "Use exact rational numbers"
+      python: "from fractions import Fraction"
+      pros: "Exact for rationals"
+      cons: "Very slow, memory explosion"
+      
+    interval_arithmetic:
+      description: "Track error bounds"
+      representation: "[lower_bound, upper_bound]"
+      pros: "Guaranteed bounds"
+      cons: "Intervals may widen too much"
+
+  # ---------------------------------------------------------------------------
+  # Cycle Enumeration Techniques
+  # ---------------------------------------------------------------------------
+  enumeration_techniques:
+    johnson_cycle_detection:
+      description: "Find all elementary cycles"
+      complexity: "O((V + E)(C + 1)) where C is number of cycles"
+      note: "May be exponential in worst case"
+      
+    strongly_connected_decomposition:
+      description: "Find SCCs first, cycles within"
+      complexity: "O(V + E) for SCC, then per-SCC enumeration"
+      benefit: "Limits cycle search scope"
+      
+    dfs_with_backtracking:
+      description: "DFS tracking path, backtrack on cycle"
+      complexity: "Depends on graph structure"
+      memory: "O(V) for path"
+      
+    minimum_mean_cycle:
+      description: "Find cycle minimizing sum/length"
+      algorithm: "Karp's algorithm"
+      complexity: "O(VE)"
+
+  # ---------------------------------------------------------------------------
+  # Financial Application Specifics
+  # ---------------------------------------------------------------------------
+  financial_applications:
+    currency_exchange:
+      rate_representation: "Multiply rates for path profit"
+      weight_conversion: "-log(rate) for shortest path"
+      cycle_interpretation: "Product > 1 means profit"
+      practical_concerns:
+        - "Transaction fees"
+        - "Minimum trade amounts"
+        - "Slippage and spread"
+        - "Rate staleness"
+        
+    triangular_arbitrage:
+      description: "A -> B -> C -> A"
+      minimum_path_length: 3
+      detection: "Product of rates > 1"
+      
+    multi_hop_arbitrage:
+      description: "Longer cycles through multiple currencies"
+      practical_limit: "5-7 hops due to fees and timing"
+      
+    market_microstructure:
+      bid_ask_spread: "Use bid when selling, ask when buying"
+      order_book_depth: "Limited liquidity at best prices"
+      market_impact: "Large trades move prices"
+
+# =============================================================================
+# TASK COMBINATION MATRIX
+# =============================================================================
+
+combination_matrix:
+  primary_trap:
+    method: "Select 1-2 primary traps from trap_taxonomy"
+    options:
+      - floating_point
+      - detection_logic
+      - reconstruction
+      - application
+    diversity_requirement: "Must not repeat within 100 tasks"
+    
+  precision_strategy:
+    method: "Select precision handling approach"
+    options:
+      - fixed_epsilon
+      - relative_epsilon
+      - decimal_arithmetic
+      - rational_arithmetic
+    
+  context:
+    method: "Select application domain"
+    options:
+      - forex
+      - cryptocurrency
+      - commodities
+      - cross_border_payments
+    
+  complexity:
+    easy: "Single clear precision issue"
+    medium: "Multiple cycles with precision"
+    hard: "Precision + reconstruction issues"
+    expert: "Real-world financial constraints"
+
+# =============================================================================
+# EXTENDED EDGE CASES
+# =============================================================================
+
+extended_edge_cases:
+  precision_boundary_cases:
+    - cycle_weight_exactly_zero
+    - cycle_weight_at_machine_epsilon
+    - cycle_weight_at_negative_machine_epsilon
+    - accumulated_error_equals_cycle_weight
+    - large_magnitude_small_cycle_weight
+    - mixed_precision_weights
+    
+  cycle_structure_cases:
+    - single_edge_self_loop_cycle
+    - two_node_mutual_cycle
+    - three_node_triangle
+    - long_cycle_100_nodes
+    - dense_graph_many_cycles
+    - overlapping_cycles_shared_edge
+    - nested_cycles
+    
+  graph_structure_cases:
+    - all_positive_no_cycle
+    - all_negative_many_cycles
+    - single_negative_edge_in_cycle
+    - negative_edges_not_in_cycle
+    - disconnected_with_cycles
+
+# =============================================================================
+# ADDITIONAL ARBITRAGE DETECTION SPECIFICS
+# =============================================================================
+
+arbitrage_specifics:
+  exchange_rate_representation:
+    multiplicative:
+      description: "Rate r means 1 unit A = r units B"
+      cycle_detection: "Product > 1 indicates profit"
+      path_weight: "Product of rates"
+      
+    logarithmic:
+      description: "Weight = -log(rate)"
+      cycle_detection: "Negative sum indicates profit"
+      path_weight: "Sum of weights (equivalent to log of product)"
+      benefit: "Converts product to sum, enables shortest path algorithms"
+      
+  practical_constraints:
+    transaction_fees:
+      fixed: "Flat fee per transaction"
+      percentage: "Fee as percentage of amount"
+      impact: "May eliminate small arbitrage opportunities"
+      
+    minimum_trade_size:
+      constraint: "Exchanges have minimum order sizes"
+      impact: "Small arbitrage may not be executable"
+      
+    rate_freshness:
+      latency: "Rates may be stale by time of execution"
+      solution: "Use conservative rate estimates"
+      
+    execution_risk:
+      slippage: "Actual rate may differ from quoted"
+      partial_fill: "May not execute full desired amount"
+      
+  algorithm_considerations:
+    rate_update_frequency:
+      fast_markets: "Rates change every millisecond"
+      implication: "Need incremental cycle detection"
+      
+    multiple_exchanges:
+      opportunity: "Arbitrage across exchanges"
+      complication: "Need to model transfer times/costs"

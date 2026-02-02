@@ -1,0 +1,1334 @@
+id: "sys-os-fd-leak-001"
+version: "1.0.0"
+category: "systems"
+subcategory: "operating-systems"
+
+# SWE-bench_Pro style fields
+problem_statement: |
+  A server application is failing with "Too many open files" errors after running 
+  for several hours. The file descriptor limit is being reached due to leaks.
+  
+  Hidden leak sources:
+  1. Sockets opened but not closed on error paths
+  2. File handles from subprocess pipes not closed
+  3. Temporary files created but not cleaned up
+  4. Memory-mapped files keeping FDs open
+  5. Duplicated FDs from dup2() not tracked
+
+requirements: |
+  - Identify all file descriptor leaks
+  - Track FD lifecycle from open to close
+  - Handle error paths that skip close()
+  - Properly close subprocess pipes
+  - Implement FD leak detection mechanism
+
+interface: |
+  Input: Application code, process PID
+  Output: List of leaked FDs, fixed code, leak detection report
+  Monitoring: Track FD count over time
+
+# terminal-bench style fields
+difficulty:
+  estimated: "hard"
+  time_range: [1800, 4500]
+  command_steps: [25, 65]
+
+# === QUALITY REQUIREMENTS ===
+quality_requirements:
+  minimum_time: "120-300 minutes for senior systems engineers with kernel contribution experience"
+  expertise_level: "Principal systems engineer with VFS internals, socket programming, and resource management expertise"
+  validation_standard: "Must expose subtle FD lifecycle bugs across error paths, subprocess, and async operations"
+
+# === MULTI-AGENT ORCHESTRATION ===
+multi_agent_orchestration:
+  required_agents: 9
+  agent_specializations:
+    - name: "fd_lifecycle_expert"
+      role: "Debug file descriptor creation and closure"
+      expertise: ["open flags", "dup semantics", "close-on-exec", "fd table management"]
+    - name: "error_path_analyst"
+      role: "Find FD leaks in error handling paths"
+      expertise: ["exception safety", "goto cleanup", "RAII patterns", "finally blocks"]
+    - name: "socket_leak_debugger"
+      role: "Debug socket FD leaks"
+      expertise: ["accept", "connect", "TIME_WAIT", "connection pooling"]
+    - name: "subprocess_pipe_expert"
+      role: "Debug pipe FD leaks from subprocesses"
+      expertise: ["Popen", "pipe2", "fork/exec inheritance", "communicate"]
+    - name: "event_loop_specialist"
+      role: "Debug epoll/kqueue FD leaks"
+      expertise: ["epoll_create", "epoll_ctl", "eventfd", "timerfd"]
+    - name: "mmap_fd_analyst"
+      role: "Debug mmap-related FD retention"
+      expertise: ["mmap", "munmap", "fd after close", "shared mappings"]
+    - name: "async_io_debugger"
+      role: "Debug async I/O FD management"
+      expertise: ["io_uring", "AIO", "completion queues", "pending operations"]
+    - name: "fd_passing_specialist"
+      role: "Debug FD passing via SCM_RIGHTS"
+      expertise: ["Unix domain sockets", "cmsg", "fd passing", "received fd tracking"]
+    - name: "kernel_vfs_tracer"
+      role: "Trace kernel VFS and FD operations"
+      expertise: ["ftrace", "eBPF", "open/close tracing", "fd table inspection"]
+  cross_subsystem_chains:
+    - "Exception before close → FD leaked → Limit reached → Service failure"
+    - "Popen → stdout.read() → No wait() → Pipe FD leak → Process table full"
+    - "Accept → Handler error → Socket leak → TIME_WAIT accumulation"
+    - "mmap → close → munmap later → FD retained → Surprising behavior"
+  parallel_debugging_requirements:
+    - "Correlated FD allocation/close traces with process tree"
+    - "Simultaneous userspace and kernel FD table analysis"
+    - "Agent handoff for complex multi-process FD debugging"
+
+# === TRAP CONFIGURATION ===
+trap_configuration:
+  trap_count: "12+ deeply interacting traps across kernel/userspace/hardware boundaries"
+  trap_categories:
+    error_path_traps:
+      - "Exception raised before close() in try block"
+      - "Early return skipping close()"
+      - "goto cleanup path not reached"
+      - "Partial initialization cleanup missing"
+    subprocess_traps:
+      - "Popen without wait() leaking pipes"
+      - "Fork without closing parent's copy of pipe"
+      - "communicate() not called leaking stdout/stderr"
+      - "Shell command intermediate pipe leak"
+    socket_traps:
+      - "Accept without close on handler error"
+      - "Connect timeout leaving socket open"
+      - "Connection pool exhaustion from leaks"
+      - "DNS resolver socket leak"
+
+# === NIGHTMARE_PLUS DIFFICULTY ===
+difficulty_levels:
+  nightmare_plus:
+    estimated_time: [43200, 259200]  # 12-72 hours
+    command_steps: [600, 2500]
+    techniques_required: 18
+    description: "Production incident-level difficulty requiring deep VFS and networking knowledge"
+    requirements:
+      - "Requires understanding of kernel FD table management"
+      - "Must handle async I/O and event loop FD patterns"
+      - "Involves FD passing and inheritance across fork/exec"
+      - "Cross-platform behavior differences (Linux vs BSD)"
+      - "Time estimate: 12-72 hours for systems reliability engineers"
+      - "Requires synthesizing VFS, networking, and process management knowledge"
+
+# === KERNEL SUBSYSTEM REQUIREMENTS ===
+kernel_subsystem_requirements:
+  vfs_subsystem:
+    - "struct file and file descriptor table"
+    - "File reference counting (f_count)"
+    - "Open file description vs file descriptor"
+    - "Close-on-exec flag implementation"
+  socket_subsystem:
+    - "Socket file operations"
+    - "Accept and connection establishment"
+    - "Socket state machine"
+    - "TIME_WAIT and socket reuse"
+  pipe_subsystem:
+    - "Pipe buffer management"
+    - "Pipe read/write reference counting"
+    - "Named pipe (FIFO) semantics"
+    - "Pipe capacity and blocking"
+  eventfd_timerfd:
+    - "eventfd counter semantics"
+    - "timerfd expiration handling"
+    - "signalfd signal delivery"
+    - "epoll fd management"
+
+# === HARDWARE INTERACTION ===
+hardware_interaction:
+  storage_effects:
+    - "Open file keeping inode referenced"
+    - "Deleted file still accessible via FD"
+    - "Disk space not freed until FD closed"
+    - "fsync interaction with fd lifecycle"
+  network_effects:
+    - "Socket buffer memory with leaked FDs"
+    - "NIC resources with open sockets"
+    - "Connection table entries"
+    - "Port exhaustion from leaks"
+  system_limits:
+    - "RLIMIT_NOFILE soft/hard limits"
+    - "System-wide fs.file-max"
+    - "Per-user limits"
+    - "Kernel fd table memory"
+
+# === FORMAL VERIFICATION REQUIREMENTS ===
+formal_verification_requirements:
+  modeling_requirements:
+    - "Model FD lifecycle in TLA+"
+    - "Express resource cleanup obligations"
+    - "Verify close on all code paths"
+    - "Model inheritance across fork/exec"
+  proof_obligations:
+    - "Prove all opened FDs eventually closed"
+    - "Verify CLOEXEC set on sensitive FDs"
+    - "Establish bounded FD usage"
+    - "Prove error paths close all FDs"
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research file descriptor management and kernel limits"
+    phase_2_creation: "Create task with subtle FD leak scenarios"
+    phase_3_amplification: "Add error path leaks and subprocess complications"
+    phase_4_verification:
+      description: "Validate task requires understanding of resource lifecycle"
+      criteria:
+        - "Has at least 5 interacting system-level traps across subsystems"
+        - "Has cascading failures across process, memory, and I/O subsystems"
+        - "Requires knowledge of OS kernel internals and scheduler behavior"
+        - "Would take experienced systems programmers 45+ minutes"
+  
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 3.5
+      description: "Kernel-level debugging complexity requiring deep systems expertise"
+      requirements:
+        - "7+ interacting system-level traps across subsystems"
+        - "Requires understanding of kernel memory management and scheduling"
+        - "Time estimate: 120+ minutes for senior systems engineers"
+        - "Cross-platform behavior differences (Linux vs BSD vs Windows)"
+        - "Requires synthesizing concurrency, memory, distributed systems knowledge"
+  
+  generation_targets:
+    minimum_difficulty: "45+ minutes, requires deep kernel internals and distributed systems expertise"
+  
+  complexity_levels:
+    level_1_basic:
+      description: "Simple file not closed in error path"
+      elements: ["exception_before_close", "early_return"]
+    level_2_intermediate:
+      description: "Subprocess pipe leaks"
+      elements: ["popen_without_close", "pipe_in_fork"]
+    level_3_advanced:
+      description: "Socket leaks in networking code"
+      elements: ["accept_without_close", "connect_timeout_leak"]
+    level_4_expert:
+      description: "Epoll and event loop FD leaks"
+      elements: ["epoll_fd_leak", "eventfd_leak"]
+    level_5_research:
+      description: "Complex FD inheritance and passing"
+      elements: ["fd_passing_leak", "scm_rights"]
+
+# === COMPREHENSIVE TOPIC UNIVERSE ===
+topic_universe:
+  # File Descriptor Types (35+ topics)
+  fd_types:
+    regular_files:
+      - "Regular file descriptors"
+      - "Directory file descriptors"
+      - "Temporary files"
+      - "Anonymous files"
+      - "O_TMPFILE files"
+    
+    pipes_and_fifos:
+      - "Anonymous pipes (pipe())"
+      - "Named pipes (FIFOs)"
+      - "Pipe2 with flags"
+      - "Splice and tee"
+    
+    sockets:
+      - "Stream sockets (TCP)"
+      - "Datagram sockets (UDP)"
+      - "Unix domain sockets"
+      - "Raw sockets"
+      - "Netlink sockets"
+    
+    special_fds:
+      - "Epoll file descriptors"
+      - "Eventfd"
+      - "Timerfd"
+      - "Signalfd"
+      - "Inotify fd"
+      - "Fanotify fd"
+      - "Perf event fd"
+      - "Userfaultfd"
+      - "Pidfd"
+      - "Memfd"
+    
+    device_files:
+      - "/dev/null"
+      - "/dev/zero"
+      - "/dev/random"
+      - "PTY master/slave"
+      - "Block devices"
+      - "Character devices"
+  
+  # FD Operations (30+ topics)
+  fd_operations:
+    creation:
+      - "open() and openat()"
+      - "creat()"
+      - "socket()"
+      - "accept() and accept4()"
+      - "pipe() and pipe2()"
+      - "dup() and dup2()"
+      - "fcntl(F_DUPFD)"
+      - "epoll_create()"
+      - "eventfd()"
+      - "timerfd_create()"
+    
+    management:
+      - "close()"
+      - "dup2() for redirection"
+      - "fcntl() for flags"
+      - "ioctl() control"
+    
+    flags:
+      - "O_CLOEXEC"
+      - "FD_CLOEXEC"
+      - "O_NONBLOCK"
+      - "SOCK_CLOEXEC"
+      - "SOCK_NONBLOCK"
+    
+    inheritance:
+      - "Fork FD inheritance"
+      - "Exec FD inheritance"
+      - "Close-on-exec flag"
+      - "FD passing via SCM_RIGHTS"
+  
+  # Leak Scenarios (40+ topics)
+  leak_scenarios:
+    error_path_leaks:
+      - "Exception before close"
+      - "Early return on error"
+      - "Goto cleanup missed"
+      - "Error in multi-FD setup"
+      - "Partial initialization cleanup"
+    
+    subprocess_leaks:
+      - "Popen without close"
+      - "Fork without exec close"
+      - "Pipe ends not closed"
+      - "Shell command FD leak"
+      - "Zombie subprocess with open pipes"
+    
+    socket_leaks:
+      - "Accept without close"
+      - "Connect failure leak"
+      - "Timeout with open socket"
+      - "DNS lookup socket leak"
+      - "Connection pool exhaustion"
+    
+    mmap_leaks:
+      - "Mmap keeps FD reference"
+      - "Close before unmap"
+      - "Shared mapping leak"
+    
+    epoll_leaks:
+      - "Epoll FD not closed"
+      - "Registered FD closed but not removed"
+      - "Eventfd leak"
+  
+  # Detection Methods (25+ topics)
+  detection:
+    linux_tools:
+      - "/proc/[pid]/fd/"
+      - "/proc/[pid]/fdinfo/"
+      - "lsof"
+      - "ls -l /proc/self/fd"
+      - "ss command"
+      - "netstat"
+    
+    runtime_detection:
+      - "FD counting at checkpoints"
+      - "FD type classification"
+      - "Allocation tracking"
+      - "Wrapper functions"
+    
+    debugging:
+      - "Valgrind FD tracking"
+      - "strace for syscalls"
+      - "eBPF for fd tracking"
+      - "SystemTap probes"
+  
+  # Prevention Patterns (25+ topics)
+  prevention:
+    raii_patterns:
+      - "Context managers (Python with)"
+      - "RAII (C++)"
+      - "try-with-resources (Java)"
+      - "defer (Go)"
+      - "Drop trait (Rust)"
+    
+    best_practices:
+      - "Always set CLOEXEC"
+      - "Use RAII wrappers"
+      - "Cleanup on all paths"
+      - "Resource limit monitoring"
+    
+    defensive_coding:
+      - "Null after close"
+      - "Close idempotency"
+      - "Cleanup functions"
+      - "Resource pools"
+
+# === BUG PATTERNS ===
+bug_patterns:
+  error_path_leak:
+    - pattern: "exception_before_close"
+      description: "Exception raised before close(), FD leaked"
+      severity: "critical"
+      detection: "FD count grows over time"
+      fix: "Use context managers or finally blocks"
+      code_example: |
+        # Bug: exception leaks FD
+        def process_file(path):
+            fd = open(path)
+            result = process(fd.read())  # May throw!
+            fd.close()  # Never reached
+            return result
+        
+        # Fix: context manager
+        def process_file(path):
+            with open(path) as fd:
+                return process(fd.read())
+    
+    - pattern: "early_return_leak"
+      description: "Early return skips close()"
+      severity: "high"
+      detection: "Leak on specific code paths"
+      fix: "Ensure close on all paths"
+      code_example: |
+        # Bug: early return leaks
+        def read_config(path):
+            fd = open(path)
+            line = fd.readline()
+            if not line.startswith('#'):
+                return None  # FD leaked!
+            fd.close()
+            return parse(line)
+        
+        # Fix: cleanup on all paths
+        def read_config(path):
+            with open(path) as fd:
+                line = fd.readline()
+                if not line.startswith('#'):
+                    return None
+                return parse(line)
+
+  subprocess_leak:
+    - pattern: "popen_without_close"
+      description: "Popen opened but not waited/closed"
+      severity: "critical"
+      detection: "Pipe FDs and zombie processes"
+      fix: "Always wait() or use context manager"
+      code_example: |
+        # Bug: popen leak
+        def run_command(cmd):
+            proc = subprocess.Popen(cmd, stdout=PIPE)
+            output = proc.stdout.read()
+            return output
+            # proc.stdout still open, proc still running
+        
+        # Fix: proper cleanup
+        def run_command(cmd):
+            with subprocess.Popen(cmd, stdout=PIPE) as proc:
+                output = proc.stdout.read()
+                proc.wait()
+            return output
+    
+    - pattern: "pipe_in_fork"
+      description: "Pipe FDs not closed in parent/child after fork"
+      severity: "high"
+      detection: "Unexpected FDs in child, pipe deadlock"
+      fix: "Close unused pipe ends immediately after fork"
+
+  socket_leak:
+    - pattern: "accept_leak"
+      description: "Accepted socket not closed on handler error"
+      severity: "critical"
+      detection: "Socket FD accumulation"
+      fix: "Ensure close on all error paths"
+      code_example: |
+        # Bug: accept leak
+        def handle_connections(server_fd):
+            while True:
+                client_fd = accept(server_fd)
+                data = recv(client_fd, 1024)
+                if not data:
+                    continue  # client_fd leaked!
+                process(data)
+                close(client_fd)
+        
+        # Fix: close on all paths
+        def handle_connections(server_fd):
+            while True:
+                client_fd = accept(server_fd)
+                try:
+                    data = recv(client_fd, 1024)
+                    if data:
+                        process(data)
+                finally:
+                    close(client_fd)
+    
+    - pattern: "connect_timeout_leak"
+      description: "Socket created but connect times out, socket not closed"
+      severity: "high"
+      detection: "Sockets in SYN_SENT state"
+      fix: "Close socket on timeout"
+
+  mmap_leak:
+    - pattern: "mmap_fd_retained"
+      description: "mmap keeps FD reference even after close()"
+      severity: "medium"
+      detection: "FD still visible after close"
+      fix: "Unmap before close, or accept FD stays"
+    
+    - pattern: "shared_mapping_leak"
+      description: "Shared mapping not unmapped"
+      severity: "medium"
+      detection: "Memory and FD leak"
+      fix: "Always munmap"
+
+# === EDGE CASES ===
+edge_cases:
+  limits:
+    - "Hitting RLIMIT_NOFILE soft limit"
+    - "Hitting RLIMIT_NOFILE hard limit"
+    - "System-wide file-max limit"
+    - "Per-user limit"
+    - "FD near INT_MAX"
+
+  inheritance:
+    - "FD passed across fork"
+    - "FD passed across exec"
+    - "FD passed via SCM_RIGHTS"
+    - "FD inherited by daemon"
+    - "FD in multi-threaded fork"
+
+  special_cases:
+    - "Closing stdin/stdout/stderr"
+    - "Closing FD 0 and reopening"
+    - "Dup2 to closed FD"
+    - "Close during read/write"
+    - "Close with pending AIO"
+
+  timing:
+    - "Close race in multi-thread"
+    - "FD reuse after close"
+    - "Leak only under load"
+    - "Leak only on error path"
+
+# === DIFFICULTY MULTIPLIERS ===
+difficulty_multipliers:
+  concurrency:
+    multi_threaded:
+      multiplier: 1.8
+      description: "FD management across threads"
+      considerations:
+        - "Close race conditions"
+        - "FD sharing between threads"
+        - "Thread-local FD tracking"
+  
+  networking:
+    high_connection_rate:
+      multiplier: 1.5
+      description: "High rate of connection handling"
+      considerations:
+        - "Accept loop cleanup"
+        - "Connection pooling"
+        - "Timeout handling"
+
+# === SCENARIO TEMPLATES ===
+scenario_templates:
+  web_server_leak:
+    description: "HTTP server leaking client sockets"
+    setup: |
+      - Server accepts connections
+      - Handler throws exception
+      - Socket not closed
+    symptoms: |
+      - EMFILE after hours
+      - TIME_WAIT accumulation
+    root_cause: "No cleanup on handler exception"
+    fix: |
+      - try/finally around handler
+      - Context manager for socket
+
+  subprocess_leak:
+    description: "Command execution leaking pipes"
+    setup: |
+      - Popen with stdout=PIPE
+      - Read output
+      - Don't call wait()
+    symptoms: |
+      - Zombie processes
+      - Pipe FD growth
+    root_cause: "Missing wait() and pipe close"
+    fix: |
+      - Use communicate() or
+      - Use context manager
+
+  database_leak:
+    description: "Database connections not returned"
+    setup: |
+      - Get connection from pool
+      - Query fails
+      - Connection not returned
+    symptoms: |
+      - Pool exhaustion
+      - Socket FD leak
+    root_cause: "Error path doesn't return connection"
+    fix: |
+      - Context manager for connections
+      - try/finally with return
+
+# === REFERENCE SOLUTION ===
+reference_solution: |
+  #!/usr/bin/env python3
+  """
+  Comprehensive file descriptor leak detection and prevention.
+  Implements FD tracking, safe wrappers, and leak detection.
+  """
+  import os
+  import sys
+  import socket
+  import subprocess
+  import mmap
+  import weakref
+  from contextlib import contextmanager
+  from typing import Dict, Set, List, Optional, Callable, Any
+  from dataclasses import dataclass, field
+  import traceback
+  import atexit
+  import threading
+  import logging
+  
+  logging.basicConfig(level=logging.INFO)
+  logger = logging.getLogger(__name__)
+  
+  # === FD TRACKER ===
+  
+  @dataclass
+  class FDInfo:
+      """Information about a tracked file descriptor."""
+      fd: int
+      fd_type: str
+      path: Optional[str]
+      opened_at: str  # Stack trace
+      thread_id: int
+  
+  class FDTracker:
+      """
+      Track file descriptor lifecycle for leak detection.
+      """
+      
+      _instance = None
+      _instance_lock = threading.Lock()
+      
+      def __new__(cls):
+          if cls._instance is None:
+              with cls._instance_lock:
+                  if cls._instance is None:
+                      cls._instance = super().__new__(cls)
+                      cls._instance._initialize()
+          return cls._instance
+      
+      def _initialize(self):
+          self._open_fds: Dict[int, FDInfo] = {}
+          self._lock = threading.Lock()
+          self._enabled = True
+          
+          # Register cleanup on exit
+          atexit.register(self.report_leaks)
+      
+      def track_open(
+          self, 
+          fd: int, 
+          fd_type: str, 
+          path: Optional[str] = None
+      ) -> None:
+          """Track a newly opened FD."""
+          if not self._enabled:
+              return
+          
+          with self._lock:
+              self._open_fds[fd] = FDInfo(
+                  fd=fd,
+                  fd_type=fd_type,
+                  path=path,
+                  opened_at=''.join(traceback.format_stack()[:-1]),
+                  thread_id=threading.get_ident()
+              )
+      
+      def track_close(self, fd: int) -> None:
+          """Track a closed FD."""
+          if not self._enabled:
+              return
+          
+          with self._lock:
+              self._open_fds.pop(fd, None)
+      
+      def get_open_fds(self) -> Dict[int, FDInfo]:
+          """Get all currently tracked open FDs."""
+          with self._lock:
+              return dict(self._open_fds)
+      
+      def report_leaks(self) -> List[FDInfo]:
+          """Report any leaked FDs at shutdown."""
+          with self._lock:
+              leaks = list(self._open_fds.values())
+          
+          if leaks:
+              logger.warning(f"\n=== FD LEAK REPORT: {len(leaks)} leaked FDs ===")
+              for info in leaks:
+                  logger.warning(
+                      f"\nFD {info.fd} ({info.fd_type}): {info.path}\n"
+                      f"Opened at:\n{info.opened_at}"
+                  )
+          
+          return leaks
+      
+      def enable(self) -> None:
+          self._enabled = True
+      
+      def disable(self) -> None:
+          self._enabled = False
+  
+  # === SAFE FILE OPERATIONS ===
+  
+  @contextmanager
+  def safe_open(path: str, flags: int, mode: int = 0o644):
+      """
+      Context manager for safe file descriptor handling.
+      Ensures FD is closed even on exception.
+      """
+      tracker = FDTracker()
+      fd = os.open(path, flags, mode)
+      tracker.track_open(fd, 'file', path)
+      
+      try:
+          yield fd
+      finally:
+          os.close(fd)
+          tracker.track_close(fd)
+  
+  @contextmanager
+  def safe_socket(family: int, type_: int, proto: int = 0):
+      """
+      Context manager for safe socket handling.
+      """
+      tracker = FDTracker()
+      sock = socket.socket(family, type_, proto)
+      tracker.track_open(sock.fileno(), 'socket', f'{family}:{type_}')
+      
+      try:
+          yield sock
+      finally:
+          try:
+              sock.shutdown(socket.SHUT_RDWR)
+          except OSError:
+              pass
+          sock.close()
+          tracker.track_close(sock.fileno())
+  
+  class SafeSubprocess:
+      """
+      Subprocess wrapper that ensures proper cleanup.
+      Closes pipes and waits for process.
+      """
+      
+      def __init__(self, *args, **kwargs):
+          self._tracker = FDTracker()
+          self._proc = subprocess.Popen(*args, **kwargs)
+          self._pipes_closed = False
+          
+          # Track pipe FDs
+          if self._proc.stdin:
+              self._tracker.track_open(
+                  self._proc.stdin.fileno(), 'pipe', 'stdin'
+              )
+          if self._proc.stdout:
+              self._tracker.track_open(
+                  self._proc.stdout.fileno(), 'pipe', 'stdout'
+              )
+          if self._proc.stderr:
+              self._tracker.track_open(
+                  self._proc.stderr.fileno(), 'pipe', 'stderr'
+              )
+      
+      def __enter__(self):
+          return self
+      
+      def __exit__(self, exc_type, exc_val, exc_tb):
+          self.cleanup()
+          return False
+      
+      def cleanup(self) -> None:
+          """Ensure all pipes are closed and process waited."""
+          if self._pipes_closed:
+              return
+          
+          # Close stdin first
+          if self._proc.stdin:
+              try:
+                  self._tracker.track_close(self._proc.stdin.fileno())
+                  self._proc.stdin.close()
+              except OSError:
+                  pass
+          
+          # Read and close stdout/stderr
+          if self._proc.stdout:
+              try:
+                  self._proc.stdout.read()
+                  self._tracker.track_close(self._proc.stdout.fileno())
+                  self._proc.stdout.close()
+              except OSError:
+                  pass
+          
+          if self._proc.stderr:
+              try:
+                  self._proc.stderr.read()
+                  self._tracker.track_close(self._proc.stderr.fileno())
+                  self._proc.stderr.close()
+              except OSError:
+                  pass
+          
+          # Wait for process
+          self._proc.wait()
+          self._pipes_closed = True
+      
+      def communicate(self, input: bytes = None, timeout: float = None):
+          """communicate() with cleanup."""
+          try:
+              return self._proc.communicate(input=input, timeout=timeout)
+          finally:
+              self._pipes_closed = True
+      
+      @property
+      def returncode(self):
+          return self._proc.returncode
+  
+  class SafeMmap:
+      """
+      Memory-mapped file with proper FD and mapping cleanup.
+      """
+      
+      def __init__(self, filepath: str, mode: str = 'r'):
+          self._filepath = filepath
+          self._mode = mode
+          self._fd: Optional[int] = None
+          self._mm: Optional[mmap.mmap] = None
+          self._tracker = FDTracker()
+      
+      def __enter__(self):
+          flags = os.O_RDONLY if self._mode == 'r' else os.O_RDWR
+          self._fd = os.open(self._filepath, flags)
+          self._tracker.track_open(self._fd, 'mmap', self._filepath)
+          
+          try:
+              access = mmap.ACCESS_READ if self._mode == 'r' else mmap.ACCESS_WRITE
+              self._mm = mmap.mmap(self._fd, 0, access=access)
+          except Exception:
+              os.close(self._fd)
+              self._tracker.track_close(self._fd)
+              raise
+          
+          return self._mm
+      
+      def __exit__(self, exc_type, exc_val, exc_tb):
+          if self._mm:
+              self._mm.close()
+          if self._fd is not None:
+              os.close(self._fd)
+              self._tracker.track_close(self._fd)
+          return False
+  
+  # === FD UTILITIES ===
+  
+  def count_open_fds(pid: int = None) -> int:
+      """Count open file descriptors for a process."""
+      if pid is None:
+          pid = os.getpid()
+      
+      fd_dir = f'/proc/{pid}/fd'
+      try:
+          return len(os.listdir(fd_dir))
+      except OSError:
+          return -1
+  
+  def list_open_fds(pid: int = None) -> List[Dict[str, Any]]:
+      """List all open file descriptors with their targets."""
+      if pid is None:
+          pid = os.getpid()
+      
+      fds = []
+      fd_dir = f'/proc/{pid}/fd'
+      
+      try:
+          for fd_str in os.listdir(fd_dir):
+              try:
+                  fd = int(fd_str)
+                  target = os.readlink(os.path.join(fd_dir, fd_str))
+                  
+                  # Determine type
+                  if target.startswith('/'):
+                      fd_type = 'file'
+                  elif target.startswith('socket:'):
+                      fd_type = 'socket'
+                  elif target.startswith('pipe:'):
+                      fd_type = 'pipe'
+                  elif target.startswith('anon_inode:'):
+                      fd_type = target.split(':')[1].rstrip(']')
+                  else:
+                      fd_type = 'unknown'
+                  
+                  fds.append({
+                      'fd': fd,
+                      'target': target,
+                      'type': fd_type
+                  })
+              except (OSError, ValueError):
+                  pass
+      except OSError:
+          pass
+      
+      return sorted(fds, key=lambda x: x['fd'])
+  
+  def get_fd_limit() -> tuple:
+      """Get soft and hard FD limits."""
+      import resource
+      return resource.getrlimit(resource.RLIMIT_NOFILE)
+  
+  def set_fd_limit(soft: int, hard: int = None) -> None:
+      """Set FD limits."""
+      import resource
+      if hard is None:
+          hard = soft
+      resource.setrlimit(resource.RLIMIT_NOFILE, (soft, hard))
+  
+  # === CLOEXEC UTILITIES ===
+  
+  def set_cloexec(fd: int) -> None:
+      """Set FD_CLOEXEC flag on file descriptor."""
+      import fcntl
+      flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+      fcntl.fcntl(fd, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
+  
+  def clear_cloexec(fd: int) -> None:
+      """Clear FD_CLOEXEC flag."""
+      import fcntl
+      flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+      fcntl.fcntl(fd, fcntl.F_SETFD, flags & ~fcntl.FD_CLOEXEC)
+  
+  def is_cloexec(fd: int) -> bool:
+      """Check if FD_CLOEXEC is set."""
+      import fcntl
+      flags = fcntl.fcntl(fd, fcntl.F_GETFD)
+      return bool(flags & fcntl.FD_CLOEXEC)
+  
+  # === FD LEAK DETECTOR ===
+  
+  class FDLeakDetector:
+      """
+      Detect FD leaks by comparing FD counts at checkpoints.
+      """
+      
+      def __init__(self):
+          self._baseline: Optional[int] = None
+          self._checkpoints: List[tuple] = []
+      
+      def set_baseline(self) -> int:
+          """Set baseline FD count."""
+          self._baseline = count_open_fds()
+          return self._baseline
+      
+      def checkpoint(self, name: str) -> tuple:
+          """
+          Record FD count at checkpoint.
+          Returns (name, count, delta from baseline).
+          """
+          count = count_open_fds()
+          delta = count - (self._baseline or count)
+          result = (name, count, delta)
+          self._checkpoints.append(result)
+          return result
+      
+      def check_leak(self, threshold: int = 0) -> bool:
+          """Check if FD count exceeds baseline by threshold."""
+          if self._baseline is None:
+              return False
+          current = count_open_fds()
+          return (current - self._baseline) > threshold
+      
+      def report(self) -> str:
+          """Generate leak detection report."""
+          lines = [f"FD Leak Report (baseline: {self._baseline})"]
+          for name, count, delta in self._checkpoints:
+              sign = '+' if delta > 0 else ''
+              lines.append(f"  {name}: {count} ({sign}{delta})")
+          return '\n'.join(lines)
+  
+  # === TESTS ===
+  
+  def test_safe_open():
+      """Test safe_open context manager."""
+      import tempfile
+      
+      fd_count_before = count_open_fds()
+      
+      with tempfile.NamedTemporaryFile(delete=False) as tmp:
+          tmp_path = tmp.name
+      
+      # Use safe_open
+      with safe_open(tmp_path, os.O_RDONLY) as fd:
+          data = os.read(fd, 100)
+      
+      fd_count_after = count_open_fds()
+      os.unlink(tmp_path)
+      
+      assert fd_count_after == fd_count_before, "FD leaked!"
+      print("✓ safe_open works")
+  
+  def test_safe_subprocess():
+      """Test SafeSubprocess cleanup."""
+      fd_count_before = count_open_fds()
+      
+      with SafeSubprocess(
+          ['echo', 'test'],
+          stdout=subprocess.PIPE,
+          stderr=subprocess.PIPE
+      ) as proc:
+          stdout, stderr = proc.communicate()
+      
+      fd_count_after = count_open_fds()
+      
+      assert fd_count_after == fd_count_before, "Pipe FDs leaked!"
+      print("✓ SafeSubprocess works")
+  
+  def test_fd_tracker():
+      """Test FD tracker detects leaks."""
+      tracker = FDTracker()
+      tracker._open_fds.clear()  # Reset for test
+      
+      # Open without context manager (leak)
+      import tempfile
+      with tempfile.NamedTemporaryFile(delete=False) as tmp:
+          tmp_path = tmp.name
+      
+      fd = os.open(tmp_path, os.O_RDONLY)
+      tracker.track_open(fd, 'file', tmp_path)
+      
+      # Check leak reported
+      leaks = tracker.get_open_fds()
+      assert fd in leaks
+      
+      # Close properly
+      os.close(fd)
+      tracker.track_close(fd)
+      os.unlink(tmp_path)
+      
+      leaks = tracker.get_open_fds()
+      assert fd not in leaks
+      
+      print("✓ FD tracker works")
+  
+  def test_leak_detector():
+      """Test FD leak detector."""
+      detector = FDLeakDetector()
+      detector.set_baseline()
+      
+      # Should not detect leak initially
+      assert not detector.check_leak()
+      
+      # Open some FDs (without closing = leak)
+      import tempfile
+      tmp = tempfile.NamedTemporaryFile(delete=False)
+      tmp_path = tmp.name
+      
+      fds = [os.open(tmp_path, os.O_RDONLY) for _ in range(5)]
+      
+      # Should detect leak
+      assert detector.check_leak(threshold=2)
+      
+      # Cleanup
+      for fd in fds:
+          os.close(fd)
+      tmp.close()
+      os.unlink(tmp_path)
+      
+      print("✓ Leak detector works")
+  
+  if __name__ == "__main__":
+      test_safe_open()
+      test_safe_subprocess()
+      test_fd_tracker()
+      test_leak_detector()
+      print("\nAll tests passed!")
+
+# LLM trap configurations
+traps:
+  - type: "error_path_leak"
+    description: "Exception raised before close(), FD leaked"
+    trigger: "Not using context managers or finally blocks"
+  
+  - type: "subprocess_pipe_leak"
+    description: "Popen pipes not closed after communicate()"
+    trigger: "Not calling Popen.wait() or using context manager"
+  
+  - type: "dup_fd_leak"
+    description: "dup2() creates copy that isn't tracked"
+    trigger: "Duplicating FD without tracking both copies"
+  
+  - type: "mmap_fd_retention"
+    description: "mmap keeps FD reference even after close()"
+    trigger: "Closing file but not unmapping"
+  
+  - type: "socket_accept_leak"
+    description: "Accepted socket not closed on error"
+    trigger: "No cleanup on handler exception"
+
+# Task generation template
+instruction_template: |
+  You are debugging a {{ scenario_type }} with file descriptor exhaustion.
+  The code is at {{ path }}.
+  
+  Current FD count: {{ current_fds }}, Limit: {{ fd_limit }}
+  Time to exhaustion: approximately {{ hours_to_fail }} hours
+  
+  Your task:
+  {{ task_steps }}
+
+# Test cases
+fail_to_pass:
+  - "test_no_leak_on_exception"
+  - "test_subprocess_pipes_closed"
+  - "test_mmap_cleanup"
+  - "test_dup_fd_tracked"
+  - "test_socket_cleanup"
+
+pass_to_pass:
+  - "test_basic_file_open_close"
+  - "test_context_manager_cleanup"
+
+# Variables for task generation
+variables:
+  - name: scenario_type
+    type: string
+    options: 
+      - "HTTP server"
+      - "database connection pool"
+      - "file processor"
+      - "log aggregator"
+      - "proxy server"
+      - "message broker"
+  - name: path
+    type: path
+    generator: random_path
+  - name: current_fds
+    type: int
+    min: 100
+    max: 900
+  - name: fd_limit
+    type: int
+    value: 1024
+  - name: hours_to_fail
+    type: float
+    min: 0.5
+    max: 48.0
+  - name: task_steps
+    type: template
+    value: |
+      1. Identify current FD usage and types
+      2. Find leak sources in error handling paths
+      3. Check subprocess pipe handling
+      4. Verify mmap cleanup
+      5. Implement proper resource management
+      6. Add FD leak detection and monitoring
+      7. Set CLOEXEC on all FDs
+
+# Anti-hardcoding measures
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  leak_sources:
+    - exception_before_close
+    - subprocess_pipe_leak
+    - dup_without_tracking
+    - mmap_fd_retained
+    - socket_accept_leak
+
+# Anti-patterns that LLMs commonly fail on
+anti_patterns:
+  llm_failure_modes:
+    - "Applying userspace patterns to kernel-level problems"
+    - "Missing memory ordering and barrier requirements"
+    - "Ignoring NUMA topology effects on performance"
+    - "Not considering scheduler behavior under load"
+    - "Missing ABA problems in lock-free data structures"
+    - "Overlooking signal handler safety restrictions"
+    - "Assuming atomic operations are always sufficient"
+    - "Missing file descriptor inheritance across fork/exec"
+    - "Ignoring distributed consensus edge cases (Byzantine failures)"
+    - "Not using context managers or finally for FD cleanup"
+    - "Popen without communicate() or wait() leaking pipes"
+    - "Not setting FD_CLOEXEC on all new file descriptors"
+    - "Accept loop not closing socket on handler exception"
+    - "dup2() creating untracked copy of FD"
+    - "mmap keeping FD reference after close()"
+    - "epoll fd leaked when event loop destroyed"
+    - "Subprocess pipe ends not closed in parent after fork"
+    - "Socket connect timeout leaving socket open"
+    - "FD passed via SCM_RIGHTS not tracked by receiver"
+    - "Async operation cancellation not closing FD"
+    - "Error path in multi-FD initialization not cleaning up"
+    - "DNS resolver FD not closed on timeout"
+
+# === ADDITIONAL TOPIC COVERAGE ===
+extended_topics:
+  # Kernel Limits and Tuning
+  kernel_limits:
+    system_wide:
+      - "fs.file-max - system-wide FD limit"
+      - "fs.nr_open - per-process maximum"
+      - "/proc/sys/fs/file-nr - current usage"
+    per_process:
+      - "RLIMIT_NOFILE soft/hard limits"
+      - "ulimit -n command"
+      - "/etc/security/limits.conf"
+      - "systemd LimitNOFILE directive"
+    monitoring:
+      - "Monitor /proc/[pid]/fd count"
+      - "Alert on approaching limits"
+      - "Log FD allocation patterns"
+  
+  # Event Loop Integration
+  event_loop_fds:
+    epoll:
+      - "epoll_create1 with EPOLL_CLOEXEC"
+      - "epoll_ctl ADD/MOD/DEL"
+      - "Cleanup on epoll FD close"
+      - "EPOLLRDHUP for connection tracking"
+    kqueue:
+      - "kqueue() FD management"
+      - "kevent registration/deregistration"
+      - "Close-on-exec for kqueue FD"
+    io_uring:
+      - "io_uring file registration"
+      - "Fixed file descriptors"
+      - "Submission queue FD tracking"
+  
+  # Network-Specific Leaks
+  network_fd_leaks:
+    tcp_states:
+      - "TIME_WAIT accumulation"
+      - "CLOSE_WAIT leak (app not closing)"
+      - "FIN_WAIT leak patterns"
+      - "Socket options for fast recycle"
+    connection_pooling:
+      - "Pool exhaustion symptoms"
+      - "Connection timeout cleanup"
+      - "Health check FD overhead"
+      - "Maximum connections per pool"
+    async_dns:
+      - "DNS resolver FD usage"
+      - "c-ares FD management"
+      - "getaddrinfo_a cleanup"
+
+# === ADVANCED SCENARIOS ===
+advanced_scenarios:
+  multi_process_leak:
+    description: "FD leak in multi-process server"
+    details: |
+      - Master process accepts connections
+      - Worker processes handle requests
+      - FD passed to worker but not closed in master
+      - Worker crashes, FD orphaned
+    detection: |
+      - Track FD per process
+      - Monitor after worker respawn
+      - Check master FD count growth
+    solution: |
+      - Close FD in master after passing
+      - Use FD passing with explicit close
+      - Implement FD accounting
+
+  async_operation_leak:
+    description: "Leak during async I/O operation"
+    details: |
+      - Async read/write started
+      - Operation cancelled or times out
+      - FD not properly cleaned up
+    detection: |
+      - Check FD count after timeout
+      - Monitor pending async operations
+    solution: |
+      - Cancel pending operations before close
+      - Use completion callbacks for cleanup
+      - Implement operation timeout with cleanup
+
+  containerized_leak:
+    description: "FD leak affects container"
+    details: |
+      - Container has lower FD limits
+      - Leak exhausts container limits
+      - Affects only containerized process
+    detection: |
+      - Container-level monitoring
+      - cgroup FD tracking
+    solution: |
+      - Set appropriate container limits
+      - Monitor container FD usage
+      - Implement container-aware cleanup
+
+# === LANGUAGE-SPECIFIC PATTERNS ===
+language_patterns:
+  python:
+    - "Context managers (with statement)"
+    - "contextlib.closing() wrapper"
+    - "atexit for cleanup registration"
+    - "gc.garbage for leaked objects"
+    - "__del__ for cleanup (unreliable)"
+  
+  go:
+    - "defer for cleanup"
+    - "runtime.SetFinalizer (avoid)"
+    - "Context cancellation for cleanup"
+    - "io.Closer interface"
+  
+  rust:
+    - "Drop trait for RAII"
+    - "std::fs::File auto-close"
+    - "ManuallyDrop for explicit control"
+    - "scopeguard crate"
+  
+  java:
+    - "try-with-resources statement"
+    - "AutoCloseable interface"
+    - "Cleaner for cleanup"
+    - "PhantomReference for tracking"
+  
+  cpp:
+    - "RAII with unique_ptr<FILE, decltype(&fclose)>"
+    - "std::fstream auto-close"
+    - "Custom deleter for resources"
+    - "scope_exit patterns"
+
+# === MONITORING BEST PRACTICES ===
+monitoring_best_practices:
+  metrics_to_track:
+    - "Open FD count over time"
+    - "FD type distribution"
+    - "FD lifetime histogram"
+    - "Peak FD usage"
+    - "FD allocation rate"
+    - "Close failure rate"
+  
+  alerting_thresholds:
+    - "FD count > 80% of limit"
+    - "FD growth rate > N/minute"
+    - "FD count not decreasing after load"
+    - "Specific FD types accumulating"
+  
+  debugging_checklist:
+    - "Compare FD count at startup vs runtime"
+    - "Identify FD types via /proc/[pid]/fd"
+    - "Track allocation with strace -e trace=open,close"
+    - "Use lsof to identify open resources"
+    - "Enable application-level FD tracking"

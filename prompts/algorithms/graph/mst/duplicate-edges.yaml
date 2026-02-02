@@ -1,0 +1,1371 @@
+id: "algo-graph-mst-duplicate-001"
+version: "2.0.0"
+category: "algorithms"
+subcategory: "graph/mst"
+
+# =============================================================================
+# LLM GENERATION FRAMEWORK
+# =============================================================================
+# This file is a comprehensive generation specification for LLMs to create
+# unique, extremely challenging MST (Minimum Spanning Tree) tasks with edge
+# handling issues. The goal is to enable generation of 10,000+ genuinely hard tasks.
+# =============================================================================
+
+generation_framework:
+  overview: |
+    This specification enables LLMs to generate MST tasks that are genuinely
+    difficult. MST algorithms have subtle issues around duplicate edges, self-loops,
+    negative weights, and disconnected components that can cause subtle bugs.
+
+  multi_conversation_workflow:
+    phase_1_research:
+      description: "LLM researches MST edge cases"
+      activities:
+        - "Study Kruskal's and Prim's algorithm requirements"
+        - "Research duplicate edge handling"
+        - "Investigate self-loop effects"
+        - "Analyze negative weight handling"
+        - "Study disconnected graph detection"
+      output: "Comprehensive list of MST traps"
+    
+    phase_2_creation:
+      description: "LLM creates task with hidden MST flaws"
+      activities:
+        - "Design graphs with duplicate edges"
+        - "Create scenarios with self-loops"
+        - "Embed parallel edge confusion"
+        - "Add disconnected components"
+        - "Include negative weight scenarios"
+      output: "Complete task with MST traps"
+    
+    phase_3_amplification:
+      description: "LLM adds difficulty multipliers"
+      activities:
+        - "Layer multiple edge issues"
+        - "Add performance constraints"
+        - "Include large graph scenarios"
+        - "Create verification challenges"
+        - "Add streaming input"
+      output: "Amplified task"
+    
+    phase_4_verification:
+      description: "LLM validates task is genuinely hard"
+      validation_criteria:
+        - "Cannot be solved with naive sort and union"
+        - "Requires careful edge preprocessing"
+        - "Has at least 5 interacting hidden traps"
+        - "Would take experienced developers 30+ minutes"
+        - "Has cascading failure modes that interact with each other"
+        - "Requires multi-domain knowledge synthesis (algorithms + systems + performance)"
+      output: "Verified task"
+
+  quality_requirements:
+    mandatory:
+      - "Must require edge deduplication"
+      - "Must have non-obvious edge issues"
+      - "Must include at least 5 MST traps"
+      - "Must handle disconnected cases"
+      - "Must verify MST properties"
+      - "Must take 30+ minutes for experienced developers, 45+ for intermediate"
+
+# =============================================================================
+# EXHAUSTIVE TOPIC UNIVERSE
+# =============================================================================
+
+topic_universe:
+  # ---------------------------------------------------------------------------
+  # MST Algorithm Topics (30 topics)
+  # ---------------------------------------------------------------------------
+  algorithms:
+    classic:
+      - kruskal_standard
+      - kruskal_filter_kruskal
+      - prim_standard
+      - prim_fibonacci_heap
+      - prim_binary_heap
+      - boruvka_standard
+      - boruvka_parallel
+      - reverse_delete
+    
+    specialized:
+      - minimum_bottleneck_spanning_tree
+      - maximum_spanning_tree
+      - second_best_mst
+      - k_smallest_mst
+      - degree_constrained_mst
+      - euclidean_mst
+      - rectilinear_mst
+      - steiner_tree
+    
+    advanced:
+      - dynamic_mst
+      - fully_dynamic_mst
+      - online_mst
+      - distributed_mst
+      - parallel_mst
+      - streaming_mst
+    
+    data_structures:
+      - union_find_basic
+      - union_find_path_compression
+      - union_find_rank
+      - union_find_size
+      - link_cut_trees
+      - euler_tour_trees
+
+  # ---------------------------------------------------------------------------
+  # Graph Properties (20 topics)
+  # ---------------------------------------------------------------------------
+  properties:
+    connectivity:
+      - connected_graph
+      - disconnected_graph
+      - tree_structure
+      - forest_structure
+      - single_component
+      - multiple_components
+    
+    edge_properties:
+      - simple_edges
+      - parallel_edges
+      - self_loops
+      - weighted_edges
+      - unweighted_edges
+      - mixed_weight_types
+    
+    weight_properties:
+      - positive_weights
+      - zero_weights
+      - negative_weights
+      - mixed_weights
+      - integer_weights
+      - floating_weights
+
+  # ---------------------------------------------------------------------------
+  # Application Domains (25 topics)
+  # ---------------------------------------------------------------------------
+  domains:
+    network_design:
+      - cable_routing
+      - pipeline_design
+      - road_network
+      - power_grid
+      - telecom_network
+      - data_center_network
+    
+    clustering:
+      - single_linkage
+      - minimum_cut
+      - graph_clustering
+      - hierarchical_clustering
+    
+    optimization:
+      - network_flow_mst
+      - traveling_salesman_mst
+      - approximation_algorithms
+      - facility_location
+
+# =============================================================================
+# COMPLEXITY DIMENSIONS
+# =============================================================================
+
+complexity_dimensions:
+  edge_handling:
+    duplicate_handling:
+      - keep_first
+      - keep_minimum
+      - keep_all_parallel
+      - merge_weights
+    
+    special_edges:
+      - self_loops
+      - zero_weight_edges
+      - negative_weight_edges
+      - infinite_weight_edges
+    
+    edge_ordering:
+      - sort_by_weight
+      - tie_breaking
+      - stable_sorting
+      - lexicographic_ordering
+
+  graph_structure:
+    connectivity:
+      - single_component
+      - multiple_components
+      - disconnected_detection
+      - forest_result
+    
+    size:
+      - small_graph
+      - medium_graph
+      - large_graph
+      - very_large_graph
+
+  correctness:
+    mst_properties:
+      - tree_property
+      - spanning_property
+      - minimum_property
+      - uniqueness
+    
+    verification:
+      - weight_verification
+      - connectivity_verification
+      - cycle_freedom
+      - completeness
+
+# =============================================================================
+# TRAP TAXONOMY
+# =============================================================================
+
+trap_taxonomy:
+  # ---------------------------------------------------------------------------
+  # Duplicate Edge Traps (8 types)
+  # ---------------------------------------------------------------------------
+  duplicate_edges:
+    same_edge_different_weights:
+      trap_id: "DE001"
+      name: "Same Edge with Different Weights"
+      description: "Multiple entries for same edge pair"
+      example: |
+        # Edges:
+        # A--B: 10
+        # A--B: 5
+        # A--B: 15
+        # Which one to use?
+      detection_difficulty: "medium"
+      manifestation: "MST weight depends on which duplicate used"
+      fix: "Deduplicate keeping minimum weight"
+      
+    reversed_duplicate:
+      trap_id: "DE002"
+      name: "Reversed Edge Duplicate"
+      description: "Same edge as both A-B and B-A"
+      example: |
+        # Edges:
+        # A--B: 10
+        # B--A: 10
+        # Undirected, so same edge twice
+      detection_difficulty: "easy"
+      manifestation: "Double-counted in some implementations"
+      fix: "Normalize edge direction"
+      
+    reversed_different_weight:
+      trap_id: "DE003"
+      name: "Reversed Edge Different Weight"
+      description: "A-B and B-A with different weights"
+      example: |
+        # Edges:
+        # A--B: 10
+        # B--A: 5
+        # For undirected MST, which weight?
+      detection_difficulty: "medium"
+      manifestation: "Incorrect MST weight"
+      fix: "Use minimum of both directions"
+      
+    overwrite_vs_skip:
+      trap_id: "DE004"
+      name: "Overwrite vs Skip Duplicate"
+      description: "Implementation overwrites or skips duplicates"
+      example: |
+        # Building edge dict:
+        # edges[(A,B)] = 10  # first
+        # edges[(A,B)] = 5   # overwrites!
+        # vs checking if exists
+      detection_difficulty: "medium"
+      manifestation: "Result depends on edge order"
+      fix: "Explicitly handle duplicates"
+      
+    multigraph_confusion:
+      trap_id: "DE005"
+      name: "Multigraph Parallel Edges"
+      description: "Multiple distinct edges between same nodes"
+      example: |
+        # Transportation network:
+        # A to B via highway: 100km
+        # A to B via local: 80km
+        # Two valid edges!
+      detection_difficulty: "medium"
+      manifestation: "Need minimum, not any edge"
+      fix: "Track all edges, use minimum"
+      
+    self_loop_as_duplicate:
+      trap_id: "DE006"
+      name: "Self Loop Treated as Edge"
+      description: "Self-loop A-A included in edge list"
+      example: |
+        # Edges: A--A, A--B, B--C
+        # A--A is self-loop, not MST edge
+      detection_difficulty: "easy"
+      manifestation: "Self-loop in MST"
+      fix: "Filter self-loops"
+      
+    bidirectional_multigraph:
+      trap_id: "DE007"
+      name: "Bidirectional Multigraph Confusion"
+      description: "Multiple directed edges as undirected"
+      example: |
+        # A->B: 10
+        # A->B: 5
+        # B->A: 8
+        # B->A: 3
+        # Four entries, two undirected edges?
+      detection_difficulty: "hard"
+      manifestation: "Complex deduplication needed"
+      fix: "Group by unordered pair"
+      
+    weight_type_mismatch:
+      trap_id: "DE008"
+      name: "Weight Type Causes Duplicate"
+      description: "Same edge with int vs float weight"
+      example: |
+        # (A, B, 10)
+        # (A, B, 10.0)
+        # Different tuples, same edge
+      detection_difficulty: "medium"
+      manifestation: "Spurious duplicates"
+      fix: "Normalize weight types"
+
+  # ---------------------------------------------------------------------------
+  # Self-Loop Traps (6 types)
+  # ---------------------------------------------------------------------------
+  self_loops:
+    self_loop_minimum:
+      trap_id: "SL001"
+      name: "Self Loop is Minimum Edge"
+      description: "Self-loop has smallest weight"
+      example: |
+        # A--A: 0
+        # A--B: 5
+        # B--C: 3
+        # A--A has weight 0 but not valid MST edge
+      detection_difficulty: "easy"
+      manifestation: "Self-loop selected first"
+      fix: "Filter self-loops before MST"
+      
+    self_loop_affects_degree:
+      trap_id: "SL002"
+      name: "Self Loop in Degree Calculation"
+      description: "Self-loop affects node degree"
+      example: |
+        # Degree of A includes A--A edge
+        # But shouldn't for MST purposes
+      detection_difficulty: "medium"
+      manifestation: "Wrong degree count"
+      fix: "Exclude self-loops from degree"
+      
+    multiple_self_loops:
+      trap_id: "SL003"
+      name: "Multiple Self Loops Same Node"
+      description: "Node has multiple self-loops"
+      example: |
+        # A--A: 0
+        # A--A: 5
+        # Multiple self-loops on A
+      detection_difficulty: "easy"
+      manifestation: "Multiple invalid edges"
+      fix: "Filter all self-loops"
+      
+    self_loop_only_edges:
+      trap_id: "SL004"
+      name: "Node Has Only Self Loops"
+      description: "Node connected only to itself"
+      example: |
+        # A--A: 5 (only edge for A)
+        # A is effectively isolated
+      detection_difficulty: "medium"
+      manifestation: "Node appears connected but isn't"
+      fix: "Treat as isolated after filtering"
+      
+    self_loop_negative:
+      trap_id: "SL005"
+      name: "Negative Self Loop"
+      description: "Self-loop with negative weight"
+      example: |
+        # A--A: -5
+        # Negative, might be selected early
+      detection_difficulty: "easy"
+      manifestation: "Negative self-loop selected"
+      fix: "Filter self-loops"
+      
+    self_loop_zero:
+      trap_id: "SL006"
+      name: "Zero Weight Self Loop"
+      description: "Self-loop with weight 0"
+      example: |
+        # A--A: 0
+        # Appears free but invalid
+      detection_difficulty: "easy"
+      manifestation: "Zero-weight self-loop selected"
+      fix: "Filter self-loops"
+
+  # ---------------------------------------------------------------------------
+  # Weight Handling Traps (8 types)
+  # ---------------------------------------------------------------------------
+  weight_handling:
+    negative_weight_mst:
+      trap_id: "WH001"
+      name: "Negative Weights in MST"
+      description: "MST with negative edge weights"
+      example: |
+        # A--B: -5
+        # B--C: 3
+        # Negative weight is valid for MST!
+      detection_difficulty: "easy"
+      manifestation: "Algorithm must handle negative"
+      fix: "Negative weights are valid for MST"
+      
+    zero_weight_tie:
+      trap_id: "WH002"
+      name: "Zero Weight Ties"
+      description: "Multiple edges with weight 0"
+      example: |
+        # A--B: 0
+        # B--C: 0
+        # C--D: 0
+        # All same weight, order matters
+      detection_difficulty: "medium"
+      manifestation: "Tie-breaking determines MST"
+      fix: "Consistent tie-breaking"
+      
+    overflow_weight_sum:
+      trap_id: "WH003"
+      name: "Weight Sum Overflow"
+      description: "MST total weight overflows"
+      example: |
+        # Many edges with weight MAX_INT/2
+        # Sum overflows
+      detection_difficulty: "medium"
+      manifestation: "Negative or wrong total"
+      fix: "Use large integer type"
+      
+    floating_point_weight:
+      trap_id: "WH004"
+      name: "Floating Point Weight Comparison"
+      description: "FP weights compare incorrectly"
+      example: |
+        # A--B: 0.1 + 0.2
+        # B--C: 0.3
+        # 0.1 + 0.2 != 0.3 in FP!
+      detection_difficulty: "hard"
+      manifestation: "Wrong edge ordering"
+      fix: "Epsilon comparison"
+      
+    weight_equality_multiple:
+      trap_id: "WH005"
+      name: "Many Edges Same Weight"
+      description: "Multiple edges with identical weight"
+      example: |
+        # Many edges all weight 5
+        # Order of selection matters
+      detection_difficulty: "medium"
+      manifestation: "Non-unique MST"
+      fix: "Handle ties consistently"
+      
+    string_weight_comparison:
+      trap_id: "WH006"
+      name: "String Weight Comparison"
+      description: "Weights compared as strings"
+      example: |
+        # "10" < "5" lexicographically
+        # But 10 > 5 numerically
+      detection_difficulty: "medium"
+      manifestation: "Wrong sorting"
+      fix: "Parse to numeric"
+      
+    inf_weight:
+      trap_id: "WH007"
+      name: "Infinity Weight Edge"
+      description: "Edge with infinite weight"
+      example: |
+        # A--B: inf
+        # How to handle?
+      detection_difficulty: "easy"
+      manifestation: "Depends on implementation"
+      fix: "Treat as very large or skip"
+      
+    nan_weight:
+      trap_id: "WH008"
+      name: "NaN Weight Edge"
+      description: "Edge with NaN weight"
+      example: |
+        # A--B: NaN
+        # Comparison with NaN is false
+      detection_difficulty: "medium"
+      manifestation: "Edge never selected"
+      fix: "Validate and handle NaN"
+
+  # ---------------------------------------------------------------------------
+  # Connectivity Traps (6 types)
+  # ---------------------------------------------------------------------------
+  connectivity:
+    disconnected_no_mst:
+      trap_id: "CT001"
+      name: "Disconnected Graph Has No MST"
+      description: "Graph is not connected"
+      example: |
+        # Component 1: A--B
+        # Component 2: C--D
+        # No spanning tree exists!
+      detection_difficulty: "easy"
+      manifestation: "Partial tree or error"
+      fix: "Detect and report disconnection"
+      
+    disconnected_msf:
+      trap_id: "CT002"
+      name: "Minimum Spanning Forest"
+      description: "Computing MSF instead of MST"
+      example: |
+        # Disconnected graph
+        # MSF: tree per component
+      detection_difficulty: "easy"
+      manifestation: "Forest, not tree"
+      fix: "Return MSF or error"
+      
+    single_node_component:
+      trap_id: "CT003"
+      name: "Single Node Component"
+      description: "Component with just one node"
+      example: |
+        # Node A with no edges
+        # A is its own component
+      detection_difficulty: "easy"
+      manifestation: "Isolated nodes"
+      fix: "Handle single-node components"
+      
+    connected_via_removed:
+      trap_id: "CT004"
+      name: "Connectivity After Edge Removal"
+      description: "Graph becomes disconnected after removing edge"
+      example: |
+        # Bridge edge removed
+        # Was connected, now disconnected
+      detection_difficulty: "medium"
+      manifestation: "Dynamic connectivity"
+      fix: "Check before removal"
+      
+    wrong_component_count:
+      trap_id: "CT005"
+      name: "Wrong Component Count"
+      description: "Miscounting number of components"
+      example: |
+        # MST should have n-1 edges for n nodes
+        # If k components, need n-k edges
+      detection_difficulty: "easy"
+      manifestation: "Wrong edge count"
+      fix: "Track components properly"
+      
+    implicit_disconnection:
+      trap_id: "CT006"
+      name: "Implicit Disconnection"
+      description: "Disconnection not obvious from edge list"
+      example: |
+        # All edges in A-B-C
+        # Node D exists but no edges
+        # D is disconnected component
+      detection_difficulty: "medium"
+      manifestation: "Missing node"
+      fix: "Check all nodes have path"
+
+  # ---------------------------------------------------------------------------
+  # Union-Find Traps (6 types)
+  # ---------------------------------------------------------------------------
+  union_find:
+    no_path_compression:
+      trap_id: "UF001"
+      name: "Missing Path Compression"
+      description: "Union-Find without path compression"
+      example: |
+        # Degenerates to O(n) per operation
+        # Kruskal becomes O(E * V) not O(E log E)
+      detection_difficulty: "easy"
+      manifestation: "Slow on large graphs"
+      fix: "Add path compression"
+      
+    no_union_by_rank:
+      trap_id: "UF002"
+      name: "Missing Union by Rank"
+      description: "Union without rank/size"
+      example: |
+        # Tree becomes unbalanced
+        # Degenerates find
+      detection_difficulty: "medium"
+      manifestation: "Slow on deep unions"
+      fix: "Add union by rank"
+      
+    parent_not_initialized:
+      trap_id: "UF003"
+      name: "Parent Array Not Initialized"
+      description: "Parent pointers wrong initially"
+      example: |
+        # parent[i] should be i initially
+        # If not, find() breaks
+      detection_difficulty: "easy"
+      manifestation: "Wrong finds"
+      fix: "Initialize parent[i] = i"
+      
+    find_without_update:
+      trap_id: "UF004"
+      name: "Find Without Path Update"
+      description: "Find returns root but doesn't compress"
+      example: |
+        # find(x) returns root
+        # But parent[x] not updated
+        # Next find still slow
+      detection_difficulty: "medium"
+      manifestation: "Repeated slow finds"
+      fix: "Update during find"
+      
+    union_wrong_direction:
+      trap_id: "UF005"
+      name: "Union Direction Wrong"
+      description: "Always attaching to same side"
+      example: |
+        # Always parent[y] = x
+        # Regardless of rank/size
+      detection_difficulty: "medium"
+      manifestation: "Unbalanced tree"
+      fix: "Compare ranks first"
+      
+    node_id_mapping:
+      trap_id: "UF006"
+      name: "Node ID to Index Mapping"
+      description: "String node IDs need mapping"
+      example: |
+        # Nodes: "A", "B", "C"
+        # Union-Find uses indices 0, 1, 2
+        # Need mapping dict
+      detection_difficulty: "easy"
+      manifestation: "KeyError"
+      fix: "Map IDs to indices"
+
+# =============================================================================
+# EDGE CASE CATALOG
+# =============================================================================
+
+edge_cases:
+  graph_edge_cases:
+    - empty_graph
+    - single_node
+    - two_nodes_one_edge
+    - complete_graph
+    - star_graph
+    - path_graph
+    - cycle_graph
+    - tree_already
+    - disconnected_two_components
+    - many_small_components
+
+  edge_edge_cases:
+    - no_edges
+    - all_same_weight
+    - unique_weights
+    - negative_weights
+    - zero_weights
+    - mixed_weight_signs
+    - duplicate_edges
+    - parallel_edges
+    - self_loops
+    - all_self_loops
+
+  weight_edge_cases:
+    - integer_weights
+    - floating_weights
+    - very_large_weights
+    - very_small_weights
+    - max_int_weight
+    - min_int_weight
+    - inf_weight
+    - nan_weight
+
+# =============================================================================
+# ANTI-PATTERNS
+# =============================================================================
+
+anti_patterns:
+  llm_failure_modes:
+    - "Pattern matching on similar-looking graph problems without edge case analysis"
+    - "Applying textbook MST algorithms without input validation"
+    - "Missing duplicate edge handling in preprocessing"
+    - "Ignoring self-loop filtering requirements"
+    - "Assuming input graph is always connected"
+    - "Skipping verification of MST properties on output"
+    - "Over-relying on library sort without considering edge comparison"
+    - "Missing directed vs undirected edge confusion"
+    - "Ignoring multigraph (parallel edge) possibilities"
+    - "Failing to handle zero or negative edge weights correctly"
+    - "Not verifying n-1 edges in output for n vertices"
+    - "Missing MSF (forest) handling for disconnected graphs"
+    - "Overlooking edge weight type (int vs float) issues"
+    - "Failing to detect and handle empty graph edge cases"
+    - "Not considering MST uniqueness implications"
+    - "Missing verification of spanning property"
+    - "Ignoring numerical precision in weight comparison"
+    - "Failing to handle very large weights (overflow potential)"
+    - "Not implementing proper tie-breaking for equal weights"
+    - "Missing optimization for special graph structures"
+    - "Overlooking Union-Find initialization errors"
+    - "Failing to handle node ID mapping correctly"
+    - "Not considering streaming/online MST scenarios"
+    - "Missing second-best MST requirement detection"
+    - "Ignoring dynamic graph update requirements"
+
+  task_anti_patterns:
+    obvious_duplicates:
+      description: "Clearly visible duplicate edges"
+      why_bad: "No analysis needed"
+
+# =============================================================================
+# DIFFICULTY AMPLIFIERS
+# =============================================================================
+
+difficulty_amplifiers:
+  nightmare:
+    multiplier: 3.0
+    description: "Extreme difficulty requiring expert-level multi-domain synthesis"
+    requirements:
+      - "7+ interacting traps across multiple domains"
+      - "Requires understanding of hardware-level effects"
+      - "Time estimate: 90+ minutes for senior engineers"
+      - "Multiple red herrings that waste investigation time"
+      - "Solution requires synthesizing knowledge from 3+ distinct areas"
+
+  nightmare_plus:
+    multiplier: 5.0
+    estimated_time: [28800, 172800]  # 8-48 hours
+    command_steps: [300, 1200]
+    techniques_required: 12
+    description: "Research paper difficulty requiring novel MST algorithm design"
+    requirements:
+      - "10+ deeply interacting traps across edge handling/connectivity/verification domains"
+      - "Requires novel preprocessing algorithms for pathological inputs"
+      - "Must synthesize knowledge from graph theory, data structures, and verification"
+      - "Requires formal proof of MST properties under edge transformations"
+      - "Time estimate: 8-48 hours for competitive programmers with ICPC/IOI medal experience"
+      - "Multiple edge handling scenarios that interact non-obviously"
+      - "Must handle streaming edge input with bounded memory"
+      - "Requires understanding of MST uniqueness conditions"
+      - "Solution involves efficient verification of MST correctness"
+
+# =============================================================================
+# MULTI-AGENT ORCHESTRATION COMPLEXITY
+# =============================================================================
+
+multi_agent_orchestration:
+  description: "Coordinating 4-7 specialized agents for complex MST analysis"
+  
+  specialized_agents:
+    edge_preprocessor:
+      role: "Clean and normalize edge input"
+      capabilities:
+        - "Duplicate edge detection and merging"
+        - "Self-loop filtering"
+        - "Parallel edge handling"
+        - "Weight normalization"
+      handoff_triggers:
+        - "Edge list contains anomalies"
+        - "Multigraph input detected"
+    
+    connectivity_verifier:
+      role: "Verify graph connectivity properties"
+      capabilities:
+        - "Component counting"
+        - "Bridge detection"
+        - "Articulation point identification"
+        - "MST existence verification"
+      handoff_triggers:
+        - "MST may not exist"
+        - "Disconnected graph suspected"
+    
+    mst_algorithm_selector:
+      role: "Choose optimal MST algorithm"
+      capabilities:
+        - "Kruskal vs Prim selection"
+        - "Boruvka for parallel computation"
+        - "Specialized algorithms for dense/sparse"
+        - "Dynamic MST for changing graphs"
+      handoff_triggers:
+        - "Performance requirements"
+        - "Graph characteristics identified"
+    
+    correctness_verifier:
+      role: "Verify MST output correctness"
+      capabilities:
+        - "Tree property verification"
+        - "Spanning property check"
+        - "Minimality verification via cut property"
+        - "Second-best MST for uniqueness"
+      handoff_triggers:
+        - "Output validation required"
+        - "MST uniqueness analysis"
+    
+    union_find_optimizer:
+      role: "Optimize disjoint set operations"
+      capabilities:
+        - "Path compression tuning"
+        - "Union by rank/size selection"
+        - "Persistent union-find for rollback"
+        - "Parallel union-find"
+      handoff_triggers:
+        - "Large-scale graph processing"
+        - "Dynamic connectivity queries"
+
+  cross_algorithm_attack_chains:
+    chain_1:
+      name: "Duplicate Edge → Wrong Minimum → Incorrect MST → Suboptimal Solution"
+      stages:
+        - "Same edge appears with different weights"
+        - "Algorithm uses wrong (higher) weight"
+        - "MST total weight is suboptimal"
+        - "Solution fails optimality requirement"
+    
+    chain_2:
+      name: "Self-Loop → Invalid Edge Selection → Cycle in Result → Not a Tree"
+      stages:
+        - "Self-loop has minimum weight"
+        - "Algorithm greedily selects it"
+        - "Result contains a cycle"
+        - "Output is not a tree"
+    
+    chain_3:
+      name: "Disconnected Graph → Partial MST → Missing Vertices → Incomplete Spanning"
+      stages:
+        - "Graph has multiple components"
+        - "Algorithm finds MST of one component"
+        - "Other vertices not included"
+        - "Result doesn't span all vertices"
+
+# =============================================================================
+# THEORETICAL COMPLEXITY REQUIREMENTS
+# =============================================================================
+
+theoretical_complexity_requirements:
+  mst_optimality:
+    concepts_required:
+      - "Cut property proof and application"
+      - "Cycle property for edge exclusion"
+      - "Blue/Red rule for correctness"
+      - "Matroid theory foundation of MST"
+    application_scenarios:
+      - "Proving algorithm correctness"
+      - "MST uniqueness conditions"
+      - "Second-best MST computation"
+
+  amortized_analysis:
+    techniques_required:
+      - "Union-Find with path compression analysis"
+      - "Inverse Ackermann function bounds"
+      - "Potential method for tree restructuring"
+    application_scenarios:
+      - "Kruskal's algorithm complexity"
+      - "Dynamic connectivity"
+
+  graph_structure:
+    concepts:
+      - "Graph sparsity and density"
+      - "Degeneracy and arboricity"
+      - "Planar graph properties"
+    applications:
+      - "Algorithm selection based on structure"
+      - "Linear-time MST for special graphs"
+
+# =============================================================================
+# ADVERSARIAL INPUT DESIGN
+# =============================================================================
+
+adversarial_input_design:
+  worst_case_input_generation:
+    duplicate_edge_storm:
+      description: "Every edge appears multiple times with different weights"
+      technique: "Generate k copies of each edge with varying weights"
+      
+    self_loop_saturation:
+      description: "Minimum weight edges are all self-loops"
+      technique: "Add self-loop with weight 0 to every vertex"
+      
+    parallel_edge_explosion:
+      description: "Multiple distinct edges between every pair"
+      technique: "Complete multigraph with random parallel edges"
+
+  anti_optimization_inputs:
+    tie_breaking_torture:
+      description: "All edges have same weight"
+      technique: "Force algorithm to make arbitrary choices"
+    
+    near_disconnected:
+      description: "Graph connected by single edge"
+      technique: "Bridge edge detection required"
+    
+    worst_case_union_find:
+      description: "Operations creating deep trees without optimization"
+      technique: "Specific union order defeating heuristics"
+
+  numerical_stability_attacks:
+    floating_point_ties:
+      description: "Edges with weights differing by epsilon"
+      technique: "Weights that compare equal due to FP precision"
+
+# =============================================================================
+# FORMAL PROOF REQUIREMENTS
+# =============================================================================
+
+formal_proof_requirements:
+  correctness_proofs:
+    tree_property:
+      requirements:
+        - "Prove output is connected"
+        - "Prove output is acyclic"
+        - "Prove output has n-1 edges for n vertices"
+      
+    spanning_property:
+      requirements:
+        - "Prove all graph vertices are included"
+        - "Prove no isolated vertices in input are missed"
+        - "Verify vertex count matches"
+      
+    minimality_property:
+      requirements:
+        - "Prove via cut property"
+        - "Prove via cycle property"
+        - "Show no edge swap reduces weight"
+
+  preprocessing_proofs:
+    edge_normalization:
+      requirements:
+        - "Prove duplicate handling preserves MST"
+        - "Prove self-loop removal is safe"
+        - "Prove minimum parallel edge selection is correct"
+
+  data_amplifiers:
+    large_scale:
+      description: "Millions of edges"
+      amplification: "Performance critical"
+      
+    many_duplicates:
+      description: "Many duplicate edges"
+      amplification: "Deduplication needed"
+
+# =============================================================================
+# VARIATION ENGINES
+# =============================================================================
+
+variation_engines:
+  problem_type_variations:
+    find_mst:
+      description: "Find minimum spanning tree"
+      
+    find_msf:
+      description: "Find minimum spanning forest"
+      
+    verify_mst:
+      description: "Verify given tree is MST"
+      
+    second_mst:
+      description: "Find second-best MST"
+
+  algorithm_variations:
+    kruskal:
+      approach: "Sort edges, Union-Find"
+      
+    prim:
+      approach: "Grow tree from source"
+      
+    boruvka:
+      approach: "Contract components"
+
+# =============================================================================
+# SWE-bench_Pro style fields
+# =============================================================================
+
+problem_statement: |
+  A minimum spanning tree algorithm for network design is producing suboptimal or 
+  invalid results. The implementation uses Kruskal's or Prim's algorithm but fails 
+  when the input graph contains:
+  - Duplicate edges with different weights
+  - Self-loops
+  - Parallel edges (multigraph)
+  - Edges with zero or negative weights
+  - Disconnected components
+
+requirements: |
+  - Handle duplicate edges by keeping minimum weight edge
+  - Filter self-loops (they can't be in MST)
+  - Support multigraphs with parallel edges
+  - Handle zero and negative edge weights correctly
+  - Detect and report disconnected components (MST doesn't exist)
+  - Return MST weight and edges
+
+interface: |
+  Input: Edge list (possibly with duplicates)
+  Output: MST edges, total weight, or error if disconnected
+  Format: Each edge as (u, v, weight)
+
+difficulty:
+  estimated: "nightmare_plus"
+  time_range: [5400, 18000]  # 90-300 minutes for competitive programmers with ICPC/IOI medal experience
+  command_steps: [60, 200]
+  techniques_required: 12
+  trap_count: "10+ deeply interacting traps across correctness/performance/edge-case domains"
+  target_audience: "Competitive programmers with ICPC/IOI medal experience"
+
+traps:
+  - type: "duplicate_edge_handling"
+    description: "Same edge appears multiple times with different weights"
+    trigger: "Not deduplicating edges before MST"
+  
+  - type: "self_loop_inclusion"
+    description: "Self-loops are included in edge consideration"
+    trigger: "Not filtering edges where u == v"
+  
+  - type: "parallel_edge_confusion"
+    description: "Multiple edges between same pair treated as one"
+    trigger: "Using dict that overwrites parallel edges"
+  
+  - type: "negative_weight_handling"
+    description: "Negative weights cause incorrect MST"
+    trigger: "Assuming all weights are positive"
+  
+  - type: "disconnected_graph"
+    description: "Algorithm returns partial MST for disconnected graph"
+    trigger: "Not checking if all nodes are connected"
+
+  - type: "reversed_edge_different_weight"
+    description: "Edge A-B has different weight than B-A in undirected interpretation"
+    trigger: "Not normalizing edge direction before deduplication"
+
+  - type: "union_find_initialization"
+    description: "Parent array not properly initialized causing wrong component detection"
+    trigger: "Forgetting parent[i] = i initialization"
+
+  - type: "weight_overflow_sum"
+    description: "MST total weight overflows integer type"
+    trigger: "Not using appropriate type for weight accumulation"
+
+  - type: "floating_point_comparison"
+    description: "Float weight comparison fails due to precision"
+    trigger: "Using == instead of epsilon comparison for floats"
+
+  - type: "node_only_in_edge_targets"
+    description: "Node exists only as edge target, not tracked in node set"
+    trigger: "Building node set only from edge sources"
+
+  - type: "string_vs_int_node_id"
+    description: "Node IDs compared as different types causing lookup failures"
+    trigger: "Mixing int and string node identifiers"
+
+instruction_template: |
+  You are fixing a {{ scenario_type }} MST implementation.
+  The graph data is at {{ path }}.
+  
+  The MST produced is invalid or suboptimal. Your task:
+  {{ task_steps }}
+  
+  Graph size: {{ node_count }} nodes, {{ edge_count }} edges
+  Duplicate edges: {{ duplicate_count }}
+  Self-loops: {{ self_loop_count }}
+
+reference_solution: |
+  #!/usr/bin/env python3
+  from typing import List, Tuple, Set, Dict, Optional
+  from dataclasses import dataclass
+  from collections import defaultdict
+  
+  @dataclass
+  class Edge:
+      u: int
+      v: int
+      weight: float
+      
+      def __lt__(self, other):
+          return self.weight < other.weight
+      
+      def normalized(self) -> Tuple[int, int]:
+          return (min(self.u, self.v), max(self.u, self.v))
+  
+  class UnionFind:
+      def __init__(self, n: int):
+          self.parent = list(range(n))
+          self.rank = [0] * n
+          self.components = n
+      
+      def find(self, x: int) -> int:
+          if self.parent[x] != x:
+              self.parent[x] = self.find(self.parent[x])
+          return self.parent[x]
+      
+      def union(self, x: int, y: int) -> bool:
+          px, py = self.find(x), self.find(y)
+          if px == py:
+              return False
+          if self.rank[px] < self.rank[py]:
+              px, py = py, px
+          self.parent[py] = px
+          if self.rank[px] == self.rank[py]:
+              self.rank[px] += 1
+          self.components -= 1
+          return True
+  
+  def preprocess_edges(edges: List[Edge]) -> List[Edge]:
+      edge_map: Dict[Tuple[int, int], Edge] = {}
+      for edge in edges:
+          if edge.u == edge.v:
+              continue
+          key = edge.normalized()
+          if key not in edge_map or edge.weight < edge_map[key].weight:
+              edge_map[key] = edge
+      return list(edge_map.values())
+  
+  def kruskal_mst(n: int, edges: List[Edge]) -> Tuple[Optional[List[Edge]], float, str]:
+      if n == 0:
+          return [], 0.0, "empty"
+      if n == 1:
+          return [], 0.0, "success"
+      
+      clean_edges = preprocess_edges(edges)
+      if not clean_edges:
+          if n > 1:
+              return None, 0.0, "disconnected"
+          return [], 0.0, "success"
+      
+      clean_edges.sort()
+      uf = UnionFind(n)
+      mst_edges = []
+      total_weight = 0.0
+      
+      for edge in clean_edges:
+          if uf.union(edge.u, edge.v):
+              mst_edges.append(edge)
+              total_weight += edge.weight
+              if len(mst_edges) == n - 1:
+                  break
+      
+      if uf.components > 1:
+          return None, 0.0, f"disconnected ({uf.components} components)"
+      
+      return mst_edges, total_weight, "success"
+  
+  def find_mst(filepath: str) -> Dict:
+      edges = []
+      nodes = set()
+      with open(filepath, 'r') as f:
+          for line in f:
+              line = line.strip()
+              if not line or line.startswith('#'):
+                  continue
+              parts = line.split()
+              if len(parts) >= 3:
+                  u, v = int(parts[0]), int(parts[1])
+                  weight = float(parts[2])
+                  edges.append(Edge(u, v, weight))
+                  nodes.add(u)
+                  nodes.add(v)
+      
+      if nodes:
+          node_map = {n: i for i, n in enumerate(sorted(nodes))}
+          edges = [Edge(node_map[e.u], node_map[e.v], e.weight) for e in edges]
+      
+      mst_edges, weight, status = kruskal_mst(len(nodes), edges)
+      return {
+          'nodes': len(nodes),
+          'original_edges': len(edges),
+          'mst_edges': len(mst_edges) if mst_edges else 0,
+          'total_weight': weight,
+          'status': status
+      }
+
+fail_to_pass:
+  - "test_duplicate_edges_different_weights"
+  - "test_self_loops_filtered"
+  - "test_parallel_edges"
+  - "test_negative_weights"
+  - "test_disconnected_detection"
+
+pass_to_pass:
+  - "test_basic_mst"
+  - "test_single_node"
+  - "test_two_nodes"
+
+variables:
+  - name: scenario_type
+    type: string
+    options: ["network infrastructure", "cable routing", "circuit design", "logistics optimization"]
+  - name: path
+    type: path
+    generator: random_path
+  - name: node_count
+    type: int
+    min: 10
+    max: 1000
+  - name: edge_count
+    type: int
+    min: 20
+    max: 5000
+  - name: duplicate_count
+    type: int
+    min: 5
+    max: 100
+  - name: self_loop_count
+    type: int
+    min: 0
+    max: 20
+  - name: task_steps
+    type: template
+    value: |
+      1. Parse and validate edge list
+      2. Handle duplicate edges (keep minimum)
+      3. Filter self-loops
+      4. Implement correct MST algorithm
+      5. Detect disconnected graphs
+      6. Return valid MST or appropriate error
+
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  edge_anomalies:
+    - duplicate_different_weights
+    - self_loops
+    - parallel_edges
+    - negative_weights
+    - disconnected_components
+
+generation_targets:
+  unique_tasks: 10000
+  minimum_difficulty: "experienced developer needs 30+ minutes, requires deep domain expertise"
+  trap_coverage: "all trap types used at least 100 times"
+
+# =============================================================================
+# EXTENDED MST PATTERNS
+# =============================================================================
+
+extended_patterns:
+  # ---------------------------------------------------------------------------
+  # MST Algorithm Comparison
+  # ---------------------------------------------------------------------------
+  algorithm_comparison:
+    kruskal:
+      approach: "Sort edges, add if no cycle"
+      data_structure: "Union-Find"
+      complexity: "O(E log E)"
+      best_for: "Sparse graphs"
+      edge_ordering: "Required"
+      
+    prim:
+      approach: "Grow tree from source"
+      data_structure: "Priority queue"
+      complexity: "O(E log V) with binary heap"
+      best_for: "Dense graphs"
+      source_dependency: "Starts from arbitrary node"
+      
+    boruvka:
+      approach: "Add cheapest edge per component"
+      data_structure: "Component tracking"
+      complexity: "O(E log V)"
+      best_for: "Parallel implementation"
+      parallelism: "Inherently parallel"
+
+  # ---------------------------------------------------------------------------
+  # MST Properties and Verification
+  # ---------------------------------------------------------------------------
+  mst_properties:
+    tree_property:
+      description: "MST is a tree (connected, acyclic)"
+      verification: "V-1 edges, no cycles"
+      
+    spanning_property:
+      description: "MST connects all vertices"
+      verification: "Union-Find shows single component"
+      
+    minimum_property:
+      description: "No other spanning tree has smaller weight"
+      verification: "Cut property, cycle property"
+      
+    cut_property:
+      description: "Lightest edge crossing any cut is in MST"
+      use: "Proves Kruskal and Prim correctness"
+      
+    cycle_property:
+      description: "Heaviest edge in any cycle is not in MST"
+      use: "Reverse-delete algorithm"
+
+  # ---------------------------------------------------------------------------
+  # MST Variants
+  # ---------------------------------------------------------------------------
+  mst_variants:
+    minimum_spanning_forest:
+      description: "MST for disconnected graph"
+      result: "One tree per component"
+      
+    maximum_spanning_tree:
+      description: "Maximize total weight"
+      solution: "Negate weights, run MST"
+      
+    second_best_mst:
+      description: "Second smallest spanning tree"
+      algorithm: "Try removing each MST edge"
+      
+    k_minimum_spanning_trees:
+      description: "Find k smallest spanning trees"
+      complexity: "More complex enumeration"
+      
+    constrained_mst:
+      description: "MST with degree/inclusion constraints"
+      examples: ["degree-constrained", "Steiner tree"]
+
+# =============================================================================
+# TASK COMBINATION MATRIX
+# =============================================================================
+
+combination_matrix:
+  primary_trap:
+    method: "Select 1-2 primary traps from trap_taxonomy"
+    options:
+      - duplicate_edges
+      - self_loops
+      - weight_handling
+      - connectivity
+      - union_find
+    diversity_requirement: "Must not repeat within 100 tasks"
+    
+  context:
+    method: "Select application domain"
+    options:
+      - network_infrastructure
+      - cable_routing
+      - circuit_design
+      - clustering
+    
+  complexity:
+    easy: "Single edge handling issue"
+    medium: "Duplicates + connectivity"
+    hard: "Multiple issues + verification"
+    expert: "Variants like second-best MST"
+
+# =============================================================================
+# EXTENDED EDGE CASES
+# =============================================================================
+
+extended_edge_cases:
+  graph_edge_cases:
+    - complete_graph_all_edges
+    - sparse_graph_exactly_v_minus_1_edges
+    - path_graph_linear
+    - star_graph_central_hub
+    - cycle_graph_single_cycle
+    - grid_graph_2d
+    
+  weight_edge_cases:
+    - all_weights_same_value
+    - unique_weights_no_ties
+    - many_ties_same_weight
+    - negative_weights_valid
+    - zero_weights_included
+    - mixed_signs_negative_positive
+    
+  duplicate_edge_cases:
+    - no_duplicates_clean
+    - all_edges_duplicated_once
+    - some_edges_many_duplicates
+    - reversed_duplicates_a_b_and_b_a
+    - different_weights_for_duplicates

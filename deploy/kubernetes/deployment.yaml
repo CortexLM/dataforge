@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synth-bench
+  namespace: synth-bench
+  labels:
+    app.kubernetes.io/name: synth-bench
+    app.kubernetes.io/component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: synth-bench
+  template:
+    metadata:
+      labels:
+        app: synth-bench
+        app.kubernetes.io/name: synth-bench
+        app.kubernetes.io/component: api
+    spec:
+      containers:
+        - name: synth-bench
+          image: synth-bench:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+              name: http
+          envFrom:
+            - configMapRef:
+                name: synth-bench-config
+            - secretRef:
+                name: synth-bench-secrets
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2"
+              memory: "4Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: docker-socket
+              mountPath: /var/run/docker.sock
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: docker-socket
+          hostPath:
+            path: /var/run/docker.sock
+        - name: data
+          persistentVolumeClaim:
+            claimName: synth-bench-data
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: synth-bench-data
+  namespace: synth-bench
+  labels:
+    app.kubernetes.io/name: synth-bench
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 50Gi

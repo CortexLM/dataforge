@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: synth-bench-config
+  namespace: synth-bench
+  labels:
+    app.kubernetes.io/name: synth-bench
+    app.kubernetes.io/component: config
+data:
+  LITELLM_API_BASE: "https://openrouter.ai/api/v1"
+  REDIS_URL: "redis://redis:6379"
+  LOG_LEVEL: "info"
+  WORKER_QUEUE: "tasks"
+  DATA_PATH: "/data"

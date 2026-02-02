@@ -1,0 +1,1767 @@
+id: "sec-crypto-weak-random-001"
+version: "2.0.0"
+category: "security"
+subcategory: "cryptography"
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research obscure PRNG vulnerabilities, entropy sources, and state recovery techniques"
+    phase_2_creation: "Create multi-layered random number vulnerability with hidden predictability vectors"
+    phase_3_amplification: "Add PRNG state recovery requirements and entropy starvation scenarios"
+    phase_4_verification:
+      base_validation: "Validate task requires advanced cryptographic randomness expertise"
+      enhanced_criteria:
+        - "Has at least 5 interacting vulnerability chains"
+        - "Has cascading exploitation paths that require chained attacks"
+        - "Requires knowledge of compiler/interpreter internals for exploitation"
+        - "Would take experienced security researchers 45+ minutes"
+  
+  complexity_targets:
+    min_steps: 15
+    max_steps: 45
+    required_expertise:
+      - "Cryptographic random number generation"
+      - "Entropy sources and estimation"
+      - "PRNG state recovery attacks"
+      - "Statistical analysis of randomness"
+      - "Platform-specific random implementations"
+    
+  anti_shortcut_measures:
+    - "Require statistical testing of randomness quality"
+    - "Demand entropy source verification"
+    - "Test against PRNG state prediction attacks"
+    - "Verify nonce/IV uniqueness guarantees"
+
+# SWE-bench_Pro style fields
+problem_statement: |
+  A security-critical application uses random number generation for tokens, 
+  keys, and nonces. Analysis reveals the randomness is predictable due to:
+  
+  1. Using math.random() or similar non-cryptographic PRNG
+  2. Seeding PRNG with predictable values (time, PID)
+  3. Reusing nonces or IVs
+  4. Insufficient entropy pool on startup
+  5. PRNG state can be recovered from outputs
+  6. Weak seeding of cryptographic PRNG
+  7. Fork-safety issues with PRNG state
+  8. Thread-safety issues corrupting PRNG
+  9. Modulo bias in range generation
+  10. Birthday attacks on short random values
+
+requirements: |
+  - Replace all weak PRNGs with cryptographic alternatives
+  - Use proper entropy sources (/dev/urandom, CryptGenRandom)
+  - Implement unique nonce generation with uniqueness guarantees
+  - Ensure sufficient entropy at startup (block if needed)
+  - Prevent PRNG state recovery attacks
+  - Handle fork-safety for child processes
+  - Ensure thread-safe random generation
+  - Avoid modulo bias in range selection
+  - Use sufficient random length to prevent birthday attacks
+  - Implement proper key derivation when needed
+
+interface: |
+  Input: Code using random number generation
+  Output: Cryptographically secure random implementation
+  Validation: Statistical tests pass, no state recovery possible
+
+# === TOPIC UNIVERSE (100+ topics) ===
+topic_universe:
+  prng_fundamentals:
+    - "Linear Congruential Generator (LCG) weaknesses"
+    - "Mersenne Twister state recovery"
+    - "XorShift family predictability"
+    - "LFSR-based PRNG attacks"
+    - "Middle-square method weaknesses"
+    - "Combined generator attacks"
+    - "Truncated PRNG output analysis"
+    - "PRNG cycle length issues"
+    - "PRNG output correlation"
+    - "Statistical bias in PRNG outputs"
+    
+  cryptographic_prng:
+    - "CSPRNG design principles"
+    - "ChaCha20-based CSPRNG"
+    - "AES-CTR DRBG"
+    - "HMAC_DRBG (NIST SP 800-90A)"
+    - "Hash_DRBG"
+    - "CTR_DRBG"
+    - "Dual_EC_DRBG backdoor"
+    - "Fortuna PRNG"
+    - "Yarrow PRNG"
+    - "ISAAC cipher PRNG"
+    - "/dev/urandom vs /dev/random"
+    - "getrandom() syscall"
+    - "CryptGenRandom (Windows)"
+    - "SecRandomCopyBytes (macOS/iOS)"
+    - "arc4random() and variants"
+    
+  entropy_sources:
+    - "Hardware random number generators (HRNG)"
+    - "Intel RDRAND/RDSEED instructions"
+    - "AMD RDRAND implementation"
+    - "ARM RNDR instruction"
+    - "Thermal noise RNG"
+    - "Shot noise RNG"
+    - "Atmospheric noise"
+    - "Radioactive decay RNG"
+    - "Timing jitter entropy"
+    - "Disk I/O timing entropy"
+    - "Network packet timing"
+    - "Keyboard/mouse timing"
+    - "Audio input noise"
+    - "Camera noise entropy"
+    - "CPU execution jitter"
+    
+  entropy_estimation:
+    - "Shannon entropy calculation"
+    - "Min-entropy estimation"
+    - "Collision entropy"
+    - "Renyi entropy"
+    - "NIST SP 800-90B testing"
+    - "Health testing of entropy sources"
+    - "Online entropy estimation"
+    - "Compression-based estimation"
+    - "Maurer's universal test"
+    - "Entropy depletion scenarios"
+    
+  seeding_vulnerabilities:
+    - "Time-based seeding attacks"
+    - "PID-based seeding attacks"
+    - "Boot time seeding issues"
+    - "VM snapshot PRNG reuse"
+    - "Container PRNG initialization"
+    - "Low entropy boot scenarios"
+    - "Embedded system seeding"
+    - "HSM PRNG seeding"
+    - "Smart card RNG seeding"
+    - "FPGA RNG initialization"
+    
+  state_recovery_attacks:
+    - "Mersenne Twister state recovery (624 outputs)"
+    - "LCG parameter recovery"
+    - "Java Random state recovery"
+    - "PHP mt_rand untwisting"
+    - "Python random.random() prediction"
+    - "V8 Math.random() prediction"
+    - "Ruby Kernel.rand prediction"
+    - "Go math/rand prediction"
+    - ".NET System.Random prediction"
+    - "glibc random() prediction"
+    
+  nonce_iv_issues:
+    - "Nonce reuse in AES-GCM"
+    - "IV reuse in AES-CBC"
+    - "Counter-based nonce overflow"
+    - "Random nonce collision probability"
+    - "Nonce misuse resistance (SIV)"
+    - "Deterministic nonce generation"
+    - "Synthetic IV construction"
+    - "Nonce-based key derivation"
+    - "Multi-party nonce coordination"
+    - "Distributed nonce generation"
+    
+  platform_specific:
+    - "Linux entropy pool (/dev/random blocking)"
+    - "Linux getrandom() GRND_NONBLOCK"
+    - "FreeBSD arc4random"
+    - "OpenBSD getentropy"
+    - "Windows BCryptGenRandom"
+    - "macOS Security framework"
+    - "iOS SecRandomCopyBytes"
+    - "Android /dev/urandom issues"
+    - "AWS nitro RNG"
+    - "Intel TXT measured launch"
+    
+  language_runtime:
+    - "Python secrets module"
+    - "Python os.urandom()"
+    - "Node.js crypto.randomBytes()"
+    - "Go crypto/rand"
+    - "Rust rand crate (OsRng)"
+    - "Java SecureRandom"
+    - "C# RNGCryptoServiceProvider"
+    - "PHP random_bytes()"
+    - "Ruby SecureRandom"
+    - "OpenSSL RAND_bytes()"
+    
+  statistical_testing:
+    - "NIST SP 800-22 test suite"
+    - "Diehard tests"
+    - "Dieharder test suite"
+    - "TestU01 (SmallCrush, Crush, BigCrush)"
+    - "ENT randomness testing"
+    - "PractRand testing"
+    - "Frequency (monobit) test"
+    - "Runs test"
+    - "Longest run test"
+    - "Spectral (DFT) test"
+
+# === ATTACK CHAINS (50+ chains) ===
+attack_chains:
+  state_recovery_attacks:
+    - name: "Mersenne Twister Full State Recovery"
+      steps:
+        - "Collect 624 consecutive 32-bit outputs"
+        - "Apply inverse temper transformation"
+        - "Reconstruct internal 624-element state"
+        - "Predict all future outputs"
+        - "Predict all past outputs"
+        - "Generate valid session tokens"
+      difficulty: "medium"
+      affected: ["Python random", "PHP mt_rand", "Ruby Kernel.rand"]
+      
+    - name: "Java Random State Recovery"
+      steps:
+        - "Collect two consecutive outputs"
+        - "Calculate seed candidates from LCG formula"
+        - "Verify seed with third output"
+        - "Predict future random values"
+        - "Generate valid tokens"
+      difficulty: "easy"
+      affected: ["java.util.Random", "Scala random", "Kotlin random"]
+      
+    - name: "V8 Math.random() Prediction"
+      steps:
+        - "Understand XorShift128+ algorithm"
+        - "Collect sufficient outputs"
+        - "Recover internal state via Z3 solver"
+        - "Predict future values"
+      difficulty: "hard"
+      affected: ["Chrome", "Node.js", "Deno"]
+      
+    - name: "PHP mt_rand Seed Recovery"
+      steps:
+        - "Identify PHP version for algorithm variant"
+        - "Collect outputs from application"
+        - "Use php_mt_seed tool to recover seed"
+        - "Predict session IDs and tokens"
+      difficulty: "medium"
+      affected: ["PHP < 7.1 (Mersenne Twister)", "PHP 7.1+ (Mersenne Twister fixed)"]
+      
+    - name: "Python random.random() Prediction"
+      steps:
+        - "Collect 624+ random() outputs"
+        - "Convert floats back to underlying integers"
+        - "Apply Mersenne Twister untemper"
+        - "Clone random state"
+        - "Predict future outputs"
+      difficulty: "medium"
+      tools: ["randcrack", "untwister"]
+      
+  seed_prediction_attacks:
+    - name: "Time-Based Seed Attack"
+      steps:
+        - "Determine server time window"
+        - "Calculate possible seed values (time in ms)"
+        - "Generate token sequences for each seed"
+        - "Match observed tokens to seed"
+        - "Predict future tokens"
+      difficulty: "easy"
+      cve_references: ["CVE-2008-2108"]
+      
+    - name: "PID-Based Seed Attack"
+      steps:
+        - "Identify PID range on target system"
+        - "Combine with time estimation"
+        - "Brute-force seed space"
+        - "Match against observed outputs"
+      difficulty: "easy"
+      
+    - name: "Boot Time Seed Attack"
+      steps:
+        - "Determine system boot time"
+        - "Calculate entropy available at boot"
+        - "Predict early random values"
+        - "Recover keys generated at startup"
+      difficulty: "medium"
+      affected: ["Embedded systems", "IoT devices", "Early boot processes"]
+      
+    - name: "VM Snapshot Attack"
+      steps:
+        - "Clone VM from snapshot"
+        - "Both VMs have same PRNG state"
+        - "Generate same 'random' values"
+        - "Reuse keys, nonces, tokens"
+      difficulty: "medium"
+      cve_references: ["CVE-2018-16871"]
+      
+  nonce_collision_attacks:
+    - name: "AES-GCM Nonce Reuse Attack"
+      steps:
+        - "Detect nonce reuse in GCM encryption"
+        - "XOR ciphertexts with same nonce"
+        - "Recover XOR of plaintexts"
+        - "Recover authentication key H"
+        - "Forge authenticated messages"
+      difficulty: "hard"
+      cve_references: ["CVE-2016-0701"]
+      
+    - name: "Birthday Attack on Session IDs"
+      steps:
+        - "Calculate collision probability (2^(n/2))"
+        - "Generate/collect many session IDs"
+        - "Find collision (duplicate session)"
+        - "Hijack colliding session"
+      difficulty: "medium"
+      threshold: "50% collision at 2^32 for 64-bit token"
+      
+    - name: "Counter Nonce Overflow"
+      steps:
+        - "Monitor counter-based nonce system"
+        - "Wait for counter to wrap"
+        - "Nonce reuse occurs"
+        - "Exploit nonce reuse vulnerability"
+      difficulty: "easy"
+      
+  entropy_starvation:
+    - name: "/dev/random Blocking Attack"
+      steps:
+        - "Deplete system entropy pool"
+        - "Force application to block on /dev/random"
+        - "Denial of service achieved"
+        - "Or force fallback to weak random"
+      difficulty: "medium"
+      platform: "Linux systems using /dev/random"
+      
+    - name: "Embedded System Entropy Attack"
+      steps:
+        - "Identify limited entropy sources"
+        - "Power cycle device repeatedly"
+        - "Collect early boot random values"
+        - "Find patterns in 'random' values"
+      difficulty: "medium"
+      
+    - name: "Containerized Entropy Issues"
+      steps:
+        - "Identify container without entropy source"
+        - "Wait for entropy pool depletion"
+        - "Application generates weak random"
+        - "Predict tokens/keys"
+      difficulty: "medium"
+      
+  cryptographic_attacks:
+    - name: "DSA/ECDSA Nonce Bias Attack"
+      steps:
+        - "Collect many signatures"
+        - "Analyze nonce bit bias"
+        - "Apply lattice attack"
+        - "Recover private key"
+      difficulty: "expert"
+      cve_references: ["CVE-2019-14318", "CVE-2020-0601"]
+      
+    - name: "Weak PRNG Key Generation"
+      steps:
+        - "Identify weak PRNG for key generation"
+        - "Enumerate possible seed space"
+        - "Generate all possible keys"
+        - "Try each key against target"
+      difficulty: "varies"
+      
+    - name: "IV/Nonce Prediction for CBC"
+      steps:
+        - "Predict next IV value"
+        - "Prepare chosen plaintext"
+        - "Exploit BEAST-style attack"
+        - "Decrypt target data"
+      difficulty: "hard"
+      cve_references: ["CVE-2011-3389"]
+
+# === DEFENSE BYPASS TECHNIQUES (100+) ===
+defense_bypass_techniques:
+  csprng_bypass:
+    - "Exploiting CSPRNG reseeding issues"
+    - "Fork without re-seeding attack"
+    - "CSPRNG state extraction via side channel"
+    - "Backtracking resistance failures"
+    - "Prediction resistance failures"
+    - "CSPRNG implementation bugs"
+    - "Dual_EC_DRBG backdoor exploitation"
+    - "PRNG output truncation analysis"
+    - "PRNG output modulo bias"
+    - "PRNG thread race conditions"
+    
+  entropy_bypass:
+    - "Entropy source manipulation"
+    - "Predictable hardware RNG"
+    - "RDRAND/RDSEED implementation bugs"
+    - "Entropy estimation bypass"
+    - "Health test manipulation"
+    - "Entropy pool prediction"
+    - "Early boot entropy exhaustion"
+    - "VM entropy isolation bypass"
+    - "Container entropy sharing"
+    - "HSM entropy manipulation"
+    
+  implementation_bypass:
+    - "Off-by-one in random range"
+    - "Integer overflow in random bounds"
+    - "Floating point precision loss"
+    - "Endianness issues in random conversion"
+    - "Memory disclosure of PRNG state"
+    - "Uninitialized PRNG usage"
+    - "Double-initialization issues"
+    - "Partial state reseeding"
+    - "State file permission issues"
+    - "Shared PRNG across processes"
+    
+  statistical_bypass:
+    - "Small sample size hiding bias"
+    - "Conditional bias not detected"
+    - "Higher-order correlations"
+    - "Non-uniform distribution undetected"
+    - "Period-related patterns"
+    - "Specific input-related weakness"
+    - "State-dependent bias"
+    - "Time-dependent patterns"
+    - "Cross-correlation between outputs"
+    - "Spectral analysis bypass"
+
+# === REAL-WORLD SCENARIOS ===
+real_world_scenarios:
+  session_management:
+    - scenario: "Session Token Generation"
+      description: "Session IDs generated with Math.random()"
+      complexity: "medium"
+      attack_vector: "Predict session tokens, hijack user sessions"
+      
+    - scenario: "CSRF Token Generation"
+      description: "CSRF tokens use weak PRNG"
+      complexity: "medium"
+      attack_vector: "Predict CSRF tokens, bypass protection"
+      
+    - scenario: "Password Reset Token"
+      description: "Reset tokens seeded with timestamp"
+      complexity: "easy"
+      attack_vector: "Predict reset tokens, account takeover"
+      
+  cryptographic_keys:
+    - scenario: "Symmetric Key Generation"
+      description: "AES keys generated with non-crypto PRNG"
+      complexity: "high"
+      attack_vector: "Predict encryption keys"
+      
+    - scenario: "Asymmetric Key Generation"
+      description: "RSA keys with insufficient entropy"
+      complexity: "high"
+      attack_vector: "Factor weak RSA keys"
+      cve_references: ["CVE-2012-0050"]
+      
+    - scenario: "TLS Session Keys"
+      description: "TLS random values predictable"
+      complexity: "high"
+      attack_vector: "Decrypt TLS traffic"
+      
+  authentication:
+    - scenario: "TOTP Secret Generation"
+      description: "TOTP secrets generated predictably"
+      complexity: "medium"
+      attack_vector: "Generate valid TOTP codes"
+      
+    - scenario: "API Key Generation"
+      description: "API keys from weak random"
+      complexity: "medium"
+      attack_vector: "Predict valid API keys"
+      
+    - scenario: "JWT 'jti' Claim"
+      description: "JWT ID generated with weak random"
+      complexity: "medium"
+      attack_vector: "Predict JWT IDs for replay"
+      
+  gambling_gaming:
+    - scenario: "Online Casino RNG"
+      description: "Game outcomes from Mersenne Twister"
+      complexity: "medium"
+      attack_vector: "Predict game outcomes"
+      real_case: "Various online poker sites compromised"
+      
+    - scenario: "Lottery Number Generation"
+      description: "Lottery uses seeded PRNG"
+      complexity: "medium"
+      attack_vector: "Predict winning numbers"
+      
+    - scenario: "Loot Box/Gacha System"
+      description: "Game rewards from weak random"
+      complexity: "medium"
+      attack_vector: "Predict rare items"
+      
+  distributed_systems:
+    - scenario: "UUID Generation"
+      description: "UUID v4 from non-crypto random"
+      complexity: "medium"
+      attack_vector: "Predict UUIDs for access control"
+      
+    - scenario: "Distributed Transaction IDs"
+      description: "Transaction IDs predictable"
+      complexity: "high"
+      attack_vector: "Forge transaction references"
+      
+    - scenario: "Load Balancer Selection"
+      description: "Backend selection predictable"
+      complexity: "medium"
+      attack_vector: "Target specific backend"
+
+# === DIFFICULTY CONFIGURATION ===
+difficulty:
+  estimated: "extreme"
+  time_range: [7200, 28800]
+  command_steps: [150, 600]
+  
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 4.0
+      description: "CTF-final level difficulty requiring expert exploitation skills"
+      requirements:
+        - "7+ interacting vulnerabilities requiring chained exploitation"
+        - "Requires understanding of target runtime/compiler internals"
+        - "Time estimate: 180+ minutes for senior security researchers"
+        - "Multiple protection bypass techniques required"
+        - "Requires synthesizing reverse engineering, exploitation, and cryptography"
+    
+    nightmare_plus:
+      multiplier: 8.0
+      estimated_time: [43200, 172800]
+      command_steps: [500, 2000]
+      techniques_required: 16
+      description: "Real-world 0-day exploitation requiring novel PRNG state recovery and entropy analysis techniques"
+      requirements:
+        - "14+ deeply interacting vulnerabilities across PRNG, entropy, and cryptographic layers"
+        - "Requires PRNG state recovery from partial or truncated outputs"
+        - "Time estimate: 12-48 hours for senior security researchers with OSCP/OSWE/OSCE certifications"
+        - "Custom Z3/SAT solver configurations for state recovery"
+        - "Must bypass CSPRNG reseeding, fork detection, and entropy mixing"
+        - "Requires understanding of VM/container entropy isolation boundaries"
+        - "Must demonstrate key/token prediction leading to full system compromise"
+        - "Hardware RNG manipulation or bypass required in some scenarios"
+  
+  generation_targets:
+    minimum_difficulty: "120-360 minutes for senior security researchers with offensive security certifications (OSCP/OSWE/OSCE)"
+    quality_requirements: "Must require deep understanding of PRNG internals, entropy sources, and statistical cryptanalysis"
+  
+  difficulty_levels:
+    beginner:
+      description: "Replace Math.random with crypto random"
+      time_estimate: 600
+      prerequisites: ["Basic programming"]
+      
+    intermediate:
+      description: "PRNG state recovery and prediction"
+      time_estimate: 1200
+      prerequisites: ["Algorithm analysis", "Basic cryptography"]
+      
+    advanced:
+      description: "Entropy analysis and CSPRNG design"
+      time_estimate: 2000
+      prerequisites: ["Information theory", "Statistical analysis"]
+      
+    expert:
+      description: "Hardware RNG attacks, lattice cryptanalysis"
+      time_estimate: 2400
+      prerequisites: ["Advanced cryptography", "Hardware security"]
+
+# === MULTI-AGENT ORCHESTRATION ===
+multi_agent_orchestration:
+  required_agents: 7
+  coordination_complexity: "extreme"
+  
+  specialized_agents:
+    - name: "prng_analyst"
+      role: "Analyze PRNG implementations and identify weaknesses"
+      expertise: ["Mersenne Twister", "LCG", "XorShift", "CSPRNG internals"]
+      
+    - name: "cryptanalyst"
+      role: "Apply cryptanalytic techniques for state recovery"
+      expertise: ["lattice attacks", "SAT solving", "Z3 constraints", "differential analysis"]
+      
+    - name: "entropy_specialist"
+      role: "Analyze entropy sources and collection mechanisms"
+      expertise: ["hardware RNG", "entropy estimation", "boot entropy", "VM entropy"]
+      
+    - name: "reverse_engineer"
+      role: "Reverse engineer PRNG implementations in target systems"
+      expertise: ["binary analysis", "runtime tracing", "library identification"]
+      
+    - name: "statistical_analyst"
+      role: "Detect and analyze statistical weaknesses in random outputs"
+      expertise: ["NIST tests", "chi-square analysis", "autocorrelation", "spectral analysis"]
+      
+    - name: "exploit_developer"
+      role: "Develop exploits leveraging predicted random values"
+      expertise: ["token forgery", "key prediction", "session hijacking"]
+      
+    - name: "platform_specialist"
+      role: "Analyze platform-specific random generation"
+      expertise: ["Linux /dev/urandom", "Windows CryptGenRandom", "browser Math.random"]
+  
+  cross_vulnerability_chains:
+    - chain: "Time-based seeding -> PRNG state recovery -> Session token prediction -> Account takeover"
+      complexity: "high"
+      
+    - chain: "Entropy starvation -> Weak key generation -> Cryptographic compromise"
+      complexity: "extreme"
+      
+    - chain: "VM snapshot -> PRNG state duplication -> Nonce reuse -> Encryption bypass"
+      complexity: "extreme"
+      
+    - chain: "Fork without reseed -> Child process prediction -> Credential theft"
+      complexity: "high"
+      
+    - chain: "Truncated PRNG output analysis -> State recovery via Z3 -> Future value prediction"
+      complexity: "extreme"
+
+# === EXPLOIT CHAIN REQUIREMENTS ===
+exploit_chain_requirements:
+  minimum_chain_length: 4
+  required_stages:
+    - stage: "prng_identification"
+      description: "Identify PRNG type and implementation details"
+      techniques:
+        - "Output pattern analysis"
+        - "Library fingerprinting"
+        - "Error message analysis"
+        - "Timing analysis for PRNG type"
+    
+    - stage: "output_collection"
+      description: "Collect sufficient PRNG outputs for analysis"
+      techniques:
+        - "Multiple request sampling"
+        - "Output concatenation"
+        - "Timing correlation"
+        - "Cross-context output collection"
+    
+    - stage: "state_recovery"
+      description: "Recover internal PRNG state"
+      techniques:
+        - "Mersenne Twister untemper"
+        - "LCG parameter recovery"
+        - "SAT/SMT solver application"
+        - "Partial state inference"
+    
+    - stage: "prediction_exploitation"
+      description: "Exploit predicted values for compromise"
+      techniques:
+        - "Token forgery"
+        - "Key prediction"
+        - "Nonce prediction for crypto attacks"
+        - "Password reset token generation"
+
+# === DEFENSIVE EVASION ===
+defensive_evasion:
+  security_controls_to_bypass:
+    - control: "CSPRNG Usage"
+      bypass_techniques:
+        - "CSPRNG seeding weakness exploitation"
+        - "Fork-without-reseed exploitation"
+        - "Entropy starvation attacks"
+        - "CSPRNG state leakage via side-channels"
+      
+    - control: "Entropy Pool"
+      bypass_techniques:
+        - "Early boot entropy exhaustion"
+        - "Container entropy isolation bypass"
+        - "VM entropy pool manipulation"
+        - "Hardware RNG weakness exploitation"
+      
+    - control: "Token Length/Complexity"
+      bypass_techniques:
+        - "Birthday attack calculations"
+        - "Partial token prediction"
+        - "Prefix/suffix prediction"
+        - "Timing-based token narrowing"
+      
+    - control: "Rate Limiting"
+      bypass_techniques:
+        - "Distributed output collection"
+        - "Slow-rate state recovery"
+        - "Cached value exploitation"
+        - "Multi-account sampling"
+
+# === REAL-WORLD CORRELATION ===
+real_world_correlation:
+  cve_attack_patterns:
+    - cve: "CVE-2008-2108"
+      technique: "PHP PRNG seeding vulnerability"
+      real_world_impact: "Session prediction and account takeover"
+      
+    - cve: "CVE-2012-0050"
+      technique: "OpenSSL RSA key generation weak randomness"
+      real_world_impact: "Weak RSA keys factorable"
+      
+    - cve: "CVE-2019-14318"
+      technique: "Crypto++ ECDSA nonce bias"
+      real_world_impact: "Private key recovery via lattice attack"
+      
+    - cve: "CVE-2018-16871"
+      technique: "Linux kernel entropy after VM resume"
+      real_world_impact: "Predictable keys after VM snapshot restore"
+
+# === TRAP DENSITY ===
+trap_configuration:
+  total_traps: 12
+  trap_interaction_depth: 4
+  cross_domain_traps: true
+  
+  trap_categories:
+    prng_traps: 4
+    nonce_traps: 3
+    entropy_traps: 3
+    implementation_traps: 2
+
+# === LLM TRAP CONFIGURATIONS (50+) ===
+traps:
+  prng_traps:
+    - type: "math_random"
+      description: "Using non-cryptographic PRNG for security"
+      trigger: "Using random.random() or Math.random() for tokens"
+      detection: "Token prediction via state recovery"
+      
+    - type: "time_seed"
+      description: "Seeding with current time makes output predictable"
+      trigger: "Using time.time() or Date.now() as seed"
+      detection: "Seed brute-force within time window"
+      
+    - type: "pid_seed"
+      description: "Process ID as seed is very limited entropy"
+      trigger: "Using getpid() in seed"
+      detection: "Enumerate PIDs to find seed"
+      
+    - type: "sequential_seed"
+      description: "Incrementing seed for each process"
+      trigger: "seed = counter++"
+      detection: "Predictable sequence of seeds"
+      
+  nonce_traps:
+    - type: "nonce_reuse"
+      description: "Same nonce used multiple times with same key"
+      trigger: "Counter-based nonce without persistence"
+      detection: "AES-GCM auth key recovery"
+      
+    - type: "random_nonce_collision"
+      description: "Random nonce too short for number of messages"
+      trigger: "96-bit random nonce for >2^32 messages"
+      detection: "Birthday attack finds collision"
+      
+    - type: "counter_overflow"
+      description: "Counter nonce wraps around"
+      trigger: "32-bit counter for long-lived key"
+      detection: "Counter reaches 2^32"
+      
+  entropy_traps:
+    - type: "insufficient_entropy"
+      description: "System hasn't collected enough entropy"
+      trigger: "Using /dev/urandom immediately after boot"
+      detection: "Early boot keys are weak"
+      
+    - type: "blocking_random"
+      description: "Using blocking /dev/random causes DoS"
+      trigger: "Reading from /dev/random in production"
+      detection: "Application hangs waiting for entropy"
+      
+    - type: "entropy_exhaustion"
+      description: "Entropy pool depleted by high demand"
+      trigger: "Many processes reading /dev/random"
+      detection: "Entropy starvation"
+      
+  implementation_traps:
+    - type: "modulo_bias"
+      description: "Using % for range creates non-uniform distribution"
+      trigger: "random_bytes % range"
+      detection: "Statistical bias in generated values"
+      
+    - type: "float_precision"
+      description: "Converting random to float loses bits"
+      trigger: "float(random_bytes) / max_value"
+      detection: "Only 53 bits of entropy in double"
+      
+    - type: "fork_unsafe"
+      description: "PRNG state copied to child process"
+      trigger: "Forking without re-seeding"
+      detection: "Parent and child generate same values"
+      
+    - type: "thread_unsafe"
+      description: "PRNG state corrupted by concurrent access"
+      trigger: "Shared PRNG without locking"
+      detection: "Corrupted or repeated outputs"
+
+# === COMPREHENSIVE TASK GENERATION TEMPLATE ===
+instruction_template: |
+  You are fixing a {{ scenario_type }} with weak random number generation.
+  The code is at {{ path }}.
+  
+  System details:
+  - Platform: {{ platform }}
+  - Language: {{ language }}
+  - Framework: {{ framework }}
+  
+  Tokens generated: {{ token_count }}
+  Predictability detected: {{ predictable_tokens }} tokens ({{ predictability_rate }}%)
+  
+  Attack model:
+  - Attacker has collected {{ collected_outputs }} random outputs
+  - Time window for seed: {{ seed_time_window }} seconds
+  - PRNG type identified: {{ prng_type }}
+  
+  Your task:
+  {{ task_steps }}
+  
+  Additional requirements:
+  - All security tokens must use CSPRNG
+  - Nonces must guarantee uniqueness
+  - Entropy sources must be verified
+  - PRNG must be fork-safe and thread-safe
+  - Statistical tests must pass
+
+# === REFERENCE SOLUTION (COMPREHENSIVE) ===
+reference_solution: |
+  #!/usr/bin/env python3
+  """
+  Cryptographically Secure Random Number Generation Library
+  
+  This module provides secure alternatives to weak PRNGs with:
+  1. Cryptographically secure random generation
+  2. Proper entropy source usage
+  3. Fork-safe and thread-safe operation
+  4. Unique nonce generation
+  5. Bias-free range selection
+  """
+  
+  import os
+  import secrets
+  import hashlib
+  import hmac
+  import struct
+  import threading
+  import time
+  from typing import Optional, Tuple, List, Sequence, TypeVar
+  from dataclasses import dataclass
+  from contextlib import contextmanager
+  import logging
+  
+  T = TypeVar('T')
+  
+  # ============================================================
+  # SECURE RANDOM PRIMITIVES
+  # ============================================================
+  
+  class CryptoRandom:
+      """
+      Cryptographically secure random number generator.
+      Uses system entropy sources properly.
+      
+      This class wraps the secrets module and adds additional
+      safety features like fork detection and thread safety.
+      """
+      
+      def __init__(self):
+          """Initialize with entropy verification."""
+          self._pid = os.getpid()
+          self._lock = threading.Lock()
+          self._verify_entropy_source()
+      
+      def _verify_entropy_source(self):
+          """Verify entropy source is available and working."""
+          try:
+              # Request some random bytes to verify source
+              test_bytes = os.urandom(32)
+              if len(test_bytes) != 32:
+                  raise RuntimeError("Entropy source returned wrong length")
+              
+              # Basic sanity check - not all zeros or ones
+              if test_bytes == b'\x00' * 32 or test_bytes == b'\xff' * 32:
+                  raise RuntimeError("Entropy source returned suspicious pattern")
+                  
+          except Exception as e:
+              raise RuntimeError(f"Entropy source verification failed: {e}")
+      
+      def _check_fork(self):
+          """Detect fork and reset state if needed."""
+          current_pid = os.getpid()
+          if current_pid != self._pid:
+              # We've been forked - this is automatic reseed
+              self._pid = current_pid
+              self._verify_entropy_source()
+      
+      def bytes(self, n: int) -> bytes:
+          """
+          Generate n random bytes.
+          
+          Args:
+              n: Number of bytes to generate
+              
+          Returns:
+              Cryptographically secure random bytes
+          """
+          if n < 0:
+              raise ValueError("Cannot generate negative bytes")
+          if n == 0:
+              return b''
+          
+          with self._lock:
+              self._check_fork()
+              return secrets.token_bytes(n)
+      
+      def hex(self, n: int) -> str:
+          """
+          Generate n random bytes as hex string.
+          
+          Args:
+              n: Number of random bytes (result is 2n hex chars)
+              
+          Returns:
+              Hex-encoded random string
+          """
+          return secrets.token_hex(n)
+      
+      def urlsafe(self, n: int) -> str:
+          """
+          Generate URL-safe random string.
+          
+          Args:
+              n: Number of random bytes
+              
+          Returns:
+              URL-safe base64 encoded random string
+          """
+          return secrets.token_urlsafe(n)
+      
+      def integer(self, max_val: int) -> int:
+          """
+          Generate random integer in range [0, max_val).
+          
+          Uses rejection sampling to avoid modulo bias.
+          
+          Args:
+              max_val: Exclusive upper bound
+              
+          Returns:
+              Random integer in [0, max_val)
+          """
+          if max_val <= 0:
+              raise ValueError("max_val must be positive")
+          
+          with self._lock:
+              self._check_fork()
+              return secrets.randbelow(max_val)
+      
+      def range(self, min_val: int, max_val: int) -> int:
+          """
+          Generate random integer in range [min_val, max_val].
+          
+          Args:
+              min_val: Inclusive lower bound
+              max_val: Inclusive upper bound
+              
+          Returns:
+              Random integer in [min_val, max_val]
+          """
+          if min_val > max_val:
+              raise ValueError("min_val must be <= max_val")
+          
+          return min_val + self.integer(max_val - min_val + 1)
+      
+      def choice(self, sequence: Sequence[T]) -> T:
+          """
+          Randomly select element from sequence.
+          
+          Args:
+              sequence: Non-empty sequence to choose from
+              
+          Returns:
+              Randomly selected element
+          """
+          if not sequence:
+              raise ValueError("Cannot choose from empty sequence")
+          
+          return secrets.choice(sequence)
+      
+      def sample(self, sequence: Sequence[T], k: int) -> List[T]:
+          """
+          Select k unique elements from sequence.
+          
+          Args:
+              sequence: Sequence to sample from
+              k: Number of elements to select
+              
+          Returns:
+              List of k unique randomly selected elements
+          """
+          if k < 0:
+              raise ValueError("k must be non-negative")
+          if k > len(sequence):
+              raise ValueError("k cannot exceed sequence length")
+          
+          # Fisher-Yates shuffle on copy, take first k
+          pool = list(sequence)
+          for i in range(min(k, len(pool) - 1)):
+              j = i + self.integer(len(pool) - i)
+              pool[i], pool[j] = pool[j], pool[i]
+          
+          return pool[:k]
+      
+      def shuffle(self, sequence: List[T]) -> None:
+          """
+          Cryptographically shuffle a list in place.
+          
+          Uses Fisher-Yates shuffle with secure random.
+          
+          Args:
+              sequence: List to shuffle (modified in place)
+          """
+          n = len(sequence)
+          for i in range(n - 1, 0, -1):
+              j = self.integer(i + 1)
+              sequence[i], sequence[j] = sequence[j], sequence[i]
+  
+  
+  # Global secure random instance
+  crypto_random = CryptoRandom()
+  
+  
+  # ============================================================
+  # NONCE/IV GENERATION
+  # ============================================================
+  
+  class NonceGenerator:
+      """
+      Generates unique nonces that never repeat.
+      
+      Supports multiple strategies:
+      1. Counter-based (guaranteed unique, requires persistence)
+      2. Random (probabilistic uniqueness)
+      3. Hybrid (random prefix + counter)
+      
+      For AES-GCM with 96-bit nonces:
+      - Random: Safe for ~2^32 messages per key
+      - Counter: Safe for 2^64 messages per key
+      - Hybrid: Best of both worlds
+      """
+      
+      def __init__(
+          self, 
+          nonce_size: int = 12,
+          strategy: str = "hybrid",
+          counter_file: Optional[str] = None
+      ):
+          """
+          Initialize nonce generator.
+          
+          Args:
+              nonce_size: Size of nonce in bytes
+              strategy: "random", "counter", or "hybrid"
+              counter_file: File to persist counter (for counter/hybrid)
+          """
+          if nonce_size < 8:
+              raise ValueError("Nonce size too small (min 8 bytes)")
+          
+          self.nonce_size = nonce_size
+          self.strategy = strategy
+          self.counter_file = counter_file
+          
+          self._lock = threading.Lock()
+          self._counter = 0
+          
+          if strategy == "hybrid":
+              # Random prefix for this instance
+              prefix_size = nonce_size // 2
+              self._random_prefix = secrets.token_bytes(prefix_size)
+          else:
+              self._random_prefix = b''
+          
+          if counter_file and os.path.exists(counter_file):
+              self._load_counter()
+      
+      def _load_counter(self):
+          """Load counter from persistence file."""
+          try:
+              with open(self.counter_file, 'rb') as f:
+                  self._counter = int.from_bytes(f.read(8), 'big')
+          except Exception:
+              self._counter = 0
+      
+      def _save_counter(self):
+          """Persist counter to file."""
+          if self.counter_file:
+              try:
+                  with open(self.counter_file, 'wb') as f:
+                      f.write(self._counter.to_bytes(8, 'big'))
+              except Exception:
+                  pass
+      
+      def generate(self) -> bytes:
+          """
+          Generate a unique nonce.
+          
+          Returns:
+              Unique nonce bytes
+          """
+          with self._lock:
+              if self.strategy == "random":
+                  return secrets.token_bytes(self.nonce_size)
+              
+              elif self.strategy == "counter":
+                  self._counter += 1
+                  self._save_counter()
+                  return self._counter.to_bytes(self.nonce_size, 'big')
+              
+              else:  # hybrid
+                  self._counter += 1
+                  self._save_counter()
+                  counter_size = self.nonce_size - len(self._random_prefix)
+                  counter_bytes = self._counter.to_bytes(counter_size, 'big')
+                  return self._random_prefix + counter_bytes
+      
+      def generate_deterministic(self, key: bytes, message: bytes) -> bytes:
+          """
+          Generate deterministic nonce from key and message.
+          
+          Useful for SIV (Synthetic IV) modes.
+          
+          Args:
+              key: Encryption key
+              message: Message to encrypt
+              
+          Returns:
+              Deterministic nonce
+          """
+          # HMAC-based nonce derivation
+          h = hmac.new(key, message, hashlib.sha256)
+          return h.digest()[:self.nonce_size]
+  
+  
+  class IVGenerator:
+      """
+      Initialization Vector generator for block ciphers.
+      
+      IVs have different requirements than nonces:
+      - CBC: Unpredictable (random)
+      - CTR: Unique (counter is fine)
+      - GCM: Unique (counter or random)
+      """
+      
+      def __init__(self, key_id: bytes, mode: str = "random"):
+          """
+          Initialize IV generator.
+          
+          Args:
+              key_id: Identifier for the encryption key
+              mode: "random" or "counter"
+          """
+          self.key_id = key_id
+          self.mode = mode
+          self._nonce_gen = NonceGenerator(
+              nonce_size=16,
+              strategy="hybrid" if mode == "counter" else "random"
+          )
+      
+      def generate_iv(self) -> bytes:
+          """Generate unique IV for this key."""
+          return self._nonce_gen.generate()
+      
+      @staticmethod
+      def generate_random_iv(size: int = 16) -> bytes:
+          """
+          Generate random IV (safe for unique keys).
+          
+          Args:
+              size: IV size in bytes
+              
+          Returns:
+              Random IV
+          """
+          return secrets.token_bytes(size)
+  
+  
+  # ============================================================
+  # TOKEN GENERATION
+  # ============================================================
+  
+  def generate_session_token(length: int = 32) -> str:
+      """
+      Generate cryptographically secure session token.
+      
+      Args:
+          length: Number of random bytes
+          
+      Returns:
+          URL-safe session token
+      """
+      return secrets.token_urlsafe(length)
+  
+  
+  def generate_api_key(prefix: str = "api") -> str:
+      """
+      Generate API key with prefix for identification.
+      
+      Args:
+          prefix: Key prefix for identification
+          
+      Returns:
+          API key in format prefix_randomhex
+      """
+      random_part = secrets.token_hex(24)
+      return f"{prefix}_{random_part}"
+  
+  
+  def generate_password(
+      length: int = 16,
+      use_uppercase: bool = True,
+      use_lowercase: bool = True,
+      use_digits: bool = True,
+      use_special: bool = True,
+      exclude_ambiguous: bool = True
+  ) -> str:
+      """
+      Generate cryptographically random password.
+      
+      Args:
+          length: Password length
+          use_uppercase: Include uppercase letters
+          use_lowercase: Include lowercase letters
+          use_digits: Include digits
+          use_special: Include special characters
+          exclude_ambiguous: Exclude ambiguous chars (0O1lI)
+          
+      Returns:
+          Random password
+      """
+      if length < 8:
+          raise ValueError("Password too short (min 8 characters)")
+      
+      alphabet = ""
+      
+      if use_lowercase:
+          alphabet += "abcdefghjkmnpqrstuvwxyz" if exclude_ambiguous else "abcdefghijklmnopqrstuvwxyz"
+      
+      if use_uppercase:
+          alphabet += "ABCDEFGHJKMNPQRSTUVWXYZ" if exclude_ambiguous else "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      
+      if use_digits:
+          alphabet += "23456789" if exclude_ambiguous else "0123456789"
+      
+      if use_special:
+          alphabet += "!@#$%^&*()_+-=[]{}|;:,.<>?"
+      
+      if not alphabet:
+          raise ValueError("At least one character class must be enabled")
+      
+      return ''.join(secrets.choice(alphabet) for _ in range(length))
+  
+  
+  def generate_otp(digits: int = 6) -> str:
+      """
+      Generate numeric one-time password.
+      
+      Args:
+          digits: Number of digits
+          
+      Returns:
+          Zero-padded numeric OTP
+      """
+      if digits < 4:
+          raise ValueError("OTP too short (min 4 digits)")
+      if digits > 10:
+          raise ValueError("OTP too long (max 10 digits)")
+      
+      max_val = 10 ** digits
+      otp = secrets.randbelow(max_val)
+      return str(otp).zfill(digits)
+  
+  
+  def generate_uuid_v4() -> str:
+      """
+      Generate UUID v4 using cryptographic random.
+      
+      Returns:
+          UUID v4 string
+      """
+      # 16 random bytes
+      random_bytes = secrets.token_bytes(16)
+      
+      # Convert to list for modification
+      uuid_bytes = list(random_bytes)
+      
+      # Set version to 4
+      uuid_bytes[6] = (uuid_bytes[6] & 0x0f) | 0x40
+      
+      # Set variant to RFC 4122
+      uuid_bytes[8] = (uuid_bytes[8] & 0x3f) | 0x80
+      
+      # Format as UUID string
+      hex_str = bytes(uuid_bytes).hex()
+      return f"{hex_str[:8]}-{hex_str[8:12]}-{hex_str[12:16]}-{hex_str[16:20]}-{hex_str[20:]}"
+  
+  
+  # ============================================================
+  # ENTROPY VERIFICATION
+  # ============================================================
+  
+  def ensure_entropy_available(min_bits: int = 256) -> bool:
+      """
+      Ensure sufficient entropy is available.
+      
+      On Linux, checks /proc/sys/kernel/random/entropy_avail.
+      On other systems, trusts the OS.
+      
+      Args:
+          min_bits: Minimum required entropy bits
+          
+      Returns:
+          True if entropy is available
+      """
+      try:
+          # On Linux, check available entropy
+          with open('/proc/sys/kernel/random/entropy_avail', 'r') as f:
+              available = int(f.read().strip())
+              
+              if available < min_bits:
+                  # Log warning but don't block - urandom is safe on modern Linux
+                  logging.warning(
+                      f"Low entropy available: {available} bits (recommended: {min_bits})"
+                  )
+                  return False
+              
+              return True
+              
+      except FileNotFoundError:
+          # Not on Linux, trust the OS
+          return True
+      except Exception as e:
+          logging.warning(f"Could not check entropy: {e}")
+          return True
+  
+  
+  def get_entropy_status() -> dict:
+      """
+      Get entropy source status information.
+      
+      Returns:
+          Dictionary with entropy status
+      """
+      status = {
+          "os": os.name,
+          "platform": os.uname().sysname if hasattr(os, 'uname') else "unknown",
+          "urandom_available": False,
+          "entropy_bits": None,
+          "entropy_source": "unknown"
+      }
+      
+      # Check urandom
+      try:
+          os.urandom(1)
+          status["urandom_available"] = True
+      except Exception:
+          pass
+      
+      # Check Linux entropy
+      try:
+          with open('/proc/sys/kernel/random/entropy_avail', 'r') as f:
+              status["entropy_bits"] = int(f.read().strip())
+          status["entropy_source"] = "/dev/urandom"
+      except FileNotFoundError:
+          pass
+      
+      return status
+  
+  
+  # ============================================================
+  # KEY DERIVATION
+  # ============================================================
+  
+  class DeterministicKeyDerivation:
+      """
+      Derive keys deterministically when randomness isn't needed.
+      
+      Uses HKDF for secure key derivation from a master key.
+      """
+      
+      def __init__(self, master_key: bytes):
+          """
+          Initialize with master key.
+          
+          Args:
+              master_key: High-entropy master key
+          """
+          if len(master_key) < 16:
+              raise ValueError("Master key too short (min 16 bytes)")
+          
+          self.master_key = master_key
+      
+      def derive_key(
+          self, 
+          info: bytes, 
+          length: int = 32,
+          salt: Optional[bytes] = None
+      ) -> bytes:
+          """
+          Derive a key using HKDF.
+          
+          Args:
+              info: Context-specific info
+              length: Output key length
+              salt: Optional salt
+              
+          Returns:
+              Derived key
+          """
+          # HKDF Extract
+          if salt is None:
+              salt = b'\x00' * 32
+          
+          prk = hmac.new(salt, self.master_key, hashlib.sha256).digest()
+          
+          # HKDF Expand
+          output = b''
+          block = b''
+          counter = 1
+          
+          while len(output) < length:
+              block = hmac.new(
+                  prk,
+                  block + info + bytes([counter]),
+                  hashlib.sha256
+              ).digest()
+              output += block
+              counter += 1
+          
+          return output[:length]
+  
+  
+  # ============================================================
+  # AUDIT UTILITIES
+  # ============================================================
+  
+  def audit_random_usage(code: str) -> List[dict]:
+      """
+      Audit code for weak random usage patterns.
+      
+      Args:
+          code: Source code to audit
+          
+      Returns:
+          List of issues found
+      """
+      issues = []
+      
+      weak_patterns = [
+          {
+              "pattern": "random.random()",
+              "risk": "high",
+              "suggestion": "Use secrets.token_* for security",
+              "reason": "Mersenne Twister is predictable"
+          },
+          {
+              "pattern": "random.randint(",
+              "risk": "high", 
+              "suggestion": "Use secrets.randbelow()",
+              "reason": "Mersenne Twister is predictable"
+          },
+          {
+              "pattern": "Math.random()",
+              "risk": "high",
+              "suggestion": "Use crypto.getRandomValues()",
+              "reason": "XorShift128+ is predictable"
+          },
+          {
+              "pattern": "time.time() as seed",
+              "risk": "critical",
+              "suggestion": "Use os.urandom() for seeding",
+              "reason": "Time is predictable to attacker"
+          },
+          {
+              "pattern": "srand(time",
+              "risk": "critical",
+              "suggestion": "Use cryptographic PRNG",
+              "reason": "Time-based seeds are predictable"
+          },
+          {
+              "pattern": "uuid4()",
+              "risk": "medium",
+              "suggestion": "Verify implementation uses secure random",
+              "reason": "Some UUID4 implementations use weak PRNG"
+          },
+          {
+              "pattern": "random.choice(",
+              "risk": "high",
+              "suggestion": "Use secrets.choice()",
+              "reason": "Mersenne Twister is predictable"
+          },
+          {
+              "pattern": "random.shuffle(",
+              "risk": "high",
+              "suggestion": "Use cryptographic shuffle",
+              "reason": "Mersenne Twister is predictable"
+          },
+          {
+              "pattern": "random.seed(",
+              "risk": "high",
+              "suggestion": "Don't seed non-crypto PRNG for security",
+              "reason": "Seeded PRNG is still predictable"
+          },
+          {
+              "pattern": "new Random(",
+              "risk": "high",
+              "suggestion": "Use SecureRandom (Java) or crypto (JS)",
+              "reason": "java.util.Random and similar are predictable"
+          }
+      ]
+      
+      for item in weak_patterns:
+          if item["pattern"].lower() in code.lower():
+              issues.append({
+                  "pattern": item["pattern"],
+                  "risk": item["risk"],
+                  "suggestion": item["suggestion"],
+                  "reason": item["reason"]
+              })
+      
+      return issues
+
+# === TEST CASES ===
+fail_to_pass:
+  - "test_no_weak_prng_usage"
+  - "test_nonce_uniqueness_guaranteed"
+  - "test_sufficient_entropy_at_startup"
+  - "test_unpredictable_tokens"
+  - "test_prng_state_not_recoverable"
+  - "test_fork_safe_random"
+  - "test_thread_safe_random"
+  - "test_no_modulo_bias"
+  - "test_statistical_randomness"
+  - "test_nist_sp800_22_tests"
+
+pass_to_pass:
+  - "test_basic_random_generation"
+  - "test_token_format_valid"
+  - "test_password_generation"
+  - "test_uuid_format"
+
+# === VARIABLES FOR TASK GENERATION ===
+variables:
+  scenario_type:
+    type: string
+    options:
+      - "session management"
+      - "API key generation"
+      - "encryption service"
+      - "password reset"
+      - "TOTP secret generation"
+      - "JWT jti generation"
+      - "CSRF token generation"
+      - "nonce generation"
+      - "key generation"
+      - "UUID generation"
+      
+  path:
+    type: path
+    generator: random_path
+    
+  platform:
+    type: string
+    options:
+      - "Linux x86_64"
+      - "Linux ARM64"
+      - "Windows x64"
+      - "macOS ARM64"
+      - "FreeBSD"
+      
+  language:
+    type: string
+    options:
+      - "Python 3.11"
+      - "Node.js 20"
+      - "Go 1.21"
+      - "Java 21"
+      - "PHP 8.2"
+      
+  framework:
+    type: string
+    options:
+      - "Django"
+      - "Flask"
+      - "Express"
+      - "Spring Boot"
+      - "Laravel"
+      
+  token_count:
+    type: int
+    min: 1000
+    max: 10000000
+    
+  predictable_tokens:
+    type: int
+    min: 10
+    max: 100000
+    
+  predictability_rate:
+    type: float
+    min: 0.1
+    max: 100.0
+    
+  collected_outputs:
+    type: int
+    min: 100
+    max: 10000
+    
+  seed_time_window:
+    type: int
+    min: 1
+    max: 86400
+    
+  prng_type:
+    type: string
+    options:
+      - "Mersenne Twister (MT19937)"
+      - "Linear Congruential Generator"
+      - "XorShift128+"
+      - "java.util.Random"
+      - "glibc random()"
+      
+  task_steps:
+    type: template
+    value: |
+      1. Identify all random number generation points
+      2. Classify PRNG types used (crypto vs non-crypto)
+      3. Analyze seeding mechanisms
+      4. Check for nonce/IV reuse
+      5. Replace weak PRNGs with secrets module
+      6. Implement proper nonce generation
+      7. Ensure entropy availability at startup
+      8. Add fork-safety and thread-safety
+      9. Verify no modulo bias in range selection
+      10. Run statistical tests on output
+
+# === ANTI-PATTERNS AND LLM FAILURE MODES ===
+anti_patterns:
+  llm_failure_modes:
+    - "Applying textbook attack patterns without considering mitigations"
+    - "Missing WAF/IDS bypass techniques for exploitation"
+    - "Ignoring ASLR/PIE/NX and other modern protections"
+    - "Not considering timing side-channel in crypto implementations"
+    - "Missing second-order and stored attack vectors"
+    - "Overlooking race conditions in authentication flows"
+    - "Assuming standard libraries are secure without version checking"
+    - "Missing JWT algorithm confusion and key confusion attacks"
+    - "Ignoring deserialization gadget chain discovery complexity"
+    - "Not recognizing Mersenne Twister state recovery from 624 outputs"
+    - "Missing XorShift128+ state recovery techniques (V8 Math.random)"
+    - "Overlooking java.util.Random LCG state recovery from 2 outputs"
+    - "Failing to identify PHP mt_rand seed recovery vulnerabilities"
+    - "Not considering CSPRNG fork-without-reseed vulnerabilities"
+    - "Missing VM snapshot PRNG state duplication attacks"
+    - "Ignoring container entropy isolation bypass techniques"
+    - "Not recognizing early boot low entropy conditions"
+    - "Overlooking modulo bias in range selection implementations"
+    - "Missing floating-point precision loss in random conversion"
+    - "Failing to identify nonce collision probability calculations"
+    - "Not considering ECDSA nonce bias lattice attacks"
+    - "Ignoring hardware RNG manipulation or bypass"
+    - "Missing entropy estimation bypass techniques"
+    - "Not recognizing thread-unsafe PRNG corruption"
+    - "Overlooking Python random state recovery via randcrack"
+    - "Failing to identify partial output state inference"
+    - "Not considering time-window seed brute-forcing"
+    - "Missing PID-based seed space reduction"
+    - "Ignoring RDRAND/RDSEED implementation vulnerabilities"
+
+# === ANTI-HARDCODING MEASURES ===
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  
+  weak_random_sources:
+    - "math_random"
+    - "time_seeded_prng"
+    - "pid_seeded_prng"
+    - "reused_nonces"
+    - "low_entropy_startup"
+    - "mersenne_twister"
+    - "lcg_prng"
+    
+  verification_requirements:
+    - "NIST SP 800-22 test suite pass"
+    - "No state recovery within 2^64 outputs"
+    - "Nonce collision probability < 2^-64"
+    - "Fork detection and reseed"
+    - "Thread-safe operation"
+
+# === CVE REFERENCES FOR INSPIRATION ===
+cve_references:
+  - id: "CVE-2008-2108"
+    description: "PHP PRNG seeding vulnerability"
+    relevance: "Time-based seeding attack"
+    
+  - id: "CVE-2012-0050"
+    description: "OpenSSL RSA key generation"
+    relevance: "Insufficient entropy in key generation"
+    
+  - id: "CVE-2016-0701"
+    description: "OpenSSL DH key reuse"
+    relevance: "Key/nonce reuse vulnerability"
+    
+  - id: "CVE-2018-16871"
+    description: "Linux kernel entropy after VM resume"
+    relevance: "VM snapshot PRNG state issues"
+    
+  - id: "CVE-2019-14318"
+    description: "Crypto++ ECDSA nonce bias"
+    relevance: "Biased nonce leads to key recovery"
+    
+  - id: "CVE-2020-0601"
+    description: "Windows CryptoAPI spoofing"
+    relevance: "Elliptic curve parameter validation"
+
+# === LANGUAGE-SPECIFIC RECOMMENDATIONS ===
+language_specific:
+  python:
+    secure: ["secrets", "os.urandom"]
+    insecure: ["random", "numpy.random"]
+    notes: "secrets module is crypto-safe; random is not"
+    
+  javascript:
+    secure: ["crypto.randomBytes", "crypto.getRandomValues"]
+    insecure: ["Math.random"]
+    notes: "Never use Math.random() for security"
+    
+  java:
+    secure: ["SecureRandom"]
+    insecure: ["java.util.Random", "Math.random"]
+    notes: "Always use SecureRandom for security"
+    
+  go:
+    secure: ["crypto/rand"]
+    insecure: ["math/rand"]
+    notes: "crypto/rand uses OS entropy"
+    
+  rust:
+    secure: ["rand::rngs::OsRng", "getrandom"]
+    insecure: ["rand::rngs::StdRng with predictable seed"]
+    notes: "Use OsRng or ThreadRng for security"
+
+# === STATISTICAL TESTING REQUIREMENTS ===
+statistical_testing:
+  required_tests:
+    - "Frequency (monobit) test"
+    - "Block frequency test"
+    - "Runs test"
+    - "Longest run test"
+    - "Matrix rank test"
+    - "Spectral (DFT) test"
+    - "Non-overlapping templates"
+    - "Overlapping templates"
+    - "Universal statistical test"
+    - "Linear complexity"
+    - "Serial test"
+    - "Approximate entropy"
+    - "Cumulative sums"
+    - "Random excursions"
+    - "Random excursions variant"
+    
+  sample_size:
+    minimum: 1000000
+    recommended: 10000000
+    
+  pass_threshold:
+    p_value: 0.01
+    proportion: 0.96

@@ -1,0 +1,43 @@
+id: "text-processing-easy-001"
+version: "1.0.0"
+category: "text_processing"
+subcategory: "counting"
+
+difficulty:
+  estimated: "easy"
+  min_score: 0.0
+  max_score: 0.35
+
+variables:
+  line_count:
+    type: int
+    min: 20
+    max: 50
+    description: "Number of lines in the file"
+
+instruction_template: |
+  Count the number of lines in the file /home/user/data.txt.
+  
+  Write only the number to /home/user/result.txt (just the count, nothing else).
+
+solution_template: |
+  #!/bin/bash
+  wc -l < /home/user/data.txt > /home/user/result.txt
+
+generated_files:
+  - path: "task-deps/data/data.txt"
+    generator: "text_file_generator"
+    config:
+      lines: "30"
+
+expected_outputs:
+  result_file:
+    path: "/home/user/result.txt"
+    exists: true
+
+anti_hardcoding:
+  canary_locations:
+    - "task.yaml:metadata"
+  process_validation:
+    required_patterns:
+      - "wc"

@@ -1,0 +1,1286 @@
+id: "algo-graph-dijkstra-trap-001"
+version: "2.0.0"
+category: "algorithms"
+subcategory: "graph/shortest-path"
+
+# =============================================================================
+# LLM GENERATION FRAMEWORK
+# =============================================================================
+# This file is a comprehensive generation specification for LLMs to create
+# unique, extremely challenging Dijkstra's algorithm and shortest path tasks.
+# The goal is to enable generation of 10,000+ fundamentally different,
+# genuinely hard tasks.
+# =============================================================================
+
+generation_framework:
+  overview: |
+    This specification enables LLMs to generate Dijkstra and shortest path tasks
+    that are genuinely difficult. Dijkstra's algorithm has subtle requirements
+    around non-negative weights, priority queue operations, and graph representation.
+    Tasks should require deep understanding of graph algorithms.
+
+  multi_conversation_workflow:
+    phase_1_research:
+      description: "LLM researches shortest path edge cases"
+      activities:
+        - "Study Dijkstra's algorithm correctness requirements"
+        - "Research negative weight handling issues"
+        - "Investigate priority queue implementation bugs"
+        - "Analyze graph representation issues"
+        - "Study real-world pathfinding failures"
+      output: "Comprehensive list of shortest path traps"
+    
+    phase_2_creation:
+      description: "LLM creates task with hidden pathfinding flaws"
+      activities:
+        - "Design graphs where Dijkstra fails subtly"
+        - "Create scenarios with data corruption issues"
+        - "Embed priority queue bugs"
+        - "Add graph representation problems"
+        - "Include numerical precision issues"
+      output: "Complete task with shortest path traps"
+    
+    phase_3_amplification:
+      description: "LLM adds difficulty multipliers"
+      activities:
+        - "Layer multiple shortest path issues"
+        - "Add performance-critical constraints"
+        - "Include concurrent modification scenarios"
+        - "Create dynamic graph situations"
+        - "Add memory constraint challenges"
+      output: "Amplified task"
+    
+    phase_4_verification:
+      description: "LLM validates task is genuinely hard"
+      validation_criteria:
+        - "Cannot be solved by running basic Dijkstra"
+        - "Requires understanding of algorithm correctness"
+        - "Has at least 5 interacting hidden traps"
+        - "Would take experienced developers 30+ minutes"
+        - "Has cascading failure modes that interact with each other"
+        - "Requires multi-domain knowledge synthesis (algorithms + systems + performance)"
+      output: "Verified task"
+
+  quality_requirements:
+    mandatory:
+      - "Must require understanding of Dijkstra's correctness"
+      - "Must have non-obvious graph or data issues"
+      - "Must include at least 5 distinct traps"
+      - "Must have intermittent failures"
+      - "Must resist simple debugging"
+      - "Must take 30+ minutes for experienced developers, 45+ for intermediate"
+
+# =============================================================================
+# EXHAUSTIVE TOPIC UNIVERSE
+# =============================================================================
+
+topic_universe:
+  # ---------------------------------------------------------------------------
+  # Shortest Path Algorithm Topics (40 topics)
+  # ---------------------------------------------------------------------------
+  algorithms:
+    single_source:
+      - dijkstra_standard
+      - dijkstra_fibonacci_heap
+      - dijkstra_binary_heap
+      - dijkstra_d_ary_heap
+      - dijkstra_pairing_heap
+      - dijkstra_bidirectional
+      - bellman_ford_standard
+      - bellman_ford_queue
+      - spfa_shortest_path_faster
+      - dial_algorithm
+      - delta_stepping
+      - thorup_algorithm
+    
+    all_pairs:
+      - floyd_warshall
+      - johnson_algorithm
+      - dijkstra_repeated
+      - bellman_ford_repeated
+      - matrix_multiplication
+      - transitive_closure
+    
+    specialized:
+      - a_star
+      - a_star_weighted
+      - ida_star
+      - d_star
+      - d_star_lite
+      - jump_point_search
+      - theta_star
+      - lazy_theta_star
+      - hierarchical_a_star
+      - contraction_hierarchies
+      - hub_labeling
+      - transit_node_routing
+      - arc_flags
+      - reach_based_routing
+      - customizable_route_planning
+
+  # ---------------------------------------------------------------------------
+  # Graph Representation Topics (25 topics)
+  # ---------------------------------------------------------------------------
+  representations:
+    basic:
+      - adjacency_matrix
+      - adjacency_list_array
+      - adjacency_list_linked
+      - edge_list
+      - incidence_matrix
+      - compressed_sparse_row
+      - compressed_sparse_column
+    
+    advanced:
+      - implicit_graph
+      - grid_graph
+      - lattice_graph
+      - complete_graph
+      - bipartite_graph
+      - planar_graph
+      - sparse_graph
+      - dense_graph
+    
+    weighted:
+      - integer_weights
+      - floating_point_weights
+      - rational_weights
+      - multi_criteria_weights
+      - time_dependent_weights
+      - stochastic_weights
+
+  # ---------------------------------------------------------------------------
+  # Application Domains (30 topics)
+  # ---------------------------------------------------------------------------
+  domains:
+    navigation:
+      - road_network
+      - public_transit
+      - pedestrian_routing
+      - bicycle_routing
+      - multi_modal_routing
+      - real_time_traffic
+      - historical_traffic
+      - route_planning
+    
+    networking:
+      - ospf_routing
+      - bgp_routing
+      - sdn_routing
+      - mpls_paths
+      - optical_network_routing
+      - data_center_networking
+    
+    games:
+      - pathfinding_ai
+      - navigation_mesh
+      - tile_based_pathfinding
+      - hierarchical_pathfinding
+      - flow_field_pathfinding
+    
+    optimization:
+      - supply_chain
+      - logistics
+      - warehouse_robots
+      - drone_routing
+      - flight_planning
+
+# =============================================================================
+# COMPLEXITY DIMENSIONS
+# =============================================================================
+
+complexity_dimensions:
+  algorithm_correctness:
+    dijkstra_requirements:
+      - non_negative_weights
+      - visited_set_usage
+      - priority_queue_operations
+      - relaxation_correctness
+      - termination_conditions
+    
+    bellman_ford_requirements:
+      - negative_cycle_detection
+      - iteration_count
+      - edge_relaxation_order
+      - early_termination
+    
+    optimality:
+      - subpath_optimality
+      - consistent_heuristics
+      - admissible_heuristics
+      - monotonic_heuristics
+
+  data_integrity:
+    graph_issues:
+      - missing_edges
+      - duplicate_edges
+      - self_loops
+      - disconnected_components
+      - wrong_weight_types
+    
+    parsing_issues:
+      - encoding_corruption
+      - number_parsing_errors
+      - scientific_notation
+      - unicode_in_ids
+      - whitespace_handling
+
+  numerical_issues:
+    precision:
+      - floating_point_comparison
+      - accumulation_errors
+      - overflow_in_sums
+      - underflow_near_zero
+      - inf_and_nan_handling
+
+# =============================================================================
+# TRAP TAXONOMY
+# =============================================================================
+
+trap_taxonomy:
+  # ---------------------------------------------------------------------------
+  # Data Corruption Traps (8 types)
+  # ---------------------------------------------------------------------------
+  data_corruption:
+    unicode_in_weights:
+      trap_id: "DC001"
+      name: "Unicode in Weight Values"
+      description: "Zero-width characters in numeric weights"
+      example: |
+        # Edge weight: "1​0" (with zero-width space)
+        # int("1​0") fails or gives wrong value
+      detection_difficulty: "very_hard"
+      manifestation: "Parsing errors or wrong weights"
+      fix: "Normalize and validate numeric strings"
+      
+    scientific_notation:
+      trap_id: "DC002"
+      name: "Scientific Notation Weights"
+      description: "Weights in scientific notation"
+      example: |
+        # Weight: "1e-10"
+        # int("1e-10") fails
+        # float("1e-10") = 0.0000000001
+      detection_difficulty: "medium"
+      manifestation: "Parsing errors"
+      fix: "Handle scientific notation"
+      
+    locale_number_format:
+      trap_id: "DC003"
+      name: "Locale-Dependent Number Format"
+      description: "Numbers with commas or periods"
+      example: |
+        # US: 1,000.50
+        # EU: 1.000,50
+        # Parsing depends on locale
+      detection_difficulty: "hard"
+      manifestation: "Wrong weights"
+      fix: "Standardize number parsing"
+      
+    whitespace_corruption:
+      trap_id: "DC004"
+      name: "Whitespace in Values"
+      description: "Leading/trailing whitespace in data"
+      example: |
+        # " 10 " vs "10"
+        # "node1 " vs "node1"
+      detection_difficulty: "medium"
+      manifestation: "Lookup failures"
+      fix: "Strip whitespace"
+      
+    encoding_mismatch:
+      trap_id: "DC005"
+      name: "File Encoding Issues"
+      description: "Graph file in wrong encoding"
+      example: |
+        # File saved as UTF-16, read as UTF-8
+        # Or contains BOM
+      detection_difficulty: "medium"
+      manifestation: "Garbled data"
+      fix: "Detect and handle encoding"
+      
+    string_vs_int_node:
+      trap_id: "DC006"
+      name: "String vs Integer Node IDs"
+      description: "Node IDs as strings vs integers"
+      example: |
+        # Edge: ("1", "2", 10)
+        # Lookup: graph[1] fails (int vs str)
+      detection_difficulty: "medium"
+      manifestation: "KeyError on valid nodes"
+      fix: "Consistent node ID types"
+      
+    case_sensitivity:
+      trap_id: "DC007"
+      name: "Case Sensitivity in Node IDs"
+      description: "Node 'A' vs 'a' treated differently"
+      example: |
+        # Edge: A -> B
+        # Query: a to b
+        # Not found!
+      detection_difficulty: "easy"
+      manifestation: "Path not found"
+      fix: "Normalize case"
+      
+    duplicate_edges_different:
+      trap_id: "DC008"
+      name: "Duplicate Edges with Different Weights"
+      description: "Same edge appears multiple times"
+      example: |
+        # A -> B: 10
+        # A -> B: 5
+        # Which one is used?
+      detection_difficulty: "medium"
+      manifestation: "Inconsistent paths"
+      fix: "Handle duplicates explicitly"
+
+  # ---------------------------------------------------------------------------
+  # Algorithm Implementation Traps (10 types)
+  # ---------------------------------------------------------------------------
+  implementation_traps:
+    negative_weight_ignored:
+      trap_id: "IT001"
+      name: "Negative Weight Not Detected"
+      description: "Using Dijkstra with negative weights"
+      example: |
+        # Graph has edge A->B: -5
+        # Dijkstra doesn't check for negatives
+        # Returns suboptimal path
+      detection_difficulty: "medium"
+      manifestation: "Wrong shortest path"
+      fix: "Validate non-negative weights or use Bellman-Ford"
+      
+    visited_early_return:
+      trap_id: "IT002"
+      name: "Early Return on Visit"
+      description: "Returning immediately when destination visited"
+      example: |
+        # Dijkstra visits D but better path exists
+        # Early return misses optimal
+      detection_difficulty: "hard"
+      manifestation: "Suboptimal path"
+      fix: "Only terminate when popped from queue"
+      
+    priority_queue_update:
+      trap_id: "IT003"
+      name: "Priority Queue Update Issue"
+      description: "Not handling decrease-key properly"
+      example: |
+        # Better distance found for node in queue
+        # Old entry still in queue
+        # May process stale entry first
+      detection_difficulty: "hard"
+      manifestation: "Wrong path or inefficiency"
+      fix: "Use lazy deletion or proper decrease-key"
+      
+    distance_initialization:
+      trap_id: "IT004"
+      name: "Distance Initialization"
+      description: "Wrong initial distances"
+      example: |
+        # dist[source] = infinity instead of 0
+        # Or dist initialized to 0 instead of infinity
+      detection_difficulty: "easy"
+      manifestation: "All zeros or nothing reachable"
+      fix: "dist[source]=0, others=infinity"
+      
+    overflow_distance:
+      trap_id: "IT005"
+      name: "Distance Overflow"
+      description: "Sum of weights overflows"
+      example: |
+        # INT_MAX + any positive = overflow
+        # Distance becomes negative
+      detection_difficulty: "medium"
+      manifestation: "Negative distances"
+      fix: "Use infinity carefully, check overflow"
+      
+    floating_point_comparison:
+      trap_id: "IT006"
+      name: "Floating Point Distance Comparison"
+      description: "Comparing floating distances directly"
+      example: |
+        # 0.1 + 0.2 != 0.3
+        # new_dist < dist[neighbor] may fail
+      detection_difficulty: "hard"
+      manifestation: "Missing better paths"
+      fix: "Use epsilon comparison"
+      
+    path_reconstruction:
+      trap_id: "IT007"
+      name: "Path Reconstruction Error"
+      description: "Wrong predecessor tracking"
+      example: |
+        # pred[node] not updated on relaxation
+        # Or overwritten incorrectly
+      detection_difficulty: "medium"
+      manifestation: "Wrong path returned"
+      fix: "Update pred on every relaxation"
+      
+    unreachable_handling:
+      trap_id: "IT008"
+      name: "Unreachable Node Handling"
+      description: "Not handling unreachable destinations"
+      example: |
+        # Destination not reachable
+        # Return infinity or error?
+        # Path reconstruction fails
+      detection_difficulty: "easy"
+      manifestation: "Crash or wrong result"
+      fix: "Check for infinity distance"
+      
+    self_loop_handling:
+      trap_id: "IT009"
+      name: "Self Loop Handling"
+      description: "Self loops in graph"
+      example: |
+        # A -> A: 5
+        # Should this be considered?
+        # Can create issues if negative
+      detection_difficulty: "medium"
+      manifestation: "Depends on intent"
+      fix: "Filter or handle explicitly"
+      
+    parallel_edges:
+      trap_id: "IT010"
+      name: "Parallel Edge Handling"
+      description: "Multiple edges between same nodes"
+      example: |
+        # A -> B via highway: 100km, 1hr
+        # A -> B via local: 50km, 2hr
+        # Multi-criteria or minimum?
+      detection_difficulty: "medium"
+      manifestation: "Depends on criteria"
+      fix: "Clarify edge semantics"
+
+  # ---------------------------------------------------------------------------
+  # Priority Queue Traps (6 types)
+  # ---------------------------------------------------------------------------
+  priority_queue:
+    wrong_comparison:
+      trap_id: "PQ001"
+      name: "Wrong Priority Comparison"
+      description: "Max heap instead of min heap"
+      example: |
+        # heapq in Python is min-heap
+        # Java PQ default is min-heap
+        # But custom comparator reversed?
+      detection_difficulty: "medium"
+      manifestation: "Longest path instead of shortest"
+      fix: "Verify heap is min-heap"
+      
+    stale_entries:
+      trap_id: "PQ002"
+      name: "Stale Queue Entries"
+      description: "Old entries not removed"
+      example: |
+        # Better distance found, add new entry
+        # Old entry still in queue
+        # May process stale entry
+      detection_difficulty: "medium"
+      manifestation: "Inefficiency or wrong result"
+      fix: "Skip stale entries"
+      
+    tuple_comparison:
+      trap_id: "PQ003"
+      name: "Tuple Comparison Issues"
+      description: "Heap of (dist, node) has comparison issues"
+      example: |
+        # (5, 'b') < (5, 'a') in Python
+        # Uses node for tiebreaker
+        # May not be desired behavior
+      detection_difficulty: "hard"
+      manifestation: "Non-deterministic ties"
+      fix: "Add tiebreaker or counter"
+      
+    duplicate_node_entries:
+      trap_id: "PQ004"
+      name: "Duplicate Node in Queue"
+      description: "Same node added multiple times"
+      example: |
+        # Node A relaxed multiple times
+        # Multiple entries in queue
+        # Must handle correctly
+      detection_difficulty: "easy"
+      manifestation: "Wasted processing"
+      fix: "Use visited set or lazy deletion"
+      
+    empty_queue_check:
+      trap_id: "PQ005"
+      name: "Empty Queue Check"
+      description: "Not checking if queue empty"
+      example: |
+        # Destination unreachable
+        # Queue empties before found
+        # Pop from empty queue = error
+      detection_difficulty: "easy"
+      manifestation: "Runtime error"
+      fix: "Check queue not empty"
+      
+    non_comparable_nodes:
+      trap_id: "PQ006"
+      name: "Non-Comparable Node Types"
+      description: "Nodes can't be compared for tiebreaking"
+      example: |
+        # (5, Node(...)) in heap
+        # Two nodes with same distance
+        # Comparison fails
+      detection_difficulty: "medium"
+      manifestation: "TypeError on tie"
+      fix: "Use counter for tiebreaking"
+
+  # ---------------------------------------------------------------------------
+  # Graph Structure Traps (6 types)
+  # ---------------------------------------------------------------------------
+  graph_structure:
+    directed_vs_undirected:
+      trap_id: "GS001"
+      name: "Directed vs Undirected Confusion"
+      description: "Treating directed as undirected"
+      example: |
+        # One-way street: A -> B
+        # Algorithm tries B -> A
+        # Not valid!
+      detection_difficulty: "medium"
+      manifestation: "Invalid paths"
+      fix: "Respect edge directionality"
+      
+    disconnected_graph:
+      trap_id: "GS002"
+      name: "Disconnected Components"
+      description: "Source and destination in different components"
+      example: |
+        # Component 1: A, B
+        # Component 2: C, D
+        # Path A to C doesn't exist
+      detection_difficulty: "easy"
+      manifestation: "No path found"
+      fix: "Handle disconnected case"
+      
+    implicit_edges:
+      trap_id: "GS003"
+      name: "Missing Implicit Edges"
+      description: "Implicit edges not included"
+      example: |
+        # Grid graph: implicit edges to neighbors
+        # But some neighbors missing from explicit list
+      detection_difficulty: "medium"
+      manifestation: "Missing paths"
+      fix: "Generate all valid edges"
+      
+    node_not_in_graph:
+      trap_id: "GS004"
+      name: "Source/Destination Not in Graph"
+      description: "Query for non-existent nodes"
+      example: |
+        # Source node not in graph
+        # Algorithm fails
+      detection_difficulty: "easy"
+      manifestation: "KeyError"
+      fix: "Validate nodes exist"
+      
+    zero_weight_edges:
+      trap_id: "GS005"
+      name: "Zero Weight Edge Handling"
+      description: "Edges with weight 0"
+      example: |
+        # A -> B: 0
+        # Valid but may cause issues
+        # In some formulations
+      detection_difficulty: "medium"
+      manifestation: "Depends on algorithm"
+      fix: "Handle zero weights explicitly"
+      
+    bidirectional_asymmetric:
+      trap_id: "GS006"
+      name: "Asymmetric Bidirectional Weights"
+      description: "A->B weight differs from B->A"
+      example: |
+        # Uphill: A->B: 10
+        # Downhill: B->A: 5
+        # Both valid, different
+      detection_difficulty: "easy"
+      manifestation: "Path depends on direction"
+      fix: "Store directed edges"
+
+  # ---------------------------------------------------------------------------
+  # Performance Traps (6 types)
+  # ---------------------------------------------------------------------------
+  performance:
+    quadratic_adjacency_lookup:
+      trap_id: "PF001"
+      name: "Quadratic Adjacency Lookup"
+      description: "O(E) lookup for neighbors"
+      example: |
+        # For each neighbor lookup, scan all edges
+        # O(V * E) instead of O(E)
+      detection_difficulty: "medium"
+      manifestation: "Slow on dense graphs"
+      fix: "Use adjacency list"
+      
+    no_early_termination:
+      trap_id: "PF002"
+      name: "Missing Early Termination"
+      description: "Continue after destination found"
+      example: |
+        # Single-source to single-target
+        # But computes all shortest paths
+      detection_difficulty: "easy"
+      manifestation: "Slow for single query"
+      fix: "Stop when destination popped"
+      
+    repeated_dijkstra:
+      trap_id: "PF003"
+      name: "Repeated Dijkstra for All Pairs"
+      description: "Running Dijkstra V times inefficiently"
+      example: |
+        # Dense graph with negative edges
+        # Better to use Floyd-Warshall
+      detection_difficulty: "medium"
+      manifestation: "O(V²E) vs O(V³)"
+      fix: "Choose appropriate algorithm"
+      
+    memory_explosion:
+      trap_id: "PF004"
+      name: "Memory Explosion in Sparse Graph"
+      description: "Using adjacency matrix for sparse graph"
+      example: |
+        # 1M nodes, 2M edges
+        # Adjacency matrix = 1T entries!
+      detection_difficulty: "easy"
+      manifestation: "Out of memory"
+      fix: "Use adjacency list"
+      
+    unnecessary_sorting:
+      trap_id: "PF005"
+      name: "Unnecessary Edge Sorting"
+      description: "Sorting edges when not needed"
+      example: |
+        # Sorting all edges before Dijkstra
+        # Not required for Dijkstra
+      detection_difficulty: "easy"
+      manifestation: "O(E log E) overhead"
+      fix: "Don't sort for Dijkstra"
+      
+    path_copying:
+      trap_id: "PF006"
+      name: "Copying Full Path Per State"
+      description: "Storing full path in each state"
+      example: |
+        # state = (dist, node, full_path)
+        # O(V) path per state = O(V²) memory
+      detection_difficulty: "medium"
+      manifestation: "Memory explosion"
+      fix: "Store only predecessors"
+
+# =============================================================================
+# EDGE CASE CATALOG
+# =============================================================================
+
+edge_cases:
+  graph_edge_cases:
+    - empty_graph
+    - single_node
+    - two_nodes_one_edge
+    - complete_graph
+    - sparse_graph
+    - dense_graph
+    - tree_graph
+    - dag
+    - single_cycle
+    - multiple_cycles
+    - grid_graph
+    - bipartite_graph
+    - disconnected_components
+
+  weight_edge_cases:
+    - all_weights_1
+    - all_weights_same
+    - zero_weight_edges
+    - very_large_weights
+    - very_small_weights
+    - floating_point_weights
+    - integer_overflow_sum
+    - mixed_integer_float
+
+  path_edge_cases:
+    - source_equals_destination
+    - source_not_in_graph
+    - destination_not_in_graph
+    - no_path_exists
+    - multiple_shortest_paths
+    - unique_shortest_path
+    - path_through_all_nodes
+    - direct_edge_is_shortest
+
+  query_edge_cases:
+    - single_source_all_destinations
+    - all_pairs
+    - single_source_single_destination
+    - k_shortest_paths
+    - constrained_path
+
+# =============================================================================
+# ANTI-PATTERNS
+# =============================================================================
+
+anti_patterns:
+  llm_failure_modes:
+    - "Pattern matching on similar-looking graph problems without input validation"
+    - "Applying Dijkstra to graphs with negative weights without checking"
+    - "Missing data corruption in weight parsing"
+    - "Ignoring priority queue implementation details affecting correctness"
+    - "Assuming all graph data is clean and well-formatted"
+    - "Skipping verification of path optimality"
+    - "Over-relying on library shortest path without understanding limitations"
+    - "Missing Unicode normalization in node ID handling"
+    - "Ignoring encoding issues in graph file parsing"
+    - "Failing to handle unreachable destination gracefully"
+    - "Not considering early termination optimization"
+    - "Missing infinity handling in distance comparison"
+    - "Overlooking overflow in distance accumulation"
+    - "Failing to implement proper path reconstruction"
+    - "Not detecting disconnected graphs"
+    - "Missing self-loop handling"
+    - "Ignoring duplicate edge possibilities"
+    - "Failing to handle node ID type mismatches"
+    - "Not considering bidirectional search opportunities"
+    - "Missing A* heuristic optimization potential"
+    - "Overlooking visited set vs distance check tradeoff"
+    - "Failing to validate non-negative weight requirement"
+    - "Not implementing decrease-key correctly"
+    - "Missing stale priority queue entry handling"
+    - "Ignoring numerical precision in floating point weights"
+
+  task_anti_patterns:
+    obvious_negative_weight:
+      description: "Clearly visible negative weight"
+      why_bad: "No analysis needed"
+      
+    always_fails:
+      description: "Every query fails"
+      why_bad: "No intermittent debugging"
+
+# =============================================================================
+# DIFFICULTY AMPLIFIERS
+# =============================================================================
+
+difficulty_amplifiers:
+  nightmare:
+    multiplier: 3.0
+    description: "Extreme difficulty requiring expert-level multi-domain synthesis"
+    requirements:
+      - "7+ interacting traps across multiple domains"
+      - "Requires understanding of hardware-level effects"
+      - "Time estimate: 90+ minutes for senior engineers"
+      - "Multiple red herrings that waste investigation time"
+      - "Solution requires synthesizing knowledge from 3+ distinct areas"
+
+  nightmare_plus:
+    multiplier: 5.0
+    estimated_time: [28800, 172800]  # 8-48 hours
+    command_steps: [300, 1200]
+    techniques_required: 12
+    description: "Research paper difficulty requiring novel shortest path algorithm design"
+    requirements:
+      - "10+ deeply interacting traps across algorithm correctness/data handling/performance domains"
+      - "Requires novel graph preprocessing or algorithm adaptation"
+      - "Must synthesize knowledge from graph algorithms, data parsing, and numerical methods"
+      - "Requires formal proof of shortest path optimality under corrupted data"
+      - "Time estimate: 8-48 hours for competitive programmers with ICPC/IOI medal experience"
+      - "Multiple data corruption patterns that interact with algorithm bugs"
+      - "Must handle adversarial graph construction"
+      - "Requires understanding of priority queue implementations"
+      - "Solution involves robust parsing and validation framework"
+
+# =============================================================================
+# MULTI-AGENT ORCHESTRATION COMPLEXITY
+# =============================================================================
+
+multi_agent_orchestration:
+  description: "Coordinating 4-7 specialized agents for complex shortest path analysis"
+  
+  specialized_agents:
+    data_validator:
+      role: "Validate and clean graph input data"
+      capabilities:
+        - "Unicode normalization in node IDs"
+        - "Weight parsing with multiple formats"
+        - "Encoding detection and correction"
+        - "Duplicate edge resolution"
+      handoff_triggers:
+        - "Parse errors in input"
+        - "Inconsistent data formats"
+    
+    algorithm_correctness_checker:
+      role: "Verify Dijkstra implementation correctness"
+      capabilities:
+        - "Negative weight detection"
+        - "Priority queue operation verification"
+        - "Distance update correctness"
+        - "Path reconstruction validation"
+      handoff_triggers:
+        - "Wrong paths returned"
+        - "Algorithm fails on valid input"
+    
+    performance_optimizer:
+      role: "Optimize shortest path performance"
+      capabilities:
+        - "Heap implementation selection"
+        - "Early termination optimization"
+        - "Bidirectional search"
+        - "A* heuristic design"
+      handoff_triggers:
+        - "Performance requirements not met"
+        - "Large graph optimization needed"
+    
+    numerical_analyst:
+      role: "Handle numerical precision issues"
+      capabilities:
+        - "Floating point comparison"
+        - "Overflow detection"
+        - "Distance accumulation precision"
+        - "Infinity handling"
+      handoff_triggers:
+        - "Precision-related bugs"
+        - "Overflow potential identified"
+    
+    graph_structure_analyzer:
+      role: "Analyze graph structural properties"
+      capabilities:
+        - "Connectivity analysis"
+        - "Negative cycle detection"
+        - "Graph sparsity/density"
+        - "Special structure identification"
+      handoff_triggers:
+        - "Algorithm selection needed"
+        - "Graph properties affect correctness"
+
+  cross_algorithm_attack_chains:
+    chain_1:
+      name: "Corrupted Weight → Wrong Parsing → Incorrect Distance → Suboptimal Path"
+      stages:
+        - "Weight contains invisible Unicode"
+        - "Parser produces wrong numeric value"
+        - "Distance calculations are wrong"
+        - "Shortest path is actually not shortest"
+    
+    chain_2:
+      name: "Negative Edge → Dijkstra Incorrect → Wrong Path → Silent Failure"
+      stages:
+        - "Graph contains negative edge weight"
+        - "Dijkstra doesn't detect/handle it"
+        - "Algorithm returns suboptimal path"
+        - "No error but wrong result"
+    
+    chain_3:
+      name: "Priority Queue Bug → Wrong Node Order → Missing Relaxation → Incorrect Result"
+      stages:
+        - "Custom comparator has subtle bug"
+        - "Nodes processed in wrong order"
+        - "Some relaxations never happen"
+        - "Final distances are wrong"
+
+# =============================================================================
+# THEORETICAL COMPLEXITY REQUIREMENTS
+# =============================================================================
+
+theoretical_complexity_requirements:
+  algorithm_correctness:
+    dijkstra_requirements:
+      - "Non-negative edge weights"
+      - "Greedy choice property proof"
+      - "Optimal substructure proof"
+    bellman_ford_analysis:
+      - "Negative weight handling"
+      - "Negative cycle detection"
+      - "Iteration bound correctness"
+
+  amortized_analysis:
+    heap_operations:
+      - "Binary heap: O(log n) push/pop"
+      - "Fibonacci heap: O(1) decrease-key amortized"
+      - "Pairing heap practical performance"
+    total_complexity:
+      - "O((V + E) log V) with binary heap"
+      - "O(V log V + E) with Fibonacci heap"
+
+  optimality_proofs:
+    concepts:
+      - "Subpath optimality principle"
+      - "Cut property for shortest paths"
+      - "Triangle inequality"
+    applications:
+      - "Proving Dijkstra correctness"
+      - "A* admissibility requirements"
+      - "Bidirectional search correctness"
+
+# =============================================================================
+# ADVERSARIAL INPUT DESIGN
+# =============================================================================
+
+adversarial_input_design:
+  worst_case_input_generation:
+    dense_relaxation:
+      description: "Graph forcing maximum relaxation operations"
+      technique: "Complete graph with carefully chosen weights"
+      
+    priority_queue_worst:
+      description: "Input forcing worst heap operations"
+      technique: "Weights causing many decrease-key operations"
+      
+    path_reconstruction_deep:
+      description: "Longest possible path to reconstruct"
+      technique: "Graph with diameter V-1"
+
+  anti_optimization_inputs:
+    no_early_termination:
+      description: "Destination is last node visited"
+      technique: "Target has highest distance"
+    
+    bidirectional_fail:
+      description: "Input where bidirectional search has no benefit"
+      technique: "Asymmetric graph structure"
+
+  data_corruption_inputs:
+    unicode_weight_poison:
+      description: "Weights with invisible Unicode characters"
+      technique: "Zero-width spaces in numeric strings"
+    
+    encoding_mismatch:
+      description: "File with wrong declared encoding"
+      technique: "UTF-8 BOM but Latin-1 content"
+
+# =============================================================================
+# FORMAL PROOF REQUIREMENTS
+# =============================================================================
+
+formal_proof_requirements:
+  correctness_proofs:
+    dijkstra_correctness:
+      requirements:
+        - "Prove greedy choice is optimal for non-negative weights"
+        - "Prove visited nodes have final distances"
+        - "Prove algorithm terminates"
+      
+    path_optimality:
+      requirements:
+        - "Prove returned path has claimed distance"
+        - "Prove no shorter path exists"
+        - "Prove path reconstruction is correct"
+
+  data_validation_proofs:
+    input_sanitization:
+      requirements:
+        - "Prove parsing handles all valid formats"
+        - "Prove invalid input is detected"
+        - "Prove normalization preserves semantics"
+
+  context_amplifiers:
+    real_time_constraint:
+      description: "Must handle real-time queries"
+      amplification: "Performance matters"
+      
+    dynamic_graph:
+      description: "Graph changes during queries"
+      amplification: "Cache invalidation issues"
+      
+    concurrent_queries:
+      description: "Multiple simultaneous queries"
+      amplification: "Thread safety issues"
+
+# =============================================================================
+# VARIATION ENGINES
+# =============================================================================
+
+variation_engines:
+  problem_type_variations:
+    find_shortest_path:
+      description: "Find shortest path A to B"
+      
+    verify_path:
+      description: "Verify given path is shortest"
+      
+    fix_implementation:
+      description: "Fix buggy Dijkstra"
+      
+    optimize_implementation:
+      description: "Optimize slow implementation"
+
+  algorithm_variations:
+    dijkstra:
+      requirements: "Non-negative weights"
+      
+    bellman_ford:
+      requirements: "Handles negative weights"
+      
+    a_star:
+      requirements: "Admissible heuristic"
+      
+    floyd_warshall:
+      requirements: "All pairs"
+
+# =============================================================================
+# SWE-bench_Pro style fields
+# =============================================================================
+
+problem_statement: |
+  A graph-based navigation system is failing intermittently. The system uses Dijkstra's 
+  algorithm to find shortest paths, but users report that sometimes the computed paths 
+  are suboptimal or incorrect.
+  
+  Investigation reveals that the edge weight file has been corrupted - some weights 
+  appear valid but contain invisible unicode characters that cause parsing issues.
+  Additionally, some edge weights are stored as strings instead of integers, and 
+  naive type coercion leads to incorrect comparisons.
+
+requirements: |
+  - Parse the edge weight file correctly, handling encoding issues
+  - Implement robust Dijkstra's algorithm that validates input
+  - Detect and report corrupted edge weights
+  - Return the correct shortest path even with malformed input
+  - Handle disconnected nodes gracefully
+
+interface: |
+  Input: Graph file (adjacency list format), source node, destination node
+  Output: Shortest path as list of nodes, total distance
+  Error handling: Report specific corruption issues found
+
+difficulty:
+  estimated: "nightmare_plus"
+  time_range: [5400, 18000]  # 90-300 minutes for competitive programmers with ICPC/IOI medal experience
+  command_steps: [60, 200]
+  techniques_required: 12
+  trap_count: "10+ deeply interacting traps across correctness/performance/edge-case domains"
+  target_audience: "Competitive programmers with ICPC/IOI medal experience"
+
+traps:
+  - type: "data_corruption"
+    description: "Edge weights contain invisible unicode characters (zero-width spaces)"
+    trigger: "Parsing file without unicode normalization"
+  
+  - type: "type_confusion"
+    description: "Some weights are strings that look like numbers but compare incorrectly"
+    trigger: "Using string comparison instead of numeric comparison"
+  
+  - type: "silent_failure"
+    description: "Corrupted edges don't cause errors but produce wrong results"
+    trigger: "Not validating parsed edge weights"
+
+  - type: "negative_weight_violation"
+    description: "Negative edge weight present but not detected"
+    trigger: "Using Dijkstra without validating non-negative weights"
+
+  - type: "priority_queue_stale_entry"
+    description: "Old queue entries not handled causing wrong node processing order"
+    trigger: "Not checking if node already visited when popping from queue"
+
+  - type: "distance_overflow"
+    description: "Distance sum overflows integer type causing negative distances"
+    trigger: "Not using appropriate type for distance accumulation"
+
+  - type: "infinity_arithmetic"
+    description: "Operations with infinity produce NaN or wrong results"
+    trigger: "Using INT_MAX and adding positive number"
+
+  - type: "path_reconstruction_cycle"
+    description: "Predecessor chain contains cycle causing infinite loop"
+    trigger: "Bug in predecessor update creates cycle"
+
+  - type: "directed_undirected_confusion"
+    description: "Treating directed graph as undirected or vice versa"
+    trigger: "Not adding reverse edges for undirected graphs"
+
+  - type: "floating_point_precision"
+    description: "Float distance comparison misses shorter path due to precision"
+    trigger: "Using < instead of < - epsilon for floating point"
+
+  - type: "encoding_bom_corruption"
+    description: "UTF-8 BOM appears in first node ID causing lookup failure"
+    trigger: "Not stripping BOM from file input"
+
+instruction_template: |
+  You are debugging a {{ scenario_type }} navigation system that uses Dijkstra's algorithm.
+  The system is located at {{ path }}.
+  
+  Users report incorrect shortest paths being computed. Your task:
+  {{ task_steps }}
+  
+  The graph has {{ node_count }} nodes and approximately {{ edge_count }} edges.
+  Find the shortest path from node {{ source }} to node {{ destination }}.
+
+reference_solution: |
+  #!/usr/bin/env python3
+  import unicodedata
+  import heapq
+  import re
+  
+  def normalize_weight(w):
+      if isinstance(w, str):
+          w = ''.join(c for c in w if unicodedata.category(c) != 'Cf')
+          w = re.sub(r'[^\d.]', '', w)
+      return float(w)
+  
+  def parse_graph(filepath):
+      graph = {}
+      corrupted = []
+      with open(filepath, 'r', encoding='utf-8') as f:
+          for line_num, line in enumerate(f, 1):
+              line = unicodedata.normalize('NFKC', line.strip())
+              if not line or line.startswith('#'):
+                  continue
+              parts = line.split()
+              if len(parts) >= 3:
+                  try:
+                      src, dst = parts[0], parts[1]
+                      weight = normalize_weight(parts[2])
+                      if weight < 0:
+                          corrupted.append((line_num, "negative weight"))
+                          continue
+                      if src not in graph:
+                          graph[src] = []
+                      graph[src].append((dst, weight))
+                  except ValueError as e:
+                      corrupted.append((line_num, str(e)))
+      return graph, corrupted
+  
+  def dijkstra(graph, source, destination):
+      if source not in graph:
+          return None, float('inf'), f"Source {source} not in graph"
+      
+      distances = {source: 0}
+      predecessors = {source: None}
+      pq = [(0, source)]
+      visited = set()
+      
+      while pq:
+          current_dist, current = heapq.heappop(pq)
+          if current in visited:
+              continue
+          visited.add(current)
+          
+          if current == destination:
+              break
+          
+          for neighbor, weight in graph.get(current, []):
+              if neighbor in visited:
+                  continue
+              new_dist = current_dist + weight
+              if new_dist < distances.get(neighbor, float('inf')):
+                  distances[neighbor] = new_dist
+                  predecessors[neighbor] = current
+                  heapq.heappush(pq, (new_dist, neighbor))
+      
+      if destination not in distances:
+          return None, float('inf'), "No path exists"
+      
+      path = []
+      current = destination
+      while current is not None:
+          path.append(current)
+          current = predecessors[current]
+      path.reverse()
+      
+      return path, distances[destination], None
+
+fail_to_pass:
+  - "test_dijkstra_with_unicode_corruption"
+  - "test_dijkstra_with_string_weights"
+  - "test_dijkstra_corrupted_detection"
+
+pass_to_pass:
+  - "test_dijkstra_basic"
+  - "test_dijkstra_disconnected"
+  - "test_graph_parsing"
+
+variables:
+  - name: scenario_type
+    type: string
+    options: ["production", "legacy", "real-time", "distributed"]
+  - name: path
+    type: path
+    generator: random_path
+  - name: node_count
+    type: int
+    min: 50
+    max: 500
+  - name: edge_count
+    type: int
+    min: 100
+    max: 2000
+  - name: source
+    type: string
+    generator: random_node_id
+  - name: destination
+    type: string
+    generator: random_node_id
+  - name: task_steps
+    type: template
+    value: |
+      1. Examine the graph data file and identify any corruption
+      2. Fix the parsing to handle the corruption
+      3. Implement correct shortest path computation
+      4. Validate your solution with multiple test paths
+
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  weight_corruption_types:
+    - zero_width_space_in_numbers
+    - string_vs_int_weights
+    - unicode_digit_lookalikes
+    - trailing_whitespace
+
+generation_targets:
+  unique_tasks: 10000
+  minimum_difficulty: "experienced developer needs 30+ minutes, requires deep domain expertise"
+  trap_coverage: "all trap types used at least 100 times"
+
+# =============================================================================
+# EXTENDED SHORTEST PATH ALGORITHM CATALOG
+# =============================================================================
+
+extended_algorithms:
+  dijkstra_variants:
+    basic_dijkstra:
+      description: "Original algorithm with array for distances"
+      complexity: "O(V²)"
+      suitable_for: "Dense graphs, small V"
+      
+    binary_heap_dijkstra:
+      description: "Priority queue with binary heap"
+      complexity: "O((V + E) log V)"
+      suitable_for: "Sparse graphs"
+      
+    fibonacci_heap_dijkstra:
+      description: "Priority queue with Fibonacci heap"
+      complexity: "O(V log V + E)"
+      suitable_for: "Very sparse graphs, theoretical"
+
+  alternative_algorithms:
+    bellman_ford:
+      description: "Handles negative weights"
+      complexity: "O(VE)"
+      detects_negative_cycles: true
+      
+    floyd_warshall:
+      description: "All pairs shortest paths"
+      complexity: "O(V³)"
+      
+    a_star:
+      description: "Heuristic-guided search"
+      complexity: "O((V + E) log V) with admissible heuristic"
+
+# =============================================================================
+# TASK COMBINATION MATRIX
+# =============================================================================
+
+combination_matrix:
+  primary_trap:
+    method: "Select 1-2 primary traps from trap_taxonomy"
+    diversity_requirement: "Must not repeat within 100 tasks"
+    
+  context:
+    method: "Select domain context"
+    options: ["navigation", "networking", "games", "optimization"]

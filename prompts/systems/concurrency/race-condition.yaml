@@ -1,0 +1,1421 @@
+id: "sys-conc-race-condition-001"
+version: "1.0.0"
+category: "systems"
+subcategory: "concurrency"
+
+# SWE-bench_Pro style fields
+problem_statement: |
+  A concurrent data processing system produces inconsistent results. The code appears 
+  correct but contains subtle race conditions that cause:
+  
+  1. Lost updates from read-modify-write sequences
+  2. Torn reads/writes of compound data
+  3. Check-then-act (TOCTOU) vulnerabilities
+  4. Publication without synchronization
+  5. ABA problems in lock-free code
+
+requirements: |
+  - Identify all race conditions
+  - Implement proper synchronization
+  - Use atomic operations where appropriate
+  - Add data race detection tooling
+  - Ensure memory ordering correctness
+
+interface: |
+  Input: Concurrent code with data races
+  Output: Race-free code, atomic operations, memory barriers
+  Validation: Thread sanitizer clean, stress test passing
+
+# terminal-bench style fields
+difficulty:
+  estimated: "hard"
+  time_range: [2700, 7200]
+  command_steps: [30, 90]
+
+# === QUALITY REQUIREMENTS ===
+quality_requirements:
+  minimum_time: "120-300 minutes for senior systems engineers with kernel contribution experience"
+  expertise_level: "Principal systems engineer with CPU architecture and memory subsystem expertise"
+  validation_standard: "Must expose subtle memory ordering, cache coherency, and cross-subsystem synchronization bugs"
+
+# === MULTI-AGENT ORCHESTRATION ===
+multi_agent_orchestration:
+  required_agents: 8
+  agent_specializations:
+    - name: "kernel_memory_analyst"
+      role: "Analyze kernel memory subsystem interactions and cache coherency"
+      expertise: ["slab allocator", "page table walks", "TLB shootdowns", "cache line bouncing"]
+    - name: "scheduler_debugger"
+      role: "Debug scheduler-induced race conditions and priority inversions"
+      expertise: ["CFS internals", "RT scheduling", "CPU affinity", "preemption points"]
+    - name: "memory_ordering_specialist"
+      role: "Analyze memory barriers and ordering violations"
+      expertise: ["acquire-release semantics", "TSO vs weak ordering", "compiler barriers", "CPU reordering"]
+    - name: "lock_free_expert"
+      role: "Debug lock-free data structures and ABA problems"
+      expertise: ["hazard pointers", "epoch-based reclamation", "compare-and-swap", "LL/SC"]
+    - name: "perf_tracer"
+      role: "Use perf and eBPF to trace race conditions"
+      expertise: ["perf record", "bpftrace", "ftrace", "LTTng"]
+    - name: "static_analyzer"
+      role: "Apply static analysis for data race detection"
+      expertise: ["ThreadSanitizer annotations", "Coverity", "Infer", "sparse"]
+    - name: "hardware_architect"
+      role: "Understand CPU microarchitecture effects on concurrency"
+      expertise: ["store buffers", "load speculation", "memory disambiguation", "false sharing"]
+    - name: "distributed_systems_expert"
+      role: "Handle cross-node and NUMA-aware race conditions"
+      expertise: ["NUMA balancing", "remote memory access", "interconnect latency", "cache directory protocols"]
+  cross_subsystem_chains:
+    - "Scheduler preemption → Memory allocator lock → Page fault handler → Race window"
+    - "Interrupt handler → Softirq processing → Workqueue race → Data corruption"
+    - "Signal delivery → User-space handler → Kernel re-entry → TOCTOU race"
+    - "Memory pressure → Reclaim path → Slab cache invalidation → Use-after-free race"
+  parallel_debugging_requirements:
+    - "Correlated tracing across multiple CPU cores with cycle-accurate timestamps"
+    - "Simultaneous memory barrier analysis and cache state inspection"
+    - "Agent handoff for multi-stage race conditions spanning kernel/user boundary"
+
+# === TRAP CONFIGURATION ===
+trap_configuration:
+  trap_count: "12+ deeply interacting traps across kernel/userspace/hardware boundaries"
+  trap_categories:
+    memory_ordering_traps:
+      - "Missing acquire barrier after load allowing stale data observation"
+      - "Missing release barrier before store causing partial publication"
+      - "Consume ordering misuse with data-dependent loads"
+      - "Relaxed atomics in incorrectly assumed TSO environment"
+    hardware_interaction_traps:
+      - "False sharing across cache lines causing performance race"
+      - "Store buffer forwarding creating observable reordering"
+      - "TLB shootdown race during page table modification"
+      - "CPU speculative execution revealing race timing"
+    kernel_interaction_traps:
+      - "RCU grace period race with long-running reader"
+      - "Preemption during read-modify-write sequence"
+      - "Signal delivery race with user-space lock"
+      - "Memory reclaim racing with active allocation"
+
+# === NIGHTMARE_PLUS DIFFICULTY ===
+difficulty_levels:
+  nightmare_plus:
+    estimated_time: [43200, 259200]  # 12-72 hours
+    command_steps: [600, 2500]
+    techniques_required: 18
+    description: "Linux kernel CVE-level difficulty requiring deep internals knowledge"
+    requirements:
+      - "Requires understanding of CPU memory model formal specifications"
+      - "Must handle races spanning kernel, userspace, and hardware"
+      - "Involves lock-free algorithms with memory reclamation"
+      - "Cross-platform behavior differences (x86 TSO vs ARM weak ordering)"
+      - "Time estimate: 12-72 hours for kernel maintainers"
+      - "Requires synthesizing 6+ specialized knowledge domains"
+
+# === KERNEL SUBSYSTEM REQUIREMENTS ===
+kernel_subsystem_requirements:
+  process_scheduler:
+    - "Understanding of CFS red-black tree and vruntime calculations"
+    - "Preemption points and voluntary preemption effects"
+    - "RT scheduling classes and priority inheritance protocols"
+    - "CPU hotplug and scheduler domain reconfiguration"
+  memory_management:
+    - "Slab allocator internals (SLUB freelist randomization)"
+    - "Page table structure and TLB management"
+    - "NUMA memory policy and migration"
+    - "Memory cgroups and reclaim algorithms"
+  synchronization_primitives:
+    - "Spinlock variants (ticket, queued, MCS)"
+    - "Read-write semaphores and downgrade paths"
+    - "RCU flavors (classic, SRCU, Tasks RCU)"
+    - "Lockdep and lock ordering validation"
+  interrupt_handling:
+    - "Top-half vs bottom-half processing"
+    - "Softirq, tasklet, and workqueue scheduling"
+    - "IRQ affinity and balancing"
+    - "Interrupt coalescing effects on timing"
+
+# === HARDWARE INTERACTION ===
+hardware_interaction:
+  cpu_microarchitecture:
+    - "Store buffer size and forwarding behavior"
+    - "Load queue and speculative execution"
+    - "Memory ordering buffer (MOB) effects"
+    - "Branch prediction effects on race timing"
+  cache_subsystem:
+    - "L1/L2/L3 cache coherency protocols (MESI, MOESI)"
+    - "Cache line size and alignment effects"
+    - "False sharing detection and mitigation"
+    - "Write-combining buffer behavior"
+  memory_controller:
+    - "DDR timing and bank conflicts"
+    - "Interleaving effects on access patterns"
+    - "Memory controller queue depth effects"
+    - "NUMA interconnect (QPI, UPI, Infinity Fabric) latencies"
+
+# === FORMAL VERIFICATION REQUIREMENTS ===
+formal_verification_requirements:
+  modeling_requirements:
+    - "Model race condition in TLA+ with memory model semantics"
+    - "Express memory ordering constraints in CAT (Consistency Axiom Tool)"
+    - "Use SPIN model checker for protocol verification"
+    - "Apply Iris or RustBelt for ownership verification"
+  proof_obligations:
+    - "Prove absence of data races under all interleavings"
+    - "Verify memory barrier sufficiency for target architectures"
+    - "Establish linearizability of lock-free operations"
+    - "Prove termination and progress guarantees"
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research memory models and synchronization primitives"
+    phase_2_creation: "Create task with subtle data races and timing issues"
+    phase_3_amplification: "Add memory ordering bugs and ABA problems"
+    phase_4_verification:
+      description: "Validate task requires deep concurrency understanding"
+      criteria:
+        - "Has at least 5 interacting system-level traps across subsystems"
+        - "Has cascading failures across process, memory, and I/O subsystems"
+        - "Requires knowledge of OS kernel internals and scheduler behavior"
+        - "Would take experienced systems programmers 45+ minutes"
+  
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 3.5
+      description: "Kernel-level debugging complexity requiring deep systems expertise"
+      requirements:
+        - "7+ interacting system-level traps across subsystems"
+        - "Requires understanding of kernel memory management and scheduling"
+        - "Time estimate: 120+ minutes for senior systems engineers"
+        - "Cross-platform behavior differences (Linux vs BSD vs Windows)"
+        - "Requires synthesizing concurrency, memory, distributed systems knowledge"
+  
+  generation_targets:
+    minimum_difficulty: "45+ minutes, requires deep kernel internals and distributed systems expertise"
+  
+  complexity_levels:
+    level_1_basic:
+      description: "Simple read-modify-write races"
+      elements: ["counter_increment", "shared_variable_update"]
+    level_2_intermediate:
+      description: "TOCTOU and check-then-act bugs"
+      elements: ["file_access_race", "map_check_then_insert"]
+    level_3_advanced:
+      description: "Lock-free data structure bugs"
+      elements: ["aba_problem", "memory_ordering_violation"]
+    level_4_expert:
+      description: "Memory model violations and subtle ordering"
+      elements: ["relaxed_ordering_bug", "publication_without_barrier"]
+    level_5_research:
+      description: "Novel concurrency bugs in production systems"
+      elements: ["compound_atomic_violation", "weak_memory_model_exploit"]
+
+# === COMPREHENSIVE TOPIC UNIVERSE ===
+topic_universe:
+  # Synchronization Primitives (40+ topics)
+  synchronization_primitives:
+    mutex_types:
+      - "Basic mutex (non-recursive)"
+      - "Recursive mutex (reentrant)"
+      - "Timed mutex with timeout"
+      - "Shared mutex (reader-writer)"
+      - "Spinlock"
+      - "Ticket lock"
+      - "MCS lock"
+      - "CLH lock"
+      - "Futex-based mutex"
+      - "Priority-inheritance mutex"
+    
+    semaphores:
+      - "Binary semaphore"
+      - "Counting semaphore"
+      - "Named semaphore (IPC)"
+      - "POSIX semaphore"
+      - "System V semaphore"
+    
+    condition_variables:
+      - "pthread_cond_wait semantics"
+      - "Spurious wakeups"
+      - "Signal vs broadcast"
+      - "Predicate checking loop"
+      - "Lost wakeup problem"
+    
+    barriers:
+      - "Pthread barrier"
+      - "Sense-reversing barrier"
+      - "Tree barrier"
+      - "Dissemination barrier"
+    
+    read_write_locks:
+      - "Fair RW lock"
+      - "Writer-preferred RW lock"
+      - "Reader-preferred RW lock"
+      - "Upgradeable RW lock"
+      - "Downgrade semantics"
+  
+  # Lock-Free Programming (35+ topics)
+  lock_free:
+    atomic_operations:
+      - "Compare-and-swap (CAS)"
+      - "Load-linked/store-conditional (LL/SC)"
+      - "Fetch-and-add"
+      - "Test-and-set"
+      - "Double-width CAS (DCAS)"
+      - "Atomic exchange"
+      - "Atomic fetch operations"
+    
+    lock_free_structures:
+      - "Michael-Scott queue"
+      - "Treiber stack"
+      - "Harris linked list"
+      - "Split-ordered list"
+      - "Lock-free hash table"
+      - "Lock-free skip list"
+    
+    wait_free:
+      - "Wait-free queue (bounded)"
+      - "Wait-free register"
+      - "Universal construction"
+      - "Helping mechanisms"
+    
+    memory_reclamation:
+      - "Hazard pointers"
+      - "Epoch-based reclamation (EBR)"
+      - "Quiescent-state-based reclamation (QSBR)"
+      - "Reference counting"
+      - "RCU (Read-Copy-Update)"
+  
+  # Memory Models (30+ topics)
+  memory_models:
+    ordering_models:
+      - "Sequential consistency"
+      - "Total store order (TSO)"
+      - "Partial store order (PSO)"
+      - "Relaxed memory order (x86, ARM)"
+      - "C++11/C11 memory model"
+      - "Java Memory Model"
+    
+    memory_barriers:
+      - "Full memory barrier (mfence)"
+      - "Store barrier (sfence)"
+      - "Load barrier (lfence)"
+      - "Acquire barrier"
+      - "Release barrier"
+      - "Acquire-release barrier"
+      - "Sequentially consistent barrier"
+    
+    atomic_orderings:
+      - "memory_order_relaxed"
+      - "memory_order_consume"
+      - "memory_order_acquire"
+      - "memory_order_release"
+      - "memory_order_acq_rel"
+      - "memory_order_seq_cst"
+    
+    hardware_specifics:
+      - "x86 strong ordering"
+      - "ARM weak ordering"
+      - "PowerPC ordering"
+      - "RISC-V ordering (FENCE)"
+  
+  # Race Condition Types (35+ topics)
+  race_types:
+    data_races:
+      - "Read-write race"
+      - "Write-write race"
+      - "Compound read-modify-write"
+      - "Non-atomic struct access"
+      - "Bit-field races"
+    
+    check_then_act:
+      - "TOCTOU file race"
+      - "Singleton initialization race"
+      - "Map contains-then-get"
+      - "Size check before access"
+      - "Permission check race"
+    
+    publication_races:
+      - "Unsafe publication"
+      - "Double-checked locking (broken)"
+      - "Partially constructed object"
+      - "Reference publication without fence"
+    
+    ordering_races:
+      - "Initialization order"
+      - "Destruction order"
+      - "Callback ordering"
+      - "Event ordering"
+  
+  # Common Bug Patterns (40+ topics)
+  bug_patterns:
+    counter_bugs:
+      - "Lost update (x++)"
+      - "Overflow race"
+      - "Counter reset race"
+      - "Multi-variable counter"
+    
+    collection_bugs:
+      - "Concurrent modification"
+      - "Iterator invalidation"
+      - "Size-based iteration"
+      - "Put-if-absent race"
+    
+    resource_bugs:
+      - "Double-free race"
+      - "Use-after-free race"
+      - "Resource leak on error path"
+      - "Handle validity check"
+    
+    initialization_bugs:
+      - "Static initialization race"
+      - "Lazy initialization race"
+      - "Order dependency"
+      - "Double initialization"
+    
+    state_machine_bugs:
+      - "State transition race"
+      - "Invalid state observation"
+      - "State check-then-act"
+      - "Concurrent state machine"
+  
+  # Detection and Debugging (25+ topics)
+  detection:
+    static_analysis:
+      - "LLVM ThreadSanitizer annotations"
+      - "Coverity race detection"
+      - "Facebook Infer"
+      - "Rust borrow checker"
+    
+    dynamic_analysis:
+      - "ThreadSanitizer (TSan)"
+      - "Helgrind"
+      - "Intel Inspector"
+      - "Dr. Memory"
+    
+    testing_techniques:
+      - "Stress testing"
+      - "Randomized scheduling"
+      - "Deterministic replay"
+      - "Model checking (SPIN, TLA+)"
+  
+  # Platform-Specific (20+ topics)
+  platform_specific:
+    linux:
+      - "futex system call"
+      - "pthread primitives"
+      - "kernel RCU"
+      - "lockdep"
+    
+    windows:
+      - "CRITICAL_SECTION"
+      - "SRW locks"
+      - "Interlocked operations"
+      - "Condition variables (Vista+)"
+    
+    languages:
+      - "Java synchronized/volatile"
+      - "C++ std::atomic"
+      - "Go sync package"
+      - "Rust ownership model"
+
+# === BUG PATTERNS ===
+bug_patterns:
+  read_modify_write:
+    - pattern: "lost_update_increment"
+      description: "Two threads increment counter, one update lost"
+      severity: "critical"
+      detection: "Counter lower than expected"
+      fix: "Use atomic increment or mutex"
+      code_example: |
+        # Bug: non-atomic increment
+        counter += 1  # Read-modify-write race!
+        
+        # Fix: atomic increment
+        counter.fetch_add(1, memory_order_relaxed)
+    
+    - pattern: "compound_assignment_race"
+      description: "Compound operation on shared variable"
+      severity: "high"
+      detection: "Inconsistent values"
+      fix: "Use compare-and-swap loop"
+      code_example: |
+        # Bug: compound assignment
+        if value > 0:
+            value -= amount  # TOCTOU race!
+        
+        # Fix: CAS loop
+        while True:
+            old = value.load()
+            if old <= 0:
+                break
+            if value.compare_exchange_weak(old, old - amount):
+                break
+
+  check_then_act:
+    - pattern: "toctou_file"
+      description: "Check file exists, then open - file deleted between"
+      severity: "critical"
+      detection: "FileNotFoundError sporadically"
+      fix: "Use atomic open, handle error"
+      code_example: |
+        # Bug: TOCTOU
+        if os.path.exists(path):
+            with open(path) as f:  # File may not exist anymore!
+                data = f.read()
+        
+        # Fix: try to open, handle error
+        try:
+            with open(path) as f:
+                data = f.read()
+        except FileNotFoundError:
+            data = None
+    
+    - pattern: "map_check_then_insert"
+      description: "Check key not in map, then insert"
+      severity: "high"
+      detection: "Duplicate keys, lost updates"
+      fix: "Use atomic putIfAbsent"
+      code_example: |
+        # Bug: check-then-act
+        if key not in cache:
+            cache[key] = compute_value(key)  # Race!
+        
+        # Fix: atomic operation
+        cache.setdefault(key, compute_value(key))
+        # Or in Java: cache.putIfAbsent(key, value)
+
+  publication_bugs:
+    - pattern: "unsafe_publication"
+      description: "Object reference published before construction complete"
+      severity: "critical"
+      detection: "Partially initialized object observed"
+      fix: "Use memory barrier or atomic publication"
+      code_example: |
+        # Bug: unsafe publication
+        class Config:
+            def __init__(self):
+                self.settings = {}
+                self.loaded = False
+                # Thread sees 'config' before loaded=True
+                
+        config = Config()  # Published immediately
+        
+        # Fix: safe publication
+        temp = Config()
+        temp.settings = load_settings()
+        temp.loaded = True
+        memory_barrier()  # Ensure all writes visible
+        config = temp
+    
+    - pattern: "double_checked_locking_broken"
+      description: "DCL without proper memory ordering"
+      severity: "critical"
+      detection: "Partially initialized singleton"
+      fix: "Use volatile/atomic or proper barriers"
+      code_example: |
+        # Bug: broken DCL
+        if instance is None:
+            with lock:
+                if instance is None:
+                    instance = Singleton()  # Reordering possible!
+        
+        # Fix: proper DCL
+        if instance is None:
+            with lock:
+                if instance is None:
+                    temp = Singleton()
+                    memory_barrier()  # Ensure construction complete
+                    instance = temp
+
+  aba_problem:
+    - pattern: "aba_in_lockfree"
+      description: "Value changes A->B->A, CAS succeeds incorrectly"
+      severity: "critical"
+      detection: "Corrupted data structure"
+      fix: "Use version counter or hazard pointers"
+      code_example: |
+        # Bug: ABA problem
+        old = head.load()
+        new = Node(data)
+        new.next = old
+        while not head.compare_exchange_weak(old, new):
+            new.next = old
+        # If old was freed and reallocated at same address, CAS succeeds wrongly!
+        
+        # Fix: versioned pointer
+        class VersionedPtr:
+            def __init__(self, ptr, version):
+                self.ptr = ptr
+                self.version = version
+        
+        old = head.load()
+        new_versioned = VersionedPtr(new_node, old.version + 1)
+        head.compare_exchange(old, new_versioned)
+
+  memory_ordering:
+    - pattern: "missing_acquire_release"
+      description: "Data visible before synchronizing write"
+      severity: "critical"
+      detection: "Stale or inconsistent data observed"
+      fix: "Use acquire-release ordering"
+      code_example: |
+        # Bug: relaxed ordering
+        data = 42
+        flag.store(True, memory_order_relaxed)  # Data may not be visible!
+        
+        # Other thread:
+        if flag.load(memory_order_relaxed):
+            use(data)  # May see stale data!
+        
+        # Fix: acquire-release
+        data = 42
+        flag.store(True, memory_order_release)  # Data visible before flag
+        
+        # Other thread:
+        if flag.load(memory_order_acquire):
+            use(data)  # Guaranteed to see data=42
+    
+    - pattern: "false_sharing"
+      description: "Unrelated variables in same cache line"
+      severity: "medium"
+      detection: "Poor parallel performance"
+      fix: "Pad to cache line boundary"
+      code_example: |
+        # Bug: false sharing
+        class Counters:
+            counter1 = 0  # Same cache line!
+            counter2 = 0
+        
+        # Fix: padding
+        class Counters:
+            counter1 = 0
+            _pad1 = [0] * 15  # 64-byte cache line padding
+            counter2 = 0
+
+# === EDGE CASES ===
+edge_cases:
+  timing_edge_cases:
+    - "Race manifests only under high contention"
+    - "Race manifests only under low contention"
+    - "Race depends on CPU cache state"
+    - "Race depends on memory allocation timing"
+    - "Race manifests only on specific CPUs"
+    - "Race manifests only with specific thread counts"
+    - "Race window is nanoseconds"
+    - "Race window is milliseconds"
+
+  memory_model_edge_cases:
+    - "Relaxed ordering on x86 (hides bugs)"
+    - "Weak ordering on ARM (exposes bugs)"
+    - "Compiler reordering vs CPU reordering"
+    - "Volatile not sufficient for synchronization"
+    - "Opaque pointers and aliasing"
+    - "Union type-punning races"
+
+  resource_edge_cases:
+    - "Maximum threads hitting limit"
+    - "Memory allocation failure during lock hold"
+    - "Signal interrupting critical section"
+    - "Thread cancellation in critical section"
+    - "Fork in multi-threaded process"
+    - "exec with locks held"
+
+  initialization_edge_cases:
+    - "Static initialization during DLL load"
+    - "Thread-local storage initialization"
+    - "Global constructor ordering"
+    - "Lazy initialization with exceptions"
+    - "Reinitialization after fork"
+
+  platform_edge_cases:
+    - "32-bit atomic on 64-bit value"
+    - "Unaligned atomic access"
+    - "Lock-free detection at runtime"
+    - "Cache line size differences"
+    - "NUMA node effects"
+
+# === DIFFICULTY MULTIPLIERS ===
+difficulty_multipliers:
+  synchronization_complexity:
+    lock_free_required:
+      multiplier: 2.0
+      description: "Must use lock-free algorithms"
+      considerations:
+        - "ABA problem"
+        - "Memory reclamation"
+        - "Progress guarantees"
+    
+    wait_free_required:
+      multiplier: 2.5
+      description: "Must be wait-free"
+      considerations:
+        - "Bounded steps"
+        - "Helping mechanism"
+        - "Complex implementation"
+
+  memory_model_requirements:
+    weak_memory_model:
+      multiplier: 1.8
+      description: "Must work on ARM/PowerPC"
+      considerations:
+        - "Explicit barriers"
+        - "Acquire-release semantics"
+        - "Testing on weak hardware"
+    
+    minimal_barriers:
+      multiplier: 2.0
+      description: "Performance requires minimal barriers"
+      considerations:
+        - "Precise ordering analysis"
+        - "Relaxed operations where safe"
+        - "Benchmark validation"
+
+  platform_requirements:
+    cross_platform:
+      multiplier: 1.5
+      description: "Must work on Linux, macOS, Windows"
+      considerations:
+        - "Different primitive implementations"
+        - "Spurious wakeup handling"
+        - "Platform-specific quirks"
+
+# === SCENARIO TEMPLATES ===
+scenario_templates:
+  counter_race:
+    description: "Multiple threads incrementing shared counter"
+    setup: |
+      - 4 threads incrementing counter 1M times each
+      - Expected final value: 4M
+      - Actual value: less than 4M
+    symptoms: |
+      - Final count varies between runs
+      - Never reaches expected value
+      - Sometimes correct (low contention)
+    root_cause: "Non-atomic increment operation"
+    fix: |
+      - Use atomic increment
+      - Or protect with mutex
+
+  singleton_race:
+    description: "Lazy initialization of singleton"
+    setup: |
+      - Multiple threads accessing singleton first time
+      - Each thread sees different instance
+      - Resource leaks from multiple allocations
+    symptoms: |
+      - Multiple instances created
+      - Inconsistent behavior
+      - Memory leaks
+    root_cause: "Double-checked locking without barriers"
+    fix: |
+      - Use atomic with acquire-release
+      - Or use once_flag/call_once
+
+  producer_consumer_race:
+    description: "Race in producer-consumer queue"
+    setup: |
+      - Producer adds items to queue
+      - Consumer reads items
+      - Race between empty check and dequeue
+    symptoms: |
+      - Consumer sees empty when not empty
+      - Consumer blocks forever
+      - Lost items
+    root_cause: "Check-then-act on queue state"
+    fix: |
+      - Use proper condition variable
+      - Atomic queue operations
+
+  cache_update_race:
+    description: "Race in cache invalidation"
+    setup: |
+      - Thread A updates database and invalidates cache
+      - Thread B reads cache, misses, reads database
+      - Thread B's read races with A's write
+    symptoms: |
+      - Stale data in cache
+      - Inconsistent reads
+      - Cache never converges
+    root_cause: "Race between invalidation and repopulation"
+    fix: |
+      - Versioned cache entries
+      - Read-through cache with locks
+
+# === REFERENCE SOLUTION ===
+reference_solution: |
+  #!/usr/bin/env python3
+  """
+  Comprehensive race condition prevention and detection.
+  Implements atomic operations, proper synchronization, and race-free patterns.
+  """
+  import threading
+  import time
+  from typing import TypeVar, Generic, Optional, Callable, Tuple, Dict, List, Any
+  from dataclasses import dataclass
+  from contextlib import contextmanager
+  from abc import ABC, abstractmethod
+  import weakref
+  import logging
+  
+  logging.basicConfig(level=logging.INFO)
+  logger = logging.getLogger(__name__)
+  
+  T = TypeVar('T')
+  
+  # === ATOMIC TYPES ===
+  
+  class AtomicInteger:
+      """
+      Atomic integer with proper read-modify-write operations.
+      Prevents lost updates.
+      """
+      
+      def __init__(self, initial: int = 0):
+          self._value = initial
+          self._lock = threading.Lock()
+      
+      def get(self) -> int:
+          """Atomic read."""
+          with self._lock:
+              return self._value
+      
+      def set(self, value: int) -> None:
+          """Atomic write."""
+          with self._lock:
+              self._value = value
+      
+      def increment(self) -> int:
+          """Atomic increment, returns new value."""
+          with self._lock:
+              self._value += 1
+              return self._value
+      
+      def decrement(self) -> int:
+          """Atomic decrement, returns new value."""
+          with self._lock:
+              self._value -= 1
+              return self._value
+      
+      def add(self, delta: int) -> int:
+          """Atomic add, returns new value."""
+          with self._lock:
+              self._value += delta
+              return self._value
+      
+      def compare_and_swap(self, expected: int, new_value: int) -> bool:
+          """
+          Atomic CAS. Returns True if swap successful.
+          """
+          with self._lock:
+              if self._value == expected:
+                  self._value = new_value
+                  return True
+              return False
+      
+      def get_and_set(self, new_value: int) -> int:
+          """Atomic swap, returns old value."""
+          with self._lock:
+              old = self._value
+              self._value = new_value
+              return old
+      
+      def update(self, func: Callable[[int], int]) -> int:
+          """Atomically apply function, returns new value."""
+          with self._lock:
+              self._value = func(self._value)
+              return self._value
+  
+  @dataclass
+  class VersionedValue(Generic[T]):
+      """Value with version stamp to prevent ABA problem."""
+      value: T
+      version: int
+      
+      def __eq__(self, other: object) -> bool:
+          if not isinstance(other, VersionedValue):
+              return NotImplemented
+          return self.value == other.value and self.version == other.version
+  
+  class AtomicReference(Generic[T]):
+      """
+      Atomic reference with version counter to prevent ABA problem.
+      """
+      
+      def __init__(self, initial: T):
+          self._versioned = VersionedValue(initial, 0)
+          self._lock = threading.Lock()
+      
+      def get(self) -> T:
+          """Get current value."""
+          with self._lock:
+              return self._versioned.value
+      
+      def get_versioned(self) -> VersionedValue[T]:
+          """Get value with version for CAS operations."""
+          with self._lock:
+              return VersionedValue(self._versioned.value, self._versioned.version)
+      
+      def compare_and_swap(
+          self, 
+          expected_value: T, 
+          expected_version: int,
+          new_value: T
+      ) -> bool:
+          """
+          CAS with version check to prevent ABA.
+          Only succeeds if both value AND version match.
+          """
+          with self._lock:
+              if (self._versioned.value == expected_value and 
+                  self._versioned.version == expected_version):
+                  self._versioned = VersionedValue(new_value, expected_version + 1)
+                  return True
+              return False
+      
+      def set(self, value: T) -> None:
+          """Set value, incrementing version."""
+          with self._lock:
+              self._versioned = VersionedValue(value, self._versioned.version + 1)
+      
+      def update(self, func: Callable[[T], T]) -> T:
+          """Atomically apply function, returns new value."""
+          while True:
+              current = self.get_versioned()
+              new_value = func(current.value)
+              if self.compare_and_swap(current.value, current.version, new_value):
+                  return new_value
+  
+  # === SAFE PUBLICATION ===
+  
+  class SafePublication(Generic[T]):
+      """
+      Safe publication of objects with memory barrier.
+      Ensures object is fully constructed before reference is visible.
+      """
+      
+      def __init__(self):
+          self._value: Optional[T] = None
+          self._ready = threading.Event()
+          self._lock = threading.Lock()
+      
+      def publish(self, value: T) -> None:
+          """
+          Safely publish a value with memory barrier.
+          """
+          with self._lock:
+              self._value = value
+          # Event.set() acts as memory barrier
+          self._ready.set()
+      
+      def get(self, timeout: float = None) -> Optional[T]:
+          """Get the published value, waiting if necessary."""
+          if self._ready.wait(timeout):
+              with self._lock:
+                  return self._value
+          return None
+      
+      def try_get(self) -> Tuple[bool, Optional[T]]:
+          """Non-blocking get. Returns (is_available, value)."""
+          if self._ready.is_set():
+              with self._lock:
+                  return True, self._value
+          return False, None
+      
+      def is_published(self) -> bool:
+          """Check if value has been published."""
+          return self._ready.is_set()
+  
+  class OnceCell(Generic[T]):
+      """
+      Thread-safe lazy initialization (like Rust's OnceCell).
+      Guarantees exactly one initialization.
+      """
+      
+      def __init__(self):
+          self._value: Optional[T] = None
+          self._initialized = False
+          self._lock = threading.Lock()
+      
+      def get_or_init(self, init_func: Callable[[], T]) -> T:
+          """Get value, initializing if needed."""
+          if self._initialized:
+              return self._value
+          
+          with self._lock:
+              # Double-check inside lock
+              if self._initialized:
+                  return self._value
+              
+              self._value = init_func()
+              self._initialized = True
+              return self._value
+      
+      def get(self) -> Optional[T]:
+          """Get value if initialized."""
+          if self._initialized:
+              return self._value
+          return None
+      
+      def is_initialized(self) -> bool:
+          """Check if initialized."""
+          return self._initialized
+  
+  # === TOCTOU PREVENTION ===
+  
+  class TOCTOUSafeFile:
+      """
+      TOCTOU-safe file operations.
+      Uses file locking to prevent race conditions.
+      """
+      
+      def __init__(self, path: str):
+          self.path = path
+          self._lock = threading.Lock()
+      
+      @contextmanager
+      def safe_open(self, mode: str = 'r'):
+          """
+          Open file with exclusive lock to prevent TOCTOU.
+          """
+          import fcntl
+          import os
+          
+          with self._lock:
+              # Open with exclusive creation if writing
+              if 'w' in mode or 'a' in mode:
+                  flags = os.O_RDWR | os.O_CREAT
+                  fd = os.open(self.path, flags, 0o644)
+                  # Exclusive lock for writing
+                  fcntl.flock(fd, fcntl.LOCK_EX)
+              else:
+                  fd = os.open(self.path, os.O_RDONLY)
+                  # Shared lock for reading
+                  fcntl.flock(fd, fcntl.LOCK_SH)
+              
+              try:
+                  file = os.fdopen(fd, mode)
+                  try:
+                      yield file
+                  finally:
+                      # Don't close fd, fdopen owns it
+                      file.close()
+              except:
+                  os.close(fd)
+                  raise
+      
+      def atomic_update(self, updater: Callable[[str], str]) -> None:
+          """
+          Atomically read, transform, and write file.
+          """
+          with self.safe_open('r+') as f:
+              content = f.read()
+              new_content = updater(content)
+              f.seek(0)
+              f.truncate()
+              f.write(new_content)
+      
+      def safe_create_exclusive(self, content: str) -> bool:
+          """
+          Create file only if it doesn't exist (atomic).
+          Returns True if created, False if already exists.
+          """
+          import os
+          try:
+              fd = os.open(self.path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+              try:
+                  os.write(fd, content.encode())
+                  return True
+              finally:
+                  os.close(fd)
+          except FileExistsError:
+              return False
+  
+  class AtomicMap(Generic[T]):
+      """
+      Thread-safe map with atomic operations.
+      Prevents check-then-act races.
+      """
+      
+      def __init__(self):
+          self._data: Dict[str, T] = {}
+          self._lock = threading.Lock()
+      
+      def get(self, key: str) -> Optional[T]:
+          """Get value for key."""
+          with self._lock:
+              return self._data.get(key)
+      
+      def put(self, key: str, value: T) -> Optional[T]:
+          """Put value, returns old value."""
+          with self._lock:
+              old = self._data.get(key)
+              self._data[key] = value
+              return old
+      
+      def put_if_absent(self, key: str, value: T) -> Optional[T]:
+          """
+          Put value only if key absent.
+          Returns existing value if present, None if inserted.
+          """
+          with self._lock:
+              if key in self._data:
+                  return self._data[key]
+              self._data[key] = value
+              return None
+      
+      def compute_if_absent(self, key: str, func: Callable[[str], T]) -> T:
+          """
+          Compute and insert if absent.
+          Returns existing or computed value.
+          """
+          with self._lock:
+              if key in self._data:
+                  return self._data[key]
+              value = func(key)
+              self._data[key] = value
+              return value
+      
+      def remove(self, key: str) -> Optional[T]:
+          """Remove and return value."""
+          with self._lock:
+              return self._data.pop(key, None)
+      
+      def replace(self, key: str, old_value: T, new_value: T) -> bool:
+          """
+          Replace value only if current value matches.
+          Returns True if replaced.
+          """
+          with self._lock:
+              if key in self._data and self._data[key] == old_value:
+                  self._data[key] = new_value
+                  return True
+              return False
+  
+  # === THREAD-SAFE COUNTER ===
+  
+  class ThreadSafeCounter:
+      """
+      Thread-safe counter demonstrating proper synchronization.
+      """
+      
+      def __init__(self):
+          self._counts: Dict[str, AtomicInteger] = {}
+          self._lock = threading.Lock()
+      
+      def _get_counter(self, key: str) -> AtomicInteger:
+          """Get or create counter for key."""
+          # Check without lock first (fast path)
+          if key in self._counts:
+              return self._counts[key]
+          
+          with self._lock:
+              # Double-check after acquiring lock
+              if key not in self._counts:
+                  self._counts[key] = AtomicInteger(0)
+              return self._counts[key]
+      
+      def increment(self, key: str) -> int:
+          """Atomic increment."""
+          return self._get_counter(key).increment()
+      
+      def get(self, key: str) -> int:
+          """Get current count."""
+          counter = self._counts.get(key)
+          return counter.get() if counter else 0
+      
+      def get_all(self) -> Dict[str, int]:
+          """Get snapshot of all counts."""
+          with self._lock:
+              return {k: v.get() for k, v in self._counts.items()}
+  
+  # === RACE DETECTOR ===
+  
+  class RaceDetector:
+      """
+      Simple race condition detector for debugging.
+      Tracks concurrent accesses to detect potential races.
+      """
+      
+      def __init__(self):
+          self._access_log: Dict[int, List[Tuple[str, float, str]]] = {}
+          self._lock = threading.Lock()
+          self._enabled = True
+      
+      def record_access(self, resource_id: int, access_type: str) -> None:
+          """Record an access to a resource."""
+          if not self._enabled:
+              return
+          
+          thread_id = threading.current_thread().ident
+          timestamp = time.monotonic()
+          
+          with self._lock:
+              if resource_id not in self._access_log:
+                  self._access_log[resource_id] = []
+              
+              self._access_log[resource_id].append(
+                  (access_type, timestamp, threading.current_thread().name)
+              )
+              
+              # Check for race
+              self._check_race(resource_id)
+      
+      def _check_race(self, resource_id: int) -> None:
+          """Check for potential race condition."""
+          accesses = self._access_log.get(resource_id, [])
+          if len(accesses) < 2:
+              return
+          
+          # Look at recent accesses
+          recent = accesses[-10:]
+          writes = [a for a in recent if a[0] == 'write']
+          
+          for i, (type1, t1, thread1) in enumerate(recent):
+              for type2, t2, thread2 in recent[i+1:]:
+                  if thread1 != thread2:
+                      if abs(t1 - t2) < 0.001:  # Within 1ms
+                          if type1 == 'write' or type2 == 'write':
+                              logger.warning(
+                                  f"Potential race on resource {resource_id}: "
+                                  f"{type1} by {thread1} and {type2} by {thread2}"
+                              )
+  
+  # === TESTS ===
+  
+  def test_atomic_increment():
+      """Test atomic counter prevents lost updates."""
+      counter = AtomicInteger(0)
+      threads = []
+      increments_per_thread = 10000
+      num_threads = 4
+      
+      def increment():
+          for _ in range(increments_per_thread):
+              counter.increment()
+      
+      for _ in range(num_threads):
+          t = threading.Thread(target=increment)
+          threads.append(t)
+          t.start()
+      
+      for t in threads:
+          t.join()
+      
+      expected = num_threads * increments_per_thread
+      actual = counter.get()
+      assert actual == expected, f"Expected {expected}, got {actual}"
+      print("✓ Atomic increment prevents lost updates")
+  
+  def test_aba_prevention():
+      """Test versioned reference prevents ABA."""
+      ref = AtomicReference("A")
+      
+      # Get initial state
+      v1 = ref.get_versioned()
+      assert v1.value == "A" and v1.version == 0
+      
+      # Change A -> B
+      ref.set("B")
+      
+      # Change B -> A (same value, different version)
+      ref.set("A")
+      
+      # CAS with old version should fail
+      success = ref.compare_and_swap("A", 0, "C")
+      assert not success, "CAS should fail due to version mismatch"
+      
+      # CAS with current version should succeed
+      v2 = ref.get_versioned()
+      success = ref.compare_and_swap("A", v2.version, "C")
+      assert success, "CAS should succeed with current version"
+      
+      print("✓ ABA prevention works")
+  
+  def test_safe_publication():
+      """Test safe publication pattern."""
+      pub = SafePublication[dict]()
+      results = []
+      
+      def reader():
+          data = pub.get(timeout=5.0)
+          if data:
+              results.append(data.get('initialized', False))
+      
+      def writer():
+          time.sleep(0.01)
+          obj = {'initialized': True, 'data': [1, 2, 3]}
+          pub.publish(obj)
+      
+      # Start reader before writer
+      reader_thread = threading.Thread(target=reader)
+      writer_thread = threading.Thread(target=writer)
+      
+      reader_thread.start()
+      writer_thread.start()
+      
+      reader_thread.join()
+      writer_thread.join()
+      
+      assert len(results) == 1 and results[0] == True, "Should see fully initialized object"
+      print("✓ Safe publication works")
+  
+  def test_put_if_absent():
+      """Test atomic putIfAbsent prevents race."""
+      cache = AtomicMap[int]()
+      results = []
+      
+      def compute_and_cache(key: str):
+          existing = cache.put_if_absent(key, threading.current_thread().ident)
+          if existing is None:
+              results.append(('created', threading.current_thread().ident))
+          else:
+              results.append(('found', existing))
+      
+      threads = [
+          threading.Thread(target=compute_and_cache, args=("key1",))
+          for _ in range(10)
+      ]
+      
+      for t in threads:
+          t.start()
+      for t in threads:
+          t.join()
+      
+      # Exactly one thread should have created
+      created = [r for r in results if r[0] == 'created']
+      assert len(created) == 1, f"Expected 1 creation, got {len(created)}"
+      
+      print("✓ putIfAbsent prevents race")
+  
+  if __name__ == "__main__":
+      test_atomic_increment()
+      test_aba_prevention()
+      test_safe_publication()
+      test_put_if_absent()
+      print("\nAll tests passed!")
+
+# LLM trap configurations
+traps:
+  - type: "lost_update"
+    description: "Two threads read-modify-write, one update lost"
+    trigger: "Incrementing shared variable without atomic operation"
+  
+  - type: "torn_read"
+    description: "64-bit value read as two 32-bit values non-atomically"
+    trigger: "Reading compound type without synchronization"
+  
+  - type: "toctou"
+    description: "Check if file exists, then open - file deleted between"
+    trigger: "Separate check and action on shared resource"
+  
+  - type: "unsafe_publication"
+    description: "Object reference published before construction complete"
+    trigger: "Publishing object without memory barrier"
+  
+  - type: "aba_problem"
+    description: "Value changes A->B->A, CAS succeeds incorrectly"
+    trigger: "Using CAS without version counter"
+  
+  - type: "relaxed_ordering_bug"
+    description: "Data not visible due to missing memory barrier"
+    trigger: "Using relaxed atomics without proper ordering"
+
+# Task generation template
+instruction_template: |
+  You are fixing a {{ scenario_type }} with race conditions.
+  The code is at {{ path }}.
+  
+  Inconsistency rate: {{ inconsistency_rate }}% of operations
+  Affected operations: {{ affected_ops }}
+  
+  Your task:
+  {{ task_steps }}
+
+# Test cases
+fail_to_pass:
+  - "test_no_lost_updates"
+  - "test_atomic_operations"
+  - "test_toctou_prevention"
+  - "test_aba_prevention"
+  - "test_safe_publication"
+  - "test_memory_ordering"
+
+pass_to_pass:
+  - "test_single_thread"
+  - "test_basic_counter"
+
+# Variables for task generation
+variables:
+  - name: scenario_type
+    type: string
+    options: 
+      - "analytics pipeline"
+      - "order processor"
+      - "inventory system"
+      - "session manager"
+      - "cache system"
+      - "message queue"
+      - "connection pool"
+  - name: path
+    type: path
+    generator: random_path
+  - name: inconsistency_rate
+    type: float
+    min: 0.01
+    max: 10.0
+  - name: affected_ops
+    type: string
+    options: 
+      - "counter updates"
+      - "state transitions"
+      - "file operations"
+      - "cache updates"
+      - "queue operations"
+  - name: task_steps
+    type: template
+    value: |
+      1. Identify race conditions using ThreadSanitizer
+      2. Analyze memory access patterns
+      3. Implement atomic operations where needed
+      4. Add proper synchronization primitives
+      5. Handle TOCTOU scenarios correctly
+      6. Use versioned references to prevent ABA
+      7. Validate with stress testing
+
+# Anti-hardcoding measures
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  race_patterns:
+    - read_modify_write
+    - check_then_act
+    - unsafe_publication
+    - aba_in_lockfree
+    - memory_ordering_violation
+
+# Anti-patterns that LLMs commonly fail on
+anti_patterns:
+  llm_failure_modes:
+    - "Applying userspace patterns to kernel-level problems"
+    - "Missing memory ordering and barrier requirements"
+    - "Ignoring NUMA topology effects on performance"
+    - "Not considering scheduler behavior under load"
+    - "Missing ABA problems in lock-free data structures"
+    - "Overlooking signal handler safety restrictions"
+    - "Assuming atomic operations are always sufficient"
+    - "Missing file descriptor inheritance across fork/exec"
+    - "Ignoring distributed consensus edge cases (Byzantine failures)"
+    - "Confusing acquire-release with sequential consistency"
+    - "Not understanding difference between compiler and CPU memory barriers"
+    - "Assuming TSO (Total Store Order) behavior on ARM/POWER architectures"
+    - "Missing consume ordering requirements for data-dependent loads"
+    - "Overlooking false sharing effects on cache performance"
+    - "Not handling preemption in kernel RCU read-side critical sections"
+    - "Ignoring TLB shootdown races during memory remapping"
+    - "Missing store buffer forwarding effects on observability"
+    - "Assuming volatile provides synchronization (it doesn't in C/C++)"
+    - "Not understanding RCU grace period timing requirements"
+    - "Missing seqlock retry logic for concurrent modifications"
+    - "Ignoring NUMA memory placement effects on lock contention"
+    - "Not handling interrupts disabling properly in kernel code"

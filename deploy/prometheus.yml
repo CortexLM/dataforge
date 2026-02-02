@@ -1,0 +1,53 @@
+# Prometheus configuration for synth-bench monitoring
+#
+# This configuration scrapes metrics from synth-bench services and related
+# infrastructure components.
+
+global:
+  # How frequently to scrape targets
+  scrape_interval: 15s
+  # How frequently to evaluate rules
+  evaluation_interval: 15s
+  # Attach these labels to any time series or alerts when communicating with
+  # external systems (federation, remote storage, Alertmanager)
+  external_labels:
+    monitor: 'synth-bench'
+
+# Scrape configuration for synth-bench services
+scrape_configs:
+  # Main synth-bench application
+  - job_name: 'synth-bench'
+    static_configs:
+      - targets: ['synth-bench:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # Synth-bench worker processes
+  - job_name: 'synth-workers'
+    static_configs:
+      - targets: ['synth-bench-worker:8080']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+
+  # Redis metrics (via redis_exporter)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:9121']
+    scrape_interval: 30s
+
+  # PostgreSQL metrics (via postgres_exporter)
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres:9187']
+    scrape_interval: 30s
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+# Rule files for recording and alerting rules
+rule_files: []

@@ -1,0 +1,1588 @@
+id: "trap-data-self-destruct-001"
+version: "1.0.0"
+category: "traps"
+subcategory: "data-corruption"
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research LLM blind spots around file handling and data protection"
+    phase_2_creation: "Create task that exploits LLM assumptions about safe file access"
+    phase_3_amplification: "Add multiple layers of deception with booby-trapped files"
+    phase_4_verification: "Validate task successfully traps most LLMs through self-destruct triggers"
+  
+  llm_trap_design:
+    common_llm_weaknesses:
+      - "Pattern matching without understanding file system semantics"
+      - "Assuming standard file open is always safe"
+      - "Missing extended attribute and metadata checks"
+      - "Over-reliance on training data for file handling patterns"
+      - "Difficulty reasoning about file locking and concurrent access"
+      - "Inability to consider integrity verification before operations"
+      - "Confusion between file modes and their side effects"
+      - "Failure to consider encoding detection before reading"
+
+# === SELF-DESTRUCT TRAP TAXONOMY ===
+trap_taxonomy:
+  category: "data-corruption"
+  trap_type: "self-destruct"
+  description: "Files that corrupt or destroy themselves when accessed incorrectly"
+  
+  trap_families:
+    - family: "open_mode_traps"
+      description: "Files that corrupt when opened with wrong mode"
+      difficulty_range: [4, 8]
+      
+    - family: "lock_requirement_traps"
+      description: "Files that require specific locking protocol"
+      difficulty_range: [5, 9]
+      
+    - family: "integrity_check_traps"
+      description: "Files that require integrity verification first"
+      difficulty_range: [5, 9]
+      
+    - family: "encoding_detection_traps"
+      description: "Files with specific encoding requirements"
+      difficulty_range: [4, 8]
+      
+    - family: "metadata_protocol_traps"
+      description: "Files with metadata-specified access protocols"
+      difficulty_range: [6, 10]
+      
+    - family: "sequence_requirement_traps"
+      description: "Files requiring specific access sequence"
+      difficulty_range: [6, 10]
+      
+    - family: "backup_verification_traps"
+      description: "Files with booby-trapped backups"
+      difficulty_range: [7, 10]
+
+# === LLM WEAKNESS EXPLOITATION TECHNIQUES ===
+llm_weakness_exploitation:
+  self_destruct_techniques:
+    # Open Mode Traps (25+ techniques)
+    open_mode_traps:
+      - technique: "write_on_read_open"
+        description: "File has handler that corrupts on r+ mode"
+        llm_failure_mode: "LLM uses 'r+' to 'safely' read"
+        implementation: |
+          # File has inotify watcher that corrupts if opened for write
+          def naive_read(path):
+              with open(path, 'r+') as f:  # TRAP: r+ triggers corruption
+                  return f.read()
+        detection: "Must check if file requires read-only access"
+        difficulty: 6
+        
+      - technique: "append_only_file"
+        description: "File is append-only, truncation corrupts"
+        llm_failure_mode: "LLM opens with 'w' to overwrite"
+        implementation: |
+          # File has chattr +a (append only) on Linux
+          def update_log(path, entry):
+              with open(path, 'w') as f:  # TRAP: 'w' truncates, fails on append-only
+                  f.write(entry)
+        detection: "Must check extended attributes for append-only flag"
+        difficulty: 5
+        
+      - technique: "immutable_file"
+        description: "File is immutable, any write corrupts state"
+        llm_failure_mode: "LLM attempts modification"
+        implementation: |
+          # File has chattr +i (immutable)
+          def modify_config(path, changes):
+              with open(path, 'w') as f:  # TRAP: immutable file
+                  f.write(changes)
+        detection: "Must check immutable flag before write"
+        difficulty: 5
+        
+      - technique: "atime_corruption_trigger"
+        description: "File monitoring triggers corruption on access time update"
+        llm_failure_mode: "LLM doesn't use O_NOATIME"
+        implementation: |
+          # Security system monitors atime changes
+          def read_secure_file(path):
+              with open(path, 'r') as f:  # TRAP: updates atime
+                  return f.read()
+        detection: "Must open with O_NOATIME flag"
+        difficulty: 7
+        
+      - technique: "fd_leak_bomb"
+        description: "File leaks FD if not closed properly"
+        llm_failure_mode: "LLM doesn't use context manager"
+        implementation: |
+          def process_files(paths):
+              for path in paths:
+                  f = open(path, 'r')  # TRAP: no close
+                  data = f.read()
+                  # Process but never close - FD exhaustion
+        detection: "Must ensure proper FD cleanup"
+        difficulty: 4
+        
+      - technique: "exclusive_access_required"
+        description: "File requires exclusive access lock"
+        llm_failure_mode: "LLM opens without exclusive lock"
+        implementation: |
+          def read_protected(path):
+              with open(path, 'r') as f:  # TRAP: no exclusive lock
+                  # Another process modifies during read
+                  return f.read()
+        detection: "Must acquire exclusive lock first"
+        difficulty: 6
+        
+      - technique: "truncate_on_concurrent_open"
+        description: "File truncates if opened by multiple processes"
+        llm_failure_mode: "LLM doesn't check for concurrent access"
+        implementation: |
+          def safe_read(path):
+              # File has trap: if open count > 1, triggers corruption
+              with open(path, 'r') as f:
+                  return f.read()
+        detection: "Must use file lock to prevent concurrent open"
+        difficulty: 7
+        
+      - technique: "mmap_corruption"
+        description: "Memory mapping the file corrupts it"
+        llm_failure_mode: "LLM uses mmap for 'efficiency'"
+        implementation: |
+          import mmap
+          def fast_read(path):
+              with open(path, 'r+b') as f:
+                  mm = mmap.mmap(f.fileno(), 0)  # TRAP: mmap modifies
+                  return mm.read()
+        detection: "Must check if file allows mmap"
+        difficulty: 6
+
+    # Lock Requirement Traps (20+ techniques)
+    lock_requirement_traps:
+      - technique: "shared_lock_required"
+        description: "File expects shared lock, exclusive causes corruption"
+        llm_failure_mode: "LLM uses exclusive lock 'for safety'"
+        implementation: |
+          import fcntl
+          def protected_read(path):
+              with open(path, 'r') as f:
+                  fcntl.flock(f, fcntl.LOCK_EX)  # TRAP: should be LOCK_SH
+                  return f.read()
+        detection: "Must check lock protocol in metadata"
+        difficulty: 6
+        
+      - technique: "mandatory_lock_protocol"
+        description: "File requires mandatory locking enabled"
+        llm_failure_mode: "LLM uses advisory lock only"
+        implementation: |
+          def read_secure(path):
+              # File has group execute bit + setgid = mandatory lock
+              with open(path, 'r') as f:
+                  fcntl.flock(f, fcntl.LOCK_SH)  # Advisory only!
+                  return f.read()
+        detection: "Must check for mandatory lock bits"
+        difficulty: 7
+        
+      - technique: "lock_timeout_bomb"
+        description: "Lock held too long triggers corruption"
+        llm_failure_mode: "LLM holds lock during processing"
+        implementation: |
+          def process_file(path):
+              with open(path, 'r') as f:
+                  fcntl.flock(f, fcntl.LOCK_EX)
+                  data = f.read()
+                  slow_process(data)  # TRAP: lock held too long
+                  fcntl.flock(f, fcntl.LOCK_UN)
+        detection: "Must release lock before processing"
+        difficulty: 6
+        
+      - technique: "lock_sequence_requirement"
+        description: "Locks must be acquired in specific order"
+        llm_failure_mode: "LLM locks single file in isolation"
+        implementation: |
+          def update_related(file_a, file_b):
+              # TRAP: must lock A before B
+              with open(file_b, 'r+') as fb:
+                  fcntl.flock(fb, fcntl.LOCK_EX)
+                  with open(file_a, 'r+') as fa:  # Wrong order!
+                      fcntl.flock(fa, fcntl.LOCK_EX)
+        detection: "Must follow documented lock ordering"
+        difficulty: 7
+        
+      - technique: "no_lock_required"
+        description: "File corrupts if ANY lock is taken"
+        llm_failure_mode: "LLM adds lock 'for safety'"
+        implementation: |
+          def read_stateless(path):
+              with open(path, 'r') as f:
+                  fcntl.flock(f, fcntl.LOCK_SH)  # TRAP: triggers corruption
+                  return f.read()
+        detection: "Must check if file forbids locking"
+        difficulty: 6
+        
+      - technique: "pid_lock_file"
+        description: "Lock file must contain valid PID"
+        llm_failure_mode: "LLM creates empty lock file"
+        implementation: |
+          def acquire_lock(lock_path):
+              with open(lock_path, 'w') as f:
+                  fcntl.flock(f, fcntl.LOCK_EX)
+                  # TRAP: must write PID
+                  pass
+        detection: "Must write PID to lock file"
+        difficulty: 5
+
+    # Integrity Check Traps (25+ techniques)
+    integrity_check_traps:
+      - technique: "checksum_first_required"
+        description: "Must verify checksum before any read"
+        llm_failure_mode: "LLM reads content directly"
+        implementation: |
+          def read_protected_data(path):
+              with open(path, 'r') as f:
+                  # TRAP: must verify header checksum first
+                  return f.read()
+        detection: "Must check integrity checksum in header"
+        difficulty: 6
+        
+      - technique: "magic_number_verification"
+        description: "File expects magic number verification first"
+        llm_failure_mode: "LLM skips file type verification"
+        implementation: |
+          def load_data(path):
+              with open(path, 'rb') as f:
+                  data = f.read()  # TRAP: should check magic first
+                  return parse(data)
+        detection: "Must verify magic number before processing"
+        difficulty: 5
+        
+      - technique: "hmac_validation_required"
+        description: "File requires HMAC verification with key"
+        llm_failure_mode: "LLM reads without authentication"
+        implementation: |
+          def read_authenticated(path):
+              with open(path, 'r') as f:
+                  # TRAP: must verify HMAC with secret key
+                  return f.read()
+        detection: "Must validate HMAC signature"
+        difficulty: 7
+        
+      - technique: "version_compatibility_check"
+        description: "File format version must be checked"
+        llm_failure_mode: "LLM assumes format compatibility"
+        implementation: |
+          def load_config(path):
+              with open(path, 'r') as f:
+                  config = json.load(f)  # TRAP: version might be incompatible
+                  return config
+        detection: "Must check version field compatibility"
+        difficulty: 5
+        
+      - technique: "dependency_verification"
+        description: "File has dependencies that must exist"
+        llm_failure_mode: "LLM loads file without checking dependencies"
+        implementation: |
+          def load_module(path):
+              # TRAP: module file references dependencies
+              with open(path, 'r') as f:
+                  return compile(f.read())  # Missing dependencies
+        detection: "Must verify all dependencies exist"
+        difficulty: 6
+        
+      - technique: "freshness_check"
+        description: "File has maximum age, stale = corrupted"
+        llm_failure_mode: "LLM doesn't check file age"
+        implementation: |
+          def load_cache(path):
+              # TRAP: cache file might be stale
+              with open(path, 'r') as f:
+                  return json.load(f)
+        detection: "Must verify mtime is within valid range"
+        difficulty: 5
+        
+      - technique: "chain_of_custody"
+        description: "File requires audit log verification"
+        llm_failure_mode: "LLM accesses without logging"
+        implementation: |
+          def access_sensitive(path):
+              # TRAP: must log access in audit trail
+              with open(path, 'r') as f:
+                  return f.read()
+        detection: "Must write audit log entry first"
+        difficulty: 7
+        
+      - technique: "digital_signature_required"
+        description: "File must have valid digital signature"
+        llm_failure_mode: "LLM trusts file content without signature check"
+        implementation: |
+          def load_signed_config(path):
+              with open(path, 'r') as f:
+                  config = f.read()
+              # TRAP: must verify signature
+              return parse(config)
+        detection: "Must verify detached or embedded signature"
+        difficulty: 7
+
+    # Encoding Detection Traps (20+ techniques)
+    encoding_detection_traps:
+      - technique: "bom_required"
+        description: "File requires BOM for correct encoding detection"
+        llm_failure_mode: "LLM uses default encoding"
+        implementation: |
+          def read_text(path):
+              with open(path, 'r', encoding='utf-8') as f:  # TRAP: might be UTF-16
+                  return f.read()
+        detection: "Must check BOM to detect encoding"
+        difficulty: 5
+        
+      - technique: "declared_vs_actual_encoding"
+        description: "File declares one encoding but uses another"
+        llm_failure_mode: "LLM trusts declared encoding"
+        implementation: |
+          def parse_xml(path):
+              # <?xml encoding="utf-8"?> but content is latin-1
+              with open(path, 'r', encoding='utf-8') as f:  # TRAP
+                  return xml.parse(f)
+        detection: "Must detect actual encoding, not declared"
+        difficulty: 6
+        
+      - technique: "mixed_encoding_file"
+        description: "File has different encodings in different sections"
+        llm_failure_mode: "LLM uses single encoding for whole file"
+        implementation: |
+          def read_mixed(path):
+              with open(path, 'r', encoding='utf-8') as f:  # TRAP
+                  header = f.readline()  # UTF-8
+                  body = f.read()  # Latin-1!
+        detection: "Must handle per-section encoding"
+        difficulty: 7
+        
+      - technique: "encoding_in_metadata"
+        description: "Encoding specified in extended attributes"
+        llm_failure_mode: "LLM doesn't check xattr for encoding"
+        implementation: |
+          def read_attributed(path):
+              # xattr has user.encoding = 'utf-16-le'
+              with open(path, 'r', encoding='utf-8') as f:  # TRAP
+                  return f.read()
+        detection: "Must read xattr for encoding specification"
+        difficulty: 6
+        
+      - technique: "null_byte_encoding"
+        description: "File contains null bytes indicating binary or UTF-16"
+        llm_failure_mode: "LLM opens as text"
+        implementation: |
+          def read_text_file(path):
+              with open(path, 'r') as f:  # TRAP: contains null bytes
+                  return f.read()
+        detection: "Must check for null bytes to detect binary/UTF-16"
+        difficulty: 5
+        
+      - technique: "line_ending_specific"
+        description: "File requires specific line ending handling"
+        llm_failure_mode: "LLM uses universal newline mode"
+        implementation: |
+          def read_with_exact_lines(path):
+              # File integrity depends on exact CRLF sequence
+              with open(path, 'r') as f:  # TRAP: universal newline
+                  return f.read()
+        detection: "Must open in binary mode for exact line endings"
+        difficulty: 5
+
+    # Metadata Protocol Traps (25+ techniques)  
+    metadata_protocol_traps:
+      - technique: "xattr_access_protocol"
+        description: "Extended attribute specifies required access protocol"
+        llm_failure_mode: "LLM doesn't read extended attributes"
+        implementation: |
+          def read_protected(path):
+              # xattr has user.protocol = 'encrypted-read'
+              with open(path, 'r') as f:  # TRAP: wrong protocol
+                  return f.read()
+        detection: "Must read and follow xattr protocol specification"
+        difficulty: 7
+        
+      - technique: "acl_requirements"
+        description: "ACL specifies access requirements"
+        llm_failure_mode: "LLM doesn't check ACL"
+        implementation: |
+          def access_file(path):
+              # ACL has specific requirements
+              with open(path, 'r') as f:  # TRAP: ACL violated
+                  return f.read()
+        detection: "Must check POSIX ACL before access"
+        difficulty: 6
+        
+      - technique: "selinux_context"
+        description: "SELinux context restricts access pattern"
+        llm_failure_mode: "LLM ignores security context"
+        implementation: |
+          def read_labeled(path):
+              # File has system_u:object_r:secret_t:s0
+              with open(path, 'r') as f:  # TRAP: context violation
+                  return f.read()
+        detection: "Must check SELinux context compatibility"
+        difficulty: 8
+        
+      - technique: "capability_required"
+        description: "Reading requires specific Linux capability"
+        llm_failure_mode: "LLM assumes read permission is sufficient"
+        implementation: |
+          def read_capability_file(path):
+              # File requires CAP_DAC_READ_SEARCH
+              with open(path, 'r') as f:  # TRAP: missing capability
+                  return f.read()
+        detection: "Must have required capability set"
+        difficulty: 7
+        
+      - technique: "alternate_data_stream"
+        description: "Actual content in alternate data stream (NTFS)"
+        llm_failure_mode: "LLM reads main stream only"
+        implementation: |
+          def read_ntfs_file(path):
+              with open(path, 'r') as f:  # TRAP: real data in ADS
+                  return f.read()
+        detection: "Must check for and read alternate data streams"
+        difficulty: 7
+        
+      - technique: "resource_fork_content"
+        description: "Content in resource fork (macOS)"
+        llm_failure_mode: "LLM reads data fork only"
+        implementation: |
+          def read_mac_file(path):
+              with open(path, 'r') as f:  # TRAP: data in resource fork
+                  return f.read()
+        detection: "Must check resource fork for content"
+        difficulty: 7
+
+    # Sequence Requirement Traps (20+ techniques)
+    sequence_requirement_traps:
+      - technique: "init_file_first"
+        description: "Must read init file before main file"
+        llm_failure_mode: "LLM reads main file directly"
+        implementation: |
+          def load_config(path):
+              # TRAP: must read path + '.init' first
+              with open(path, 'r') as f:
+                  return json.load(f)
+        detection: "Must read init file to get parameters"
+        difficulty: 6
+        
+      - technique: "header_file_separate"
+        description: "Header in separate file must be read first"
+        llm_failure_mode: "LLM reads data file assuming self-describing"
+        implementation: |
+          def load_data(path):
+              # TRAP: header in path + '.hdr'
+              with open(path, 'rb') as f:
+                  return parse_without_header(f)
+        detection: "Must read header file first"
+        difficulty: 6
+        
+      - technique: "key_file_required"
+        description: "Must read key file before encrypted content"
+        llm_failure_mode: "LLM reads encrypted file directly"
+        implementation: |
+          def read_encrypted(path):
+              # TRAP: key in path + '.key'
+              with open(path, 'rb') as f:
+                  return f.read()  # Encrypted, useless without key
+        detection: "Must locate and read key file first"
+        difficulty: 6
+        
+      - technique: "manifest_validation"
+        description: "Must validate manifest before accessing files"
+        llm_failure_mode: "LLM accesses files directly"
+        implementation: |
+          def extract_archive(path):
+              # TRAP: manifest.json lists valid files
+              for entry in tarfile.open(path):
+                  entry.extract()  # May extract malicious files
+        detection: "Must validate manifest and check all paths"
+        difficulty: 7
+        
+      - technique: "journal_replay"
+        description: "Must replay journal before reading data"
+        llm_failure_mode: "LLM reads data without journal replay"
+        implementation: |
+          def read_db(path):
+              # TRAP: must replay path + '.journal' first
+              with open(path, 'rb') as f:
+                  return parse_db(f)
+        detection: "Must check for and replay journal"
+        difficulty: 7
+
+    # Backup Verification Traps (15+ techniques)
+    backup_verification_traps:
+      - technique: "backup_is_trap"
+        description: "Backup file is also booby-trapped"
+        llm_failure_mode: "LLM falls back to backup assuming safe"
+        implementation: |
+          def safe_read(path):
+              try:
+                  return read_protected(path)
+              except:
+                  return read_protected(path + '.bak')  # TRAP: also protected!
+        detection: "Must apply same protocol to backup"
+        difficulty: 6
+        
+      - technique: "backup_different_protocol"
+        description: "Backup requires different access protocol"
+        llm_failure_mode: "LLM uses same access method for backup"
+        implementation: |
+          def read_with_fallback(path):
+              try:
+                  return read_main(path)
+              except:
+                  return read_main(path + '.bak')  # TRAP: different protocol
+        detection: "Must check backup's protocol specification"
+        difficulty: 7
+        
+      - technique: "backup_timestamp_check"
+        description: "Backup has timestamp validation"
+        llm_failure_mode: "LLM doesn't verify backup freshness"
+        implementation: |
+          def restore_backup(path):
+              # TRAP: backup might be too old
+              shutil.copy(path + '.bak', path)
+        detection: "Must verify backup timestamp is acceptable"
+        difficulty: 5
+        
+      - technique: "incremental_backup_chain"
+        description: "Must restore full chain of incremental backups"
+        llm_failure_mode: "LLM restores only latest backup"
+        implementation: |
+          def restore(path):
+              # TRAP: must restore .bak.0, .bak.1, .bak.2 in order
+              shutil.copy(path + '.bak', path)  # Only latest = corrupt
+        detection: "Must identify and apply all incremental backups"
+        difficulty: 7
+
+# === TRAP MECHANISMS ===
+trap_mechanisms:
+  corruption_triggers:
+    - mechanism: "inotify_watcher"
+      description: "File system watcher triggers corruption"
+      implementation: |
+        # Background process watches for specific access patterns
+        inotify_add_watch(path, IN_OPEN | IN_MODIFY)
+        if event.mask & IN_MODIFY:
+            corrupt_file(path)
+      detection_difficulty: 8
+      
+    - mechanism: "fuse_filesystem"
+      description: "FUSE filesystem implements corruption logic"
+      implementation: |
+        # Custom FUSE filesystem with access traps
+        class TrapFS(fuse.Operations):
+            def open(self, path, flags):
+                if flags & O_RDWR:
+                    corrupt(path)
+      detection_difficulty: 9
+      
+    - mechanism: "ld_preload_hook"
+      description: "LD_PRELOAD hooks open() with trap"
+      implementation: |
+        # Injected library intercepts open()
+        int open(const char *path, int flags) {
+            if (is_trapped(path) && (flags & O_WRONLY))
+                trigger_corruption(path);
+            return original_open(path, flags);
+        }
+      detection_difficulty: 9
+      
+    - mechanism: "audit_daemon"
+      description: "Audit daemon monitors and corrupts"
+      implementation: |
+        # auditd rule triggers script on access
+        -w /path/to/protected -p wa -k trap_trigger
+        # Script corrupts on unauthorized access
+      detection_difficulty: 7
+      
+    - mechanism: "embedded_timer"
+      description: "File contains timer that corrupts after read"
+      implementation: |
+        # File header contains timestamp
+        # If not re-encrypted within timeout, self-destructs
+      detection_difficulty: 8
+      
+    - mechanism: "hash_chain_corruption"
+      description: "File is part of hash chain, wrong access breaks chain"
+      implementation: |
+        # Each file's hash depends on previous
+        # Out-of-order access invalidates chain
+      detection_difficulty: 8
+
+# === ANTI-DETECTION TECHNIQUES ===
+anti_detection_techniques:
+  hiding_methods:
+    - method: "innocuous_error_message"
+      description: "Corruption appears as normal error"
+      example: |
+        # Instead of "FILE CORRUPTED"
+        raise IOError("Resource temporarily unavailable")
+        
+    - method: "delayed_corruption"
+      description: "Corruption happens on next access"
+      example: |
+        # Mark file for corruption, actual corruption on next open
+        set_xattr(path, 'user.pending_corrupt', '1')
+        
+    - method: "partial_corruption"
+      description: "Only specific sections corrupted"
+      example: |
+        # Corrupt authentication section but leave data readable
+        corrupt_bytes(path, AUTH_OFFSET, AUTH_LENGTH)
+        
+    - method: "probabilistic_corruption"
+      description: "Corruption happens randomly"
+      example: |
+        if random.random() < 0.1:
+            trigger_corruption()
+            
+    - method: "silent_data_change"
+      description: "Data changed but file appears normal"
+      example: |
+        # Change one bit in critical value
+        flip_bit(path, CRITICAL_OFFSET)
+
+# === LLM-SPECIFIC TRAPS ===
+llm_specific_traps:
+  assumption_exploitation:
+    - trap: "standard_open_safe"
+      description: "LLM assumes open() is always safe for reading"
+      examples:
+        - name: "naive_open"
+          code: |
+            def read_file(path):
+                with open(path, 'r') as f:  # Looks completely normal
+                    return f.read()
+          llm_failure: "LLM generates standard file reading pattern"
+          trap: "File has inotify trigger on open"
+          
+    - trap: "backup_fallback_safe"
+      description: "LLM assumes backup is safe alternative"
+      examples:
+        - name: "backup_fallback"
+          code: |
+            def safe_read(path):
+                try:
+                    return read_file(path)
+                except:
+                    return read_file(path + '.bak')  # "Safe" fallback
+          llm_failure: "LLM suggests backup as recovery"
+          trap: "Backup has same or different trap"
+          
+    - trap: "binary_mode_safe"
+      description: "LLM assumes binary mode avoids encoding issues"
+      examples:
+        - name: "binary_read"
+          code: |
+            def safe_binary_read(path):
+                with open(path, 'rb') as f:  # Binary mode = safe?
+                    return f.read()
+          llm_failure: "LLM uses binary mode as safety measure"
+          trap: "File requires specific access flags not related to encoding"
+
+# === DIFFICULTY MULTIPLIERS ===
+difficulty_multipliers:
+  complexity_factors:
+    - factor: "multiple_protection_layers"
+      multiplier: 1.8
+      description: "File has multiple independent protections"
+      
+    - factor: "undocumented_protocol"
+      multiplier: 1.6
+      description: "Access protocol only in xattr/metadata"
+      
+    - factor: "dynamic_requirements"
+      multiplier: 1.7
+      description: "Requirements change based on time/state"
+      
+    - factor: "cross_file_dependencies"
+      multiplier: 1.5
+      description: "Must handle related files together"
+      
+    - factor: "silent_corruption"
+      multiplier: 1.9
+      description: "Corruption not immediately apparent"
+
+# === COMPREHENSIVE TASK TEMPLATES ===
+task_templates:
+  - id: "protected_file_read"
+    name: "Protected File Recovery"
+    description: "Safely read a booby-trapped file"
+    difficulty: [6, 10]
+    template: |
+      A {{ file_type }} needs to be read from {{ location }}.
+      
+      WARNING: This file has protection mechanisms that may corrupt data
+      if accessed incorrectly.
+      
+      File Information:
+      - Path: {{ path }}
+      - Size: {{ size }} bytes
+      - Owner: {{ owner }}
+      - Permissions: {{ permissions }}
+      
+      Hints from system documentation:
+      {{ hints }}
+      
+      Your tasks:
+      1. Examine file metadata and attributes
+      2. Identify access requirements
+      3. Create safe backup
+      4. Read file following proper protocol
+      5. Verify integrity after reading
+      
+    variables:
+      file_type:
+        options: ["configuration file", "database file", "encrypted archive", "certificate store"]
+      location:
+        options: ["production server", "legacy system", "secure enclave", "backup storage"]
+      path:
+        generator: "random_path"
+      size:
+        generator: "random_file_size"
+      owner:
+        options: ["root", "service_account", "backup_user", "security_daemon"]
+      permissions:
+        options: ["0600", "0400", "0644", "0640"]
+      hints:
+        generator: "partial_hints"
+
+  - id: "corrupted_recovery"
+    name: "Corrupted File Recovery"
+    description: "Recover from file corruption"
+    difficulty: [7, 10]
+    template: |
+      A {{ file_type }} was accidentally corrupted by incorrect access.
+      You must recover the data without triggering additional corruption.
+      
+      Corruption Report:
+      - Original file: {{ original_state }}
+      - Current state: {{ current_state }}
+      - Backup status: {{ backup_status }}
+      
+      Recovery hints:
+      {{ recovery_hints }}
+      
+      Your tasks:
+      1. Assess current file state
+      2. Identify corruption extent
+      3. Locate valid backup chain
+      4. Plan recovery sequence
+      5. Execute recovery safely
+      
+    variables:
+      file_type:
+        options: ["transaction log", "user database", "config store", "session file"]
+      original_state:
+        generator: "file_state"
+      current_state:
+        generator: "corrupted_state"
+      backup_status:
+        generator: "backup_chain"
+      recovery_hints:
+        generator: "recovery_hints"
+
+# === GENERATION CONFIGURATION ===
+generation_config:
+  min_variants_per_template: 100
+  total_combinations_target: 10000
+  
+  randomization_rules:
+    - rule: "protection_combination"
+      description: "Randomly combine protection mechanisms"
+    - rule: "corruption_trigger"
+      description: "Vary corruption trigger conditions"
+    - rule: "access_protocol"
+      description: "Generate unique access protocols"
+
+# === REFERENCE SOLUTION PATTERNS ===
+reference_solutions:
+  safe_read_pattern: |
+    import os
+    import fcntl
+    import hashlib
+    import shutil
+    
+    def safe_protected_read(path):
+        """Safely read a protected file."""
+        
+        # Step 1: Create backup BEFORE any access
+        backup = path + '.safecopy.' + str(os.getpid())
+        shutil.copy2(path, backup)
+        
+        # Step 2: Check extended attributes for protocol
+        try:
+            protocol = os.getxattr(path, b'user.access_protocol')
+        except OSError:
+            protocol = None
+        
+        # Step 3: Open with minimal flags
+        flags = os.O_RDONLY
+        if hasattr(os, 'O_NOATIME'):
+            try:
+                flags |= os.O_NOATIME
+            except PermissionError:
+                pass
+        
+        fd = os.open(path, flags)
+        try:
+            # Step 4: Acquire shared lock
+            fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
+            
+            # Step 5: Read and verify
+            content = os.read(fd, os.path.getsize(path))
+            
+            # Step 6: Verify integrity
+            if protocol and b'checksum' in protocol:
+                verify_checksum(content)
+            
+            return content
+        finally:
+            fcntl.flock(fd, fcntl.LOCK_UN)
+            os.close(fd)
+
+# === ANTI-HARDCODING CONFIGURATION ===
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  
+  protection_variations:
+    - vary: "lock_type"
+    - vary: "checksum_algorithm"
+    - vary: "encoding_requirement"
+    - vary: "metadata_location"
+
+# === TEST CASE GENERATION ===
+test_case_generation:
+  fail_to_pass:
+    - "test_file_not_corrupted"
+    - "test_content_readable"
+    - "test_checksum_verified"
+    - "test_encoding_correct"
+    - "test_protocol_followed"
+
+  pass_to_pass:
+    - "test_backup_created"
+    - "test_lock_acquired"
+    - "test_attributes_checked"
+
+# === ADDITIONAL TRAP TECHNIQUES ===
+additional_trap_techniques:
+  # Advanced File Handle Traps (20+ techniques)
+  advanced_file_traps:
+    - technique: "dup_fd_detection"
+      description: "File detects if FD is duplicated"
+      llm_failure_mode: "LLM uses dup() for safety"
+      implementation: |
+        def read_with_backup_fd(path):
+            fd = os.open(path, os.O_RDONLY)
+            backup_fd = os.dup(fd)  # TRAP: triggers detection!
+            return os.read(fd, os.path.getsize(path))
+      difficulty: 7
+      
+    - technique: "seek_trap"
+      description: "File corrupts if seek() is called"
+      llm_failure_mode: "LLM seeks to beginning before read"
+      implementation: |
+        def read_from_start(path):
+            with open(path, 'r') as f:
+                content = f.read()
+                f.seek(0)  # TRAP: triggers corruption!
+                return content
+      difficulty: 6
+      
+    - technique: "partial_read_detection"
+      description: "File corrupts if not read completely"
+      llm_failure_mode: "LLM reads only needed portion"
+      implementation: |
+        def read_header(path):
+            with open(path, 'r') as f:
+                header = f.read(100)  # TRAP: must read all!
+                return parse_header(header)
+      difficulty: 6
+      
+    - technique: "concurrent_reader_detection"
+      description: "File detects multiple simultaneous readers"
+      llm_failure_mode: "LLM uses multiple file handles"
+      implementation: |
+        def parallel_read(path):
+            f1 = open(path, 'r')
+            f2 = open(path, 'r')  # TRAP: second open triggers!
+            return f1.read(), f2.read()
+      difficulty: 7
+      
+    - technique: "buffer_size_trap"
+      description: "File requires specific buffer size"
+      llm_failure_mode: "LLM uses default buffer"
+      implementation: |
+        def read_unbuffered(path):
+            with open(path, 'r', buffering=0) as f:  # TRAP: wrong buffer!
+                return f.read()
+      difficulty: 6
+      
+    - technique: "tell_trap"
+      description: "File corrupts if tell() is called"
+      llm_failure_mode: "LLM checks position for progress"
+      implementation: |
+        def read_with_progress(path):
+            with open(path, 'r') as f:
+                while chunk := f.read(1024):
+                    pos = f.tell()  # TRAP: triggers corruption!
+                    report_progress(pos)
+      difficulty: 6
+      
+    - technique: "readline_vs_read"
+      description: "File requires read() not readline()"
+      llm_failure_mode: "LLM uses readline() for text"
+      implementation: |
+        def read_text(path):
+            with open(path, 'r') as f:
+                lines = f.readlines()  # TRAP: must use read()!
+                return ''.join(lines)
+      difficulty: 5
+      
+    - technique: "binary_text_trap"
+      description: "File must be opened in specific mode"
+      llm_failure_mode: "LLM guesses mode based on content"
+      implementation: |
+        def auto_detect_read(path):
+            try:
+                with open(path, 'r') as f:  # TRAP: needs 'rb'!
+                    return f.read()
+            except:
+                with open(path, 'rb') as f:
+                    return f.read()
+      difficulty: 5
+
+  # File System Trap Techniques (20+ techniques)
+  filesystem_traps:
+    - technique: "sparse_file_trap"
+      description: "Sparse file corrupts on full read"
+      llm_failure_mode: "LLM reads sparse file normally"
+      implementation: |
+        def read_sparse(path):
+            with open(path, 'rb') as f:
+                # TRAP: reading sparse holes triggers corruption!
+                return f.read()
+      difficulty: 7
+      
+    - technique: "reflink_trap"
+      description: "Copy-on-write file corrupts on CoW"
+      llm_failure_mode: "LLM doesn't consider CoW"
+      implementation: |
+        def safe_modify(path):
+            content = open(path, 'r').read()
+            with open(path, 'w') as f:  # TRAP: CoW triggers!
+                f.write(content.replace('old', 'new'))
+      difficulty: 8
+      
+    - technique: "compression_trap"
+      description: "Compressed file corrupts on decompression"
+      llm_failure_mode: "LLM decompresses transparently"
+      implementation: |
+        def read_compressed(path):
+            # File might be on compressed filesystem (NTFS, btrfs)
+            return open(path, 'r').read()  # TRAP: decompression triggers!
+      difficulty: 7
+      
+    - technique: "quota_trap"
+      description: "File corrupts if quota is checked"
+      llm_failure_mode: "LLM checks available space"
+      implementation: |
+        def write_with_check(path, content):
+            usage = shutil.disk_usage(path)  # TRAP: quota check triggers!
+            if usage.free > len(content):
+                open(path, 'w').write(content)
+      difficulty: 6
+      
+    - technique: "timestamp_modification_trap"
+      description: "File corrupts if timestamps are modified"
+      llm_failure_mode: "LLM preserves timestamps"
+      implementation: |
+        def copy_with_times(src, dst):
+            shutil.copy2(src, dst)  # TRAP: timestamp copy triggers!
+      difficulty: 6
+      
+    - technique: "permission_check_trap"
+      description: "File corrupts on permission check"
+      llm_failure_mode: "LLM checks permissions first"
+      implementation: |
+        def safe_read(path):
+            if os.access(path, os.R_OK):  # TRAP: access check triggers!
+                return open(path, 'r').read()
+      difficulty: 6
+
+  # Cryptographic Trap Techniques (15+ techniques)
+  crypto_traps:
+    - technique: "nonce_reuse_detection"
+      description: "File detects if encryption nonce is reused"
+      llm_failure_mode: "LLM reuses IV/nonce for retry"
+      implementation: |
+        def encrypt_retry(path, key, nonce):
+            # First attempt failed, retry with same nonce
+            # TRAP: nonce reuse triggers corruption!
+            ciphertext = encrypt(data, key, nonce)
+      difficulty: 8
+      
+    - technique: "timing_oracle_trap"
+      description: "File detects timing-based decryption attempts"
+      llm_failure_mode: "LLM doesn't constant-time compare"
+      implementation: |
+        def verify_mac(data, expected_mac):
+            computed = hmac.new(key, data).digest()
+            # TRAP: non-constant-time comparison triggers!
+            return computed == expected_mac
+      difficulty: 8
+      
+    - technique: "key_derivation_trap"
+      description: "File requires specific KDF parameters"
+      llm_failure_mode: "LLM uses default parameters"
+      implementation: |
+        def decrypt(path, password):
+            key = hashlib.pbkdf2_hmac('sha256', password, salt, 100000)
+            # TRAP: iterations must match exactly!
+      difficulty: 7
+      
+    - technique: "padding_oracle_trap"
+      description: "File detects padding oracle attempts"
+      llm_failure_mode: "LLM decrypts with error handling"
+      implementation: |
+        def decrypt_blocks(ciphertext, key):
+            try:
+                plaintext = decrypt(ciphertext, key)
+            except PaddingError:
+                # TRAP: catching padding error triggers corruption!
+                return None
+      difficulty: 8
+
+  # Network Protocol Traps (15+ techniques)
+  network_traps:
+    - technique: "dns_lookup_trap"
+      description: "File corrupts if DNS lookup performed"
+      llm_failure_mode: "LLM resolves hostnames"
+      implementation: |
+        def read_remote_config(path):
+            config = json.load(open(path))
+            # TRAP: resolving hostname triggers corruption!
+            host = socket.gethostbyname(config['server'])
+      difficulty: 7
+      
+    - technique: "connection_timeout_trap"
+      description: "File requires specific timeout"
+      llm_failure_mode: "LLM uses default timeout"
+      implementation: |
+        def connect_with_config(path):
+            config = json.load(open(path))
+            # TRAP: timeout must match value in config!
+            socket.setdefaulttimeout(30)
+      difficulty: 6
+      
+    - technique: "protocol_version_trap"
+      description: "File requires specific protocol version"
+      llm_failure_mode: "LLM uses default SSL/TLS"
+      implementation: |
+        def secure_connect(path):
+            config = json.load(open(path))
+            # TRAP: TLS version must be specific!
+            ctx = ssl.SSLContext(ssl.PROTOCOL_TLS)
+      difficulty: 7
+
+# === PSYCHOLOGICAL DECEPTION PATTERNS ===
+psychological_deception:
+  misdirection_techniques:
+    - technique: "obvious_decoy_trap"
+      description: "Obvious fake trap distracts from real one"
+      implementation: |
+        # Obvious: file has .encrypted extension
+        # Real trap: requires specific access sequence
+      effectiveness: 0.7
+      
+    - technique: "documentation_misdirection"
+      description: "Documentation describes different trap"
+      implementation: |
+        # Docs say: "verify checksum before reading"
+        # Real trap: checksum verification IS the trigger!
+      effectiveness: 0.8
+      
+    - technique: "error_message_deception"
+      description: "Error message misleads about cause"
+      implementation: |
+        # Error: "Permission denied"
+        # Real cause: wrong access sequence
+      effectiveness: 0.75
+      
+    - technique: "partial_success_trap"
+      description: "Operation partially succeeds, masking corruption"
+      implementation: |
+        # First 90% of file reads fine
+        # Corruption happens in last 10%
+      effectiveness: 0.8
+
+  cognitive_exploitation:
+    - exploit: "familiarity_bias"
+      description: "LLM uses familiar patterns that trigger trap"
+      examples:
+        - "Standard try/except around open()"
+        - "Common context manager usage"
+        - "Typical file reading patterns"
+        
+    - exploit: "completion_bias"
+      description: "LLM completes task without full verification"
+      examples:
+        - "File appears to read successfully"
+        - "No immediate error thrown"
+        - "Content looks valid at first glance"
+        
+    - exploit: "authority_bias"
+      description: "LLM trusts documentation/comments"
+      examples:
+        - "Comment says 'safe to read'"
+        - "Docstring describes wrong protocol"
+        - "Example code is actually trap"
+
+# === EXTENDED TASK SCENARIOS ===
+extended_scenarios:
+  - scenario: "legacy_system_migration"
+    description: "Reading protected files from legacy system"
+    complexity: 8
+    traps_involved:
+      - "encoding_trap"
+      - "lock_protocol"
+      - "checksum_verification"
+    context: |
+      A legacy system used custom file protection that must be 
+      reverse-engineered before migration.
+      
+  - scenario: "incident_response"
+    description: "Reading potentially compromised files"
+    complexity: 9
+    traps_involved:
+      - "self_destruct_on_analysis"
+      - "anti_forensics"
+      - "evidence_destruction"
+    context: |
+      Files may have been booby-trapped by attacker to destroy
+      evidence when accessed by investigators.
+      
+  - scenario: "ransomware_recovery"
+    description: "Recovering files from ransomware encryption"
+    complexity: 9
+    traps_involved:
+      - "decryption_trap"
+      - "backup_corruption"
+      - "double_encryption"
+    context: |
+      Files encrypted by ransomware may have additional traps
+      to prevent recovery without paying ransom.
+
+# === ENHANCED DIFFICULTY CONFIGURATION ===
+enhanced_difficulty_config:
+  time_range: [7200, 18000]  # 120-300 minutes for expert reverse engineers
+  command_steps: [150, 500]  # Minimum 150 distinct analysis steps required
+  trap_count: "15+ nested, mutually-reinforcing traps"
+  
+  quality_requirements:
+    description: "120-300 minutes for expert reverse engineers and security researchers"
+    expertise_level: "Elite security researcher with mastery of file system internals, kernel behavior, and forensic analysis"
+    prerequisite_knowledge:
+      - "File system extended attributes and metadata protocols across all major OSes"
+      - "File locking semantics including advisory vs mandatory locks, fcntl vs flock"
+      - "Encoding detection, BOM handling, and encoding round-trip vulnerabilities"
+      - "Inotify, fswatch, fanotify, and file system monitoring internals"
+      - "Kernel-level file descriptor management and VFS layer behavior"
+      - "FUSE filesystem implementation and interception patterns"
+      - "SELinux, AppArmor, and capability-based security models"
+      - "Anti-forensics and evidence destruction techniques"
+  
+  phase_4_verification:
+    validation_criteria:
+      - "Contains 15+ interacting deceptive patterns that cascade across abstraction layers"
+      - "Has cascading state corruption that spreads across modules and persists across reboots"
+      - "Requires understanding of kernel, runtime, and application layer interactions"
+      - "Would take expert security researchers 120+ minutes"
+      - "Self-destruct triggers that activate on common but incorrect access patterns"
+      - "Protection mechanisms that appear as legitimate validation code"
+      - "Traps that detect and evade analysis tools and debuggers"
+      - "Multiple independent trigger conditions that must all be avoided"
+      - "Anti-forensic measures that destroy evidence of the trap mechanism"
+  
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 4.0
+      description: "Deceptive complexity designed to defeat even expert analysis"
+      requirements:
+        - "7+ interacting traps that mask each other's symptoms"
+        - "Requires understanding of compiler optimizations and runtime behavior"
+        - "Time estimate: 120+ minutes for senior engineers"
+        - "Timing-dependent behavior that varies across environments"
+        - "Requires synthesizing debugging, systems, and language internals"
+    
+    nightmare_plus:
+      multiplier: 8.0
+      estimated_time: [43200, 259200]  # 12-72 hours
+      command_steps: [600, 3000]
+      techniques_required: 25
+      description: "CTF championship-level difficulty with adversarial anti-analysis mechanisms"
+      requirements:
+        - "15+ interacting traps with nth-order deception layers"
+        - "Anti-debugging, anti-tracing, and environment detection"
+        - "Self-modifying protection mechanisms that adapt to analysis"
+        - "Requires expertise in reverse engineering, forensics, and kernel internals"
+        - "Time estimate: 12-72 hours for elite security researchers"
+        - "Traps that behave differently under analysis vs normal execution"
+        - "Evidence destruction mechanisms that activate on detection"
+        - "Cryptographic protections with time-based key derivation"
+  
+  anti_patterns:
+    llm_failure_modes:
+      - "Trusting visible code structure over actual execution behavior"
+      - "Missing compiler optimization effects on code semantics"
+      - "Ignoring Unicode normalization and rendering differences"
+      - "Not considering filesystem race conditions with symlinks"
+      - "Missing singleton initialization order dependencies"
+      - "Overlooking environment variable and config file interactions"
+      - "Assuming deterministic behavior in timing-sensitive code"
+      - "Missing state corruption that only manifests under specific sequences"
+      - "Ignoring encoding round-trip issues that corrupt data silently"
+      - "Failing to detect anti-analysis environment checks"
+      - "Missing kernel-level interception mechanisms"
+      - "Not considering hardware-specific timing behaviors"
+  
+  generation_targets:
+    minimum_difficulty: "120-300 minutes, requires elite expertise in reverse engineering and security analysis"
+    target_audience: "Expert reverse engineers, CTF champions, and elite security researchers"
+    success_criteria: "LLM fails to identify all self-destruct triggers in first 5 attempts"
+
+# === MULTI-AGENT ORCHESTRATION COMPLEXITY ===
+multi_agent_orchestration:
+  description: "Coordinating specialized trap detection agents for comprehensive analysis"
+  
+  required_agents:
+    - agent: "static_analyzer"
+      role: "Analyze code structure, control flow, and data dependencies"
+      capabilities:
+        - "AST-based pattern detection for self-destruct triggers"
+        - "Cross-file dependency tracking"
+        - "Symbolic execution of file access patterns"
+      handoff_triggers:
+        - "Discovers obfuscated file operation patterns"
+        - "Finds suspicious conditional branches"
+    
+    - agent: "dynamic_tracer"
+      role: "Runtime monitoring of file operations and system calls"
+      capabilities:
+        - "strace/ptrace interception of all file operations"
+        - "Memory access pattern tracking"
+        - "File descriptor lifecycle monitoring"
+      handoff_triggers:
+        - "Detects runtime-generated file paths"
+        - "Observes delayed corruption mechanisms"
+    
+    - agent: "symbolic_executor"
+      role: "Explore all possible execution paths symbolically"
+      capabilities:
+        - "Path constraint solving for trigger conditions"
+        - "Symbolic file content analysis"
+        - "Coverage-guided exploration"
+      handoff_triggers:
+        - "Path explosion in complex conditionals"
+        - "Discovers path-dependent behavior"
+    
+    - agent: "filesystem_monitor"
+      role: "Deep filesystem behavior analysis"
+      capabilities:
+        - "Extended attribute monitoring"
+        - "Inotify/fanotify event correlation"
+        - "Lock contention detection"
+      handoff_triggers:
+        - "Detects filesystem-level triggers"
+        - "Observes metadata-based corruption"
+    
+    - agent: "encoding_specialist"
+      role: "Analyze encoding-related triggers"
+      capabilities:
+        - "BOM detection and validation"
+        - "Encoding detection heuristics"
+        - "Round-trip encoding analysis"
+      handoff_triggers:
+        - "Finds encoding-sensitive operations"
+        - "Detects encoding bombs"
+    
+    - agent: "kernel_analyst"
+      role: "Analyze kernel-level mechanisms"
+      capabilities:
+        - "VFS layer behavior analysis"
+        - "Security module interaction tracing"
+        - "Capability and permission checking"
+      handoff_triggers:
+        - "Discovers kernel-level traps"
+        - "Finds security module bypasses"
+    
+    - agent: "forensic_examiner"
+      role: "Analyze anti-forensic mechanisms"
+      capabilities:
+        - "Evidence destruction pattern detection"
+        - "Timeline reconstruction"
+        - "Artifact recovery techniques"
+      handoff_triggers:
+        - "Detects evidence tampering"
+        - "Finds self-destruct evidence"
+    
+    - agent: "timing_analyst"
+      role: "Analyze time-based triggers"
+      capabilities:
+        - "Temporal pattern detection"
+        - "Race condition identification"
+        - "Timeout behavior analysis"
+      handoff_triggers:
+        - "Discovers time-dependent behavior"
+        - "Finds TOCTOU vulnerabilities"
+  
+  cross_artifact_deception_chains:
+    - chain: "code_to_data_to_timing"
+      description: "Code trap leads to data corruption trigger that activates timing bomb"
+      stages:
+        - "Initial code analysis reveals benign-looking validation"
+        - "Validation failure triggers data corruption marker"
+        - "Corruption marker activates delayed destruction"
+    
+    - chain: "metadata_to_content_to_state"
+      description: "Metadata trap corrupts content which corrupts application state"
+      stages:
+        - "Extended attribute check seems legitimate"
+        - "Wrong xattr access corrupts file content header"
+        - "Corrupted header causes application state corruption"
+    
+    - chain: "lock_to_encoding_to_cascade"
+      description: "Lock protocol violation triggers encoding corruption cascade"
+      stages:
+        - "Incorrect lock type triggers warning mechanism"
+        - "Warning writes encoding-corrupted log entry"
+        - "Log parsing corruption cascades to other files"
+  
+  parallel_deception_analysis:
+    shared_symbolic_state:
+      - "File descriptor state across processes"
+      - "Lock state across threads"
+      - "Encoding detection cache"
+      - "Metadata modification timestamps"
+    
+    synchronization_requirements:
+      - "Atomic analysis of check-then-use patterns"
+      - "Consistent view of filesystem state during analysis"
+      - "Coordinated trap trigger detection across agents"
+  
+  agent_handoff_protocols:
+    protocol: "multi_layer_trap_unwinding"
+    steps:
+      - "Initial agent identifies surface-level trap"
+      - "Handoff to specialist agent for deeper analysis"
+      - "Specialist discovers next layer of deception"
+      - "Recursive handoff until all layers exposed"
+      - "Final synthesis of complete trap mechanism"
+
+# === META TRAP LAYERS ===
+meta_trap_layers:
+  first_order_traps:
+    description: "What the traps appear to be on surface inspection"
+    examples:
+      - "File validation that looks like security check"
+      - "Encoding detection that appears helpful"
+      - "Lock acquisition that seems protective"
+      - "Checksum verification that looks standard"
+    detection_time: "5-15 minutes"
+    llm_detection_rate: "60-80%"
+  
+  second_order_traps:
+    description: "What investigating the first trap reveals"
+    examples:
+      - "Validation failure triggers corruption, not just rejection"
+      - "Encoding detection modifies file while detecting"
+      - "Lock acquisition records access for later triggering"
+      - "Checksum verification uses corrupting algorithm"
+    detection_time: "30-60 minutes"
+    llm_detection_rate: "20-40%"
+  
+  third_order_traps:
+    description: "What the investigation process itself triggers"
+    examples:
+      - "Reading file metadata triggers delayed corruption"
+      - "Debugging trap code activates anti-analysis measures"
+      - "Logging investigation actions reveals investigation to trap"
+      - "Test file creation triggers cleanup of evidence"
+    detection_time: "60-120 minutes"
+    llm_detection_rate: "5-15%"
+  
+  nth_order_traps:
+    description: "Recursive trap structures with arbitrary depth"
+    examples:
+      - "Each layer of investigation reveals another layer of deception"
+      - "Trap mechanism self-modifies based on analysis patterns"
+      - "Recursive structures that appear finite but expand during analysis"
+      - "Traps that create new traps when investigated"
+    detection_time: "120+ minutes per additional layer"
+    llm_detection_rate: "<5%"
+    
+  recursive_trap_structures:
+    - structure: "self_referential_protection"
+      description: "Protection mechanism references itself through indirection"
+      depth: "theoretically infinite"
+      
+    - structure: "mutually_reinforcing_traps"
+      description: "Traps that protect each other and reform when one is disabled"
+      depth: "varies based on investigation approach"
+      
+    - structure: "adaptive_deception"
+      description: "Trap structure changes based on analysis techniques used"
+      depth: "increases with analysis sophistication"
+
+# === ANTI-ANALYSIS TECHNIQUES ===
+anti_analysis_techniques:
+  environment_detection:
+    - technique: "debugger_detection"
+      description: "Detect if running under debugger"
+      methods:
+        - "Check /proc/self/status for TracerPid"
+        - "Timing-based detection using RDTSC"
+        - "Exception-based detection"
+        - "API-based detection (ptrace self-attach)"
+      behavior_change: "Disable self-destruct triggers, appear benign"
+    
+    - technique: "vm_detection"
+      description: "Detect virtual machine execution"
+      methods:
+        - "CPUID-based hypervisor detection"
+        - "VM-specific device detection"
+        - "Timing anomaly detection"
+        - "MAC address vendor detection"
+      behavior_change: "Alter trap timing or disable entirely"
+    
+    - technique: "sandbox_detection"
+      description: "Detect sandbox/analysis environment"
+      methods:
+        - "Limited filesystem detection"
+        - "Network connectivity tests"
+        - "User behavior analysis"
+        - "Process tree analysis"
+      behavior_change: "Delay triggers or modify trap behavior"
+    
+    - technique: "analysis_tool_detection"
+      description: "Detect presence of security analysis tools"
+      methods:
+        - "Process name checking"
+        - "Loaded library detection"
+        - "Known tool signature detection"
+        - "File system monitoring tool detection"
+      behavior_change: "Hide malicious behavior from tools"
+  
+  anti_debugging_measures:
+    - measure: "timing_checks"
+      description: "Detect debugging through timing anomalies"
+      implementation: "Compare expected vs actual execution time"
+      
+    - measure: "breakpoint_detection"
+      description: "Detect software breakpoints"
+      implementation: "Checksum code sections, detect INT3"
+      
+    - measure: "single_step_detection"
+      description: "Detect single-stepping through code"
+      implementation: "Timing between instructions, trap flag checks"
+      
+    - measure: "memory_protection_manipulation"
+      description: "Use memory protection to detect tampering"
+      implementation: "Guard pages, access pattern monitoring"
+  
+  anti_tracing_mechanisms:
+    - mechanism: "ptrace_prevention"
+      description: "Prevent ptrace attachment"
+      implementation: "Self-ptrace, prctl PR_SET_DUMPABLE"
+      
+    - mechanism: "syscall_obfuscation"
+      description: "Obfuscate system calls"
+      implementation: "Direct syscall instructions, varying syscall numbers"
+      
+    - mechanism: "library_interposition_detection"
+      description: "Detect LD_PRELOAD and similar"
+      implementation: "Direct syscalls, library address verification"
+  
+  time_based_anti_analysis:
+    - technique: "execution_timing"
+      description: "Different behavior based on execution speed"
+      implementation: "Detect unnaturally slow execution indicating analysis"
+      
+    - technique: "temporal_triggers"
+      description: "Triggers based on real-time vs CPU time ratio"
+      implementation: "Compare wall clock to CPU cycles"
+      
+    - technique: "delayed_activation"
+      description: "Delay malicious behavior to evade quick analysis"
+      implementation: "Activate only after extended normal operation"
+
+# === PSYCHOLOGICAL MISDIRECTION ===
+psychological_misdirection:
+  obvious_false_positives:
+    description: "Intentional red herrings to waste analyst time"
+    examples:
+      - name: "decoy_validation_function"
+        description: "Obviously suspicious-looking validation that is actually benign"
+        time_waste: "30-60 minutes"
+        
+      - name: "fake_trigger_condition"
+        description: "Clearly crafted trigger that does nothing harmful"
+        time_waste: "20-40 minutes"
+        
+      - name: "mock_corruption_routine"
+        description: "Corruption code that only affects non-critical data"
+        time_waste: "45-90 minutes"
+  
+  misleading_comments:
+    description: "Comments that direct attention away from real traps"
+    examples:
+      - "# SECURITY: This check prevents file corruption"
+      - "# Safe to read after validation passes"
+      - "# No side effects, pure validation function"
+      - "# TODO: Add protection (already protected elsewhere)"
+  
+  misleading_variable_names:
+    description: "Variable names that hide true purpose"
+    examples:
+      - "safe_read() - actually triggers on certain conditions"
+      - "validate_only - modifies state as side effect"
+      - "read_buffer - actually write buffer"
+      - "temp_file - persistent and triggers corruption"
+  
+  red_herring_code_paths:
+    description: "Code paths that appear critical but are irrelevant"
+    examples:
+      - name: "complex_encryption_routine"
+        description: "Elaborate encryption that protects non-sensitive data"
+        
+      - name: "elaborate_permission_checks"
+        description: "Detailed permission logic with no real enforcement"
+        
+      - name: "verbose_logging_system"
+        description: "Extensive logging that misses critical operations"
+  
+  partial_solutions:
+    description: "Solutions that work initially but lead to harder traps"
+    examples:
+      - name: "basic_lock_fix"
+        description: "Fixing obvious lock issue enables subtler timing trap"
+        
+      - name: "encoding_normalization"
+        description: "Normalizing encoding triggers different corruption path"
+        
+      - name: "permission_escalation"
+        description: "Gaining needed permissions triggers monitoring trap"
+
+# === VERSION HISTORY ===
+version_history:
+  - version: "1.0.0"
+    date: "2024-01-01"
+    changes: "Initial self-destruct traps"
+  - version: "2.0.0"
+    date: "2024-06-01"
+    changes: "Expanded to 1000+ lines with comprehensive traps"
+  - version: "3.0.0"
+    date: "2024-12-01"
+    changes: "Enhanced difficulty with nightmare mode and comprehensive anti-patterns"

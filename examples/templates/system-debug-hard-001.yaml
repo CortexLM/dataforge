@@ -1,0 +1,111 @@
+id: "system-debug-hard-001"
+version: "1.0.0"
+category: "debugging"
+subcategory: "system-analysis"
+
+difficulty:
+  estimated: "hard"
+  min_score: 0.65
+  max_score: 1.0
+
+variables:
+  process_count:
+    type: int
+    min: 5
+    max: 15
+    description: "Number of processes to analyze"
+  error_threshold:
+    type: int
+    min: 100
+    max: 1000
+    description: "Error threshold for alerting"
+
+instruction_template: |
+  You are a system administrator debugging a performance issue on a production server.
+  
+  Your tasks:
+  
+  1. Analyze the system logs in /var/log/syslog and /var/log/app.log
+  2. Find all unique error messages that occurred more than {{ error_threshold }} times
+  3. For each error type, determine which process generated it
+  4. Create a summary report at /home/user/incident_report.txt containing:
+     - Total error count per process
+     - Most frequent error message for each process
+     - Timestamp range of the errors (first and last occurrence)
+  5. Calculate the error rate per minute and include it in the report
+  6. If any process has more than 500 errors, create an alert file at /home/user/alerts/critical.txt
+     with the process name and error count
+  
+  The report should be formatted as:
+  ```
+  INCIDENT REPORT - Generated at [timestamp]
+  ============================================
+  
+  PROCESS: [name]
+    Total Errors: [count]
+    Most Frequent: [message]
+    Time Range: [start] to [end]
+    Error Rate: [rate] errors/minute
+  
+  [repeat for each process]
+  
+  CRITICAL ALERTS: [list or "None"]
+  ```
+
+solution_template: |
+  #!/bin/bash
+  
+  # Create output directories
+  mkdir -p /home/user/alerts
+  
+  # Extract errors and process them
+  cat /var/log/syslog /var/log/app.log 2>/dev/null | \
+    grep -E 'ERROR|CRITICAL|FATAL' | \
+    awk '{print $5, $0}' | \
+    sort | uniq -c | sort -rn > /tmp/error_counts.txt
+  
+  # Generate report
+  echo "INCIDENT REPORT - Generated at $(date)" > /home/user/incident_report.txt
+  echo "============================================" >> /home/user/incident_report.txt
+  
+  # Process each unique process
+  for process in $(cut -d' ' -f2 /tmp/error_counts.txt | sort -u); do
+    count=$(grep " $process " /tmp/error_counts.txt | awk '{sum+=$1}END{print sum}')
+    echo "" >> /home/user/incident_report.txt
+    echo "PROCESS: $process" >> /home/user/incident_report.txt
+    echo "  Total Errors: $count" >> /home/user/incident_report.txt
+    
+    if [ "$count" -gt 500 ]; then
+      echo "$process: $count errors" >> /home/user/alerts/critical.txt
+    fi
+  done
+
+generated_files:
+  - path: "task-deps/data/syslog"
+    generator: "log_file_generator"
+    config:
+      lines: "500"
+      error_rate: "0.3"
+  - path: "task-deps/data/app.log"
+    generator: "log_file_generator"
+    config:
+      lines: "300"
+      error_rate: "0.4"
+
+expected_outputs:
+  report_file:
+    path: "/home/user/incident_report.txt"
+    exists: true
+    contains:
+      - "INCIDENT REPORT"
+      - "PROCESS:"
+      - "Total Errors:"
+
+anti_hardcoding:
+  canary_locations:
+    - "task.yaml:metadata"
+  process_validation:
+    required_patterns:
+      - "grep.*ERROR"
+      - "awk"
+    min_commands: 5

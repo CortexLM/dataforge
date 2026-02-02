@@ -1,0 +1,47 @@
+id: "file-search-easy-001"
+version: "1.0.0"
+category: "file_operations"
+subcategory: "search"
+
+difficulty:
+  estimated: "easy"
+  min_score: 0.0
+  max_score: 0.35
+
+variables:
+  file_count:
+    type: int
+    min: 3
+    max: 10
+    description: "Number of files to create"
+
+instruction_template: |
+  You need to find a specific file.
+  
+  In the directory /home/user/documents, there are several text files.
+  Find the file that contains the word "SECRET" and write its filename to /home/user/result.txt.
+  
+  Hint: Use grep to search file contents.
+
+solution_template: |
+  #!/bin/bash
+  grep -l "SECRET" /home/user/documents/*.txt > /home/user/result.txt
+
+generated_files:
+  - path: "task-deps/data/documents/"
+    generator: "directory_with_files"
+    config:
+      files: "5"
+      pattern: "file_{n}.txt"
+
+expected_outputs:
+  result_file:
+    path: "/home/user/result.txt"
+    exists: true
+
+anti_hardcoding:
+  canary_locations:
+    - "task.yaml:metadata"
+  process_validation:
+    required_patterns:
+      - "grep"

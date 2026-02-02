@@ -1,0 +1,2004 @@
+id: "devops-container-escape-001"
+version: "2.0.0"
+category: "devops"
+subcategory: "containers"
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research obscure container escape vectors and kernel vulnerabilities"
+    phase_2_creation: "Create complex multi-container deployment with subtle security misconfigurations"
+    phase_3_amplification: "Add cascading failure scenarios with recovery requirements"
+    phase_4_verification: "Validate task requires production-level container security expertise"
+  
+  complexity_targets:
+    minimum_unique_tasks: 10000
+    difficulty_range: ["medium", "hard", "expert", "nightmare"]
+    domain_expertise_required: ["container_security", "kernel_internals", "cloud_native", "runtime_security"]
+  
+  task_generation_rules:
+    - "Combine 3+ topic areas per task"
+    - "Include real CVE references where applicable"
+    - "Require multi-step exploitation chains"
+    - "Add time-pressure and compliance constraints"
+    - "Include forensic analysis components"
+  
+  phase_4_verification:
+    requirements:
+      - "Has at least 5 interacting hidden traps"
+      - "Has cascading failures across infrastructure layers (network, compute, storage)"
+      - "Requires knowledge of cloud provider internals and Kubernetes scheduler"
+      - "Would take experienced SREs 30+ minutes"
+
+# SWE-bench_Pro style fields
+problem_statement: |
+  A containerized application has security misconfigurations that could allow 
+  container escape:
+  
+  1. Running as privileged container
+  2. Sensitive host paths mounted
+  3. Dangerous Linux capabilities granted
+  4. Docker socket mounted in container
+  5. Writable /proc or /sys filesystems
+  6. Insecure seccomp/AppArmor profiles
+  7. Kernel vulnerabilities exploitable from container
+  8. Container runtime misconfigurations
+
+requirements: |
+  - Identify container escape vectors
+  - Remove unnecessary privileges
+  - Implement proper isolation
+  - Secure volume mounts
+  - Add runtime security policies
+  - Configure network segmentation
+  - Implement audit logging
+  - Set up intrusion detection
+
+interface: |
+  Input: Container configuration (Dockerfile, docker-compose, K8s manifests)
+  Output: Hardened container configuration with security policies
+  Validation: No escape vectors, passes security scan, meets compliance
+
+# === COMPREHENSIVE TOPIC UNIVERSE ===
+# 100+ detailed topics for container escape scenarios
+topic_universe:
+  # Docker Internals (25 topics)
+  docker_internals:
+    namespaces:
+      - pid_namespace: "Process ID isolation and /proc visibility"
+      - network_namespace: "Network stack isolation and bridge configurations"
+      - mount_namespace: "Filesystem view isolation and propagation modes"
+      - user_namespace: "UID/GID mapping and rootless containers"
+      - uts_namespace: "Hostname and domain isolation"
+      - ipc_namespace: "Inter-process communication isolation"
+      - cgroup_namespace: "Cgroup visibility and resource isolation"
+      - time_namespace: "Clock virtualization (kernel 5.6+)"
+    
+    cgroups:
+      - cgroup_v1_vs_v2: "Legacy vs unified hierarchy differences"
+      - memory_cgroup: "Memory limits, OOM behavior, swap accounting"
+      - cpu_cgroup: "CPU shares, quotas, and throttling"
+      - blkio_cgroup: "Block I/O limits and priorities"
+      - pids_cgroup: "Process count limits to prevent fork bombs"
+      - devices_cgroup: "Device access control via cgroup"
+      - freezer_cgroup: "Container pause/resume functionality"
+      - cpuset_cgroup: "CPU and memory node pinning"
+      - rdma_cgroup: "RDMA resource limits"
+      - hugetlb_cgroup: "Huge page allocation limits"
+    
+    overlay_filesystem:
+      - overlay2_driver: "Default storage driver mechanics"
+      - layer_caching: "Image layer deduplication and sharing"
+      - whiteout_files: "File deletion in overlay layers"
+      - copy_on_write: "COW performance implications"
+      - xattr_support: "Extended attributes and SELinux labels"
+      - metacopy: "Metadata-only copy optimization"
+    
+    seccomp:
+      - seccomp_default_profile: "Docker's default syscall whitelist"
+      - seccomp_custom_profiles: "Creating restrictive seccomp profiles"
+      - seccomp_notify: "User-space syscall handling (5.0+)"
+      - seccomp_logging: "Auditing blocked syscalls"
+      - seccomp_bypass_vectors: "Known bypass techniques"
+  
+  # Container Escape CVEs (30 topics)
+  container_escape_cves:
+    critical_cves:
+      - CVE_2019_5736: |
+          runc container escape via /proc/self/exe overwrite
+          Severity: CRITICAL (CVSS 8.6)
+          Affected: runc < 1.0-rc6
+          Vector: Malicious container overwrites host runc binary
+          Mitigation: Update runc, use read-only rootfs
+      
+      - CVE_2020_15257: |
+          containerd-shim API exposure
+          Severity: CRITICAL (CVSS 7.2)
+          Affected: containerd < 1.3.9, < 1.4.3
+          Vector: Abstract unix socket accessible to containers
+          Mitigation: Update containerd, restrict socket access
+      
+      - CVE_2021_30465: |
+          runc mount symlink-exchange attack
+          Severity: HIGH (CVSS 8.5)
+          Affected: runc < 1.0.0-rc95
+          Vector: Race condition in mount handling
+          Mitigation: Update runc, avoid hostPath mounts
+      
+      - CVE_2022_0185: |
+          Linux kernel filesystem context heap overflow
+          Severity: HIGH (CVSS 8.4)
+          Affected: Kernel < 5.16.2
+          Vector: Unprivileged user namespace + heap overflow
+          Mitigation: Update kernel, disable user namespaces
+      
+      - CVE_2022_0492: |
+          cgroup v1 release_agent escape
+          Severity: HIGH (CVSS 7.8)
+          Affected: Kernel with cgroup v1
+          Vector: Write to release_agent executes on host
+          Mitigation: Use cgroup v2, restrict CAP_SYS_ADMIN
+      
+      - CVE_2022_23648: |
+          containerd CRI imgcrypt volume exposure
+          Severity: HIGH (CVSS 7.5)
+          Affected: containerd < 1.4.13, < 1.5.10, < 1.6.1
+          Vector: Encrypted image key exposure
+          Mitigation: Update containerd
+      
+      - CVE_2023_5678: |
+          Docker BuildKit mount cache escape
+          Severity: HIGH (CVSS 7.8)
+          Affected: Docker < 24.0.7
+          Vector: Build cache mount allows host file access
+          Mitigation: Update Docker, restrict build contexts
+      
+      - CVE_2024_21626: |
+          runc file descriptor leak
+          Severity: HIGH (CVSS 8.6)
+          Affected: runc < 1.1.12
+          Vector: Leaked fd allows host filesystem access
+          Mitigation: Update runc immediately
+    
+    kernel_exploits:
+      - CVE_2016_5195: |
+          Dirty COW - copy-on-write race condition
+          Affects: All containers if kernel vulnerable
+      
+      - CVE_2017_5123: |
+          waitid() arbitrary write
+          Container escape via syscall
+      
+      - CVE_2020_14386: |
+          AF_PACKET socket privilege escalation
+          Requires CAP_NET_RAW
+      
+      - CVE_2021_22555: |
+          Netfilter setsockopt heap overflow
+          Unprivileged escape via user namespace
+      
+      - CVE_2022_0847: |
+          Dirty Pipe - pipe buffer flag overwrite
+          Any user can overwrite read-only files
+      
+      - CVE_2022_2588: |
+          route4 use-after-free
+          Kernel < 5.19 privilege escalation
+      
+      - CVE_2022_25636: |
+          nf_tables heap overflow
+          Netfilter escape in kernel < 5.17
+      
+      - CVE_2023_0386: |
+          OverlayFS file capabilities copy-up
+          Allows CAP_NET_ADMIN escalation
+      
+      - CVE_2023_2640: |
+          Ubuntu specific OverlayFS escape
+          GameOver(lay) - affects Ubuntu kernels
+      
+      - CVE_2023_32629: |
+          Ubuntu OverlayFS metacopy bypass
+          Allows file permission override
+  
+  # Privileged Container Risks (20 topics)
+  privileged_container_risks:
+    capability_abuse:
+      - CAP_SYS_ADMIN: |
+          "God mode capability - mount, unmount, setns, clone with flags"
+          Escape vectors:
+          - Mount host filesystem
+          - Access /dev/sda directly
+          - Modify kernel parameters via /proc
+          - Create new namespaces
+      
+      - CAP_NET_ADMIN: |
+          "Network stack control"
+          Risks:
+          - Sniff all network traffic
+          - Modify routing tables
+          - Create network namespaces
+          - Configure iptables rules
+      
+      - CAP_SYS_PTRACE: |
+          "Process tracing and debugging"
+          Risks:
+          - Attach to any process
+          - Read/write process memory
+          - Inject code into running processes
+          - Bypass seccomp via PTRACE_O_SUSPEND_SECCOMP
+      
+      - CAP_DAC_OVERRIDE: |
+          "Bypass file permission checks"
+          Risks:
+          - Read any file regardless of permissions
+          - Write to protected files
+          - Execute protected binaries
+      
+      - CAP_DAC_READ_SEARCH: |
+          "Bypass read permission and directory search"
+          Risks:
+          - Traverse any directory
+          - Open files ignoring read permission
+      
+      - CAP_SETUID: |
+          "Change effective user ID"
+          Risks:
+          - Become any user
+          - Escalate to root
+      
+      - CAP_SETGID: |
+          "Change effective group ID"
+          Risks:
+          - Access any group's files
+          - Join privileged groups
+      
+      - CAP_CHOWN: |
+          "Change file ownership"
+          Risks:
+          - Take ownership of any file
+          - Bypass quota restrictions
+      
+      - CAP_FOWNER: |
+          "Bypass ownership checks"
+          Risks:
+          - Modify any file's permissions
+          - Set extended attributes
+      
+      - CAP_SYS_RAWIO: |
+          "Raw I/O operations"
+          Risks:
+          - Direct disk access
+          - Port I/O access
+          - DMA attacks
+      
+      - CAP_SYS_MODULE: |
+          "Load kernel modules"
+          Risks:
+          - Rootkit installation
+          - Kernel modification
+      
+      - CAP_SYS_BOOT: |
+          "Reboot system"
+          Risks:
+          - Denial of service
+          - kexec new kernel
+      
+      - CAP_MKNOD: |
+          "Create device files"
+          Risks:
+          - Access raw disks
+          - Create console devices
+      
+      - CAP_LINUX_IMMUTABLE: |
+          "Set immutable attribute"
+          Risks:
+          - Prevent file deletion
+          - Persistence mechanism
+      
+      - CAP_BPF: |
+          "BPF operations (kernel 5.8+)"
+          Risks:
+          - Kernel introspection
+          - Network manipulation
+          - Tracing escape
+      
+      - CAP_PERFMON: |
+          "Performance monitoring (kernel 5.8+)"
+          Risks:
+          - Side-channel attacks
+          - Kernel memory disclosure
+    
+    device_access:
+      - dev_mem: "/dev/mem - physical memory access"
+      - dev_kmem: "/dev/kmem - kernel virtual memory"
+      - dev_sda: "/dev/sda - raw disk access"
+      - dev_loop: "/dev/loop* - loopback device manipulation"
+  
+  # Socket Exposure Risks (15 topics)
+  socket_exposure:
+    docker_socket:
+      - socket_mount_risks: |
+          Mounting /var/run/docker.sock allows:
+          - Create new privileged containers
+          - Mount host filesystem
+          - Execute on any container
+          - Access all secrets
+          - Network manipulation
+      
+      - escape_via_socket: |
+          Commands for escape:
+          docker run -it --privileged --pid=host ubuntu nsenter -t 1 -m -u -n -i bash
+          docker run -v /:/hostfs alpine cat /hostfs/etc/shadow
+      
+      - socket_protection: |
+          Mitigations:
+          - Never mount docker.sock
+          - Use Docker-in-Docker alternatives
+          - TCP socket with mTLS
+          - Docker socket proxy (Tecnativa)
+          - Sysbox runtime
+    
+    containerd_socket:
+      - containerd_sock_risks: |
+          /run/containerd/containerd.sock exposure:
+          - Direct container manipulation
+          - Bypass Docker API restrictions
+          - Access container snapshots
+    
+    kubelet_api:
+      - kubelet_anonymous_auth: |
+          Kubelet API without auth:
+          - Execute in any pod
+          - Read pod logs
+          - Port forward to services
+      
+      - kubelet_read_only_port: |
+          Port 10255 exposes:
+          - Pod specs with secrets
+          - Node configuration
+          - Metrics with sensitive data
+    
+    cri_socket:
+      - cri_socket_exposure: |
+          Container Runtime Interface socket risks:
+          - Image manipulation
+          - Container creation
+          - Bypass orchestrator controls
+
+  # /proc and /sys Exposure (15 topics)
+  proc_sys_exposure:
+    proc_risks:
+      - proc_self_exe: |
+          /proc/self/exe symlink:
+          - Points to container runtime binary
+          - CVE-2019-5736 attack vector
+          - Requires /proc mounted RW
+      
+      - proc_sys_kernel: |
+          /proc/sys/kernel/ files:
+          - core_pattern: Command execution on crash
+          - modprobe: Module load command
+          - sysrq: System request trigger
+          - randomize_va_space: ASLR control
+      
+      - proc_kcore: |
+          /proc/kcore - kernel memory:
+          - Read kernel memory
+          - Extract sensitive data
+          - Bypass KASLR
+      
+      - proc_kallsyms: |
+          /proc/kallsyms - kernel symbols:
+          - Find kernel function addresses
+          - Exploit development
+          - ROP gadget hunting
+      
+      - proc_pid_mem: |
+          /proc/[pid]/mem:
+          - Read/write process memory
+          - Code injection
+          - Credential theft
+      
+      - proc_pid_environ: |
+          /proc/[pid]/environ:
+          - Environment variables
+          - API keys and secrets
+          - Database credentials
+      
+      - proc_mounts: |
+          /proc/mounts and /proc/self/mountinfo:
+          - Discover host mounts
+          - Find sensitive directories
+          - Identify mount propagation
+    
+    sys_risks:
+      - sys_fs_cgroup: |
+          /sys/fs/cgroup:
+          - release_agent escape (cgroup v1)
+          - Device access control
+          - Resource manipulation
+      
+      - sys_kernel: |
+          /sys/kernel/:
+          - BPF program manipulation
+          - Kernel debugging
+          - Performance counters
+      
+      - sys_devices: |
+          /sys/devices/:
+          - Hardware enumeration
+          - Direct device access
+          - Power management
+      
+      - sys_class_net: |
+          /sys/class/net/:
+          - Network interface manipulation
+          - MAC address spoofing
+          - Carrier manipulation
+      
+      - sys_module: |
+          /sys/module/:
+          - Kernel module parameters
+          - Module state modification
+          - Debugging enablement
+
+  # Kubernetes Security (25 topics)
+  kubernetes_security:
+    rbac:
+      - cluster_admin_risks: |
+          cluster-admin role binding risks:
+          - Full cluster access
+          - Secret access across namespaces
+          - Node manipulation
+          - Workload modification
+      
+      - service_account_tokens: |
+          Default service account issues:
+          - Automounted tokens
+          - Excessive permissions
+          - Token theft from pods
+          - Long-lived credentials
+      
+      - role_aggregation: |
+          ClusterRole aggregation risks:
+          - Hidden permission escalation
+          - Label selector abuse
+          - Dynamic permission changes
+      
+      - impersonation: |
+          User/group impersonation:
+          - Privilege escalation via impersonate
+          - Service account impersonation
+          - Header injection
+    
+    pod_security:
+      - psp_deprecation: |
+          PodSecurityPolicy deprecation:
+          - Migration to Pod Security Admission
+          - Pod Security Standards (privileged/baseline/restricted)
+          - Third-party alternatives (OPA, Kyverno)
+      
+      - security_context: |
+          Pod/Container securityContext:
+          - runAsNonRoot enforcement
+          - allowPrivilegeEscalation: false
+          - readOnlyRootFilesystem: true
+          - capabilities drop/add
+      
+      - host_namespaces: |
+          hostPID, hostNetwork, hostIPC risks:
+          - Process visibility (hostPID)
+          - Network access (hostNetwork)
+          - Shared memory (hostIPC)
+      
+      - host_path_volumes: |
+          hostPath volume risks:
+          - Filesystem escape
+          - Socket exposure
+          - Sensitive file access
+      
+      - privileged_containers: |
+          privileged: true implications:
+          - All capabilities granted
+          - Access to all devices
+          - No seccomp filtering
+          - SELinux/AppArmor disabled
+    
+    network_policy:
+      - default_deny: |
+          Default deny network policies:
+          - Ingress isolation
+          - Egress isolation
+          - Cross-namespace communication
+      
+      - policy_gaps: |
+          NetworkPolicy limitations:
+          - Host network bypass
+          - DNS policy gaps
+          - Metadata service access
+          - Service mesh bypass
+    
+    secrets_management:
+      - secret_encryption: |
+          etcd encryption configuration:
+          - KMS provider setup
+          - Encryption key rotation
+          - Sealed secrets alternatives
+      
+      - secret_exposure: |
+          Common secret exposure vectors:
+          - Environment variables in logs
+          - Pod spec in etcd
+          - Volume mount permissions
+          - RBAC misconfigurations
+    
+    admission_control:
+      - admission_webhooks: |
+          Validating/Mutating webhooks:
+          - Security policy enforcement
+          - Webhook bypass risks
+          - Failure mode considerations
+      
+      - opa_gatekeeper: |
+          OPA Gatekeeper policies:
+          - Constraint templates
+          - Audit mode vs enforcement
+          - Policy as code
+
+  # Container Runtime Security (15 topics)
+  runtime_security:
+    gvisor:
+      - gvisor_architecture: |
+          gVisor security model:
+          - User-space kernel (Sentry)
+          - Platform abstraction (ptrace/KVM)
+          - Syscall interception
+          - Reduced attack surface
+      
+      - gvisor_limitations: |
+          gVisor trade-offs:
+          - Performance overhead
+          - Syscall compatibility
+          - GPU/device limitations
+          - File system performance
+    
+    kata_containers:
+      - kata_architecture: |
+          Kata Containers security:
+          - Hardware virtualization
+          - VM-level isolation
+          - Compatible with OCI
+          - Nested virtualization support
+      
+      - kata_networking: |
+          Kata network configuration:
+          - TC mirroring
+          - virtio-net-pci
+          - MACVTAP
+          - Bridge networks
+    
+    firecracker:
+      - firecracker_architecture: |
+          Firecracker microVMs:
+          - Minimal device model
+          - Fast boot (< 125ms)
+          - AWS Lambda backend
+          - Memory and CPU isolation
+      
+      - firecracker_jailer: |
+          Firecracker jailer:
+          - Seccomp filtering
+          - Cgroup isolation
+          - Chroot jail
+          - UID/GID mapping
+    
+    falco:
+      - falco_rules: |
+          Falco runtime detection:
+          - Container escape detection
+          - Shell in container alerts
+          - Sensitive file access
+          - Network anomalies
+      
+      - falco_plugins: |
+          Falco plugin system:
+          - Kubernetes audit logs
+          - AWS CloudTrail
+          - GitHub events
+          - Custom plugins
+
+# === FAILURE SCENARIOS ===
+# 50+ detailed failure scenarios
+failure_scenarios:
+  cascading_failures:
+    - scenario: "Container escape leads to cluster compromise"
+      description: |
+        1. Attacker exploits CVE in container runtime
+        2. Gains access to host filesystem
+        3. Reads kubelet credentials
+        4. Authenticates to API server
+        5. Creates privileged daemonset
+        6. Compromises all nodes in cluster
+      recovery_steps:
+        - "Isolate affected nodes"
+        - "Rotate all credentials"
+        - "Patch container runtime"
+        - "Audit all workloads"
+        - "Implement network policies"
+    
+    - scenario: "Privileged container enables lateral movement"
+      description: |
+        1. Developer runs privileged debug container
+        2. Attacker gains shell access
+        3. Uses docker.sock to spawn containers
+        4. Exfiltrates secrets from other pods
+        5. Establishes persistence via cronjob
+    
+    - scenario: "Supply chain attack via base image"
+      description: |
+        1. Compromised base image pushed to registry
+        2. Image contains reverse shell in entrypoint
+        3. All deployments using image compromised
+        4. Attacker has persistent access
+        5. Data exfiltration occurs undetected
+    
+    - scenario: "Kernel exploit from container"
+      description: |
+        1. Container runs with CAP_NET_ADMIN
+        2. Attacker exploits netfilter vulnerability
+        3. Gains kernel code execution
+        4. Escapes all namespaces
+        5. Installs kernel rootkit
+  
+  thundering_herd:
+    - scenario: "Mass container restart overwhelms orchestrator"
+      triggers: ["node failure", "network partition", "certificate expiry"]
+      impact: "All pods rescheduled simultaneously, API server overload"
+    
+    - scenario: "Concurrent escape attempts detected"
+      triggers: ["automated exploit toolkit", "red team exercise gone wrong"]
+      impact: "Security tools overwhelmed, false positive fatigue"
+  
+  resource_exhaustion:
+    - scenario: "cgroup escape via memory accounting"
+      description: "Container exploits memory cgroup accounting bug"
+      impact: "Host OOM, all containers killed"
+    
+    - scenario: "PID exhaustion attack"
+      description: "Fork bomb escapes PID cgroup limit"
+      impact: "No new processes can spawn on host"
+    
+    - scenario: "Inode exhaustion on overlay"
+      description: "Container creates millions of small files"
+      impact: "Host filesystem full, system unstable"
+  
+  network_failures:
+    - scenario: "Container escapes network namespace"
+      description: "CAP_NET_ADMIN allows namespace escape"
+      impact: "Access to host network, intercept traffic"
+    
+    - scenario: "DNS rebinding via container"
+      description: "Container serves DNS with short TTL"
+      impact: "Internal service access from external"
+  
+  authentication_failures:
+    - scenario: "Service account token theft"
+      description: "Container escape leads to token access"
+      impact: "Kubernetes API access with pod permissions"
+    
+    - scenario: "Cloud metadata service access"
+      description: "Container accesses 169.254.169.254"
+      impact: "Cloud credentials exfiltration"
+  
+  compliance_failures:
+    - scenario: "Container escape during audit"
+      description: "Vulnerability exploited during compliance audit"
+      impact: "Failed audit, reputation damage, fines"
+    
+    - scenario: "PCI-DSS container isolation violation"
+      description: "Cardholder data accessible via escape"
+      impact: "PCI compliance violation, card brand fines"
+
+# === CLOUD-SPECIFIC ISSUES ===
+# 100+ cloud-specific container security issues
+cloud_specific_issues:
+  aws:
+    ecs:
+      - task_role_exposure: |
+          ECS task role credential exposure:
+          - Container reaches 169.254.170.2
+          - Retrieves AWS credentials
+          - Assumes task role permissions
+          Mitigation:
+          - Use VPC endpoints
+          - Restrict task role permissions
+          - Enable ECS Exec audit logging
+      
+      - ecs_exec_risks: |
+          ECS Exec security considerations:
+          - Requires SSM agent in container
+          - Session logging requirements
+          - IAM permission escalation
+      
+      - fargate_isolation: |
+          Fargate security model:
+          - Kernel shared with AWS
+          - No access to underlying host
+          - Limited capability options
+          - No privileged mode
+      
+      - ec2_launch_type_risks: |
+          EC2 launch type container escapes:
+          - Instance metadata access
+          - EBS volume mounting
+          - Host Docker socket exposure
+    
+    eks:
+      - irsa_configuration: |
+          IAM Roles for Service Accounts:
+          - OIDC provider setup
+          - Role trust relationship
+          - Token projection
+          - Audience validation
+      
+      - eks_pod_identity: |
+          EKS Pod Identity (new):
+          - Simplified IAM integration
+          - Cross-account access
+          - Migration from IRSA
+      
+      - eks_managed_nodes: |
+          Managed node group security:
+          - AMI customization limits
+          - Bootstrap script injection
+          - Instance metadata v2 enforcement
+      
+      - eks_fargate_profile: |
+          EKS Fargate security:
+          - No hostNetwork
+          - No hostPort
+          - No privileged containers
+          - Limited volume types
+      
+      - eks_security_groups: |
+          Security group considerations:
+          - Pod security groups (BPF-based)
+          - Prefix delegation
+          - Custom networking
+    
+    ecr:
+      - image_scanning: |
+          ECR image vulnerability scanning:
+          - Basic scanning (Clair)
+          - Enhanced scanning (Inspector)
+          - Scan on push
+          - CVE database updates
+      
+      - image_signing: |
+          ECR image signing:
+          - AWS Signer integration
+          - Notation support
+          - Policy enforcement
+    
+    security_services:
+      - guardduty_containers: |
+          GuardDuty for EKS:
+          - Runtime monitoring
+          - Crypto mining detection
+          - Malware detection
+          - Behavioral analysis
+      
+      - security_hub_integration: |
+          Security Hub container findings:
+          - ECR scan results
+          - EKS audit logs
+          - Compliance standards
+  
+  gcp:
+    gke:
+      - workload_identity: |
+          GKE Workload Identity:
+          - Kubernetes SA to GCP SA binding
+          - Metadata server proxy
+          - Credential rotation
+      
+      - binary_authorization: |
+          Binary Authorization:
+          - Attestation requirements
+          - Policy enforcement
+          - Image signing with KMS
+          - CV integration
+      
+      - gke_autopilot: |
+          GKE Autopilot security:
+          - Hardened by default
+          - No privileged pods
+          - No host access
+          - Google-managed nodes
+      
+      - shielded_gke_nodes: |
+          Shielded GKE Nodes:
+          - Secure boot
+          - vTPM
+          - Integrity monitoring
+      
+      - confidential_gke: |
+          Confidential GKE Nodes:
+          - AMD SEV encryption
+          - Memory encryption
+          - Attestation
+      
+      - gke_sandbox: |
+          GKE Sandbox (gVisor):
+          - User-space kernel
+          - Syscall filtering
+          - Isolation guarantees
+    
+    cloud_run:
+      - cloud_run_security: |
+          Cloud Run container security:
+          - No root access
+          - Temporary filesystem
+          - Gen 2 execution environment
+          - VPC egress controls
+      
+      - cloud_run_jobs: |
+          Cloud Run Jobs security:
+          - Task isolation
+          - Secret management
+          - VPC connector
+    
+    artifact_registry:
+      - vulnerability_scanning: |
+          Artifact Registry scanning:
+          - On-demand scanning
+          - Continuous scanning
+          - SLSA provenance
+      
+      - image_signing: |
+          Container image signing:
+          - KMS signing keys
+          - Binary Authorization integration
+          - Attestation format
+  
+  azure:
+    aks:
+      - managed_identity: |
+          AKS Managed Identity:
+          - Pod identity (deprecated)
+          - Workload identity (new)
+          - User-assigned identity
+      
+      - azure_policy: |
+          Azure Policy for AKS:
+          - Built-in policies
+          - Custom policies
+          - Gatekeeper integration
+      
+      - defender_for_containers: |
+          Microsoft Defender for Containers:
+          - Runtime protection
+          - Image scanning
+          - Kubernetes hardening
+          - Attack detection
+      
+      - aks_confidential: |
+          AKS Confidential Containers:
+          - AMD SEV-SNP
+          - Intel SGX
+          - Attestation
+          - Kata Containers
+      
+      - aks_windows_containers: |
+          Windows container security:
+          - Process isolation
+          - Hyper-V isolation
+          - gMSA for authentication
+    
+    container_instances:
+      - aci_security: |
+          Azure Container Instances security:
+          - No host access
+          - VNet integration
+          - Confidential containers
+      
+      - aci_gpu: |
+          ACI GPU security:
+          - NVIDIA driver exposure
+          - Resource isolation
+    
+    container_registry:
+      - acr_security: |
+          Azure Container Registry security:
+          - Content trust
+          - Image quarantine
+          - Vulnerability scanning
+          - Private endpoints
+
+  multi_cloud:
+    - credential_rotation: |
+        Multi-cloud credential management:
+        - Different IAM models
+        - Token lifetime differences
+        - Cross-cloud access
+    
+    - network_segmentation: |
+        Multi-cloud network security:
+        - Transit gateway configurations
+        - VPN tunneling
+        - Firewall rule consistency
+    
+    - compliance_mapping: |
+        Cross-cloud compliance:
+        - Control mapping
+        - Evidence collection
+        - Audit requirements
+
+# === DIFFICULTY MULTIPLIERS ===
+difficulty_multipliers:
+  zero_downtime:
+    description: "Remediation must maintain 100% availability"
+    complexity_factor: 2.0
+    constraints:
+      - "Blue-green deployment required"
+      - "Rolling updates with health checks"
+      - "Circuit breaker patterns"
+      - "Graceful degradation"
+    
+  multi_region:
+    description: "Fix must be applied across 5+ regions"
+    complexity_factor: 2.5
+    constraints:
+      - "Region-specific configurations"
+      - "Cross-region replication"
+      - "Latency considerations"
+      - "Compliance per region"
+    
+  compliance_requirements:
+    soc2:
+      complexity_factor: 1.5
+      requirements:
+        - "Change management documentation"
+        - "Access control evidence"
+        - "Audit trail preservation"
+        - "Incident response plan"
+    
+    hipaa:
+      complexity_factor: 1.8
+      requirements:
+        - "PHI isolation verification"
+        - "Access logging"
+        - "Encryption at rest and transit"
+        - "BAA considerations"
+    
+    pci_dss:
+      complexity_factor: 2.0
+      requirements:
+        - "Network segmentation proof"
+        - "Vulnerability scan reports"
+        - "File integrity monitoring"
+        - "Penetration test results"
+    
+    fedramp:
+      complexity_factor: 2.5
+      requirements:
+        - "FIPS 140-2 compliance"
+        - "Continuous monitoring"
+        - "SSP documentation"
+        - "POA&M tracking"
+  
+  high_availability:
+    target_99_99:
+      complexity_factor: 1.5
+      max_downtime: "52.56 minutes/year"
+      requirements:
+        - "Multi-AZ deployment"
+        - "Automated failover"
+        - "Health check intervals < 10s"
+    
+    target_99_999:
+      complexity_factor: 2.0
+      max_downtime: "5.26 minutes/year"
+      requirements:
+        - "Multi-region active-active"
+        - "Global load balancing"
+        - "Sub-second failover"
+  
+  disaster_recovery:
+    rpo_requirements:
+      - rpo_0: "Zero data loss - synchronous replication"
+      - rpo_1h: "Max 1 hour data loss"
+      - rpo_24h: "Max 24 hour data loss"
+    
+    rto_requirements:
+      - rto_0: "Immediate failover"
+      - rto_1h: "1 hour recovery time"
+      - rto_4h: "4 hour recovery time"
+  
+  scale_factors:
+    pod_count:
+      - "< 100 pods: standard complexity"
+      - "100-1000 pods: 1.5x complexity"
+      - "1000-10000 pods: 2x complexity"
+      - "> 10000 pods: 3x complexity"
+    
+    node_count:
+      - "< 10 nodes: standard complexity"
+      - "10-100 nodes: 1.5x complexity"
+      - "100-1000 nodes: 2x complexity"
+      - "> 1000 nodes: 3x complexity"
+
+# === terminal-bench style fields ===
+difficulty:
+  estimated: "hard"
+  time_range: [1800, 14400]
+  command_steps: [30, 200]
+
+# === Difficulty amplifiers ===
+difficulty_amplifiers:
+  nightmare:
+    multiplier: 3.0
+    description: "Production-level incident requiring multi-team coordination knowledge"
+    requirements:
+      - "7+ interacting failures across CI/CD, containers, and infrastructure"
+      - "Requires understanding of cloud provider-specific behaviors"
+      - "Time estimate: 120+ minutes for senior SREs"
+      - "Cross-service dependencies that cascade in non-obvious ways"
+      - "Requires synthesizing security, performance, and reliability knowledge"
+
+# === Quality requirements ===
+quality_requirements:
+  minimum_difficulty: "90-240 minutes, requires senior SRE/DevSecOps engineers with cloud architecture and container security expertise"
+  time_estimate: "90-240 minutes for senior SRE/DevSecOps engineers, 4-8 hours for intermediate"
+  trap_count: "10+ deeply interacting traps across CI/CD, container, cloud, and monitoring boundaries"
+
+# === Multi-Agent Orchestration Complexity ===
+multi_agent_orchestration:
+  description: "Coordinating 5-8 specialized DevOps agents for comprehensive container escape prevention and detection"
+  required_agents:
+    - container_security_analyzer:
+        role: "Deep analysis of container configurations for escape vectors"
+        expertise: ["seccomp profiles", "capabilities", "namespace isolation", "runtime security"]
+    - kernel_security_expert:
+        role: "Analyzing kernel-level vulnerabilities and exploit mitigations"
+        expertise: ["kernel CVEs", "syscall filtering", "LSM modules", "namespace internals"]
+    - cloud_iam_expert:
+        role: "Assessing cloud permissions and workload identity configurations"
+        expertise: ["metadata service", "IRSA/Workload Identity", "node IAM roles"]
+    - runtime_security_specialist:
+        role: "Implementing and monitoring runtime security policies"
+        expertise: ["Falco", "Sysdig", "eBPF tracing", "runtime detection"]
+    - network_security_analyst:
+        role: "Analyzing network isolation and potential escape paths"
+        expertise: ["network namespaces", "CNI security", "service mesh", "network policies"]
+    - compliance_auditor:
+        role: "Ensuring container security meets regulatory requirements"
+        expertise: ["CIS benchmarks", "NIST guidelines", "PCI-DSS container requirements"]
+    - incident_responder:
+        role: "Managing container escape incidents and cluster compromise"
+        expertise: ["containment", "forensics", "credential rotation", "cluster recovery"]
+    - threat_researcher:
+        role: "Analyzing emerging container escape techniques and CVEs"
+        expertise: ["CVE analysis", "exploit development", "attack simulation"]
+  
+  cross_platform_attack_chains:
+    - name: "Privileged Container to Cloud Account Compromise"
+      stages:
+        - "Attacker gains shell in privileged container"
+        - "Uses docker.sock to spawn new privileged container"
+        - "Mounts host filesystem via hostPath volume"
+        - "Reads kubelet credentials from /etc/kubernetes"
+        - "Accesses Kubernetes API with kubelet identity"
+        - "Queries cloud metadata service (169.254.169.254)"
+        - "Assumes node IAM role with elevated permissions"
+        - "Pivots to other cloud services using IAM credentials"
+        - "Establishes persistence via cloud-native mechanisms"
+    - name: "Kernel Exploit to Multi-Cluster Compromise"
+      stages:
+        - "Container exploits kernel vulnerability (e.g., CVE-2022-0847)"
+        - "Gains root access on host node"
+        - "Extracts etcd encryption keys from node"
+        - "Decrypts Kubernetes secrets including cluster CA"
+        - "Creates backdoor certificates for cluster access"
+        - "Discovers cross-cluster service mesh connections"
+        - "Pivots to connected clusters via mTLS trust"
+  
+  parallel_analysis_requirements:
+    - "Simultaneous scanning of all container images for vulnerabilities"
+    - "Correlated analysis of runtime behavior across all pods"
+    - "Real-time monitoring of syscall patterns for escape attempts"
+    - "Cross-reference of container configurations with known CVEs"
+  
+  agent_handoff_scenarios:
+    - "Security analyzer identifies privileged container → Kernel expert assesses escape risk → Runtime specialist deploys detection → Incident responder prepares containment"
+    - "Threat researcher identifies new CVE → Container analyzer audits exposure → Compliance auditor prioritizes remediation → Cloud expert assesses blast radius"
+    - "Runtime specialist detects suspicious syscalls → Network analyst traces communication → IAM expert identifies compromised credentials → Incident responder initiates rotation"
+
+# === Nightmare Plus Difficulty Level ===
+difficulty_levels:
+  nightmare_plus:
+    estimated_time: [28800, 172800]  # 8-48 hours
+    command_steps: [400, 1500]
+    techniques_required: 12
+    description: "Container security crisis requiring deep kernel internals and cloud security expertise with multi-cluster coordination"
+    characteristics:
+      - "Multi-vector escape attempts across container runtime, kernel, and cloud"
+      - "Chained CVE exploitation requiring multiple vulnerabilities"
+      - "Cross-namespace privilege escalation scenarios"
+      - "Service mesh trust boundary bypass"
+      - "gVisor/Kata escape edge cases"
+      - "eBPF-based detection evasion techniques"
+      - "Cloud metadata service v1 vs v2 exploitation"
+      - "Container runtime (containerd, CRI-O) vulnerability chains"
+    required_expertise:
+      - "Deep understanding of Linux kernel namespace and cgroup internals"
+      - "Knowledge of container runtime architecture and security"
+      - "Experience with kernel exploit techniques and mitigations"
+      - "Familiarity with cloud provider workload security"
+      - "Understanding of runtime security detection mechanisms"
+
+# === Cloud Native Internals ===
+cloud_native_internals:
+  kubernetes_internals:
+    kubelet:
+      - "Container runtime interface (CRI) security boundaries"
+      - "Pod security admission enforcement"
+      - "RuntimeClass for sandboxed containers"
+      - "Device plugin security implications"
+      - "Certificate-based kubelet authentication"
+    controller_manager:
+      - "PodSecurityPolicy to PodSecurity migration"
+      - "ServiceAccount token controller security"
+      - "Node authorization mode"
+    scheduler:
+      - "RuntimeClass scheduling for sandboxed pods"
+      - "Node isolation via taints and tolerations"
+      - "SecurityContext propagation"
+    api_server:
+      - "Admission webhooks for security policy"
+      - "Audit logging for escape detection"
+      - "RBAC for container security controls"
+    etcd:
+      - "Secret encryption at rest"
+      - "etcd authentication and TLS"
+      - "Backup exposure risks"
+  
+  container_runtime_internals:
+    containerd:
+      - "shim process isolation and communication"
+      - "Namespace plugin security boundaries"
+      - "Image verification and trust"
+      - "Rootless containerd configuration"
+    cri_o:
+      - "Conmon process security"
+      - "Image signature verification"
+      - "Runtime hooks and security"
+    runc:
+      - "CVE-2019-5736 and related vulnerabilities"
+      - "Rootless container security"
+      - "User namespace mappings"
+      - "Seccomp BPF program validation"
+    gvisor:
+      - "Sentry syscall interception"
+      - "Platform (ptrace vs KVM) security"
+      - "gofer process isolation"
+    kata_containers:
+      - "VM-based isolation model"
+      - "Hypervisor security (QEMU, Firecracker)"
+      - "virtio device security"
+  
+  service_mesh_internals:
+    envoy:
+      - "Sidecar privilege requirements"
+      - "External authorization for security"
+      - "mTLS certificate handling"
+    istio_data_plane:
+      - "Init container network manipulation"
+      - "iptables rule security"
+      - "Pilot security boundaries"
+  
+  cloud_provider_iam_quirks:
+    aws:
+      - "IMDS v1 vs v2 security implications"
+      - "EKS node IAM role scope"
+      - "IRSA trust policy configuration"
+      - "GuardDuty EKS runtime monitoring"
+    gcp:
+      - "Metadata server firewall rules"
+      - "Workload Identity binding security"
+      - "GKE Sandbox (gVisor) configuration"
+      - "Binary Authorization enforcement"
+    azure:
+      - "IMDS endpoint security"
+      - "AKS pod identity deprecation"
+      - "Confidential containers (SGX, SEV-SNP)"
+      - "Defender for Containers integration"
+
+# === Supply Chain Attack Vectors ===
+supply_chain_attack_vectors:
+  dependency_confusion_variants:
+    - container_escape_payload: "Base images containing escape exploit code"
+    - kernel_exploit_packages: "Dependencies that exploit kernel vulnerabilities"
+    - runtime_escape_tools: "Packages containing container escape utilities"
+  
+  build_process_manipulation:
+    - privileged_build_containers: "CI/CD using privileged containers for builds"
+    - dind_exploitation: "Docker-in-Docker escape vectors"
+    - buildkit_privilege_escalation: "BuildKit RUN --security flags misuse"
+    - kaniko_escape_vectors: "Kaniko root filesystem access"
+  
+  registry_poisoning:
+    - malicious_base_image: "Compromised base images with backdoors"
+    - layer_injection_attack: "Injecting malicious layers into images"
+    - manifest_manipulation: "Altering image manifests to point to malicious layers"
+  
+  artifact_signing_bypass:
+    - signature_stripping: "Removing signatures from signed images"
+    - trust_store_poisoning: "Adding malicious signing keys"
+    - notary_server_compromise: "Attacking signature verification infrastructure"
+
+# === Incident Response Complexity ===
+incident_response_complexity:
+  production_debugging_scenarios:
+    - scenario: "Active container escape detected in production cluster"
+      complexity_factors:
+        - "Identify all compromised containers without alerting attacker"
+        - "Determine scope of host and cluster compromise"
+        - "Preserve forensic evidence while containing threat"
+        - "Coordinate credential rotation across all affected systems"
+        - "Rebuild and verify node integrity"
+        - "Customer notification for multi-tenant environments"
+      required_coordination:
+        - "Security team for threat analysis"
+        - "Platform team for node isolation"
+        - "Incident response for containment"
+        - "Forensics team for evidence preservation"
+        - "Legal team for breach assessment"
+    
+    - scenario: "Kernel vulnerability affecting all cluster nodes"
+      complexity_factors:
+        - "Assess which pods can exploit vulnerability"
+        - "Implement emergency runtime mitigations"
+        - "Coordinate kernel patching without downtime"
+        - "Validate patch effectiveness"
+        - "Audit for evidence of prior exploitation"
+      forensic_requirements:
+        - "Syscall audit log analysis"
+        - "Kernel module integrity verification"
+        - "Memory dump analysis for rootkits"
+        - "Network traffic analysis for C2 communication"
+    
+    - scenario: "Supply chain attack via compromised base image"
+      complexity_factors:
+        - "Identify all containers using compromised image"
+        - "Determine timeline of compromise"
+        - "Assess data access during compromise window"
+        - "Rebuild all affected images from verified sources"
+        - "Implement image signing and verification"
+
+# === LLM trap configurations ===
+traps:
+  - type: "privileged_container"
+    description: "Container runs with --privileged flag"
+    trigger: "Using privileged: true for convenience"
+    severity: "critical"
+    cve_reference: "multiple"
+  
+  - type: "docker_socket_mount"
+    description: "/var/run/docker.sock mounted"
+    trigger: "Mounting Docker socket for container management"
+    severity: "critical"
+    escape_complexity: "trivial"
+  
+  - type: "host_path_sensitive"
+    description: "Host's /etc or /root mounted"
+    trigger: "Mounting sensitive host directories"
+    severity: "high"
+  
+  - type: "cap_sys_admin"
+    description: "CAP_SYS_ADMIN capability granted"
+    trigger: "Adding dangerous capabilities"
+    severity: "critical"
+    escape_vectors:
+      - "cgroup release_agent"
+      - "mount namespace escape"
+      - "kernel module loading"
+  
+  - type: "proc_sys_writable"
+    description: "/proc/sys mounted writable"
+    trigger: "Allowing writes to /proc/sys"
+    severity: "critical"
+    escape_vectors:
+      - "core_pattern modification"
+      - "modprobe path change"
+  
+  - type: "seccomp_disabled"
+    description: "Seccomp profile disabled"
+    trigger: "Using seccomp=unconfined"
+    severity: "high"
+  
+  - type: "apparmor_disabled"
+    description: "AppArmor profile disabled"
+    trigger: "Using apparmor=unconfined"
+    severity: "high"
+  
+  - type: "user_namespace_host"
+    description: "User namespace shared with host"
+    trigger: "Running as root without user namespace"
+    severity: "medium"
+  
+  - type: "host_network"
+    description: "Container uses host network namespace"
+    trigger: "Using hostNetwork: true"
+    severity: "high"
+    risks:
+      - "Access to host network services"
+      - "Bind to any port"
+      - "Sniff host traffic"
+  
+  - type: "host_pid"
+    description: "Container uses host PID namespace"
+    trigger: "Using hostPID: true"
+    severity: "high"
+    risks:
+      - "See all host processes"
+      - "Signal host processes"
+      - "Access /proc of host processes"
+  
+  - type: "host_ipc"
+    description: "Container uses host IPC namespace"
+    trigger: "Using hostIPC: true"
+    severity: "medium"
+    risks:
+      - "Shared memory access"
+      - "Semaphore manipulation"
+
+# === Task generation template ===
+instruction_template: |
+  You are securing a {{ scenario_type }} container deployment running on {{ cloud_provider }}.
+  The configuration files are at {{ path }}.
+  
+  Environment Details:
+  - Cluster: {{ cluster_type }} with {{ node_count }} nodes
+  - Containers: {{ container_count }} across {{ namespace_count }} namespaces
+  - Container Runtime: {{ runtime }} {{ runtime_version }}
+  - Kubernetes Version: {{ k8s_version }}
+  - Security Issues Detected: {{ issue_count }}
+  - Compliance Requirements: {{ compliance_frameworks }}
+  
+  Critical Findings:
+  {{ critical_findings }}
+  
+  Constraints:
+  - Maximum downtime allowed: {{ max_downtime }}
+  - Change window: {{ change_window }}
+  - Rollback capability required: {{ rollback_required }}
+  
+  Your task:
+  {{ task_steps }}
+  
+  Success Criteria:
+  - All escape vectors eliminated
+  - Security scan passes with zero critical/high findings
+  - Application functionality preserved
+  - Compliance requirements met
+  - Documentation updated
+
+# === Reference solution (hidden from agent) ===
+reference_solution: |
+  # Container Security Hardening - Comprehensive Guide
+  
+  # ============================================================
+  # PHASE 1: ASSESSMENT AND DETECTION
+  # ============================================================
+  
+  ## 1.1 Container Configuration Audit
+  
+  # Check for privileged containers
+  kubectl get pods -A -o jsonpath='{range .items[*]}{.metadata.namespace}/{.metadata.name}: {.spec.containers[*].securityContext.privileged}{"\n"}{end}' | grep -v ": $"
+  
+  # Check for dangerous capabilities
+  kubectl get pods -A -o json | jq -r '.items[] | select(.spec.containers[].securityContext.capabilities.add != null) | "\(.metadata.namespace)/\(.metadata.name): \(.spec.containers[].securityContext.capabilities.add)"'
+  
+  # Check for host namespaces
+  kubectl get pods -A -o json | jq -r '.items[] | select(.spec.hostNetwork == true or .spec.hostPID == true or .spec.hostIPC == true) | "\(.metadata.namespace)/\(.metadata.name): hostNetwork=\(.spec.hostNetwork) hostPID=\(.spec.hostPID) hostIPC=\(.spec.hostIPC)"'
+  
+  # Check for sensitive volume mounts
+  kubectl get pods -A -o json | jq -r '.items[] | select(.spec.volumes[].hostPath != null) | "\(.metadata.namespace)/\(.metadata.name): \(.spec.volumes[].hostPath.path)"'
+  
+  ## 1.2 Runtime Security Check
+  
+  # Check container runtime version
+  kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}: {.status.nodeInfo.containerRuntimeVersion}{"\n"}{end}'
+  
+  # Verify seccomp profiles
+  kubectl get pods -A -o json | jq -r '.items[] | "\(.metadata.namespace)/\(.metadata.name): \(.spec.securityContext.seccompProfile.type // "RuntimeDefault")"'
+  
+  # ============================================================
+  # PHASE 2: IMMEDIATE REMEDIATION
+  # ============================================================
+  
+  ## 2.1 Hardened Pod Security Context
+  
+  ---
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: secure-app
+    labels:
+      app: secure-app
+  spec:
+    # Pod-level security context
+    securityContext:
+      runAsNonRoot: true
+      runAsUser: 1000
+      runAsGroup: 1000
+      fsGroup: 1000
+      fsGroupChangePolicy: "OnRootMismatch"
+      seccompProfile:
+        type: RuntimeDefault
+      supplementalGroups: [1000]
+    
+    # Service account with minimal permissions
+    serviceAccountName: minimal-sa
+    automountServiceAccountToken: false
+    
+    # DNS policy
+    dnsPolicy: ClusterFirst
+    
+    # Prevent privilege escalation at pod level
+    hostNetwork: false
+    hostPID: false
+    hostIPC: false
+    
+    containers:
+    - name: app
+      image: myapp:v1.2.3@sha256:abc123...  # Pin by digest
+      
+      # Container-level security context
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        runAsNonRoot: true
+        runAsUser: 1000
+        capabilities:
+          drop:
+            - ALL
+          # Only add if absolutely required:
+          # add:
+          #   - NET_BIND_SERVICE
+        seccompProfile:
+          type: RuntimeDefault
+      
+      # Resource limits (prevent resource escape)
+      resources:
+        requests:
+          memory: "256Mi"
+          cpu: "100m"
+          ephemeral-storage: "100Mi"
+        limits:
+          memory: "512Mi"
+          cpu: "500m"
+          ephemeral-storage: "500Mi"
+      
+      # Volume mounts - minimal and read-only
+      volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+        - name: app-config
+          mountPath: /config
+          readOnly: true
+        - name: app-secrets
+          mountPath: /secrets
+          readOnly: true
+      
+      # Probes
+      livenessProbe:
+        httpGet:
+          path: /healthz
+          port: 8080
+        initialDelaySeconds: 30
+        periodSeconds: 10
+      readinessProbe:
+        httpGet:
+          path: /ready
+          port: 8080
+        initialDelaySeconds: 5
+        periodSeconds: 5
+      startupProbe:
+        httpGet:
+          path: /healthz
+          port: 8080
+        failureThreshold: 30
+        periodSeconds: 10
+    
+    # Volumes - safe types only
+    volumes:
+      - name: tmp
+        emptyDir:
+          medium: Memory
+          sizeLimit: 100Mi
+      - name: app-config
+        configMap:
+          name: app-config
+      - name: app-secrets
+        secret:
+          secretName: app-secrets
+          defaultMode: 0400
+  
+  ## 2.2 Network Policy - Default Deny
+  
+  ---
+  apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    name: default-deny-all
+    namespace: production
+  spec:
+    podSelector: {}
+    policyTypes:
+    - Ingress
+    - Egress
+  
+  ---
+  apiVersion: networking.k8s.io/v1
+  kind: NetworkPolicy
+  metadata:
+    name: allow-app-traffic
+    namespace: production
+  spec:
+    podSelector:
+      matchLabels:
+        app: secure-app
+    policyTypes:
+    - Ingress
+    - Egress
+    ingress:
+    - from:
+      - namespaceSelector:
+          matchLabels:
+            name: ingress-nginx
+        podSelector:
+          matchLabels:
+            app: ingress-nginx
+      ports:
+      - protocol: TCP
+        port: 8080
+    egress:
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: kube-system
+        podSelector:
+          matchLabels:
+            k8s-app: kube-dns
+      ports:
+      - protocol: UDP
+        port: 53
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            name: database
+      ports:
+      - protocol: TCP
+        port: 5432
+  
+  ## 2.3 Pod Security Standards (PSS)
+  
+  ---
+  apiVersion: v1
+  kind: Namespace
+  metadata:
+    name: production
+    labels:
+      pod-security.kubernetes.io/enforce: restricted
+      pod-security.kubernetes.io/enforce-version: latest
+      pod-security.kubernetes.io/audit: restricted
+      pod-security.kubernetes.io/warn: restricted
+  
+  ## 2.4 RBAC Hardening
+  
+  ---
+  apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: minimal-sa
+    namespace: production
+  automountServiceAccountToken: false
+  
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: Role
+  metadata:
+    name: app-role
+    namespace: production
+  rules:
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["app-config"]
+    verbs: ["get"]
+  
+  ---
+  apiVersion: rbac.authorization.k8s.io/v1
+  kind: RoleBinding
+  metadata:
+    name: app-rolebinding
+    namespace: production
+  subjects:
+  - kind: ServiceAccount
+    name: minimal-sa
+    namespace: production
+  roleRef:
+    kind: Role
+    name: app-role
+    apiGroup: rbac.authorization.k8s.io
+  
+  # ============================================================
+  # PHASE 3: RUNTIME SECURITY
+  # ============================================================
+  
+  ## 3.1 Falco Rules for Container Escape Detection
+  
+  # /etc/falco/rules.d/container-escape.yaml
+  - rule: Container Escape Attempt via nsenter
+    desc: Detect nsenter execution which may indicate container escape
+    condition: >
+      spawned_process and 
+      proc.name = "nsenter" and
+      container.id != host
+    output: >
+      Container escape attempt via nsenter
+      (user=%user.name container=%container.name 
+       command=%proc.cmdline image=%container.image.repository)
+    priority: CRITICAL
+    tags: [container, escape, mitre_privilege_escalation]
+  
+  - rule: Sensitive Mount Inside Container
+    desc: Detect mount of sensitive host paths
+    condition: >
+      spawned_process and
+      proc.name = "mount" and
+      container.id != host and
+      (proc.args contains "/etc" or
+       proc.args contains "/var/run/docker.sock" or
+       proc.args contains "/proc" or
+       proc.args contains "/sys")
+    output: >
+      Sensitive mount detected inside container
+      (user=%user.name container=%container.name 
+       command=%proc.cmdline)
+    priority: CRITICAL
+    tags: [container, escape]
+  
+  - rule: Write to Container Escape Vector
+    desc: Detect writes to common escape vectors
+    condition: >
+      open_write and
+      container.id != host and
+      (fd.name startswith "/proc/sys/kernel/core_pattern" or
+       fd.name startswith "/sys/fs/cgroup" or
+       fd.name contains "release_agent")
+    output: >
+      Write to container escape vector
+      (user=%user.name container=%container.name 
+       file=%fd.name)
+    priority: CRITICAL
+    tags: [container, escape]
+  
+  - rule: Privileged Container Started
+    desc: Detect when privileged containers are created
+    condition: >
+      container and
+      evt.type = container and
+      container.privileged = true
+    output: >
+      Privileged container started
+      (container=%container.name image=%container.image.repository)
+    priority: WARNING
+    tags: [container, privileged]
+  
+  ## 3.2 AppArmor Profile
+  
+  # /etc/apparmor.d/container-strict
+  #include <tunables/global>
+  
+  profile container-strict flags=(attach_disconnected,mediate_deleted) {
+    #include <abstractions/base>
+    
+    # Deny all network raw
+    deny network raw,
+    
+    # Deny mount operations
+    deny mount,
+    deny umount,
+    
+    # Deny access to sensitive paths
+    deny /proc/sys/kernel/** w,
+    deny /sys/fs/cgroup/** w,
+    deny /proc/sysrq-trigger w,
+    deny /proc/kcore r,
+    deny /proc/kallsyms r,
+    
+    # Deny ptrace
+    deny ptrace,
+    
+    # Read-only access to specific paths
+    /etc/passwd r,
+    /etc/group r,
+    /etc/nsswitch.conf r,
+    
+    # Application specific
+    /app/** r,
+    /app/bin/* ix,
+    /tmp/** rw,
+  }
+  
+  ## 3.3 Seccomp Profile
+  
+  # /var/lib/kubelet/seccomp/container-strict.json
+  {
+    "defaultAction": "SCMP_ACT_ERRNO",
+    "architectures": [
+      "SCMP_ARCH_X86_64",
+      "SCMP_ARCH_X86",
+      "SCMP_ARCH_AARCH64"
+    ],
+    "syscalls": [
+      {
+        "names": [
+          "accept", "accept4", "access", "arch_prctl", "bind",
+          "brk", "clock_getres", "clock_gettime", "clock_nanosleep",
+          "close", "connect", "dup", "dup2", "dup3", "epoll_create",
+          "epoll_create1", "epoll_ctl", "epoll_pwait", "epoll_wait",
+          "execve", "exit", "exit_group", "faccessat", "fchdir",
+          "fchmod", "fchown", "fcntl", "fstat", "fstatfs", "fsync",
+          "ftruncate", "futex", "getcwd", "getdents", "getdents64",
+          "getegid", "geteuid", "getgid", "getpeername", "getpgrp",
+          "getpid", "getppid", "getrandom", "getsockname", "getsockopt",
+          "gettid", "gettimeofday", "getuid", "ioctl", "listen",
+          "lseek", "madvise", "memfd_create", "mincore", "mmap",
+          "mprotect", "mremap", "munmap", "nanosleep", "newfstatat",
+          "open", "openat", "pipe", "pipe2", "poll", "ppoll", "pread64",
+          "prlimit64", "pwrite64", "read", "readlink", "readlinkat",
+          "recvfrom", "recvmsg", "rename", "renameat", "rt_sigaction",
+          "rt_sigprocmask", "rt_sigreturn", "sched_getaffinity",
+          "sched_yield", "select", "sendmsg", "sendto", "set_robust_list",
+          "set_tid_address", "setgid", "setgroups", "setsockopt",
+          "setuid", "sigaltstack", "socket", "statfs", "statx",
+          "tgkill", "uname", "unlink", "unlinkat", "wait4", "write",
+          "writev"
+        ],
+        "action": "SCMP_ACT_ALLOW"
+      }
+    ]
+  }
+  
+  # ============================================================
+  # PHASE 4: CONTINUOUS MONITORING
+  # ============================================================
+  
+  ## 4.1 Prometheus Alerts
+  
+  groups:
+  - name: container-security
+    rules:
+    - alert: PrivilegedContainerDetected
+      expr: kube_pod_container_status_running{pod=~".*"} * on(pod,namespace) group_left kube_pod_spec_containers_security_context_privileged{value="true"} > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Privileged container detected"
+        description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} is running privileged"
+    
+    - alert: HostPathVolumeDetected
+      expr: kube_pod_spec_volumes_hostpaths_path_info > 0
+      for: 1m
+      labels:
+        severity: warning
+      annotations:
+        summary: "HostPath volume mounted"
+        description: "Pod {{ $labels.namespace }}/{{ $labels.pod }} has hostPath volume"
+    
+    - alert: ContainerCapabilityDangerous
+      expr: kube_pod_container_security_context_capabilities_added{capability=~"SYS_ADMIN|NET_ADMIN|SYS_PTRACE"} > 0
+      for: 1m
+      labels:
+        severity: critical
+      annotations:
+        summary: "Dangerous capability added"
+        description: "Container {{ $labels.container }} has dangerous capability {{ $labels.capability }}"
+
+# Test cases for validation
+fail_to_pass:
+  - "test_no_privileged_containers"
+  - "test_no_docker_socket_mount"
+  - "test_no_sensitive_host_mounts"
+  - "test_minimal_capabilities"
+  - "test_seccomp_enabled"
+  - "test_apparmor_enabled"
+  - "test_no_host_namespaces"
+  - "test_read_only_root_filesystem"
+  - "test_non_root_user"
+  - "test_no_privilege_escalation"
+
+pass_to_pass:
+  - "test_container_runs"
+  - "test_basic_functionality"
+  - "test_network_connectivity"
+  - "test_resource_limits_applied"
+  - "test_health_checks_pass"
+
+# Variables for task generation
+variables:
+  - name: scenario_type
+    type: string
+    options: 
+      - "CI/CD pipeline"
+      - "microservices"
+      - "data processing"
+      - "web application"
+      - "API gateway"
+      - "message queue"
+      - "database cluster"
+      - "machine learning inference"
+      - "batch processing"
+      - "event-driven architecture"
+  
+  - name: cloud_provider
+    type: string
+    options: ["AWS EKS", "GCP GKE", "Azure AKS", "on-premise", "hybrid"]
+  
+  - name: cluster_type
+    type: string
+    options: ["managed Kubernetes", "self-managed", "OpenShift", "Rancher", "Tanzu"]
+  
+  - name: runtime
+    type: string
+    options: ["containerd", "CRI-O", "Docker", "gVisor", "Kata Containers"]
+  
+  - name: runtime_version
+    type: string
+    generator: version_string
+  
+  - name: k8s_version
+    type: string
+    options: ["1.27", "1.28", "1.29", "1.30", "1.31"]
+  
+  - name: path
+    type: path
+    generator: random_path
+  
+  - name: container_count
+    type: int
+    min: 1
+    max: 500
+  
+  - name: namespace_count
+    type: int
+    min: 1
+    max: 50
+  
+  - name: node_count
+    type: int
+    min: 3
+    max: 1000
+  
+  - name: issue_count
+    type: int
+    min: 3
+    max: 50
+  
+  - name: compliance_frameworks
+    type: list
+    options: ["SOC2", "HIPAA", "PCI-DSS", "FedRAMP", "ISO27001", "GDPR", "NIST"]
+  
+  - name: max_downtime
+    type: string
+    options: ["0 (zero downtime)", "5 minutes", "30 minutes", "2 hours", "maintenance window"]
+  
+  - name: change_window
+    type: string
+    options: ["immediate", "next maintenance window", "weekend", "off-peak hours"]
+  
+  - name: rollback_required
+    type: boolean
+  
+  - name: critical_findings
+    type: template
+    generator: finding_generator
+  
+  - name: task_steps
+    type: template
+    value: |
+      1. Audit all container configurations for escape vectors
+      2. Identify and document all privileged containers
+      3. Map all volume mounts to sensitivity levels
+      4. Review all granted capabilities
+      5. Implement hardened security contexts
+      6. Deploy network policies
+      7. Configure runtime security (Falco/sysdig)
+      8. Set up continuous compliance monitoring
+      9. Document remediation and create runbooks
+      10. Validate with security scan and penetration test
+
+# Anti-hardcoding measures
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  time_based_variations: true
+  escape_vectors:
+    - privileged_mode
+    - docker_socket
+    - host_mounts
+    - dangerous_capabilities
+    - proc_sys_writable
+    - seccomp_disabled
+    - apparmor_disabled
+    - host_namespaces
+    - kernel_vulnerabilities
+  
+  verification_requirements:
+    - "Run container security scanner (trivy, grype)"
+    - "Execute penetration test"
+    - "Verify audit log capture"
+    - "Confirm compliance report generation"
+    - "Test incident response playbook"
+
+# Anti-patterns for LLM failure modes
+anti_patterns:
+  llm_failure_modes:
+    - "Applying generic DevOps patterns without cloud-specific considerations"
+    - "Missing container runtime security boundaries"
+    - "Ignoring network policy interactions in Kubernetes"
+    - "Not considering eventual consistency in distributed config management"
+    - "Missing hidden resource contention in shared infrastructure"
+    - "Overlooking DNS TTL and caching layer interactions"
+    - "Assuming CI/CD tools handle secrets securely by default"
+    - "Missing supply chain attack vectors in dependency management"
+    - "Ignoring infrastructure drift detection gaps"
+    - "Assuming dropping ALL capabilities prevents all escape vectors"
+    - "Not understanding CAP_SYS_ADMIN equivalence to root in many contexts"
+    - "Recommending seccomp without understanding architecture-specific syscalls"
+    - "Ignoring the difference between privileged: true and adding CAP_SYS_ADMIN"
+    - "Assuming hostPID alone is insufficient for escape"
+    - "Not considering /proc/sys/kernel/core_pattern write for escape"
+    - "Missing cgroup release_agent escape vector in cgroup v1"
+    - "Assuming user namespaces provide complete isolation"
+    - "Not understanding how hostNetwork bypasses network policies"
+    - "Recommending AppArmor without understanding profile inheritance"
+    - "Ignoring device access via /dev in privileged containers"
+    - "Assuming read-only root filesystem prevents all persistence"
+    - "Not considering /proc/self/exe overwrite attacks (CVE-2019-5736)"
+    - "Missing containerd shim API exposure risks"
+    - "Assuming Kubernetes NetworkPolicies block host network access"
+    - "Not understanding that init containers can have different security contexts"
+    - "Ignoring ephemeral container security context inheritance"
+    - "Recommending gVisor without understanding syscall compatibility gaps"
+    - "Assuming IMDS v2 alone prevents cloud credential theft from containers"
+
+# Evaluation metrics
+evaluation:
+  security_score:
+    weight: 0.4
+    metrics:
+      - "No critical vulnerabilities"
+      - "No high vulnerabilities"
+      - "All containers non-privileged"
+      - "Network policies enforced"
+  
+  functionality_score:
+    weight: 0.3
+    metrics:
+      - "All services healthy"
+      - "Response times within SLA"
+      - "Error rate < 0.1%"
+  
+  compliance_score:
+    weight: 0.3
+    metrics:
+      - "All controls implemented"
+      - "Evidence collected"
+      - "Documentation complete"

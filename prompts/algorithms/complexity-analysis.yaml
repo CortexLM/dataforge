@@ -1,0 +1,2246 @@
+id: "algo-complexity-analysis-001"
+version: "2.0.0"
+category: "algorithms"
+subcategory: "complexity"
+
+# =============================================================================
+# LLM GENERATION FRAMEWORK
+# =============================================================================
+# This file is a comprehensive generation specification for LLMs to create
+# unique, extremely challenging complexity analysis tasks through multi-conversation
+# workflows. The goal is to enable generation of 10,000+ fundamentally different,
+# genuinely hard tasks that require deep algorithmic understanding.
+# =============================================================================
+
+generation_framework:
+  overview: |
+    This specification enables LLMs to generate complexity analysis tasks that are
+    genuinely difficult - not just longer or more verbose, but requiring true
+    understanding of algorithmic complexity, amortized analysis, hidden costs,
+    and performance traps that experienced developers fall into.
+
+  multi_conversation_workflow:
+    phase_1_research:
+      description: "LLM researches obscure complexity scenarios and edge cases"
+      activities:
+        - "Identify rarely-discussed complexity traps from academic papers"
+        - "Find real-world performance bugs in open source projects"
+        - "Research language-specific complexity gotchas"
+        - "Discover library implementation details that affect complexity"
+        - "Study cache behavior and memory hierarchy effects"
+      output: "Comprehensive list of potential complexity traps to embed"
+    
+    phase_2_creation:
+      description: "LLM creates task with hidden complexity layers"
+      activities:
+        - "Design code that appears O(n) but is actually O(n²) or worse"
+        - "Create scenarios where standard analysis techniques fail"
+        - "Embed multiple interacting complexity factors"
+        - "Add realistic context that obscures the true problem"
+        - "Include red herrings that waste investigation time"
+      output: "Complete task specification with hidden traps"
+    
+    phase_3_amplification:
+      description: "LLM adds difficulty multipliers and traps"
+      activities:
+        - "Layer additional complexity factors on existing traps"
+        - "Add timing-dependent behavior that masks problems"
+        - "Include environment-specific variations"
+        - "Create scenarios where profiling tools give misleading results"
+        - "Add concurrent/parallel complexity dimensions"
+      output: "Amplified task with multiple difficulty layers"
+    
+    phase_4_verification:
+      description: "LLM validates task is genuinely hard"
+      validation_criteria:
+        - "Cannot be solved by pattern matching alone"
+        - "Requires understanding of underlying concepts"
+        - "Has at least 5 interacting hidden traps"
+        - "Would take experienced developers 30+ minutes"
+        - "Has non-obvious solution path"
+        - "Resists common debugging approaches"
+        - "Has cascading failure modes that interact with each other"
+        - "Requires multi-domain knowledge synthesis (algorithms + systems + performance)"
+      output: "Verified task ready for deployment"
+
+  quality_requirements:
+    mandatory:
+      - "Must NOT be solvable by pattern matching or keyword search alone"
+      - "Must require genuine understanding of algorithmic complexity"
+      - "Must have at least 5 hidden traps that interact"
+      - "Must take 30+ minutes for experienced developers, 45+ for intermediate"
+      - "Must have realistic context that doesn't give away the answer"
+      - "Must resist common debugging approaches like print statements"
+      - "Must require analysis tools or careful reasoning to solve"
+    
+    difficulty_validation:
+      - "Can a junior developer solve this in under 5 minutes? (must be NO)"
+      - "Does the obvious approach work? (must be NO)"
+      - "Is the solution path immediately clear? (must be NO)"
+      - "Can this be solved without understanding Big-O? (must be NO)"
+      - "Would this take 30+ minutes for experienced developers, 45+ for intermediate? (must be YES)"
+
+# =============================================================================
+# EXHAUSTIVE TOPIC UNIVERSE
+# =============================================================================
+# Every possible topic/subject that complexity analysis tasks can cover.
+# Each topic can be combined with traps and difficulty amplifiers to create
+# unique task variations.
+# =============================================================================
+
+topic_universe:
+  # ---------------------------------------------------------------------------
+  # Sorting Algorithms (30 topics)
+  # ---------------------------------------------------------------------------
+  sorting_algorithms:
+    comparison_based:
+      - quicksort_standard
+      - quicksort_three_way_partition
+      - quicksort_dual_pivot
+      - quicksort_median_of_three
+      - quicksort_introspective
+      - mergesort_top_down
+      - mergesort_bottom_up
+      - mergesort_natural
+      - mergesort_in_place
+      - heapsort_standard
+      - heapsort_bottom_up
+      - heapsort_ternary
+      - timsort
+      - introsort
+      - patience_sort
+      - library_sort
+      - block_sort
+      - smoothsort
+      - tournament_sort
+      - tree_sort
+      - shell_sort_original
+      - shell_sort_hibbard
+      - shell_sort_sedgewick
+      - cocktail_shaker_sort
+      - comb_sort
+      - gnome_sort
+      - odd_even_sort
+      - cycle_sort
+      - strand_sort
+      - stooge_sort
+    
+    non_comparison_based:
+      - counting_sort
+      - radix_sort_lsd
+      - radix_sort_msd
+      - bucket_sort
+      - pigeonhole_sort
+      - flashsort
+      - burstsort
+      - postman_sort
+      - bead_sort
+      - interpolation_sort
+    
+    parallel_sorting:
+      - parallel_mergesort
+      - parallel_quicksort
+      - bitonic_sort
+      - odd_even_mergesort
+      - sample_sort
+      - parallel_radix_sort
+    
+    external_sorting:
+      - external_mergesort
+      - polyphase_mergesort
+      - replacement_selection
+      - cascade_merge
+      - oscillating_sort
+
+  # ---------------------------------------------------------------------------
+  # Search Algorithms (25 topics)
+  # ---------------------------------------------------------------------------
+  search_algorithms:
+    basic_search:
+      - linear_search
+      - sentinel_linear_search
+      - binary_search_iterative
+      - binary_search_recursive
+      - ternary_search
+      - jump_search
+      - interpolation_search
+      - exponential_search
+      - fibonacci_search
+      - ubiquitous_binary_search
+    
+    tree_search:
+      - bst_search
+      - avl_search
+      - red_black_search
+      - b_tree_search
+      - b_plus_tree_search
+      - trie_search
+      - radix_tree_search
+      - suffix_tree_search
+      - van_emde_boas_search
+      - fusion_tree_search
+    
+    graph_search:
+      - bfs_search
+      - dfs_search
+      - iterative_deepening
+      - bidirectional_search
+      - a_star_search
+      - ida_star_search
+      - beam_search
+      - best_first_search
+      - uniform_cost_search
+      - greedy_best_first
+
+  # ---------------------------------------------------------------------------
+  # Graph Algorithms (50 topics)
+  # ---------------------------------------------------------------------------
+  graph_algorithms:
+    shortest_path:
+      - dijkstra_standard
+      - dijkstra_fibonacci_heap
+      - dijkstra_bidirectional
+      - bellman_ford_standard
+      - bellman_ford_queue_optimized
+      - spfa_algorithm
+      - floyd_warshall
+      - johnson_algorithm
+      - a_star_standard
+      - a_star_weighted
+      - d_star
+      - d_star_lite
+      - lifelong_planning_a_star
+      - contraction_hierarchies
+      - hub_labeling
+    
+    minimum_spanning_tree:
+      - prim_standard
+      - prim_fibonacci_heap
+      - kruskal_standard
+      - kruskal_filter_kruskal
+      - boruvka_algorithm
+      - reverse_delete
+      - minimum_bottleneck_spanning_tree
+      - euclidean_mst
+      - rectilinear_mst
+      - degree_constrained_mst
+    
+    connectivity:
+      - tarjan_scc
+      - kosaraju_scc
+      - gabow_scc
+      - articulation_points
+      - bridges_algorithm
+      - biconnected_components
+      - block_cut_tree
+      - two_edge_connectivity
+      - k_connectivity
+      - ear_decomposition
+    
+    flow_algorithms:
+      - ford_fulkerson
+      - edmonds_karp
+      - dinic_algorithm
+      - push_relabel
+      - push_relabel_fifo
+      - push_relabel_highest
+      - orlin_algorithm
+      - min_cost_max_flow
+      - circulation_with_demands
+      - bipartite_matching_hopcroft_karp
+    
+    tree_algorithms:
+      - lowest_common_ancestor
+      - lca_binary_lifting
+      - lca_tarjan
+      - lca_farach_colton_bender
+      - heavy_light_decomposition
+      - centroid_decomposition
+      - euler_tour_technique
+      - link_cut_trees
+      - tree_isomorphism
+      - tree_canonization
+
+  # ---------------------------------------------------------------------------
+  # Dynamic Programming Patterns (40 topics)
+  # ---------------------------------------------------------------------------
+  dynamic_programming:
+    classic_patterns:
+      - longest_increasing_subsequence
+      - longest_common_subsequence
+      - edit_distance
+      - matrix_chain_multiplication
+      - optimal_binary_search_tree
+      - knapsack_01
+      - knapsack_unbounded
+      - knapsack_bounded
+      - coin_change_count
+      - coin_change_minimum
+      - rod_cutting
+      - word_break
+      - palindrome_partitioning
+      - egg_dropping
+      - boolean_parenthesization
+    
+    sequence_dp:
+      - maximum_subarray_sum
+      - maximum_product_subarray
+      - longest_palindromic_subsequence
+      - longest_palindromic_substring
+      - distinct_subsequences
+      - interleaving_strings
+      - regular_expression_matching
+      - wildcard_matching
+      - longest_valid_parentheses
+      - decode_ways
+    
+    grid_dp:
+      - unique_paths
+      - unique_paths_with_obstacles
+      - minimum_path_sum
+      - maximal_square
+      - maximal_rectangle
+      - dungeon_game
+      - cherry_pickup
+      - largest_plus_sign
+      - bomb_enemy
+      - paint_house
+    
+    tree_dp:
+      - tree_diameter
+      - tree_path_queries
+      - tree_rerooting
+      - tree_matching
+      - tree_coloring
+      - tree_covering
+      - tree_pruning
+      - tree_centroid_dp
+      - tree_heavy_path_dp
+      - tree_small_to_large
+
+  # ---------------------------------------------------------------------------
+  # String Algorithms (35 topics)
+  # ---------------------------------------------------------------------------
+  string_algorithms:
+    pattern_matching:
+      - kmp_algorithm
+      - boyer_moore
+      - boyer_moore_horspool
+      - rabin_karp
+      - z_algorithm
+      - aho_corasick
+      - commentz_walter
+      - wu_manber
+      - two_way_algorithm
+      - shift_or
+    
+    suffix_structures:
+      - suffix_array_naive
+      - suffix_array_dc3
+      - suffix_array_sa_is
+      - suffix_tree_ukkonen
+      - suffix_tree_weiner
+      - suffix_tree_mccreight
+      - suffix_automaton
+      - generalized_suffix_tree
+      - compressed_suffix_array
+      - fm_index
+    
+    string_hashing:
+      - polynomial_hashing
+      - double_hashing
+      - rolling_hash
+      - universal_hashing
+      - fingerprinting
+      - locality_sensitive_hashing
+      - minhash
+      - simhash
+      - nilsimsa_hash
+      - ssdeep
+    
+    other_string:
+      - manacher_algorithm
+      - longest_repeated_substring
+      - shortest_unique_substring
+      - all_palindromic_substrings
+      - longest_common_prefix
+      - lexicographically_smallest_rotation
+      - run_length_encoding
+      - burrows_wheeler_transform
+      - lempel_ziv_complexity
+      - lyndon_factorization
+
+  # ---------------------------------------------------------------------------
+  # Data Structure Operations (40 topics)
+  # ---------------------------------------------------------------------------
+  data_structures:
+    arrays_and_lists:
+      - dynamic_array_resize
+      - array_rotation
+      - array_reversal
+      - subarray_operations
+      - sparse_array
+      - circular_buffer
+      - skip_list
+      - unrolled_linked_list
+      - xor_linked_list
+      - self_organizing_list
+    
+    trees:
+      - binary_search_tree_operations
+      - avl_tree_rotations
+      - red_black_tree_operations
+      - splay_tree_operations
+      - treap_operations
+      - b_tree_operations
+      - b_plus_tree_operations
+      - finger_trees
+      - scapegoat_tree
+      - weight_balanced_tree
+    
+    heaps:
+      - binary_heap_operations
+      - d_ary_heap
+      - binomial_heap
+      - fibonacci_heap
+      - pairing_heap
+      - brodal_queue
+      - leftist_heap
+      - skew_heap
+      - soft_heap
+      - weak_heap
+    
+    hash_tables:
+      - chaining_hash
+      - open_addressing_linear
+      - open_addressing_quadratic
+      - double_hashing
+      - robin_hood_hashing
+      - cuckoo_hashing
+      - hopscotch_hashing
+      - swiss_tables
+      - bloom_filter
+      - counting_bloom_filter
+
+  # ---------------------------------------------------------------------------
+  # Advanced Data Structures (30 topics)
+  # ---------------------------------------------------------------------------
+  advanced_structures:
+    range_query:
+      - segment_tree_standard
+      - segment_tree_lazy_propagation
+      - segment_tree_persistent
+      - segment_tree_2d
+      - fenwick_tree_standard
+      - fenwick_tree_2d
+      - sparse_table
+      - sqrt_decomposition
+      - mo_algorithm
+      - wavelet_tree
+    
+    persistent:
+      - persistent_array
+      - persistent_stack
+      - persistent_queue
+      - persistent_deque
+      - persistent_bst
+      - persistent_treap
+      - persistent_segment_tree
+      - persistent_trie
+      - fat_node_method
+      - path_copying
+    
+    specialized:
+      - disjoint_set_union
+      - link_cut_tree
+      - euler_tour_tree
+      - top_tree
+      - rake_compress
+      - cartesian_tree
+      - range_tree
+      - kd_tree
+      - interval_tree
+      - quadtree
+      - octree
+      - r_tree
+      - ball_tree
+      - vp_tree
+      - cover_tree
+
+  # ---------------------------------------------------------------------------
+  # Computational Geometry (20 topics)
+  # ---------------------------------------------------------------------------
+  computational_geometry:
+    basic:
+      - convex_hull_graham
+      - convex_hull_jarvis
+      - convex_hull_quickhull
+      - convex_hull_chan
+      - line_intersection
+      - segment_intersection
+      - polygon_area
+      - point_in_polygon
+      - closest_pair
+      - farthest_pair
+    
+    advanced:
+      - voronoi_diagram
+      - delaunay_triangulation
+      - polygon_triangulation
+      - visibility_polygon
+      - halfplane_intersection
+      - rotating_calipers
+      - sweep_line
+      - range_searching
+      - simplex_algorithm
+      - linear_programming_2d
+
+  # ---------------------------------------------------------------------------
+  # Number Theory and Math (25 topics)
+  # ---------------------------------------------------------------------------
+  number_theory:
+    basic:
+      - gcd_euclidean
+      - gcd_binary
+      - extended_euclidean
+      - modular_inverse
+      - chinese_remainder_theorem
+      - primality_testing_naive
+      - primality_miller_rabin
+      - primality_aks
+      - factorization_trial
+      - factorization_pollard_rho
+    
+    advanced:
+      - sieve_eratosthenes
+      - sieve_linear
+      - sieve_segmented
+      - mobius_function
+      - euler_totient
+      - discrete_logarithm
+      - primitive_root
+      - fast_fourier_transform
+      - number_theoretic_transform
+      - karatsuba_multiplication
+      - toom_cook
+      - schonhage_strassen
+      - barrett_reduction
+      - montgomery_multiplication
+      - fast_exponentiation
+
+# =============================================================================
+# COMPLEXITY DIMENSIONS
+# =============================================================================
+# Different dimensions along which complexity can vary and hide.
+# Tasks should involve multiple dimensions simultaneously.
+# =============================================================================
+
+complexity_dimensions:
+  time_complexity:
+    big_o_classes:
+      - constant_O1
+      - logarithmic_O_log_n
+      - sqrt_O_sqrt_n
+      - linear_O_n
+      - linearithmic_O_n_log_n
+      - quadratic_O_n_squared
+      - cubic_O_n_cubed
+      - polynomial_O_n_k
+      - exponential_O_2_n
+      - factorial_O_n_factorial
+      - double_exponential_O_2_2_n
+    
+    analysis_types:
+      - worst_case
+      - average_case
+      - best_case
+      - amortized
+      - expected
+      - smoothed
+      - output_sensitive
+      - input_sensitive
+      - cache_oblivious
+      - io_model
+    
+    hidden_factors:
+      - constant_factors_matter
+      - lower_order_terms_dominate
+      - log_factors_accumulate
+      - recursion_overhead
+      - function_call_overhead
+      - memory_allocation_overhead
+      - garbage_collection_pause
+      - jit_compilation_warmup
+      - branch_prediction_effects
+      - speculative_execution_effects
+
+  space_complexity:
+    memory_types:
+      - stack_space
+      - heap_space
+      - auxiliary_space
+      - in_place
+      - streaming
+      - cache_resident
+      - virtual_memory
+      - memory_mapped
+    
+    space_patterns:
+      - O1_space
+      - O_log_n_space
+      - O_n_space
+      - O_n_squared_space
+      - recursive_stack_depth
+      - memoization_table_size
+      - working_set_size
+      - memory_fragmentation
+    
+    memory_hierarchy:
+      - l1_cache_effects
+      - l2_cache_effects
+      - l3_cache_effects
+      - tlb_effects
+      - page_fault_effects
+      - numa_effects
+      - cache_line_alignment
+      - false_sharing
+      - cache_thrashing
+      - prefetching_effects
+
+  concurrency_complexity:
+    parallel_factors:
+      - amdahl_law_limits
+      - gustafson_law
+      - work_span_analysis
+      - critical_path_length
+      - parallel_slack
+      - load_balancing
+      - communication_overhead
+      - synchronization_cost
+    
+    contention_effects:
+      - lock_contention
+      - false_sharing
+      - cache_line_bouncing
+      - atomic_operation_cost
+      - memory_barrier_cost
+      - thread_creation_overhead
+      - context_switch_cost
+      - scheduler_effects
+
+  input_sensitivity:
+    input_characteristics:
+      - nearly_sorted
+      - reverse_sorted
+      - random_uniform
+      - random_zipf
+      - adversarial_input
+      - structured_input
+      - sparse_input
+      - dense_input
+    
+    size_effects:
+      - small_input_overhead
+      - large_input_scaling
+      - input_fits_in_cache
+      - input_exceeds_memory
+      - streaming_input
+      - batched_input
+
+# =============================================================================
+# TRAP TAXONOMY
+# =============================================================================
+# Comprehensive catalog of complexity traps that can be embedded in tasks.
+# Each trap type has subtypes and concrete examples.
+# =============================================================================
+
+trap_taxonomy:
+  # ---------------------------------------------------------------------------
+  # Hidden Quadratic Traps (10 types)
+  # ---------------------------------------------------------------------------
+  hidden_quadratic:
+    string_operations:
+      trap_id: "HQ001"
+      name: "String Concatenation in Loop"
+      description: "Building strings with += in a loop creates O(n²) copies"
+      languages: ["python", "java", "javascript"]
+      example: |
+        result = ""
+        for item in items:
+            result += str(item)  # O(n) per iteration = O(n²) total
+      fix: "Use list.append() and ''.join(), or StringBuilder"
+      detection_difficulty: "medium"
+      
+    list_front_operations:
+      trap_id: "HQ002"
+      name: "List Insert at Front"
+      description: "Inserting at index 0 shifts all elements"
+      languages: ["python", "java"]
+      example: |
+        for item in items:
+            my_list.insert(0, item)  # O(n) per insertion
+      fix: "Use collections.deque.appendleft() or build reversed"
+      detection_difficulty: "easy"
+      
+    membership_in_list:
+      trap_id: "HQ003"
+      name: "Membership Check in List"
+      description: "Using 'in' operator on list is O(n)"
+      languages: ["python"]
+      example: |
+        for item in items1:
+            if item in items2:  # O(n) per check = O(n²)
+                process(item)
+      fix: "Convert items2 to set first"
+      detection_difficulty: "medium"
+      
+    nested_loops_disguised:
+      trap_id: "HQ004"
+      name: "Nested Iteration via Library"
+      description: "Library call contains hidden inner loop"
+      languages: ["python", "java", "javascript"]
+      example: |
+        for i, item in enumerate(items):
+            items.remove(item)  # O(n) removal = O(n²)
+      fix: "Build new list or use filter"
+      detection_difficulty: "hard"
+      
+    slice_copy:
+      trap_id: "HQ005"
+      name: "Slice Copy in Loop"
+      description: "Creating slices copies data"
+      languages: ["python"]
+      example: |
+        for i in range(len(items)):
+            prefix = items[:i]  # O(i) copy each iteration
+            process(prefix)
+      fix: "Use itertools.islice or index tracking"
+      detection_difficulty: "hard"
+      
+    string_find_loop:
+      trap_id: "HQ006"
+      name: "Repeated String Search"
+      description: "Finding substrings repeatedly from start"
+      languages: ["python", "java", "javascript"]
+      example: |
+        positions = []
+        pos = 0
+        while True:
+            pos = text.find(pattern, pos)  # Could degrade to O(nm) per find
+            if pos == -1: break
+            positions.append(pos)
+            pos += 1
+      fix: "Use KMP or regex with finditer"
+      detection_difficulty: "very_hard"
+      
+    array_shift:
+      trap_id: "HQ007"
+      name: "Array Element Shifting"
+      description: "Manual element shifting is O(n)"
+      languages: ["all"]
+      example: |
+        for i in range(count):
+            for j in range(len(arr) - 1, i, -1):
+                arr[j] = arr[j-1]  # O(n) shift each time
+            arr[i] = new_value
+      fix: "Use appropriate data structure"
+      detection_difficulty: "medium"
+      
+    repeated_count:
+      trap_id: "HQ008"
+      name: "Repeated Count Operations"
+      description: "Counting elements multiple times"
+      languages: ["python"]
+      example: |
+        for item in items:
+            if items.count(item) > threshold:  # O(n) count = O(n²)
+                result.append(item)
+      fix: "Use Counter once upfront"
+      detection_difficulty: "easy"
+      
+    index_search:
+      trap_id: "HQ009"
+      name: "Index Search in List"
+      description: "Using .index() in loop"
+      languages: ["python"]
+      example: |
+        for item in items:
+            idx = items.index(item)  # O(n) search = O(n²)
+            process(idx)
+      fix: "Use enumerate or build index dict"
+      detection_difficulty: "easy"
+      
+    deep_copy_loop:
+      trap_id: "HQ010"
+      name: "Deep Copy in Loop"
+      description: "Creating deep copies repeatedly"
+      languages: ["all"]
+      example: |
+        for item in items:
+            copy = deepcopy(state)  # O(state_size) each time
+            copy.append(item)
+            results.append(copy)
+      fix: "Use persistent data structures or incremental updates"
+      detection_difficulty: "hard"
+
+  # ---------------------------------------------------------------------------
+  # Hash Table Traps (8 types)
+  # ---------------------------------------------------------------------------
+  hash_table_traps:
+    collision_attack:
+      trap_id: "HT001"
+      name: "Hash Collision Attack"
+      description: "Adversarial inputs cause O(n) bucket chains"
+      example: "Crafted keys that all hash to same bucket"
+      detection_difficulty: "very_hard"
+      
+    mutable_key:
+      trap_id: "HT002"
+      name: "Mutable Key Modification"
+      description: "Modifying key after insertion breaks lookup"
+      example: "list used as dict key, then modified"
+      detection_difficulty: "hard"
+      
+    poor_hash_function:
+      trap_id: "HT003"
+      name: "Poor Hash Function"
+      description: "Hash function doesn't distribute well"
+      example: "hash(obj) = obj.id % 10 causes clustering"
+      detection_difficulty: "medium"
+      
+    resize_spike:
+      trap_id: "HT004"
+      name: "Hash Table Resize Spike"
+      description: "Amortized O(1) hides O(n) resize operations"
+      example: "Inserting 1M elements, large spike at power-of-2 boundaries"
+      detection_difficulty: "medium"
+      
+    string_hash_dos:
+      trap_id: "HT005"
+      name: "String Hashing DoS"
+      description: "Predictable string hashing enables DoS"
+      example: "Python 2 dict with crafted string keys"
+      detection_difficulty: "very_hard"
+      
+    identity_vs_equality:
+      trap_id: "HT006"
+      name: "Identity vs Equality Hash"
+      description: "Hash uses identity not equality"
+      example: "Custom __hash__ but default __eq__"
+      detection_difficulty: "hard"
+      
+    float_key_precision:
+      trap_id: "HT007"
+      name: "Float Key Precision"
+      description: "Float keys fail due to precision"
+      example: "dict[0.1 + 0.2] vs dict[0.3]"
+      detection_difficulty: "medium"
+      
+    cache_unfriendly:
+      trap_id: "HT008"
+      name: "Cache Unfriendly Layout"
+      description: "Pointer chasing destroys cache performance"
+      example: "Linked list buckets with scattered memory"
+      detection_difficulty: "hard"
+
+  # ---------------------------------------------------------------------------
+  # Recursion Traps (8 types)
+  # ---------------------------------------------------------------------------
+  recursion_traps:
+    exponential_branching:
+      trap_id: "RC001"
+      name: "Exponential Branching"
+      description: "Naive recursion with overlapping subproblems"
+      example: "fib(n) = fib(n-1) + fib(n-2) without memoization"
+      detection_difficulty: "easy"
+      
+    hidden_recomputation:
+      trap_id: "RC002"
+      name: "Hidden Recomputation"
+      description: "Same subproblem computed multiple times"
+      example: "Computing path length at each step instead of accumulating"
+      detection_difficulty: "medium"
+      
+    stack_overflow:
+      trap_id: "RC003"
+      name: "Stack Overflow Depth"
+      description: "Recursion depth exceeds stack limit"
+      example: "Recursive function on linked list of 100K nodes"
+      detection_difficulty: "medium"
+      
+    tail_call_missing:
+      trap_id: "RC004"
+      name: "Missing Tail Call Optimization"
+      description: "Non-tail recursive function can't be optimized"
+      example: "return 1 + recurse(n-1) vs return recurse(n-1, acc+1)"
+      detection_difficulty: "hard"
+      
+    mutual_recursion:
+      trap_id: "RC005"
+      name: "Mutual Recursion Explosion"
+      description: "Two functions calling each other exponentially"
+      example: "even(n) calls odd(n-1), odd(n) calls even(n-1)"
+      detection_difficulty: "hard"
+      
+    recursive_copy:
+      trap_id: "RC006"
+      name: "Recursive Data Copy"
+      description: "Copying data at each recursive level"
+      example: "recurse(data[1:]) creates n copies"
+      detection_difficulty: "hard"
+      
+    lazy_evaluation_trap:
+      trap_id: "RC007"
+      name: "Lazy Evaluation Trap"
+      description: "Lazy evaluation hides exponential computation"
+      example: "Haskell infinite list with expensive elements"
+      detection_difficulty: "very_hard"
+      
+    generator_vs_list:
+      trap_id: "RC008"
+      name: "Generator vs List Confusion"
+      description: "Multiple iteration forces recomputation"
+      example: "Generator iterated multiple times recomputes"
+      detection_difficulty: "medium"
+
+  # ---------------------------------------------------------------------------
+  # Amortized Analysis Traps (6 types)
+  # ---------------------------------------------------------------------------
+  amortized_traps:
+    worst_case_spike:
+      trap_id: "AM001"
+      name: "Amortized Worst Case Spike"
+      description: "Amortized O(1) has occasional O(n) operations"
+      example: "Dynamic array doubling, hash table resize"
+      detection_difficulty: "medium"
+      
+    real_time_violation:
+      trap_id: "AM002"
+      name: "Real-Time Requirement Violation"
+      description: "Amortized bounds unacceptable for real-time"
+      example: "Game loop with occasional frame spike"
+      detection_difficulty: "medium"
+      
+    sequence_dependency:
+      trap_id: "AM003"
+      name: "Operation Sequence Dependency"
+      description: "Amortization assumes specific sequence"
+      example: "Splay tree optimal only for certain patterns"
+      detection_difficulty: "hard"
+      
+    multipop_trap:
+      trap_id: "AM004"
+      name: "Multipop Operation Trap"
+      description: "Single expensive operation not amortized"
+      example: "Stack multipop of all elements"
+      detection_difficulty: "medium"
+      
+    potential_method_failure:
+      trap_id: "AM005"
+      name: "Potential Method Failure"
+      description: "Potential function doesn't capture cost"
+      example: "Incorrect amortized analysis gives wrong bound"
+      detection_difficulty: "very_hard"
+      
+    memory_allocation_spike:
+      trap_id: "AM006"
+      name: "Memory Allocation Spike"
+      description: "Memory allocator causes unpredictable delays"
+      example: "malloc triggers defragmentation"
+      detection_difficulty: "hard"
+
+  # ---------------------------------------------------------------------------
+  # Language-Specific Traps (10 types)
+  # ---------------------------------------------------------------------------
+  language_specific:
+    python_gil:
+      trap_id: "LS001"
+      name: "Python GIL Bottleneck"
+      description: "Global Interpreter Lock serializes threads"
+      languages: ["python"]
+      detection_difficulty: "medium"
+      
+    java_autoboxing:
+      trap_id: "LS002"
+      name: "Java Autoboxing Overhead"
+      description: "Primitive/object conversion overhead"
+      languages: ["java"]
+      detection_difficulty: "medium"
+      
+    javascript_array_holes:
+      trap_id: "LS003"
+      name: "JavaScript Sparse Array"
+      description: "Array holes cause deoptimization"
+      languages: ["javascript"]
+      detection_difficulty: "hard"
+      
+    cpp_vector_bool:
+      trap_id: "LS004"
+      name: "C++ vector<bool> Specialization"
+      description: "vector<bool> is bitfield, not contiguous"
+      languages: ["cpp"]
+      detection_difficulty: "medium"
+      
+    rust_bounds_check:
+      trap_id: "LS005"
+      name: "Rust Bounds Check Overhead"
+      description: "Array bounds checking in hot loops"
+      languages: ["rust"]
+      detection_difficulty: "medium"
+      
+    python_comprehension_scope:
+      trap_id: "LS006"
+      name: "Python Comprehension Closure"
+      description: "Lambda in comprehension captures by reference"
+      languages: ["python"]
+      detection_difficulty: "hard"
+      
+    java_string_interning:
+      trap_id: "LS007"
+      name: "Java String Interning Cost"
+      description: "String.intern() has hidden costs"
+      languages: ["java"]
+      detection_difficulty: "hard"
+      
+    go_slice_capacity:
+      trap_id: "LS008"
+      name: "Go Slice Capacity Trap"
+      description: "Appending to slice shares backing array"
+      languages: ["go"]
+      detection_difficulty: "hard"
+      
+    javascript_hidden_class:
+      trap_id: "LS009"
+      name: "JavaScript Hidden Class Change"
+      description: "Dynamic property addition deoptimizes"
+      languages: ["javascript"]
+      detection_difficulty: "very_hard"
+      
+    python_default_mutable:
+      trap_id: "LS010"
+      name: "Python Mutable Default Argument"
+      description: "Default list/dict shared across calls"
+      languages: ["python"]
+      detection_difficulty: "easy"
+
+  # ---------------------------------------------------------------------------
+  # Regex Traps (6 types)
+  # ---------------------------------------------------------------------------
+  regex_traps:
+    catastrophic_backtracking:
+      trap_id: "RX001"
+      name: "Catastrophic Backtracking"
+      description: "Exponential backtracking on non-match"
+      example: "(a+)+$ on 'aaaaaaaaaaaaaaaaaaaaaaaab'"
+      detection_difficulty: "hard"
+      
+    nested_quantifiers:
+      trap_id: "RX002"
+      name: "Nested Quantifiers"
+      description: "Nested * or + causes exponential states"
+      example: "(.*)*"
+      detection_difficulty: "medium"
+      
+    alternation_explosion:
+      trap_id: "RX003"
+      name: "Alternation State Explosion"
+      description: "Many alternatives cause state explosion"
+      example: "(a|b|c|d|e|f|g|h|i|j)+ on long string"
+      detection_difficulty: "hard"
+      
+    unicode_processing:
+      trap_id: "RX004"
+      name: "Unicode Regex Processing"
+      description: "Unicode character classes are expensive"
+      example: "\\p{L}+ on large text"
+      detection_difficulty: "medium"
+      
+    lookahead_cost:
+      trap_id: "RX005"
+      name: "Lookahead Cost"
+      description: "Lookahead patterns have hidden cost"
+      example: "(?=pattern) evaluated at each position"
+      detection_difficulty: "hard"
+      
+    greedy_vs_lazy:
+      trap_id: "RX006"
+      name: "Greedy vs Lazy Quantifier"
+      description: "Wrong quantifier type causes slowdown"
+      example: ".*? vs .* in different contexts"
+      detection_difficulty: "medium"
+
+  # ---------------------------------------------------------------------------
+  # Memory and Cache Traps (8 types)
+  # ---------------------------------------------------------------------------
+  memory_traps:
+    cache_line_split:
+      trap_id: "MC001"
+      name: "Cache Line Split Access"
+      description: "Data spans cache line boundary"
+      detection_difficulty: "hard"
+      
+    false_sharing:
+      trap_id: "MC002"
+      name: "False Sharing"
+      description: "Threads modify adjacent cache lines"
+      detection_difficulty: "hard"
+      
+    page_fault_storm:
+      trap_id: "MC003"
+      name: "Page Fault Storm"
+      description: "Working set exceeds available RAM"
+      detection_difficulty: "medium"
+      
+    memory_fragmentation:
+      trap_id: "MC004"
+      name: "Memory Fragmentation"
+      description: "Allocations fragment memory"
+      detection_difficulty: "hard"
+      
+    numa_penalty:
+      trap_id: "MC005"
+      name: "NUMA Memory Penalty"
+      description: "Accessing non-local memory is slow"
+      detection_difficulty: "very_hard"
+      
+    prefetch_failure:
+      trap_id: "MC006"
+      name: "Prefetch Failure"
+      description: "Non-sequential access defeats prefetcher"
+      detection_difficulty: "hard"
+      
+    tlb_thrashing:
+      trap_id: "MC007"
+      name: "TLB Thrashing"
+      description: "Too many pages causes TLB misses"
+      detection_difficulty: "very_hard"
+      
+    alignment_penalty:
+      trap_id: "MC008"
+      name: "Alignment Penalty"
+      description: "Unaligned access is slower"
+      detection_difficulty: "hard"
+
+# =============================================================================
+# EDGE CASE CATALOG
+# =============================================================================
+# Comprehensive list of edge cases that should be considered.
+# =============================================================================
+
+edge_cases:
+  input_size_edge_cases:
+    - empty_input_n_equals_0
+    - single_element_n_equals_1
+    - two_elements_n_equals_2
+    - small_input_n_less_than_10
+    - cache_boundary_size_n_equals_1024
+    - cache_boundary_size_n_equals_4096
+    - page_boundary_size_n_equals_4096
+    - stack_limit_boundary
+    - heap_limit_boundary
+    - maximum_array_size
+    - maximum_string_length
+    - maximum_recursion_depth
+    - 32_bit_integer_boundary
+    - 64_bit_integer_boundary
+    - floating_point_precision_boundary
+    - power_of_two_minus_one
+    - power_of_two
+    - power_of_two_plus_one
+    - prime_number_size
+    - fibonacci_number_size
+
+  data_pattern_edge_cases:
+    - all_same_elements
+    - all_different_elements
+    - alternating_pattern
+    - sorted_ascending
+    - sorted_descending
+    - nearly_sorted_one_swap
+    - nearly_sorted_few_swaps
+    - rotated_sorted_array
+    - sawtooth_pattern
+    - random_uniform
+    - random_normal
+    - random_zipf
+    - random_exponential
+    - bimodal_distribution
+    - sparse_data_mostly_zeros
+    - dense_data_no_zeros
+    - negative_numbers_only
+    - positive_numbers_only
+    - mixed_positive_negative
+    - includes_zero
+    - includes_min_int
+    - includes_max_int
+    - includes_infinity
+    - includes_nan
+    - includes_null
+
+  string_edge_cases:
+    - empty_string
+    - single_character
+    - all_same_characters
+    - alternating_characters
+    - palindrome
+    - very_long_line
+    - many_short_lines
+    - unicode_characters
+    - emoji_characters
+    - combining_characters
+    - zero_width_characters
+    - right_to_left_text
+    - mixed_encodings
+    - control_characters
+    - newline_variations
+    - whitespace_only
+    - leading_trailing_whitespace
+    - embedded_nulls
+    - bom_markers
+    - surrogate_pairs
+
+  graph_edge_cases:
+    - empty_graph_no_nodes
+    - single_node_no_edges
+    - two_nodes_one_edge
+    - complete_graph
+    - sparse_graph
+    - dense_graph
+    - tree_structure
+    - forest_structure
+    - single_path
+    - single_cycle
+    - multiple_cycles
+    - self_loops
+    - parallel_edges
+    - disconnected_components
+    - strongly_connected
+    - weakly_connected
+    - bipartite_graph
+    - planar_graph
+    - directed_acyclic_graph
+    - negative_weights
+    - zero_weights
+    - very_large_weights
+    - mixed_weight_signs
+
+  tree_edge_cases:
+    - empty_tree
+    - single_node_tree
+    - linear_tree_left_skewed
+    - linear_tree_right_skewed
+    - complete_binary_tree
+    - perfect_binary_tree
+    - almost_complete_tree
+    - balanced_tree
+    - unbalanced_tree
+    - very_deep_tree
+    - very_wide_tree
+    - single_child_nodes
+    - all_leaves_same_depth
+    - mixed_depth_leaves
+
+  numerical_edge_cases:
+    - zero
+    - negative_zero
+    - positive_infinity
+    - negative_infinity
+    - nan
+    - denormalized_numbers
+    - epsilon_boundary
+    - max_float
+    - min_float
+    - max_int
+    - min_int
+    - overflow_boundary
+    - underflow_boundary
+    - precision_loss_boundary
+    - rounding_errors
+    - catastrophic_cancellation
+    - large_exponent
+    - small_exponent
+
+# =============================================================================
+# ANTI-PATTERNS
+# =============================================================================
+# Things that make tasks TOO EASY and should be avoided.
+# =============================================================================
+
+anti_patterns:
+  llm_failure_modes:
+    - "Pattern matching on similar-looking problems without understanding underlying principles"
+    - "Applying textbook solutions without considering edge cases or input distributions"
+    - "Missing subtle complexity hidden in library implementations and system calls"
+    - "Ignoring cache and memory hierarchy effects on practical performance"
+    - "Assuming asymptotic complexity equals practical performance without constant factor analysis"
+    - "Skipping verification of corner cases and boundary conditions"
+    - "Over-relying on profiling without understanding root cause of bottlenecks"
+    - "Missing hidden quadratic behavior in nested loops or library calls"
+    - "Ignoring constant factors in complexity analysis for practical input sizes"
+    - "Failing to consider amortized vs worst-case complexity implications"
+    - "Not recognizing when probabilistic analysis is needed vs worst-case"
+    - "Confusing time complexity with space complexity optimization targets"
+    - "Missing cache-oblivious algorithm opportunities"
+    - "Ignoring branch prediction effects on inner loops"
+    - "Failing to identify when algorithm choice depends on input characteristics"
+    - "Not considering numerical stability in floating-point algorithms"
+    - "Missing opportunities for early termination or pruning"
+    - "Overlooking parallelization opportunities and Amdahl's law limitations"
+    - "Confusing expected complexity with high-probability bounds"
+    - "Failing to recognize when randomization can improve worst-case behavior"
+    - "Not identifying fixed-parameter tractable structure in seemingly hard problems"
+    - "Missing lower bound arguments that prove optimality"
+    - "Incorrectly applying Master theorem to non-standard recurrences"
+    - "Failing to account for memory allocation overhead in complexity analysis"
+    - "Not recognizing when approximation algorithms are necessary and sufficient"
+
+  task_design_anti_patterns:
+    obvious_problem:
+      description: "Problem is immediately clear from task description"
+      why_bad: "No analysis required"
+      
+    single_trap:
+      description: "Only one thing to find"
+      why_bad: "Too easy once found"
+      
+    standard_example:
+      description: "Uses textbook example everyone knows"
+      why_bad: "Pattern matching solves it"
+      
+    keyword_giveaway:
+      description: "Task description contains solution hints"
+      why_bad: "Reading comprehension, not analysis"
+      
+    isolated_problem:
+      description: "Problem is self-contained in obvious location"
+      why_bad: "No exploration required"
+      
+    simple_fix:
+      description: "Solution is a one-line change"
+      why_bad: "No understanding required"
+
+  code_anti_patterns:
+    commented_hints:
+      description: "Comments point to the problem"
+      why_bad: "Just read comments"
+      
+    obvious_naming:
+      description: "Variables named 'slow_function' etc"
+      why_bad: "Naming gives it away"
+      
+    simple_loops:
+      description: "Visible nested loops that are clearly O(n²)"
+      why_bad: "Just count loop nesting"
+      
+    isolated_hotspot:
+      description: "Single function that's obviously slow"
+      why_bad: "Profile points right to it"
+
+  testing_anti_patterns:
+    small_inputs_only:
+      description: "Tests only use small inputs"
+      why_bad: "Complexity issues don't manifest"
+      
+    no_adversarial:
+      description: "No adversarial test cases"
+      why_bad: "Average case hides worst case"
+      
+    obvious_failure:
+      description: "Task fails on first run"
+      why_bad: "No intermittent debugging"
+
+# =============================================================================
+# DIFFICULTY AMPLIFIERS
+# =============================================================================
+# Ways to make tasks genuinely harder.
+# =============================================================================
+
+difficulty_amplifiers:
+  nightmare:
+    multiplier: 3.0
+    description: "Extreme difficulty requiring expert-level multi-domain synthesis"
+    requirements:
+      - "7+ interacting traps across multiple domains"
+      - "Requires understanding of hardware-level effects"
+      - "Time estimate: 90+ minutes for senior engineers"
+      - "Multiple red herrings that waste investigation time"
+      - "Solution requires synthesizing knowledge from 3+ distinct areas"
+
+  nightmare_plus:
+    multiplier: 5.0
+    estimated_time: [28800, 172800]  # 8-48 hours
+    command_steps: [300, 1200]
+    techniques_required: 12
+    description: "Research paper difficulty requiring novel algorithm design or analysis"
+    requirements:
+      - "10+ deeply interacting traps across correctness/performance/edge-case domains"
+      - "Requires original algorithmic insights not found in standard references"
+      - "Must synthesize knowledge from 5+ distinct areas (algorithms, systems, hardware, mathematics, domain expertise)"
+      - "Requires formal proof of correctness or complexity bounds"
+      - "Time estimate: 8-48 hours for competitive programmers with ICPC/IOI medal experience"
+      - "Multiple layers of misdirection requiring backtracking"
+      - "Solution requires discovering non-obvious invariants"
+      - "Must handle adversarially-constructed worst-case inputs"
+      - "Requires understanding of amortized, expected, and worst-case analysis simultaneously"
+      - "Cache-oblivious algorithm design may be necessary"
+      - "Must prove lower bounds to show solution is optimal"
+      - "Requires parameterized complexity analysis"
+
+# =============================================================================
+# MULTI-AGENT ORCHESTRATION COMPLEXITY
+# =============================================================================
+
+multi_agent_orchestration:
+  description: "Coordinating 4-7 specialized algorithm agents for complex analysis"
+  
+  specialized_agents:
+    complexity_analyzer:
+      role: "Determine theoretical time/space complexity bounds"
+      capabilities:
+        - "Recurrence relation solving (Master theorem, Akra-Bazzi)"
+        - "Amortized analysis (aggregate, accounting, potential methods)"
+        - "Probabilistic analysis and expected complexity"
+        - "Cache-oblivious complexity modeling"
+      handoff_triggers:
+        - "Non-standard recurrence requiring advanced techniques"
+        - "Amortized bounds needed for accurate analysis"
+    
+    correctness_prover:
+      role: "Formally verify algorithm correctness"
+      capabilities:
+        - "Loop invariant identification and verification"
+        - "Termination proofs"
+        - "Partial correctness to total correctness"
+        - "Inductive proofs over data structures"
+      handoff_triggers:
+        - "Subtle correctness bug suspected"
+        - "Non-obvious invariants needed"
+    
+    optimization_specialist:
+      role: "Identify and fix performance bottlenecks"
+      capabilities:
+        - "Cache optimization and memory hierarchy analysis"
+        - "Branch prediction optimization"
+        - "SIMD vectorization opportunities"
+        - "Algorithmic optimization patterns"
+      handoff_triggers:
+        - "Constant factor improvements needed"
+        - "Hardware-level optimization required"
+    
+    adversarial_input_designer:
+      role: "Construct worst-case inputs that break algorithms"
+      capabilities:
+        - "Quicksort killer sequence generation"
+        - "Hash collision crafting"
+        - "Graph construction for pathological cases"
+        - "Numerical instability triggers"
+      handoff_triggers:
+        - "Algorithm works on random inputs but may fail on adversarial"
+        - "Worst-case vs average-case gap suspected"
+    
+    lower_bound_prover:
+      role: "Establish impossibility results and lower bounds"
+      capabilities:
+        - "Decision tree lower bounds"
+        - "Adversary arguments"
+        - "Information-theoretic bounds"
+        - "Reduction from known hard problems"
+      handoff_triggers:
+        - "Need to prove algorithm is optimal"
+        - "Suspected fundamental barrier to improvement"
+    
+    parameterized_complexity_analyst:
+      role: "Analyze fixed-parameter tractability"
+      capabilities:
+        - "Identify relevant parameters"
+        - "FPT algorithm design"
+        - "Kernelization techniques"
+        - "W-hierarchy classification"
+      handoff_triggers:
+        - "NP-hard problem with structured inputs"
+        - "Need to exploit specific input parameters"
+    
+    approximation_analyst:
+      role: "Design and analyze approximation algorithms"
+      capabilities:
+        - "Approximation ratio analysis"
+        - "PTAS/FPTAS design"
+        - "Inapproximability proofs"
+        - "LP relaxation and rounding"
+      handoff_triggers:
+        - "Exact solution intractable"
+        - "Need provable approximation guarantees"
+
+  cross_algorithm_attack_chains:
+    chain_1:
+      name: "Incorrect Algorithm Selection → Pathological Input → Exponential Blowup → Resource Exhaustion"
+      stages:
+        - "Agent selects greedy algorithm for problem requiring DP"
+        - "Adversarial input designer creates counter-example"
+        - "Complexity analyzer identifies exponential worst-case"
+        - "System runs out of memory/time"
+      
+    chain_2:
+      name: "Subtle Bug → Incorrect Output → Cascading Failures → Silent Data Corruption"
+      stages:
+        - "Off-by-one error in binary search"
+        - "Correctness prover identifies invariant violation"
+        - "Wrong element returned affects downstream computation"
+        - "Final result incorrect but plausible"
+    
+    chain_3:
+      name: "Cache Inefficiency → Performance Degradation → Timeout → Incomplete Results"
+      stages:
+        - "Algorithm has poor cache locality"
+        - "Optimization specialist identifies memory access pattern"
+        - "Large inputs cause excessive cache misses"
+        - "System times out before completion"
+
+  parallel_analysis_workflow:
+    step_1:
+      agents: ["complexity_analyzer", "correctness_prover"]
+      task: "Simultaneously verify correctness and analyze complexity"
+    step_2:
+      agents: ["adversarial_input_designer", "optimization_specialist"]
+      task: "Find worst cases while optimizing average case"
+    step_3:
+      agents: ["lower_bound_prover", "approximation_analyst"]
+      task: "Determine if better algorithms exist or prove optimality"
+
+# =============================================================================
+# THEORETICAL COMPLEXITY REQUIREMENTS
+# =============================================================================
+
+theoretical_complexity_requirements:
+  amortized_analysis:
+    techniques_required:
+      - "Aggregate method for sequence of operations"
+      - "Accounting method with credit invariants"
+      - "Potential method with potential function design"
+      - "Physicist's method for data structures"
+    application_scenarios:
+      - "Dynamic array resizing analysis"
+      - "Splay tree operation sequences"
+      - "Union-Find with path compression"
+      - "Hash table with resizing"
+    difficulty_factors:
+      - "Choosing appropriate potential function"
+      - "Proving potential never goes negative"
+      - "Handling worst-case spikes in amortized context"
+
+  competitive_analysis:
+    concepts_required:
+      - "Online vs offline algorithm comparison"
+      - "Competitive ratio calculation"
+      - "Lower bounds for online algorithms"
+      - "Randomized online algorithms"
+    application_scenarios:
+      - "Caching/paging strategies"
+      - "Online scheduling"
+      - "Ski rental problem variants"
+      - "k-server problem"
+
+  approximation_ratio_bounds:
+    techniques_required:
+      - "Proving approximation guarantees"
+      - "Gap-preserving reductions"
+      - "LP relaxation integrality gaps"
+      - "Probabilistic analysis of randomized rounding"
+    hardness_considerations:
+      - "APX-hardness proofs"
+      - "Inapproximability from PCP theorem"
+      - "Unique Games Conjecture implications"
+
+  hardness_reductions:
+    reduction_types:
+      - "Polynomial-time many-one reductions"
+      - "Turing reductions"
+      - "Approximation-preserving reductions"
+      - "Parameterized reductions"
+    common_source_problems:
+      - "3-SAT, Vertex Cover, Set Cover"
+      - "Clique, Independent Set"
+      - "Hamiltonian Path/Cycle"
+      - "Subset Sum, Partition"
+
+  parameterized_complexity:
+    concepts_required:
+      - "Fixed-parameter tractability (FPT)"
+      - "W-hierarchy (W[1], W[2], ...)"
+      - "Kernelization and kernel size bounds"
+      - "Treewidth and graph decompositions"
+    techniques:
+      - "Bounded search tree algorithms"
+      - "Color-coding technique"
+      - "Iterative compression"
+      - "Important separators"
+
+# =============================================================================
+# ADVERSARIAL INPUT DESIGN
+# =============================================================================
+
+adversarial_input_design:
+  worst_case_input_generation:
+    sorting_algorithms:
+      quicksort_killer:
+        description: "Input that forces O(n²) on naive quicksort"
+        technique: "Construct sequence where median-of-three always picks bad pivot"
+        implementation: |
+          def generate_quicksort_killer(n):
+              # Creates sequence where each partition is maximally unbalanced
+              arr = list(range(n))
+              # Reorder to always pick smallest/largest as pivot
+              # with median-of-three selection
+      
+      mergesort_adversary:
+        description: "Input maximizing comparisons in mergesort"
+        technique: "Interleave elements to force maximum merge comparisons"
+      
+      timsort_adversary:
+        description: "Input that prevents run detection optimization"
+        technique: "Carefully constructed to avoid natural runs"
+
+    graph_algorithms:
+      dijkstra_adversary:
+        description: "Graph forcing maximum priority queue operations"
+        technique: "Dense graph where each relaxation updates distance"
+      
+      dfs_stack_overflow:
+        description: "Graph causing maximum recursion depth"
+        technique: "Long chain graph exhausting stack"
+      
+      mst_adversary:
+        description: "Graph with many equal-weight edges"
+        technique: "Force algorithm to make arbitrary choices that affect result"
+
+    data_structures:
+      hash_collision_attack:
+        description: "Keys all hashing to same bucket"
+        technique: "Exploit hash function weaknesses"
+        examples:
+          - "Integer keys: multiples of table size"
+          - "String keys: carefully crafted collision sequences"
+      
+      bst_degenerate:
+        description: "Insertions creating linear tree"
+        technique: "Sorted or reverse-sorted insertion order"
+
+  anti_optimization_inputs:
+    cache_thrashing:
+      description: "Access patterns defeating cache"
+      technique: "Stride accesses at cache line size multiples"
+    
+    branch_misprediction:
+      description: "Data causing maximum branch mispredictions"
+      technique: "Alternating patterns defeating branch predictor"
+    
+    simd_unfriendly:
+      description: "Data preventing vectorization"
+      technique: "Non-aligned, non-contiguous, dependent operations"
+
+  numerical_stability_attacks:
+    catastrophic_cancellation:
+      description: "Inputs causing precision loss"
+      technique: "Subtracting nearly equal large numbers"
+      example: "Computing variance with large mean"
+    
+    overflow_triggers:
+      description: "Inputs causing integer/float overflow"
+      technique: "Values near type limits in operations"
+    
+    underflow_triggers:
+      description: "Inputs causing underflow to zero"
+      technique: "Very small numbers in multiplication chains"
+
+  hash_collision_crafting:
+    techniques:
+      - "Analyze hash function mathematically"
+      - "Use meet-in-the-middle attacks"
+      - "Exploit known hash weaknesses (e.g., MurmurHash)"
+      - "Generate multicollisions incrementally"
+    defenses_to_bypass:
+      - "Randomized hash seeds"
+      - "Universal hashing"
+      - "Cryptographic hash functions"
+
+# =============================================================================
+# FORMAL PROOF REQUIREMENTS
+# =============================================================================
+
+formal_proof_requirements:
+  correctness_proofs:
+    loop_invariants:
+      requirements:
+        - "Identify invariant that holds before each iteration"
+        - "Prove initialization (invariant holds before first iteration)"
+        - "Prove maintenance (invariant preserved by each iteration)"
+        - "Prove termination (loop terminates)"
+        - "Prove postcondition (invariant + termination condition implies correctness)"
+      common_pitfalls:
+        - "Invariant too weak to prove postcondition"
+        - "Invariant not preserved in edge cases"
+        - "Off-by-one errors in boundary conditions"
+
+    recursive_correctness:
+      requirements:
+        - "Strong induction on appropriate measure"
+        - "Prove base cases exhaustively"
+        - "Prove inductive step assuming smaller instances correct"
+        - "Prove measure strictly decreases"
+      techniques:
+        - "Structural induction on input"
+        - "Well-founded induction"
+        - "Lexicographic ordering for multiple arguments"
+
+    data_structure_invariants:
+      requirements:
+        - "Define representation invariant"
+        - "Prove every operation preserves invariant"
+        - "Prove invariant implies correctness properties"
+      examples:
+        - "BST property: left < root < right"
+        - "Heap property: parent ≤ children"
+        - "Red-black tree: black-height balance"
+
+  complexity_proofs:
+    upper_bound_proofs:
+      techniques:
+        - "Counting operations directly"
+        - "Recurrence relations"
+        - "Amortized analysis"
+        - "Probabilistic analysis"
+      requirements:
+        - "Identify basic operations to count"
+        - "Prove bound holds for all inputs of size n"
+        - "Handle constant factors appropriately"
+
+    lower_bound_proofs:
+      techniques:
+        - "Adversary arguments"
+        - "Decision tree models"
+        - "Information-theoretic arguments"
+        - "Reduction from known hard problems"
+      requirements:
+        - "Define computation model clearly"
+        - "Prove bound holds for ALL algorithms in model"
+        - "Construct adversary strategy explicitly"
+
+  optimality_proofs:
+    requirements:
+      - "Prove upper bound (algorithm achieves bound)"
+      - "Prove matching lower bound (no algorithm can do better)"
+      - "Consider appropriate computation model"
+    examples:
+      - "Comparison-based sorting: Ω(n log n)"
+      - "Element distinctness: Ω(n log n) in comparison model"
+      - "Finding minimum: n-1 comparisons necessary and sufficient"
+
+  code_structure_amplifiers:
+    indirect_call:
+      description: "Problem code is called indirectly through multiple layers"
+      amplification: "Requires tracing through call stack"
+      
+    polymorphism_hiding:
+      description: "Actual implementation varies by type"
+      amplification: "Must understand dynamic dispatch"
+      
+    callback_pattern:
+      description: "Problem is in callback passed elsewhere"
+      amplification: "Must trace callback registration"
+      
+    lazy_evaluation:
+      description: "Computation is deferred"
+      amplification: "Must understand when evaluation happens"
+      
+    metaprogramming:
+      description: "Code is generated or modified at runtime"
+      amplification: "Must understand code generation"
+      
+    concurrent_context:
+      description: "Problem manifests only under concurrency"
+      amplification: "Must reason about thread interleaving"
+
+  analysis_amplifiers:
+    multiple_interacting_causes:
+      description: "Several factors combine to cause slowdown"
+      amplification: "Must identify and understand all factors"
+      
+    probabilistic_manifestation:
+      description: "Problem only appears sometimes"
+      amplification: "Must understand probability distribution"
+      
+    input_dependent:
+      description: "Problem depends on specific input patterns"
+      amplification: "Must identify triggering patterns"
+      
+    environment_dependent:
+      description: "Problem depends on system state"
+      amplification: "Must consider environment variables"
+      
+    sequence_dependent:
+      description: "Problem depends on operation sequence"
+      amplification: "Must understand temporal ordering"
+      
+    scale_dependent:
+      description: "Problem only appears at scale"
+      amplification: "Must extrapolate from observations"
+
+  context_amplifiers:
+    realistic_codebase:
+      description: "Problem embedded in realistic code"
+      amplification: "Must filter signal from noise"
+      
+    misleading_profiling:
+      description: "Profiler gives misleading information"
+      amplification: "Cannot rely on tools alone"
+      
+    red_herrings:
+      description: "Other suspicious-looking code is fine"
+      amplification: "Must not be distracted"
+      
+    historical_context:
+      description: "Requires understanding code evolution"
+      amplification: "Must read git history"
+      
+    distributed_problem:
+      description: "Problem spans multiple files/services"
+      amplification: "Must trace across boundaries"
+
+# =============================================================================
+# VARIATION ENGINES
+# =============================================================================
+# How to create fundamentally different tasks from the same base.
+# =============================================================================
+
+variation_engines:
+  problem_type_variations:
+    identification:
+      description: "Find the complexity problem"
+      task_type: "diagnostic"
+      
+    analysis:
+      description: "Determine actual complexity class"
+      task_type: "analytical"
+      
+    optimization:
+      description: "Fix the complexity problem"
+      task_type: "implementation"
+      
+    prediction:
+      description: "Predict performance at scale"
+      task_type: "estimation"
+      
+    comparison:
+      description: "Compare two implementations"
+      task_type: "comparative"
+      
+    design:
+      description: "Design solution with complexity constraints"
+      task_type: "creative"
+
+  domain_variations:
+    web_backend:
+      context: "API endpoint processing"
+      realistic_elements: ["request handling", "database queries", "response formatting"]
+      
+    data_pipeline:
+      context: "ETL processing"
+      realistic_elements: ["data loading", "transformation", "aggregation"]
+      
+    machine_learning:
+      context: "ML preprocessing"
+      realistic_elements: ["feature extraction", "normalization", "batching"]
+      
+    game_engine:
+      context: "Game loop processing"
+      realistic_elements: ["entity updates", "collision detection", "rendering"]
+      
+    financial_system:
+      context: "Transaction processing"
+      realistic_elements: ["validation", "calculation", "audit logging"]
+      
+    compiler:
+      context: "Code compilation"
+      realistic_elements: ["parsing", "optimization", "code generation"]
+
+  language_variations:
+    python_specific:
+      considerations: ["GIL", "comprehensions", "generators"]
+      
+    java_specific:
+      considerations: ["JIT warmup", "garbage collection", "autoboxing"]
+      
+    javascript_specific:
+      considerations: ["event loop", "promises", "hidden classes"]
+      
+    cpp_specific:
+      considerations: ["templates", "move semantics", "undefined behavior"]
+      
+    rust_specific:
+      considerations: ["ownership", "borrowing", "lifetimes"]
+      
+    go_specific:
+      considerations: ["goroutines", "channels", "garbage collection"]
+
+  scale_variations:
+    small_scale:
+      input_range: "10-100 elements"
+      focus: "constant factors"
+      
+    medium_scale:
+      input_range: "1K-10K elements"
+      focus: "algorithmic complexity"
+      
+    large_scale:
+      input_range: "100K-1M elements"
+      focus: "memory hierarchy"
+      
+    very_large_scale:
+      input_range: "10M+ elements"
+      focus: "external algorithms"
+
+# =============================================================================
+# SWE-bench_Pro style fields
+# =============================================================================
+
+problem_statement: |
+  A performance-critical function appears to have acceptable complexity on paper 
+  but exhibits degraded performance in production. The algorithm has hidden 
+  complexity issues:
+  
+  1. Amortized analysis hides worst-case spikes
+  2. Hidden nested iterations in library calls
+  3. String operations with implicit O(n) cost
+  4. Hash collisions causing O(n) degredation
+  5. Recursive calls with exponential branching
+
+requirements: |
+  - Analyze actual runtime complexity including hidden costs
+  - Identify worst-case scenarios that trigger poor performance
+  - Detect quadratic-or-worse operations hiding as linear
+  - Profile and measure actual performance
+  - Propose and implement optimizations
+
+interface: |
+  Input: Code to analyze, test inputs of varying sizes
+  Output: Complexity analysis report, performance measurements, optimization suggestions
+
+# terminal-bench style fields
+difficulty:
+  estimated: "nightmare_plus"
+  time_range: [5400, 18000]  # 90-300 minutes for competitive programmers with ICPC/IOI medal experience
+  command_steps: [60, 200]
+  techniques_required: 12
+  trap_count: "10+ deeply interacting traps across correctness/performance/edge-case domains"
+  target_audience: "Competitive programmers with ICPC/IOI medal experience"
+
+# LLM trap configurations
+traps:
+  - type: "hidden_quadratic"
+    description: "String concatenation in loop is O(n²)"
+    trigger: "Missing that s += char creates new string each time"
+  
+  - type: "library_complexity"
+    description: "list.insert(0, x) is O(n), not O(1)"
+    trigger: "Treating all list operations as constant"
+  
+  - type: "hash_degeneration"
+    description: "Poor hash function causes O(n) lookups"
+    trigger: "Assuming hash operations are always O(1)"
+  
+  - type: "recursive_explosion"
+    description: "Fibonacci-style recursion without memoization"
+    trigger: "Not recognizing overlapping subproblems"
+  
+  - type: "regex_catastrophe"
+    description: "Regex with exponential backtracking"
+    trigger: "Using nested quantifiers in regex"
+
+  - type: "amortized_worst_case_confusion"
+    description: "Amortized O(1) operation called in worst-case critical context"
+    trigger: "Using dynamic array in real-time system without preallocating"
+
+  - type: "cache_oblivious_failure"
+    description: "Algorithm optimal in RAM model but terrible in practice due to cache"
+    trigger: "Row-major vs column-major traversal of 2D arrays"
+
+  - type: "branch_prediction_disaster"
+    description: "Data-dependent branches causing massive misprediction"
+    trigger: "Conditional in hot loop with unpredictable data"
+
+  - type: "false_sharing_parallelism"
+    description: "Parallel algorithm slower than sequential due to cache line bouncing"
+    trigger: "Adjacent array elements modified by different threads"
+
+  - type: "numerical_instability_cascade"
+    description: "Floating-point errors accumulating to destroy algorithm correctness"
+    trigger: "Summing many small numbers into large accumulator"
+
+  - type: "adversarial_input_blindness"
+    description: "Algorithm works on random inputs but fails on crafted adversarial inputs"
+    trigger: "Using quicksort without randomization on potentially adversarial data"
+
+# Task generation template
+instruction_template: |
+  You are analyzing performance issues in a {{ scenario_type }}.
+  The code is at {{ path }}.
+  
+  Users report slowdowns with larger inputs. Your task:
+  {{ task_steps }}
+  
+  Input sizes to test: {{ input_sizes }}
+  Expected complexity: {{ expected_complexity }}
+  Observed behavior: {{ observed_behavior }}
+
+# Reference solution (hidden from agent)
+reference_solution: |
+  #!/usr/bin/env python3
+  import time
+  import sys
+  from typing import Callable, List, Tuple, Dict
+  import math
+  
+  def measure_time(func: Callable, *args, repeats: int = 3) -> float:
+      """Measure function execution time."""
+      times = []
+      for _ in range(repeats):
+          start = time.perf_counter()
+          func(*args)
+          end = time.perf_counter()
+          times.append(end - start)
+      return min(times)  # Use minimum to reduce noise
+  
+  def estimate_complexity(
+      func: Callable,
+      input_generator: Callable[[int], any],
+      sizes: List[int]
+  ) -> Dict:
+      """Estimate Big-O complexity from measurements."""
+      measurements = []
+      
+      for n in sizes:
+          input_data = input_generator(n)
+          t = measure_time(func, input_data)
+          measurements.append((n, t))
+      
+      # Fit to common complexity classes
+      fits = {}
+      
+      # O(1) - constant
+      fits['O(1)'] = _fit_constant(measurements)
+      
+      # O(log n)
+      fits['O(log n)'] = _fit_log(measurements)
+      
+      # O(n)
+      fits['O(n)'] = _fit_linear(measurements)
+      
+      # O(n log n)
+      fits['O(n log n)'] = _fit_nlogn(measurements)
+      
+      # O(n²)
+      fits['O(n²)'] = _fit_quadratic(measurements)
+      
+      # O(2^n) - exponential
+      fits['O(2^n)'] = _fit_exponential(measurements)
+      
+      # Find best fit
+      best_fit = min(fits.items(), key=lambda x: x[1])
+      
+      return {
+          'measurements': measurements,
+          'fits': fits,
+          'estimated_complexity': best_fit[0],
+          'fit_error': best_fit[1]
+      }
+  
+  def _fit_constant(data: List[Tuple[int, float]]) -> float:
+      """Fit to O(1)."""
+      times = [t for _, t in data]
+      avg = sum(times) / len(times)
+      return sum((t - avg) ** 2 for t in times)
+  
+  def _fit_linear(data: List[Tuple[int, float]]) -> float:
+      """Fit to O(n)."""
+      if len(data) < 2:
+          return float('inf')
+      # Linear regression
+      n_vals = [n for n, _ in data]
+      t_vals = [t for _, t in data]
+      
+      # Normalize by n
+      ratios = [t / n for n, t in data if n > 0]
+      avg_ratio = sum(ratios) / len(ratios)
+      
+      predicted = [n * avg_ratio for n, _ in data]
+      error = sum((p - a) ** 2 for p, a in zip(predicted, t_vals))
+      return error
+  
+  def _fit_quadratic(data: List[Tuple[int, float]]) -> float:
+      """Fit to O(n²)."""
+      ratios = [t / (n * n) for n, t in data if n > 0]
+      avg_ratio = sum(ratios) / len(ratios)
+      
+      t_vals = [t for _, t in data]
+      predicted = [n * n * avg_ratio for n, _ in data]
+      error = sum((p - a) ** 2 for p, a in zip(predicted, t_vals))
+      return error
+  
+  def _fit_log(data: List[Tuple[int, float]]) -> float:
+      """Fit to O(log n)."""
+      ratios = [t / math.log(n) for n, t in data if n > 1]
+      if not ratios:
+          return float('inf')
+      avg_ratio = sum(ratios) / len(ratios)
+      
+      t_vals = [t for _, t in data]
+      predicted = [math.log(n) * avg_ratio if n > 1 else 0 for n, _ in data]
+      error = sum((p - a) ** 2 for p, a in zip(predicted, t_vals))
+      return error
+  
+  def _fit_nlogn(data: List[Tuple[int, float]]) -> float:
+      """Fit to O(n log n)."""
+      ratios = [t / (n * math.log(n)) for n, t in data if n > 1]
+      if not ratios:
+          return float('inf')
+      avg_ratio = sum(ratios) / len(ratios)
+      
+      t_vals = [t for _, t in data]
+      predicted = [n * math.log(n) * avg_ratio if n > 1 else 0 for n, _ in data]
+      error = sum((p - a) ** 2 for p, a in zip(predicted, t_vals))
+      return error
+  
+  def _fit_exponential(data: List[Tuple[int, float]]) -> float:
+      """Fit to O(2^n)."""
+      ratios = [t / (2 ** n) for n, t in data if n < 30]  # Avoid overflow
+      if not ratios:
+          return float('inf')
+      avg_ratio = sum(ratios) / len(ratios)
+      
+      t_vals = [t for _, t in data]
+      predicted = [(2 ** n) * avg_ratio for n, _ in data]
+      error = sum((p - a) ** 2 for p, a in zip(predicted, t_vals))
+      return error
+  
+  # Common hidden complexity patterns
+  
+  HIDDEN_COMPLEXITY_PATTERNS = {
+      'string_concat_loop': {
+          'pattern': 's += x in loop',
+          'apparent': 'O(n)',
+          'actual': 'O(n²)',
+          'fix': 'Use list and join'
+      },
+      'list_insert_front': {
+          'pattern': 'list.insert(0, x)',
+          'apparent': 'O(1)',
+          'actual': 'O(n)',
+          'fix': 'Use collections.deque'
+      },
+      'in_list_check': {
+          'pattern': 'x in list',
+          'apparent': 'O(1)',
+          'actual': 'O(n)',
+          'fix': 'Use set for membership'
+      },
+      'list_remove': {
+          'pattern': 'list.remove(x)',
+          'apparent': 'O(1)',
+          'actual': 'O(n)',
+          'fix': 'Track indices or use set'
+      },
+      'nested_comprehension': {
+          'pattern': '[x for y in a for x in y]',
+          'apparent': 'O(n)',
+          'actual': 'O(n²) if inner list sizes grow',
+          'fix': 'Flatten with itertools.chain'
+      }
+  }
+
+# Test cases
+fail_to_pass:
+  - "test_identify_hidden_quadratic"
+  - "test_detect_hash_collision_degradation"
+  - "test_find_exponential_recursion"
+  - "test_regex_catastrophic_backtracking"
+
+pass_to_pass:
+  - "test_linear_complexity_correct"
+  - "test_constant_time_operations"
+
+# Variables for task generation
+variables:
+  - name: scenario_type
+    type: string
+    options: ["data processing pipeline", "search service", "analytics engine", "text processor"]
+  - name: path
+    type: path
+    generator: random_path
+  - name: input_sizes
+    type: list
+    value: [100, 1000, 10000, 100000]
+  - name: expected_complexity
+    type: string
+    options: ["O(n)", "O(n log n)", "O(n²)"]
+  - name: observed_behavior
+    type: string
+    options: ["exponential slowdown", "quadratic degradation", "timeout on large input"]
+  - name: task_steps
+    type: template
+    value: |
+      1. Profile the function with varying input sizes
+      2. Analyze actual complexity from measurements
+      3. Identify hidden complexity factors
+      4. Detect worst-case scenarios
+      5. Propose optimizations
+      6. Verify improved complexity
+
+# Anti-hardcoding measures
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  complexity_traps:
+    - string_concatenation_loop
+    - list_insert_at_front
+    - membership_check_in_list
+    - hash_collision_degradation
+    - exponential_recursion
+
+# =============================================================================
+# TASK COMBINATION MATRIX
+# =============================================================================
+# How to combine elements to generate unique tasks
+# =============================================================================
+
+combination_matrix:
+  primary_trap_selection:
+    method: "Select 1-2 primary traps from trap_taxonomy"
+    diversity_requirement: "Must not repeat within 100 generated tasks"
+    
+  secondary_trap_selection:
+    method: "Select 2-3 secondary traps that interact with primary"
+    interaction_requirement: "Traps must compound difficulty"
+    
+  context_selection:
+    method: "Select domain from variation_engines.domain_variations"
+    realism_requirement: "Context must be believable production code"
+    
+  edge_case_inclusion:
+    method: "Select 3-5 edge cases that trigger the traps"
+    coverage_requirement: "Edge cases must be non-obvious"
+    
+  difficulty_amplification:
+    method: "Apply 2-3 amplifiers from difficulty_amplifiers"
+    balance_requirement: "Task must be hard but solvable"
+
+# =============================================================================
+# GENERATION STATISTICS TARGET
+# =============================================================================
+
+generation_targets:
+  unique_tasks: 10000
+  minimum_difficulty: "experienced developer needs 30+ minutes, requires deep domain expertise"
+  trap_coverage: "all trap types used at least 100 times"
+  domain_coverage: "all domains used at least 500 times"
+  edge_case_coverage: "all edge cases appear in at least 50 tasks"

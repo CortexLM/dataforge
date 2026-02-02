@@ -1,0 +1,1554 @@
+id: "db-txn-isolation-levels-001"
+version: "2.0.0"
+category: "databases"
+subcategory: "transactions"
+
+# =============================================================================
+# LLM GENERATION FRAMEWORK
+# =============================================================================
+# This configuration enables generation of 10,000+ unique, complex tasks
+# related to transaction isolation levels, anomalies, and concurrency control.
+# =============================================================================
+
+generation_framework:
+  # Difficulty parameters - SIGNIFICANTLY increased for database architect-level challenges
+  time_range: [5400, 14400]  # 90-240 minutes for database architects with internals expertise
+  command_steps: [80, 200]   # Requires extensive multi-layer investigation and debugging
+  
+  generation_targets:
+    minimum_difficulty: "90+ minutes, requires deep database isolation and MVCC internals expertise"
+    target_audience: "Principal Database Architects and transaction processing engineers with 10+ years experience"
+    complexity_level: "Nightmare - requires synthesizing knowledge across MVCC implementations, serialization theory, and distributed transaction protocols"
+  
+  multi_agent_orchestration:
+    description: "Coordinate 5-8 specialized database agents for complex isolation level debugging"
+    required_agents:
+      - name: "isolation_anomaly_detector"
+        role: "Detect and classify isolation anomalies including write skew and read skew"
+        expertise: ["dirty reads", "non-repeatable reads", "phantoms", "write skew", "read skew"]
+      - name: "mvcc_implementation_analyst"
+        role: "Analyze MVCC version chain mechanics and visibility rules"
+        expertise: ["snapshot construction", "version visibility", "garbage collection", "tuple headers"]
+      - name: "serializable_expert"
+        role: "Debug serializable snapshot isolation and predicate locking"
+        expertise: ["SSI implementation", "rw-dependency tracking", "predicate locks", "serialization failures"]
+      - name: "distributed_isolation_debugger"
+        role: "Debug isolation guarantees across distributed transactions"
+        expertise: ["global snapshots", "clock synchronization", "causal consistency", "distributed serializability"]
+      - name: "lock_vs_mvcc_analyst"
+        role: "Compare and debug lock-based vs MVCC isolation implementations"
+        expertise: ["S2PL", "MVCC variants", "optimistic concurrency", "hybrid approaches"]
+      - name: "application_concurrency_expert"
+        role: "Design application-level handling of isolation limitations"
+        expertise: ["retry logic", "optimistic locking", "conflict detection", "idempotency"]
+      - name: "performance_isolation_profiler"
+        role: "Profile isolation level impact on concurrency and performance"
+        expertise: ["lock contention", "version chain length", "snapshot overhead", "conflict rates"]
+      - name: "recovery_isolation_analyst"
+        role: "Analyze isolation guarantees during crash recovery"
+        expertise: ["ARIES recovery", "in-doubt transactions", "partial rollback", "cascading abort"]
+    
+    cross_engine_attack_chains:
+      - chain: "snapshot_stale -> write_skew -> constraint_violation -> business_logic_failure -> data_corruption"
+        description: "Snapshot isolation allows write skew leading to business constraint violations"
+      - chain: "long_transaction -> version_bloat -> vacuum_blocked -> disk_exhaustion -> database_crash"
+        description: "Long transaction in MVCC causes version accumulation leading to resource exhaustion"
+      - chain: "mixed_isolation -> unexpected_visibility -> lost_update -> reconciliation_failure -> audit_inconsistency"
+        description: "Mixed isolation levels cause unexpected data visibility patterns"
+      - chain: "serialization_failure -> retry_storm -> amplified_conflict -> cascade_abort -> throughput_collapse"
+        description: "Serialization failures cause retry patterns that amplify conflicts"
+    
+    parallel_analysis_requirements:
+      - "Concurrent anomaly reproduction across different isolation levels"
+      - "Parallel MVCC version chain analysis"
+      - "Simultaneous conflict detection testing"
+      - "Coordinated distributed snapshot verification"
+    
+    agent_handoff_scenarios:
+      - from: "isolation_anomaly_detector"
+        to: "mvcc_implementation_analyst"
+        trigger: "Anomaly traced to MVCC visibility rules"
+      - from: "serializable_expert"
+        to: "application_concurrency_expert"
+        trigger: "SSI design requires application-level handling"
+      - from: "distributed_isolation_debugger"
+        to: "lock_vs_mvcc_analyst"
+        trigger: "Distributed isolation requires hybrid approach analysis"
+  
+  multi_conversation_workflow:
+    phase_1_research: |
+      Research advanced transaction isolation concepts:
+      - ANSI SQL isolation levels and their limitations
+      - Snapshot isolation and its variants
+      - MVCC implementations
+      - Serialization anomalies
+      - Database-specific isolation behaviors
+    
+    phase_2_creation: |
+      Create task with hidden complexity and traps including:
+      - Subtle anomaly scenarios
+      - Write skew conditions
+      - Phantom read situations
+      - Serialization failures
+      - Isolation level interactions
+    
+    phase_3_amplification: |
+      Add difficulty multipliers and edge cases:
+      - Multi-statement transactions
+      - Concurrent modification scenarios
+      - Long-running transaction issues
+      - Mixed isolation level environments
+      - Distributed transaction complications
+    
+    phase_4_verification: |
+      Validate task requires deep isolation expertise:
+      - Must understand isolation guarantees at implementation level
+      - Must know database-specific MVCC, locking, and serialization behaviors
+      - Cannot be solved by simple configuration or choosing highest isolation level
+      - Requires careful transaction design with anomaly-aware patterns
+      - Tests deep understanding of concurrency control theory and practice
+      - Has at least 10+ deeply interacting traps across isolation/MVCC/locking/application layers
+      - Has cascading failure modes that span visibility, conflict detection, and recovery
+      - Requires knowledge of MVCC implementations, SSI algorithms, and distributed isolation protocols
+      - Would take experienced database architects 90+ minutes
+      - Involves write skew and other subtle anomalies with complex detection requirements
+  
+  quality_requirements:
+    - "Must require understanding of isolation anomalies at theoretical and implementation level"
+    - "Must have at least 8 non-obvious failure modes with complex interaction patterns"
+    - "Must not be solvable by choosing highest isolation level without considering tradeoffs"
+    - "Must require transaction design consideration with retry logic and conflict handling"
+    - "Must involve real-world concurrency scenarios with production-level complexity"
+    - "90+ minutes for experienced database architects, 180+ for senior engineers"
+    - "Requires synthesizing MVCC internals, locking protocols, anomaly detection, and application patterns"
+    - "Must involve scenarios with mixed isolation levels across sessions"
+    - "Requires understanding of serializable snapshot isolation and predicate locking"
+
+# =============================================================================
+# TOPIC UNIVERSE - 150+ Isolation Topics
+# =============================================================================
+
+topic_universe:
+  # ---------------------------------------------------------------------------
+  # ANSI SQL Isolation Levels
+  # ---------------------------------------------------------------------------
+  ansi_isolation_levels:
+    read_uncommitted:
+      description: "Allows dirty reads"
+      guarantees:
+        prevents: []
+        allows:
+          - "Dirty reads"
+          - "Non-repeatable reads"
+          - "Phantom reads"
+      use_cases:
+        - "Rough estimates acceptable"
+        - "Non-critical reports"
+        - "Maximum performance needed"
+      implementations:
+        postgresql: "Maps to READ COMMITTED"
+        mysql: "True READ UNCOMMITTED"
+        sql_server: "True READ UNCOMMITTED"
+        oracle: "Not supported, minimum is READ COMMITTED"
+    
+    read_committed:
+      description: "Only see committed data"
+      guarantees:
+        prevents:
+          - "Dirty reads"
+        allows:
+          - "Non-repeatable reads"
+          - "Phantom reads"
+      implementations:
+        postgresql: "Default, MVCC-based"
+        mysql: "Default for InnoDB"
+        sql_server: "Default, lock-based or RCSI"
+        oracle: "Default, MVCC-based"
+      variants:
+        locking: "SQL Server default"
+        mvcc: "PostgreSQL, Oracle, SQL Server RCSI"
+    
+    repeatable_read:
+      description: "Same read returns same data"
+      guarantees:
+        prevents:
+          - "Dirty reads"
+          - "Non-repeatable reads"
+        allows:
+          - "Phantom reads"
+      implementations:
+        postgresql: "Also prevents phantoms (snapshot)"
+        mysql_innodb: "Default, also prevents phantoms (gap locks)"
+        sql_server: "Lock-based, phantoms possible"
+    
+    serializable:
+      description: "Full isolation, as if serial execution"
+      guarantees:
+        prevents:
+          - "Dirty reads"
+          - "Non-repeatable reads"
+          - "Phantom reads"
+          - "All serialization anomalies"
+      implementations:
+        postgresql: "Serializable Snapshot Isolation (SSI)"
+        mysql_innodb: "Gap locks + next-key locks"
+        sql_server: "Key-range locks"
+        oracle: "Read-only or ORA-08177 on conflict"
+      cost: "Highest overhead, lowest concurrency"
+
+  # ---------------------------------------------------------------------------
+  # Isolation Anomalies
+  # ---------------------------------------------------------------------------
+  isolation_anomalies:
+    dirty_read:
+      description: "Read uncommitted data from another transaction"
+      scenario: |
+        T1: UPDATE accounts SET balance = 100 WHERE id = 1;
+        T2: SELECT balance FROM accounts WHERE id = 1;  -- Sees 100
+        T1: ROLLBACK;
+        -- T2 saw value that never existed!
+      prevention: "READ COMMITTED or higher"
+      severity: "High - data never existed"
+    
+    non_repeatable_read:
+      description: "Same read returns different values"
+      scenario: |
+        T1: SELECT balance FROM accounts WHERE id = 1;  -- Returns 100
+        T2: UPDATE accounts SET balance = 200 WHERE id = 1; COMMIT;
+        T1: SELECT balance FROM accounts WHERE id = 1;  -- Returns 200!
+      prevention: "REPEATABLE READ or higher"
+      severity: "Medium - data changed between reads"
+    
+    phantom_read:
+      description: "New rows appear in repeated query"
+      scenario: |
+        T1: SELECT * FROM orders WHERE status = 'pending';  -- 10 rows
+        T2: INSERT INTO orders (status) VALUES ('pending'); COMMIT;
+        T1: SELECT * FROM orders WHERE status = 'pending';  -- 11 rows!
+      prevention: "SERIALIZABLE (or REPEATABLE READ in some DBs)"
+      severity: "Medium - new data appeared"
+    
+    lost_update:
+      description: "Concurrent updates, one lost"
+      scenario: |
+        T1: SELECT balance FROM accounts;  -- 100
+        T2: SELECT balance FROM accounts;  -- 100
+        T1: UPDATE accounts SET balance = 150;  -- 100 + 50
+        T2: UPDATE accounts SET balance = 120;  -- 100 + 20, overwrites T1!
+      prevention: 
+        - "Pessimistic: SELECT FOR UPDATE"
+        - "Optimistic: Version check"
+        - "Atomic: UPDATE balance = balance + N"
+      severity: "High - data loss"
+    
+    write_skew:
+      description: "Constraint violated by combined effect"
+      scenario: |
+        -- Constraint: At least 1 doctor on call
+        -- Currently: Alice and Bob both on call
+        T1: SELECT COUNT(*) WHERE on_call = true;  -- 2
+        T2: SELECT COUNT(*) WHERE on_call = true;  -- 2
+        T1: UPDATE doctors SET on_call = false WHERE name = 'Alice';
+        T2: UPDATE doctors SET on_call = false WHERE name = 'Bob';
+        -- Both commit successfully!
+        -- Result: 0 doctors on call - constraint violated!
+      prevention: "SERIALIZABLE or explicit locking"
+      severity: "High - business rule violated"
+    
+    read_skew:
+      description: "Inconsistent reads across related data"
+      scenario: |
+        -- Transfer $50 from A to B
+        T1: SELECT balance FROM account_A;  -- 100
+        T2: UPDATE account_A SET balance = 50; UPDATE account_B SET balance = 150; COMMIT;
+        T1: SELECT balance FROM account_B;  -- 150
+        -- T1 sees: A=100, B=150, total=250 (should be 200!)
+      prevention: "REPEATABLE READ or higher"
+      severity: "Medium - inconsistent view"
+
+  # ---------------------------------------------------------------------------
+  # Snapshot Isolation
+  # ---------------------------------------------------------------------------
+  snapshot_isolation:
+    description: "Each transaction sees consistent snapshot"
+    
+    basic_snapshot:
+      mechanism: "Transaction sees data as of start time"
+      properties:
+        - "No dirty reads"
+        - "No non-repeatable reads"
+        - "No phantoms"
+        - "Write conflicts detected"
+      implementations:
+        postgresql: "REPEATABLE READ is snapshot"
+        oracle: "Standard behavior"
+        sql_server: "Explicit SNAPSHOT isolation"
+    
+    serializable_snapshot_isolation:
+      description: "Snapshot + serialization conflict detection"
+      mechanism: "Track read/write dependencies, detect cycles"
+      postgresql:
+        name: "SSI"
+        behavior: "Detect serialization anomalies"
+        errors: "serialization_failure"
+        retry: "Application must retry"
+    
+    first_committer_wins:
+      description: "Write conflict resolution"
+      mechanism: "First to commit wins, others fail"
+      scenario: |
+        T1 starts, T2 starts
+        T1 modifies row X
+        T2 modifies row X
+        T1 commits -- succeeds
+        T2 commits -- fails (conflict)
+    
+    write_skew_in_snapshot:
+      description: "Snapshot doesn't prevent write skew"
+      explanation: "Read sets don't overlap with write sets"
+      prevention: "SSI or SELECT FOR UPDATE"
+
+  # ---------------------------------------------------------------------------
+  # MVCC Implementations
+  # ---------------------------------------------------------------------------
+  mvcc_implementations:
+    postgresql:
+      mechanism:
+        - "Tuple versioning"
+        - "xmin, xmax in tuple header"
+        - "Visibility rules based on transaction ID"
+        - "VACUUM cleans old versions"
+      isolation_mapping:
+        read_uncommitted: "Acts like READ COMMITTED"
+        read_committed: "Snapshot per statement"
+        repeatable_read: "Snapshot per transaction"
+        serializable: "SSI with conflict detection"
+    
+    mysql_innodb:
+      mechanism:
+        - "Undo logs for old versions"
+        - "Read view determines visibility"
+        - "Purge thread cleans undo logs"
+      isolation_mapping:
+        read_uncommitted: "True dirty reads"
+        read_committed: "Snapshot per statement"
+        repeatable_read: "Snapshot + gap locks"
+        serializable: "All reads are SELECT FOR SHARE"
+    
+    oracle:
+      mechanism:
+        - "Undo segments"
+        - "System Change Number (SCN)"
+        - "Consistent reads from undo"
+      isolation_mapping:
+        read_committed: "Default, statement-level snapshot"
+        serializable: "Transaction-level snapshot + ORA-08177"
+    
+    sql_server:
+      mechanisms:
+        locking: "Default, traditional locks"
+        rcsi: "Read Committed Snapshot Isolation"
+        snapshot: "Full snapshot isolation"
+      version_store: "tempdb for row versions"
+      isolation_mapping:
+        read_committed: "Locking or RCSI"
+        repeatable_read: "Locking only"
+        snapshot: "Row versioning"
+        serializable: "Key-range locking"
+
+  # ---------------------------------------------------------------------------
+  # Locking Mechanisms
+  # ---------------------------------------------------------------------------
+  locking_mechanisms:
+    lock_types:
+      shared: "Allow concurrent reads"
+      exclusive: "Exclusive access for writes"
+      update: "Read with intent to update"
+      intent: "Signal lock at lower granularity"
+    
+    lock_duration:
+      read_committed: "Shared locks released after read"
+      repeatable_read: "Shared locks held to end"
+      serializable: "Range locks held to end"
+    
+    deadlock_handling:
+      detection: "Wait-for graph cycle detection"
+      prevention: "Lock ordering, timeouts"
+      resolution: "Choose victim, rollback"
+    
+    lock_escalation:
+      description: "Many row locks -> table lock"
+      threshold: "Database-specific, often thousands"
+      impact: "Reduced concurrency"
+
+  # ---------------------------------------------------------------------------
+  # Practical Patterns
+  # ---------------------------------------------------------------------------
+  practical_patterns:
+    optimistic_concurrency:
+      description: "Assume no conflict, check at commit"
+      implementation:
+        - "Read data with version"
+        - "Modify in application"
+        - "Update with version check"
+        - "Retry if version mismatch"
+      sql: |
+        UPDATE accounts SET balance = 150, version = 2
+        WHERE id = 1 AND version = 1;
+        -- Check affected rows
+    
+    pessimistic_concurrency:
+      description: "Lock data before modification"
+      implementation:
+        - "SELECT FOR UPDATE"
+        - "Modify data"
+        - "Commit releases lock"
+      sql: |
+        BEGIN;
+        SELECT * FROM accounts WHERE id = 1 FOR UPDATE;
+        UPDATE accounts SET balance = 150 WHERE id = 1;
+        COMMIT;
+    
+    atomic_operations:
+      description: "Single statement avoids concurrency issues"
+      examples:
+        increment: "UPDATE t SET counter = counter + 1"
+        conditional: "UPDATE t SET x = y WHERE condition"
+      advantage: "No read-modify-write race"
+    
+    retry_logic:
+      description: "Handle serialization failures"
+      pattern: |
+        for attempt in range(max_retries):
+            try:
+                execute_transaction()
+                commit()
+                break
+            except SerializationFailure:
+                rollback()
+                if attempt == max_retries - 1:
+                    raise
+                sleep(backoff * (2 ** attempt))
+
+  # ---------------------------------------------------------------------------
+  # Database-Specific Behaviors
+  # ---------------------------------------------------------------------------
+  database_specific:
+    postgresql:
+      special_behaviors:
+        - "READ UNCOMMITTED = READ COMMITTED"
+        - "REPEATABLE READ prevents phantoms"
+        - "SSI for true serializability"
+      serialization_failure:
+        error: "40001 serialization_failure"
+        message: "could not serialize access"
+        handling: "Application must retry"
+    
+    mysql:
+      special_behaviors:
+        - "InnoDB default is REPEATABLE READ"
+        - "Gap locks prevent phantoms in RR"
+        - "Auto-increment has special locking"
+      deadlock_handling:
+        error: "1213 Deadlock found"
+        victim_selection: "Smallest undo log"
+        retry: "Application should retry"
+    
+    sql_server:
+      special_behaviors:
+        - "RCSI changes READ COMMITTED behavior"
+        - "SNAPSHOT is separate from SERIALIZABLE"
+        - "Key-range locks for SERIALIZABLE"
+      read_committed_snapshot:
+        enable: "ALTER DATABASE SET READ_COMMITTED_SNAPSHOT ON"
+        effect: "Readers don't block writers"
+    
+    oracle:
+      special_behaviors:
+        - "Minimum isolation is READ COMMITTED"
+        - "Readers never block writers"
+        - "Writers never block readers"
+        - "SERIALIZABLE can fail with ORA-08177"
+      ora_08177:
+        message: "cannot serialize access"
+        cause: "Conflict in serializable transaction"
+        handling: "Retry transaction"
+
+# =============================================================================
+# TRAP TYPES - 80+ Isolation Traps
+# =============================================================================
+
+trap_types:
+  # ---------------------------------------------------------------------------
+  # Phantom Read Traps
+  # ---------------------------------------------------------------------------
+  phantom_reads:
+    - trap_id: "PH-001"
+      name: "Phantom in Aggregate"
+      description: "COUNT(*) changes between queries"
+      trigger: "Concurrent INSERT during count"
+      difficulty: "medium"
+      example: |
+        T1: SELECT COUNT(*) FROM orders WHERE date = TODAY;  -- 100
+        T2: INSERT INTO orders (date) VALUES (TODAY); COMMIT;
+        T1: SELECT SUM(amount) FROM orders WHERE date = TODAY;
+        -- SUM includes 101 rows but COUNT was 100!
+    
+    - trap_id: "PH-002"
+      name: "Phantom in Report"
+      description: "New rows appear in multi-query report"
+      trigger: "Report generation in READ COMMITTED"
+      difficulty: "medium"
+    
+    - trap_id: "PH-003"
+      name: "Phantom with Range Lock Gap"
+      description: "Insert in gap despite range lock"
+      trigger: "Edge of range lock boundary"
+      difficulty: "hard"
+      databases: ["SQL Server"]
+
+  # ---------------------------------------------------------------------------
+  # Non-Repeatable Read Traps
+  # ---------------------------------------------------------------------------
+  non_repeatable:
+    - trap_id: "NR-001"
+      name: "Balance Check Then Update"
+      description: "Balance changes between check and use"
+      trigger: "Check balance, then debit"
+      difficulty: "easy"
+      example: |
+        T1: SELECT balance FROM accounts WHERE id = 1;  -- 100
+        T2: UPDATE accounts SET balance = 50 WHERE id = 1; COMMIT;
+        T1: UPDATE accounts SET balance = balance - 75 WHERE id = 1;
+        -- Balance goes negative!
+    
+    - trap_id: "NR-002"
+      name: "Double Booking"
+      description: "Same slot booked twice"
+      trigger: "Check availability, then book"
+      difficulty: "medium"
+    
+    - trap_id: "NR-003"
+      name: "Inventory Oversell"
+      description: "Stock becomes negative"
+      trigger: "Check stock, then sell"
+      difficulty: "medium"
+
+  # ---------------------------------------------------------------------------
+  # Lost Update Traps
+  # ---------------------------------------------------------------------------
+  lost_updates:
+    - trap_id: "LU-001"
+      name: "Classic Lost Update"
+      description: "Read-modify-write loses concurrent change"
+      trigger: "Both transactions read then write"
+      difficulty: "easy"
+    
+    - trap_id: "LU-002"
+      name: "Aggregate Lost Update"
+      description: "Calculated aggregate overwrites changes"
+      trigger: "Read sum, write total"
+      difficulty: "medium"
+    
+    - trap_id: "LU-003"
+      name: "Object Graph Update"
+      description: "Updating object loses partial changes"
+      trigger: "ORM loads, modifies, saves entire object"
+      difficulty: "hard"
+
+  # ---------------------------------------------------------------------------
+  # Write Skew Traps
+  # ---------------------------------------------------------------------------
+  write_skew:
+    - trap_id: "WS-001"
+      name: "On-Call Doctor"
+      description: "Both doctors go off-call"
+      trigger: "Constraint: at least one on call"
+      difficulty: "hard"
+    
+    - trap_id: "WS-002"
+      name: "Meeting Room Overlap"
+      description: "Two meetings overlap"
+      trigger: "Check non-overlap, then insert"
+      difficulty: "hard"
+    
+    - trap_id: "WS-003"
+      name: "Inventory Allocation"
+      description: "Allocate same inventory twice"
+      trigger: "Check available, then allocate"
+      difficulty: "hard"
+    
+    - trap_id: "WS-004"
+      name: "Account Transfer to Self"
+      description: "Transfer between accounts creates money"
+      trigger: "Concurrent transfers involving same accounts"
+      difficulty: "hard"
+
+  # ---------------------------------------------------------------------------
+  # Serialization Failure Traps
+  # ---------------------------------------------------------------------------
+  serialization:
+    - trap_id: "SF-001"
+      name: "No Retry Logic"
+      description: "Application doesn't retry on serialization failure"
+      trigger: "SERIALIZABLE without retry"
+      difficulty: "medium"
+    
+    - trap_id: "SF-002"
+      name: "Retry Storm"
+      description: "All clients retry simultaneously"
+      trigger: "Mass serialization failures"
+      difficulty: "hard"
+    
+    - trap_id: "SF-003"
+      name: "Infinite Retry"
+      description: "Retry keeps failing"
+      trigger: "Hot spot data"
+      difficulty: "hard"
+
+  # ---------------------------------------------------------------------------
+  # Isolation Level Misunderstanding Traps
+  # ---------------------------------------------------------------------------
+  misunderstanding:
+    - trap_id: "MU-001"
+      name: "READ UNCOMMITTED Thinking"
+      description: "Assume data won't be read uncommitted"
+      trigger: "Not realizing default isolation"
+      difficulty: "easy"
+    
+    - trap_id: "MU-002"
+      name: "Snapshot Prevents All Anomalies"
+      description: "Thinking snapshot = serializable"
+      trigger: "Write skew in snapshot"
+      difficulty: "hard"
+    
+    - trap_id: "MU-003"
+      name: "SERIALIZABLE Solves Everything"
+      description: "Ignoring performance impact"
+      trigger: "Using SERIALIZABLE everywhere"
+      difficulty: "medium"
+    
+    - trap_id: "MU-004"
+      name: "Cross-Transaction Consistency"
+      description: "Expecting consistency across transactions"
+      trigger: "Multiple transactions for one logical unit"
+      difficulty: "hard"
+
+  # ---------------------------------------------------------------------------
+  # Long Transaction Traps
+  # ---------------------------------------------------------------------------
+  long_transactions:
+    - trap_id: "LT-001"
+      name: "MVCC Bloat"
+      description: "Long transaction prevents cleanup"
+      trigger: "Long-running REPEATABLE READ"
+      difficulty: "medium"
+      databases: ["PostgreSQL"]
+    
+    - trap_id: "LT-002"
+      name: "Lock Hold Duration"
+      description: "Locks held too long"
+      trigger: "User interaction mid-transaction"
+      difficulty: "easy"
+    
+    - trap_id: "LT-003"
+      name: "Snapshot Too Old"
+      description: "Cannot construct consistent snapshot"
+      trigger: "Very long transaction"
+      difficulty: "hard"
+      databases: ["Oracle"]
+
+  # ---------------------------------------------------------------------------
+  # Mixed Isolation Traps
+  # ---------------------------------------------------------------------------
+  mixed_isolation:
+    - trap_id: "MI-001"
+      name: "Different Sessions Different Levels"
+      description: "Interactions between isolation levels"
+      trigger: "App uses multiple isolation levels"
+      difficulty: "hard"
+    
+    - trap_id: "MI-002"
+      name: "Framework Default vs Expected"
+      description: "ORM uses different isolation than expected"
+      trigger: "Framework default configuration"
+      difficulty: "medium"
+
+# =============================================================================
+# EDGE CASES - 100+ Edge Cases
+# =============================================================================
+
+edge_cases:
+  # ---------------------------------------------------------------------------
+  # Timing Edge Cases
+  # ---------------------------------------------------------------------------
+  timing:
+    - case_id: "TM-001"
+      name: "Simultaneous Commit"
+      description: "Two transactions commit at exact same time"
+      impact: "Race condition in conflict detection"
+    
+    - case_id: "TM-002"
+      name: "Commit During Read"
+      description: "Other transaction commits while reading"
+      impact: "Varies by isolation level"
+    
+    - case_id: "TM-003"
+      name: "Rollback During Read"
+      description: "Other transaction rolls back during read"
+      impact: "May see then unsee data"
+
+  # ---------------------------------------------------------------------------
+  # Schema Edge Cases
+  # ---------------------------------------------------------------------------
+  schema:
+    - case_id: "SC-001"
+      name: "DDL Mid-Transaction"
+      description: "Schema change during transaction"
+      impact: "Transaction may fail or behave unexpectedly"
+    
+    - case_id: "SC-002"
+      name: "Index Creation"
+      description: "New index affects running transaction"
+      impact: "Query plan may change"
+    
+    - case_id: "SC-003"
+      name: "Table Lock for DDL"
+      description: "DDL requires exclusive lock"
+      impact: "May block or be blocked"
+
+  # ---------------------------------------------------------------------------
+  # Constraint Edge Cases
+  # ---------------------------------------------------------------------------
+  constraints:
+    - case_id: "CN-001"
+      name: "Deferred Constraint Check"
+      description: "Constraint checked at commit"
+      impact: "Write skew not caught during transaction"
+    
+    - case_id: "CN-002"
+      name: "FK Across Isolation"
+      description: "FK validation vs isolation level"
+      impact: "May see inconsistent FK state"
+    
+    - case_id: "CN-003"
+      name: "Unique Constraint Race"
+      description: "Both try to insert same unique value"
+      impact: "One fails, one succeeds"
+
+  # ---------------------------------------------------------------------------
+  # Special Operation Edge Cases
+  # ---------------------------------------------------------------------------
+  special_operations:
+    - case_id: "SO-001"
+      name: "TRUNCATE Visibility"
+      description: "TRUNCATE vs running transactions"
+      impact: "May block or fail"
+    
+    - case_id: "SO-002"
+      name: "Sequence Gaps"
+      description: "Sequences not transactional"
+      impact: "Gaps in sequence on rollback"
+    
+    - case_id: "SO-003"
+      name: "Advisory Locks"
+      description: "Application-level locks"
+      impact: "Different semantics than row locks"
+
+# =============================================================================
+# DIFFICULTY MULTIPLIERS
+# =============================================================================
+
+difficulty_multipliers:
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 3.0
+      description: "Extreme difficulty requiring expert DBA knowledge across multiple systems"
+      requirements:
+        - "7+ interacting traps across storage engine, query optimizer, and lock manager"
+        - "Requires understanding of database internals and source code behavior"
+        - "Time estimate: 90+ minutes for senior database engineers"
+        - "Cross-database compatibility issues that manifest differently"
+        - "Requires synthesizing SQL, transactions, and distributed systems knowledge"
+    
+    nightmare_plus:
+      multiplier: 5.0
+      estimated_time: [28800, 172800]  # 8-48 hours
+      command_steps: [400, 1500]
+      techniques_required: 12
+      description: "Database kernel development difficulty requiring MVCC implementation and serialization theory expertise"
+      requirements:
+        - "12+ deeply interacting traps across isolation, MVCC, locking, and distributed transaction layers"
+        - "Requires understanding of MVCC source code implementation and SSI algorithms"
+        - "Time estimate: 8-48 hours for principal database architects"
+        - "Cross-database isolation semantics requiring deep internals knowledge"
+        - "Requires synthesizing serialization theory, MVCC variants, and conflict detection algorithms"
+        - "Must debug isolation issues in distributed transactions across multiple databases"
+        - "Requires understanding of global snapshot construction and clock synchronization"
+        - "Must design application patterns for handling serialization failures at scale"
+  
+  storage_engine_internals:
+    mvcc_implementation_details:
+      description: "MVCC implementation mechanics affecting isolation"
+      factors:
+        - "Version storage strategy (in-place vs append-only)"
+        - "Snapshot construction algorithms"
+        - "Visibility rule implementation"
+        - "Version garbage collection timing"
+      multiplier: 2.1
+    
+    locking_protocol_internals:
+      description: "Lock-based isolation implementation details"
+      factors:
+        - "Two-phase locking variants (S2PL, SS2PL)"
+        - "Lock mode compatibility matrix"
+        - "Lock duration management"
+        - "Deadlock detection integration"
+      multiplier: 1.9
+    
+    ssi_implementation:
+      description: "Serializable Snapshot Isolation implementation"
+      factors:
+        - "Read-write dependency tracking"
+        - "Predicate lock implementation"
+        - "Dangerous structure detection"
+        - "Serialization failure generation"
+      multiplier: 2.3
+    
+    wal_isolation_interaction:
+      description: "Write-ahead log interaction with isolation"
+      factors:
+        - "Transaction commit ordering"
+        - "Group commit and isolation"
+        - "Recovery and isolation consistency"
+        - "Replication and isolation"
+      multiplier: 1.7
+    
+    buffer_pool_mvcc:
+      description: "Buffer pool management for MVCC"
+      factors:
+        - "Version chain in buffer pool"
+        - "Page cleaning with active transactions"
+        - "Checkpoint and snapshot interaction"
+        - "Memory pressure and version retention"
+      multiplier: 1.8
+    
+    lock_manager_isolation:
+      description: "Lock manager for isolation enforcement"
+      factors:
+        - "Lock table implementation"
+        - "Intent lock propagation"
+        - "Key-range and predicate locks"
+        - "Lock escalation impact on isolation"
+      multiplier: 1.9
+  
+  distributed_database_complexity:
+    distributed_isolation:
+      global_serializable:
+        - "Distributed serializable implementation"
+        - "Clock-based ordering (Spanner TrueTime)"
+        - "Timestamp ordering protocols"
+        - "Conflict detection across nodes"
+      global_snapshot:
+        - "Consistent global snapshot construction"
+        - "Snapshot staleness bounds"
+        - "Cross-partition snapshot isolation"
+        - "Causally consistent snapshots"
+      multiplier: 2.5
+    
+    distributed_mvcc:
+      cross_node_mvcc:
+        - "Global version numbering"
+        - "Distributed garbage collection"
+        - "Version chain across partitions"
+        - "Snapshot validity across nodes"
+      multiplier: 2.2
+    
+    isolation_and_replication:
+      replication_anomalies:
+        - "Replica isolation level guarantees"
+        - "Read-your-writes in replication"
+        - "Causal consistency in replication"
+        - "Session guarantees across replicas"
+      multiplier: 2.0
+    
+    consensus_and_isolation:
+      consensus_integration:
+        - "Paxos/Raft for serializable"
+        - "Consensus for global ordering"
+        - "Lock acquisition consensus"
+        - "Distributed 2PL coordination"
+      multiplier: 2.4
+  
+  concurrency_factors:
+    - factor: "high_concurrency"
+      multiplier: 1.6
+      description: "1000+ concurrent transactions"
+    
+    - factor: "hot_spot_data"
+      multiplier: 1.5
+      description: "Many transactions accessing same rows"
+    
+    - factor: "long_transactions"
+      multiplier: 1.4
+      description: "Transactions spanning seconds to minutes"
+  
+  complexity_factors:
+    - factor: "multi_table_consistency"
+      multiplier: 1.5
+      description: "Consistency across multiple tables"
+    
+    - factor: "business_rule_constraints"
+      multiplier: 1.4
+      description: "Complex business rules to maintain"
+    
+    - factor: "distributed_transactions"
+      multiplier: 1.8
+      description: "Transactions across databases"
+  
+  environmental_factors:
+    - factor: "mixed_workload"
+      multiplier: 1.3
+      description: "OLTP and reporting together"
+    
+    - factor: "legacy_application"
+      multiplier: 1.4
+      description: "Cannot change application code easily"
+
+# =============================================================================
+# DATABASE SYSTEM SPECIFICS
+# =============================================================================
+
+database_specifics:
+  postgresql:
+    versions: ["12", "13", "14", "15", "16"]
+    isolation_features:
+      - "SSI for true serializability"
+      - "REPEATABLE READ is snapshot"
+      - "READ UNCOMMITTED = READ COMMITTED"
+    error_handling:
+      serialization_failure: "40001"
+      deadlock: "40P01"
+    settings:
+      - "default_transaction_isolation"
+      - "lock_timeout"
+      - "statement_timeout"
+    
+  mysql:
+    versions: ["5.7", "8.0", "8.1"]
+    isolation_features:
+      - "Gap locks in REPEATABLE READ"
+      - "True READ UNCOMMITTED"
+      - "Auto-commit default ON"
+    error_handling:
+      deadlock: "1213"
+      lock_timeout: "1205"
+    settings:
+      - "transaction_isolation"
+      - "innodb_lock_wait_timeout"
+    
+  sql_server:
+    versions: ["2016", "2017", "2019", "2022"]
+    isolation_features:
+      - "RCSI option"
+      - "SNAPSHOT isolation"
+      - "Key-range locks"
+    error_handling:
+      deadlock: "1205"
+      snapshot_conflict: "3960"
+    settings:
+      - "READ_COMMITTED_SNAPSHOT"
+      - "ALLOW_SNAPSHOT_ISOLATION"
+    
+  oracle:
+    versions: ["19c", "21c", "23c"]
+    isolation_features:
+      - "Only READ COMMITTED and SERIALIZABLE"
+      - "SERIALIZABLE may fail with ORA-08177"
+      - "Readers never block writers"
+    error_handling:
+      serialization_failure: "ORA-08177"
+    settings:
+      - "SET TRANSACTION ISOLATION LEVEL"
+
+# =============================================================================
+# PROBLEM STATEMENT TEMPLATES
+# =============================================================================
+
+problem_statement: |
+  A {{ application_type }} has data consistency issues related to isolation.
+  The system uses {{ database_system }} {{ database_version }}.
+  
+  Observed problems:
+  {{ consistency_problems }}
+  
+  Current configuration:
+  - Default isolation: {{ default_isolation }}
+  - Concurrent users: {{ concurrent_users }}
+  - Transaction rate: {{ transaction_rate }} per second
+  
+  Business requirements:
+  {{ business_requirements }}
+
+requirements: |
+  - Ensure data consistency for {{ consistency_requirements }}
+  - Handle {{ concurrency_level }} concurrent access
+  - Maintain {{ performance_target }} performance
+  - Implement proper retry logic for serialization failures
+  - Document isolation level choices
+
+interface: |
+  Input: {{ input_description }}
+  Output: {{ output_description }}
+  Validation: {{ validation_criteria }}
+
+# =============================================================================
+# REFERENCE SOLUTION PATTERNS
+# =============================================================================
+
+reference_solution: |
+  #!/usr/bin/env python3
+  """
+  Transaction Isolation Level Patterns
+  
+  Comprehensive patterns for handling isolation levels correctly.
+  """
+  
+  import psycopg2
+  from psycopg2 import extensions, errors
+  import time
+  import random
+  from typing import Optional, Callable, TypeVar
+  from functools import wraps
+  
+  T = TypeVar('T')
+  
+  # ============================================================
+  # ISOLATION LEVEL OVERVIEW
+  # ============================================================
+  """
+  | Level            | Dirty Read | Non-Repeatable | Phantom | Write Skew |
+  |------------------|------------|----------------|---------|------------|
+  | READ UNCOMMITTED | Yes        | Yes            | Yes     | Yes        |
+  | READ COMMITTED   | No         | Yes            | Yes     | Yes        |
+  | REPEATABLE READ  | No         | No             | Yes*    | Yes**      |
+  | SERIALIZABLE     | No         | No             | No      | No         |
+  
+  * PostgreSQL RR also prevents phantoms (it's snapshot isolation)
+  ** Snapshot isolation doesn't prevent write skew
+  """
+  
+  # ============================================================
+  # PATTERN 1: Choosing the Right Isolation Level
+  # ============================================================
+  
+  class IsolationLevelGuide:
+      """Guide for choosing appropriate isolation level."""
+      
+      @staticmethod
+      def for_simple_read():
+          """Simple lookup, no consistency requirement."""
+          return extensions.ISOLATION_LEVEL_READ_COMMITTED
+      
+      @staticmethod
+      def for_report_with_consistent_snapshot():
+          """Report needs consistent view of data."""
+          return extensions.ISOLATION_LEVEL_REPEATABLE_READ
+      
+      @staticmethod
+      def for_read_then_write():
+          """Read data, make decision, write result."""
+          # REPEATABLE READ prevents non-repeatable reads
+          # But doesn't prevent write skew!
+          return extensions.ISOLATION_LEVEL_REPEATABLE_READ
+      
+      @staticmethod
+      def for_constraint_checking():
+          """Must prevent write skew (e.g., on-call constraint)."""
+          # Only SERIALIZABLE prevents write skew
+          return extensions.ISOLATION_LEVEL_SERIALIZABLE
+      
+      @staticmethod
+      def for_financial_transaction():
+          """Money transfers, must be exactly correct."""
+          # SERIALIZABLE with retry logic
+          return extensions.ISOLATION_LEVEL_SERIALIZABLE
+  
+  # ============================================================
+  # PATTERN 2: Retry Logic for Serialization Failures
+  # ============================================================
+  
+  class TransactionError(Exception):
+      """Base class for transaction errors."""
+      pass
+  
+  class MaxRetriesExceeded(TransactionError):
+      """Maximum retry attempts exceeded."""
+      pass
+  
+  def with_serialization_retry(
+      max_retries: int = 3,
+      base_delay: float = 0.1,
+      max_delay: float = 2.0,
+      jitter: float = 0.1
+  ):
+      """
+      Decorator for retrying on serialization failure.
+      Uses exponential backoff with jitter.
+      """
+      def decorator(func: Callable[..., T]) -> Callable[..., T]:
+          @wraps(func)
+          def wrapper(conn, *args, **kwargs) -> T:
+              last_error = None
+              
+              for attempt in range(max_retries):
+                  try:
+                      result = func(conn, *args, **kwargs)
+                      conn.commit()
+                      return result
+                      
+                  except errors.SerializationFailure as e:
+                      last_error = e
+                      conn.rollback()
+                      
+                      if attempt == max_retries - 1:
+                          raise MaxRetriesExceeded(
+                              f"Max retries ({max_retries}) exceeded"
+                          ) from e
+                      
+                      # Exponential backoff with jitter
+                      delay = min(
+                          base_delay * (2 ** attempt) + random.uniform(0, jitter),
+                          max_delay
+                      )
+                      time.sleep(delay)
+                      
+                  except errors.DeadlockDetected as e:
+                      last_error = e
+                      conn.rollback()
+                      
+                      if attempt == max_retries - 1:
+                          raise
+                      
+                      delay = min(
+                          base_delay * (2 ** attempt) + random.uniform(0, jitter),
+                          max_delay
+                      )
+                      time.sleep(delay)
+                      
+                  except Exception:
+                      conn.rollback()
+                      raise
+              
+              raise last_error
+          return wrapper
+      return decorator
+  
+  # ============================================================
+  # PATTERN 3: Pessimistic Locking (SELECT FOR UPDATE)
+  # ============================================================
+  
+  def transfer_funds_pessimistic(
+      conn,
+      from_account: int,
+      to_account: int,
+      amount: float
+  ) -> bool:
+      """
+      Transfer funds using pessimistic locking.
+      SELECT FOR UPDATE prevents concurrent modifications.
+      """
+      # READ COMMITTED is sufficient with FOR UPDATE
+      conn.set_isolation_level(extensions.ISOLATION_LEVEL_READ_COMMITTED)
+      
+      with conn.cursor() as cur:
+          # Lock both accounts in consistent order (prevent deadlock)
+          first_id = min(from_account, to_account)
+          second_id = max(from_account, to_account)
+          
+          # Lock rows
+          cur.execute(
+              "SELECT id, balance FROM accounts WHERE id IN (%s, %s) "
+              "ORDER BY id FOR UPDATE",
+              (first_id, second_id)
+          )
+          accounts = {row[0]: row[1] for row in cur.fetchall()}
+          
+          # Check sufficient funds
+          if accounts.get(from_account, 0) < amount:
+              conn.rollback()
+              return False
+          
+          # Execute transfer
+          cur.execute(
+              "UPDATE accounts SET balance = balance - %s WHERE id = %s",
+              (amount, from_account)
+          )
+          cur.execute(
+              "UPDATE accounts SET balance = balance + %s WHERE id = %s",
+              (amount, to_account)
+          )
+          
+          conn.commit()
+          return True
+  
+  # ============================================================
+  # PATTERN 4: Optimistic Locking (Version Column)
+  # ============================================================
+  
+  def update_with_optimistic_lock(
+      conn,
+      table: str,
+      record_id: int,
+      updates: dict,
+      max_retries: int = 3
+  ) -> bool:
+      """
+      Update using optimistic locking with version column.
+      """
+      for attempt in range(max_retries):
+          with conn.cursor() as cur:
+              # Read current version
+              cur.execute(
+                  f"SELECT version FROM {table} WHERE id = %s",
+                  (record_id,)
+              )
+              row = cur.fetchone()
+              if not row:
+                  return False
+              
+              current_version = row[0]
+              
+              # Build update
+              set_clauses = ', '.join(f"{k} = %s" for k in updates.keys())
+              values = list(updates.values())
+              
+              # Update with version check
+              cur.execute(
+                  f"UPDATE {table} SET {set_clauses}, version = version + 1 "
+                  f"WHERE id = %s AND version = %s",
+                  values + [record_id, current_version]
+              )
+              
+              if cur.rowcount == 1:
+                  conn.commit()
+                  return True
+              
+              # Version mismatch - retry
+              conn.rollback()
+              time.sleep(0.01 * (2 ** attempt))
+      
+      return False
+  
+  # ============================================================
+  # PATTERN 5: Atomic Operations (No Read-Modify-Write)
+  # ============================================================
+  
+  def increment_counter_atomic(conn, counter_id: int, amount: int = 1) -> int:
+      """
+      Increment counter atomically.
+      No isolation level concerns because single statement.
+      """
+      with conn.cursor() as cur:
+          cur.execute(
+              "UPDATE counters SET value = value + %s WHERE id = %s "
+              "RETURNING value",
+              (amount, counter_id)
+          )
+          result = cur.fetchone()
+          conn.commit()
+          return result[0] if result else 0
+  
+  def debit_if_sufficient_atomic(
+      conn,
+      account_id: int,
+      amount: float
+  ) -> bool:
+      """
+      Debit account only if sufficient funds.
+      Single atomic statement - no race condition.
+      """
+      with conn.cursor() as cur:
+          cur.execute(
+              "UPDATE accounts SET balance = balance - %s "
+              "WHERE id = %s AND balance >= %s",
+              (amount, account_id, amount)
+          )
+          success = cur.rowcount == 1
+          conn.commit()
+          return success
+  
+  # ============================================================
+  # PATTERN 6: Serializable for Write Skew Prevention
+  # ============================================================
+  
+  @with_serialization_retry(max_retries=3)
+  def go_off_call_safe(conn, doctor_id: int) -> bool:
+      """
+      Doctor goes off call, but maintain constraint:
+      at least one doctor must be on call.
+      
+      MUST use SERIALIZABLE to prevent write skew!
+      """
+      conn.set_isolation_level(extensions.ISOLATION_LEVEL_SERIALIZABLE)
+      
+      with conn.cursor() as cur:
+          # Check how many on call (including this doctor)
+          cur.execute(
+              "SELECT COUNT(*) FROM doctors WHERE on_call = true"
+          )
+          on_call_count = cur.fetchone()[0]
+          
+          if on_call_count <= 1:
+              conn.rollback()
+              return False  # Would violate constraint
+          
+          # Update this doctor
+          cur.execute(
+              "UPDATE doctors SET on_call = false WHERE id = %s",
+              (doctor_id,)
+          )
+          
+          # SERIALIZABLE will detect if concurrent transaction
+          # also reduced on_call count
+          return True
+  
+  # ============================================================
+  # PATTERN 7: Read-Your-Writes Consistency
+  # ============================================================
+  
+  class SessionConsistencyManager:
+      """
+      Ensures read-your-writes consistency within a session.
+      """
+      
+      def __init__(self, conn):
+          self.conn = conn
+          self._write_lsn = None
+      
+      def write(self, query: str, params: tuple = None):
+          """Execute write and capture LSN."""
+          with self.conn.cursor() as cur:
+              cur.execute(query, params)
+              # Capture the LSN after write
+              cur.execute("SELECT pg_current_wal_lsn()")
+              self._write_lsn = cur.fetchone()[0]
+          self.conn.commit()
+      
+      def read_consistent(self, query: str, params: tuple = None):
+          """Read ensuring we see our own writes."""
+          if self._write_lsn:
+              with self.conn.cursor() as cur:
+                  # Wait for replication (if reading from replica)
+                  cur.execute(
+                      "SELECT pg_last_wal_replay_lsn() >= %s",
+                      (self._write_lsn,)
+                  )
+          
+          with self.conn.cursor() as cur:
+              cur.execute(query, params)
+              return cur.fetchall()
+  
+  # ============================================================
+  # SQL Examples for Different Scenarios
+  # ============================================================
+  
+  SQL_EXAMPLES = """
+  -- ============================================================
+  -- SET ISOLATION LEVEL
+  -- ============================================================
+  
+  -- PostgreSQL
+  BEGIN ISOLATION LEVEL SERIALIZABLE;
+  -- or
+  SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+  
+  -- MySQL
+  SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+  START TRANSACTION;
+  
+  -- SQL Server
+  SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+  BEGIN TRANSACTION;
+  
+  -- ============================================================
+  -- CHECK CURRENT ISOLATION LEVEL
+  -- ============================================================
+  
+  -- PostgreSQL
+  SHOW transaction_isolation;
+  
+  -- MySQL
+  SELECT @@transaction_isolation;
+  
+  -- SQL Server
+  DBCC USEROPTIONS;
+  
+  -- ============================================================
+  -- SELECT FOR UPDATE VARIATIONS
+  -- ============================================================
+  
+  -- Basic FOR UPDATE (lock rows)
+  SELECT * FROM accounts WHERE id = 1 FOR UPDATE;
+  
+  -- Skip locked rows (don't wait)
+  SELECT * FROM jobs WHERE status = 'pending'
+  ORDER BY created_at
+  LIMIT 1
+  FOR UPDATE SKIP LOCKED;
+  
+  -- No wait (error if locked)
+  SELECT * FROM accounts WHERE id = 1 FOR UPDATE NOWAIT;
+  
+  -- FOR SHARE (read lock)
+  SELECT * FROM accounts WHERE id = 1 FOR SHARE;
+  """
+  
+  # ============================================================
+  # Monitoring Isolation Issues
+  # ============================================================
+  
+  MONITORING_QUERIES = """
+  -- PostgreSQL: Find blocked queries
+  SELECT 
+      blocked.pid AS blocked_pid,
+      blocked.query AS blocked_query,
+      blocking.pid AS blocking_pid,
+      blocking.query AS blocking_query
+  FROM pg_stat_activity blocked
+  JOIN pg_locks blocked_locks ON blocked.pid = blocked_locks.pid
+  JOIN pg_locks blocking_locks 
+      ON blocked_locks.locktype = blocking_locks.locktype
+      AND blocked_locks.relation = blocking_locks.relation
+      AND blocked_locks.pid != blocking_locks.pid
+  JOIN pg_stat_activity blocking ON blocking_locks.pid = blocking.pid
+  WHERE NOT blocked_locks.granted;
+  
+  -- PostgreSQL: Transaction age (long transactions)
+  SELECT 
+      pid,
+      age(clock_timestamp(), xact_start) as transaction_age,
+      state,
+      query
+  FROM pg_stat_activity
+  WHERE state != 'idle'
+  ORDER BY xact_start;
+  """
+
+# =============================================================================
+# TEST CASES
+# =============================================================================
+
+fail_to_pass:
+  - "test_no_phantom_reads"
+  - "test_no_lost_updates"
+  - "test_no_write_skew"
+  - "test_serialization_retry_works"
+  - "test_proper_isolation_selected"
+
+pass_to_pass:
+  - "test_basic_transaction"
+  - "test_simple_read"
+  - "test_single_statement_atomic"
+
+# =============================================================================
+# VARIABLES FOR TASK GENERATION
+# =============================================================================
+
+variables:
+  - name: application_type
+    type: string
+    options:
+      - "financial trading system"
+      - "e-commerce platform"
+      - "healthcare records"
+      - "booking system"
+      - "inventory management"
+  
+  - name: database_system
+    type: string
+    options: ["PostgreSQL", "MySQL", "SQL Server", "Oracle"]
+  
+  - name: default_isolation
+    type: string
+    options:
+      - "READ COMMITTED"
+      - "REPEATABLE READ"
+      - "SERIALIZABLE"
+  
+  - name: concurrent_users
+    type: int
+    min: 10
+    max: 10000
+  
+  - name: transaction_rate
+    type: string
+    options: ["10", "100", "1000", "10000"]
+
+# =============================================================================
+# ANTI-PATTERNS - LLM Failure Modes
+# =============================================================================
+
+anti_patterns:
+  llm_failure_modes:
+    - "Applying generic SQL patterns without considering database-specific behavior"
+    - "Missing isolation level interactions between concurrent transactions"
+    - "Ignoring lock manager implementation details"
+    - "Not considering query optimizer behavior changes across versions"
+    - "Missing hidden full table scans in seemingly optimized queries"
+    - "Overlooking index maintenance overhead during writes"
+    - "Assuming ORM generates efficient queries"
+    - "Missing deadlock potential in cross-schema operations"
+    - "Ignoring transaction log and recovery implications"
+    - "Assuming REPEATABLE READ prevents all anomalies (missing write skew)"
+    - "Ignoring snapshot isolation write skew vulnerability"
+    - "Missing serialization failure handling in application code"
+    - "Assuming READ COMMITTED is the same across all databases"
+    - "Overlooking statement-level vs transaction-level snapshot differences"
+    - "Missing long transaction impact on MVCC version retention"
+    - "Assuming SERIALIZABLE is always lock-based"
+    - "Ignoring PostgreSQL SSI differences from traditional locking"
+    - "Missing MySQL gap lock behavior in REPEATABLE READ"
+    - "Assuming Oracle SERIALIZABLE equals ANSI SERIALIZABLE"
+    - "Overlooking READ COMMITTED SNAPSHOT vs regular READ COMMITTED in SQL Server"
+    - "Missing deferred constraint interaction with isolation"
+    - "Assuming isolation level changes take effect immediately"
+    - "Ignoring implicit commit from DDL affecting transaction isolation"
+    - "Missing foreign key validation visibility issues"
+    - "Assuming SELECT FOR UPDATE provides SERIALIZABLE guarantees"
+    - "Overlooking predicate lock memory limitations in SSI"
+    - "Missing the impact of savepoints on isolation behavior"
+  
+  query_optimizer_internals:
+    isolation_query_interaction:
+      - "Query plan differences across isolation levels"
+      - "Index-only scan visibility requirements"
+      - "Parallel query isolation considerations"
+      - "Aggregate query isolation semantics"
+    mvcc_optimizer_impact:
+      - "Version chain traversal cost"
+      - "Snapshot age affecting read performance"
+      - "HOT update chain visibility"
+      - "Index visibility map dependency"
+    lock_optimizer_interaction:
+      - "Lock acquisition in query execution"
+      - "Index locking patterns"
+      - "Join order lock implications"
+      - "Subquery isolation scope"
+
+# =============================================================================
+# ANTI-HARDCODING MEASURES
+# =============================================================================
+
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  randomize_identifiers: true
+  
+  anomaly_types:
+    - "phantom_reads"
+    - "non_repeatable_reads"
+    - "lost_updates"
+    - "write_skew"
+    - "serialization_failures"

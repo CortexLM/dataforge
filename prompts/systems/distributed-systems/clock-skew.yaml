@@ -1,0 +1,1466 @@
+id: "sys-dist-clock-skew-001"
+version: "1.0.0"
+category: "systems"
+subcategory: "distributed-systems"
+
+# SWE-bench_Pro style fields
+problem_statement: |
+  A distributed transaction system is experiencing consistency issues due to clock 
+  skew between nodes. Timestamp-based ordering is producing incorrect results.
+  
+  Hidden issues:
+  1. NTP sync intervals too long, allowing significant drift
+  2. Monotonic clock not used for duration measurements
+  3. Leap seconds cause timestamp jumps
+  4. Virtual machine clock drift after suspend/resume
+  5. Timezone handling inconsistencies
+
+requirements: |
+  - Detect and measure clock skew between nodes
+  - Implement clock-independent ordering (logical clocks)
+  - Handle NTP adjustments gracefully
+  - Use monotonic clocks for durations
+  - Implement hybrid logical clocks for ordering
+
+interface: |
+  Input: Distributed system events from multiple nodes
+  Output: Correctly ordered events, clock skew report
+  Tolerance: Ordering must be correct despite clock differences
+
+# terminal-bench style fields
+difficulty:
+  estimated: "hard"
+  time_range: [1800, 5400]
+  command_steps: [25, 70]
+
+# === QUALITY REQUIREMENTS ===
+quality_requirements:
+  minimum_time: "120-300 minutes for senior systems engineers with kernel contribution experience"
+  expertise_level: "Principal distributed systems engineer with clock synchronization and time protocol expertise"
+  validation_standard: "Must expose subtle timing bugs spanning NTP, PTP, hardware clocks, and distributed ordering"
+
+# === MULTI-AGENT ORCHESTRATION ===
+multi_agent_orchestration:
+  required_agents: 10
+  agent_specializations:
+    - name: "ntp_protocol_expert"
+      role: "Debug NTP protocol issues and clock discipline algorithms"
+      expertise: ["NTP poll intervals", "clock selection", "Marzullo's algorithm", "step vs slew adjustment"]
+    - name: "ptp_engineer"
+      role: "Debug IEEE 1588 PTP implementations"
+      expertise: ["hardware timestamping", "boundary clocks", "transparent clocks", "BMCA"]
+    - name: "kernel_timekeeping_specialist"
+      role: "Debug kernel timekeeping subsystem"
+      expertise: ["clocksource selection", "timekeeping_update", "NTP daemon interaction", "vDSO timing"]
+    - name: "hardware_clock_expert"
+      role: "Analyze hardware clock sources and drift"
+      expertise: ["TSC invariant", "HPET", "RTC", "crystal oscillator drift"]
+    - name: "hybrid_clock_designer"
+      role: "Implement and debug hybrid logical clocks"
+      expertise: ["HLC design", "bounded uncertainty", "causal ordering", "clock bounds"]
+    - name: "distributed_ordering_expert"
+      role: "Debug event ordering and causality issues"
+      expertise: ["Lamport timestamps", "vector clocks", "consistent snapshots", "happened-before"]
+    - name: "lease_timing_specialist"
+      role: "Debug lease-based protocols and timing"
+      expertise: ["leader lease", "clock skew bounds", "fencing tokens", "lease renewal"]
+    - name: "virtualization_time_expert"
+      role: "Debug VM and container clock issues"
+      expertise: ["kvmclock", "Hyper-V enlightenments", "live migration", "steal time"]
+    - name: "truetime_architect"
+      role: "Implement TrueTime-style external consistency"
+      expertise: ["uncertainty intervals", "commit wait", "GPS time", "atomic clocks"]
+    - name: "observability_engineer"
+      role: "Monitor and trace clock behavior"
+      expertise: ["chrony statistics", "PTP monitoring", "eBPF clock tracing", "clock drift metrics"]
+  cross_subsystem_chains:
+    - "NTP step adjustment → Leader lease invalid → Split-brain → Data corruption"
+    - "VM suspend → Clock drift → Lease expiry → Dual leaders → Inconsistency"
+    - "Leap second → Duration calculation error → Timeout → Service disruption"
+    - "NUMA clock skew → Cross-node ordering → Causality violation → Data loss"
+  parallel_debugging_requirements:
+    - "Correlated clock samples across all nodes with uncertainty bounds"
+    - "Simultaneous NTP/PTP trace analysis and hardware clock inspection"
+    - "Agent handoff for multi-node clock synchronization debugging"
+
+# === TRAP CONFIGURATION ===
+trap_configuration:
+  trap_count: "12+ deeply interacting traps across kernel/userspace/hardware boundaries"
+  trap_categories:
+    clock_source_traps:
+      - "TSC instability causing monotonic clock jumps"
+      - "HPET fallback with different resolution characteristics"
+      - "Hardware clock drift exceeding NTP slew capability"
+      - "RTC vs system clock drift after long uptime"
+    synchronization_traps:
+      - "NTP step adjustment during critical transaction"
+      - "PTP grandmaster failover causing time jump"
+      - "Asymmetric network path causing skew miscalculation"
+      - "Leap second smearing inconsistency across nodes"
+    distributed_ordering_traps:
+      - "HLC physical time component drift causing ordering issues"
+      - "Vector clock pruning losing causality information"
+      - "Cross-datacenter ordering with high WAN latency"
+      - "Commit timestamp selection under uncertainty"
+
+# === NIGHTMARE_PLUS DIFFICULTY ===
+difficulty_levels:
+  nightmare_plus:
+    estimated_time: [43200, 259200]  # 12-72 hours
+    command_steps: [600, 2500]
+    techniques_required: 18
+    description: "Google Spanner/CockroachDB-level difficulty requiring deep distributed systems knowledge"
+    requirements:
+      - "Requires understanding of hardware clock behavior and drift models"
+      - "Must handle time synchronization across geo-distributed datacenters"
+      - "Involves implementing TrueTime-style uncertainty intervals"
+      - "Cross-platform behavior differences (Linux vs BSD vs Windows)"
+      - "Time estimate: 12-72 hours for distributed systems researchers"
+      - "Requires synthesizing clock hardware, protocols, and distributed algorithms"
+
+# === KERNEL SUBSYSTEM REQUIREMENTS ===
+kernel_subsystem_requirements:
+  timekeeping_subsystem:
+    - "clocksource infrastructure and selection algorithm"
+    - "timekeeping_update and NTP phase/frequency adjustment"
+    - "vDSO clock_gettime implementation and mapping"
+    - "CLOCK_MONOTONIC vs CLOCK_REALTIME vs CLOCK_BOOTTIME"
+  ntp_integration:
+    - "adjtimex() system call and adjustment modes"
+    - "PLL vs FLL mode selection and parameters"
+    - "Kernel NTP daemon interaction protocol"
+    - "Leap second handling in kernel"
+  hardware_interaction:
+    - "TSC calibration and invariant TSC detection"
+    - "HPET, ACPI PM timer, PIT fallback chain"
+    - "CPU frequency scaling effects on TSC"
+    - "Multi-socket TSC synchronization"
+  virtualization:
+    - "kvmclock and pvclock protocols"
+    - "Hyper-V reference time enlightenment"
+    - "VMware VMI clock interface"
+    - "Clock namespace isolation (time namespace)"
+
+# === HARDWARE INTERACTION ===
+hardware_interaction:
+  clock_hardware:
+    - "Crystal oscillator specifications and aging"
+    - "Temperature-compensated oscillators (TCXO, OCXO)"
+    - "GPS disciplined oscillators (GPSDO)"
+    - "Atomic clock (cesium, rubidium) characteristics"
+  timestamping_hardware:
+    - "NIC hardware timestamping support"
+    - "PTP hardware clock (PHC) management"
+    - "Precision of hardware timestamps"
+    - "PCIe latency effects on software timestamps"
+  cpu_timing:
+    - "TSC frequency and stability"
+    - "Turbo boost effects on timing"
+    - "C-state transitions and TSC"
+    - "NUMA node TSC synchronization"
+
+# === FORMAL VERIFICATION REQUIREMENTS ===
+formal_verification_requirements:
+  modeling_requirements:
+    - "Model clock synchronization protocol in TLA+"
+    - "Express bounded drift assumptions formally"
+    - "Verify ordering guarantees under uncertainty"
+    - "Model network delay distribution effects"
+  proof_obligations:
+    - "Prove external consistency under bounded uncertainty"
+    - "Verify causal ordering preservation with HLC"
+    - "Establish bounded clock skew maintenance"
+    - "Prove lease safety under clock drift"
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research clock synchronization protocols and failure modes"
+    phase_2_creation: "Create task with subtle timing bugs and clock issues"
+    phase_3_amplification: "Add NTP adjustment scenarios and leap second handling"
+    phase_4_verification:
+      description: "Validate task requires understanding of time in distributed systems"
+      criteria:
+        - "Has at least 5 interacting system-level traps across subsystems"
+        - "Has cascading failures across process, memory, and I/O subsystems"
+        - "Requires knowledge of OS kernel internals and scheduler behavior"
+        - "Would take experienced systems programmers 45+ minutes"
+  
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 3.5
+      description: "Kernel-level debugging complexity requiring deep systems expertise"
+      requirements:
+        - "7+ interacting system-level traps across subsystems"
+        - "Requires understanding of kernel memory management and scheduling"
+        - "Time estimate: 120+ minutes for senior systems engineers"
+        - "Cross-platform behavior differences (Linux vs BSD vs Windows)"
+        - "Requires synthesizing concurrency, memory, distributed systems knowledge"
+  
+  generation_targets:
+    minimum_difficulty: "45+ minutes, requires deep kernel internals and distributed systems expertise"
+  
+  complexity_levels:
+    level_1_basic:
+      description: "Simple wall clock ordering bugs"
+      elements: ["cross_node_timestamp_compare", "system_time_for_ordering"]
+    level_2_intermediate:
+      description: "NTP adjustment and monotonic clock issues"
+      elements: ["ntp_step_adjustment", "duration_with_wall_clock", "backwards_time"]
+    level_3_advanced:
+      description: "Hybrid logical clock implementation"
+      elements: ["hlc_design", "bounded_uncertainty", "commit_wait"]
+    level_4_expert:
+      description: "TrueTime-style external consistency"
+      elements: ["uncertainty_interval", "clock_bound_api", "gps_atomic_sync"]
+    level_5_research:
+      description: "Novel clock synchronization challenges"
+      elements: ["quantum_clocks", "relativistic_effects", "adversarial_time"]
+
+# === COMPREHENSIVE TOPIC UNIVERSE ===
+topic_universe:
+  # Clock Types and Sources (25+ topics)
+  clock_types:
+    hardware_clocks:
+      - "Real-time clock (RTC) with battery backup"
+      - "High Precision Event Timer (HPET)"
+      - "Time Stamp Counter (TSC)"
+      - "ACPI Power Management Timer"
+      - "Programmable Interval Timer (PIT)"
+      - "Local APIC timer"
+      - "Crystal oscillator characteristics"
+      - "Temperature compensation (TCXO)"
+      - "Oven-controlled oscillators (OCXO)"
+    
+    system_clocks:
+      - "Wall clock (gettimeofday, clock_gettime CLOCK_REALTIME)"
+      - "Monotonic clock (CLOCK_MONOTONIC)"
+      - "Raw monotonic (CLOCK_MONOTONIC_RAW)"
+      - "Boottime clock (CLOCK_BOOTTIME)"
+      - "Process/thread CPU time clocks"
+      - "Coarse clocks for performance"
+    
+    external_sources:
+      - "GPS time receivers"
+      - "Atomic clocks (cesium, rubidium)"
+      - "Network time sources"
+      - "Radio time signals (DCF77, WWVB)"
+      - "PTP grandmaster clocks"
+  
+  # Time Synchronization Protocols (30+ topics)
+  sync_protocols:
+    ntp:
+      - "NTP protocol architecture"
+      - "Stratum hierarchy"
+      - "Clock selection algorithm"
+      - "Clock discipline algorithm"
+      - "Intersection algorithm"
+      - "Step vs slew adjustment"
+      - "Polling interval adaptation"
+      - "Kiss-o'-death packets"
+      - "NTP authentication"
+      - "NTP pool servers"
+      - "NTPsec security improvements"
+    
+    ptp:
+      - "IEEE 1588 Precision Time Protocol"
+      - "PTP message types (Sync, Follow_Up, Delay_Req)"
+      - "Boundary clocks vs transparent clocks"
+      - "Best Master Clock Algorithm (BMCA)"
+      - "PTP profiles (Default, Telecom, Power)"
+      - "Hardware timestamping requirements"
+      - "PTP over Ethernet vs UDP"
+    
+    other_protocols:
+      - "SNTP (Simple NTP)"
+      - "chrony vs ntpd"
+      - "Windows Time Service"
+      - "roughtime protocol"
+      - "Network Time Security (NTS)"
+  
+  # Clock Synchronization Challenges (35+ topics)
+  sync_challenges:
+    drift_and_skew:
+      - "Clock drift (frequency offset)"
+      - "Clock skew (phase offset)"
+      - "Drift rate measurement"
+      - "Allan deviation"
+      - "Temperature-induced drift"
+      - "Aging effects on oscillators"
+      - "Power supply noise effects"
+    
+    network_effects:
+      - "Network delay asymmetry"
+      - "Jitter in packet timing"
+      - "Congestion impact on sync"
+      - "Path delay variation"
+      - "Firewall effects on NTP"
+      - "NAT traversal issues"
+    
+    hardware_issues:
+      - "Interrupt latency in timestamping"
+      - "OS scheduling delays"
+      - "TSC invariant requirement"
+      - "Multi-socket TSC synchronization"
+      - "CPU frequency scaling effects"
+      - "Turbo boost timing impact"
+    
+    virtualization:
+      - "VM clock drift after suspend"
+      - "Hypervisor clock injection"
+      - "Live migration clock handling"
+      - "Container clock namespaces"
+      - "Paravirtualized clocks (kvmclock, Hyper-V)"
+      - "vDSO clock access"
+  
+  # Logical Clock Systems (30+ topics)
+  logical_clocks:
+    lamport_timestamps:
+      - "Lamport clock algorithm"
+      - "Happened-before relation"
+      - "Message passing rules"
+      - "Local event increment"
+      - "Limitations (concurrent events)"
+      - "Total ordering with process ID"
+    
+    vector_clocks:
+      - "Vector clock structure"
+      - "Increment on local event"
+      - "Max on message receive"
+      - "Causality detection"
+      - "Concurrent event identification"
+      - "Space complexity concerns"
+      - "Garbage collection of entries"
+    
+    advanced_logical_clocks:
+      - "Matrix clocks"
+      - "Version vectors"
+      - "Dotted version vectors"
+      - "Interval tree clocks"
+      - "Bloom clocks"
+      - "Plausible clocks"
+    
+    hybrid_logical_clocks:
+      - "HLC design principles"
+      - "Physical time component"
+      - "Logical counter component"
+      - "Bounded skew property"
+      - "Wait-free implementation"
+      - "HLC comparison semantics"
+      - "HLC in CockroachDB"
+  
+  # TrueTime and External Consistency (25+ topics)
+  truetime:
+    truetime_api:
+      - "TT.now() uncertainty interval"
+      - "TT.after(t) guarantee"
+      - "TT.before(t) guarantee"
+      - "GPS + atomic clock architecture"
+      - "Marzullo's algorithm for intersection"
+      - "Uncertainty interval calculation"
+    
+    spanner_design:
+      - "Commit wait protocol"
+      - "External consistency guarantee"
+      - "Read-write transaction timestamps"
+      - "Read-only transaction timestamps"
+      - "Snapshot reads at timestamp"
+      - "Bounded staleness reads"
+    
+    alternatives:
+      - "CockroachDB uncertainty windows"
+      - "YugabyteDB hybrid time"
+      - "TiDB timestamp oracle"
+      - "Percolator timestamps"
+  
+  # Time-Related Bugs (40+ topics)
+  time_bugs:
+    ordering_bugs:
+      - "Cross-node timestamp comparison"
+      - "System.currentTimeMillis() for ordering"
+      - "Assuming synchronized clocks"
+      - "Ignoring clock skew in timeouts"
+      - "Race between timestamp and operation"
+    
+    duration_bugs:
+      - "Wall clock for elapsed time"
+      - "Negative duration from clock adjustment"
+      - "Duration overflow"
+      - "Precision loss in conversion"
+      - "Mixing time units"
+    
+    format_bugs:
+      - "Timezone handling errors"
+      - "DST transition bugs"
+      - "Leap year bugs"
+      - "Epoch differences (Unix vs Windows)"
+      - "32-bit timestamp overflow (Y2038)"
+      - "Milliseconds vs seconds confusion"
+    
+    leap_second_bugs:
+      - "Leap second insertion handling"
+      - "Negative leap seconds"
+      - "Leap second smearing"
+      - "Double seconds (23:59:60)"
+      - "Applications assuming 60s/minute"
+    
+    ntp_bugs:
+      - "Step adjustment during operation"
+      - "Large slew causing issues"
+      - "NTP daemon restart gaps"
+      - "Stratum degradation"
+      - "Reference clock failure"
+  
+  # Clock Skew Measurement (20+ topics)
+  skew_measurement:
+    measurement_techniques:
+      - "Round-trip time estimation"
+      - "One-way delay measurement"
+      - "Cristian's algorithm"
+      - "Berkeley algorithm"
+      - "NTP-style offset calculation"
+    
+    statistical_methods:
+      - "Median filtering"
+      - "Marzullo's intersection"
+      - "Linear regression for drift"
+      - "Outlier detection"
+      - "Confidence intervals"
+    
+    monitoring:
+      - "Continuous skew monitoring"
+      - "Alerting on drift threshold"
+      - "Historical skew analysis"
+      - "Clock health metrics"
+  
+  # Distributed System Time Patterns (25+ topics)
+  distributed_patterns:
+    event_ordering:
+      - "Causal ordering"
+      - "Total ordering"
+      - "FIFO ordering"
+      - "Happened-before graphs"
+      - "Consistent cuts"
+    
+    transaction_ordering:
+      - "Snapshot isolation timestamps"
+      - "Serializable timestamp ordering"
+      - "Multi-version concurrency control"
+      - "Timestamp allocation"
+      - "Commit timestamp selection"
+    
+    cache_invalidation:
+      - "TTL-based expiration"
+      - "Clock-based cache coherence"
+      - "Lease-based consistency"
+      - "Time-bounded staleness"
+    
+    rate_limiting:
+      - "Token bucket with timestamps"
+      - "Sliding window rate limiting"
+      - "Distributed rate limiting"
+      - "Clock skew in rate limits"
+
+# === BUG PATTERNS ===
+bug_patterns:
+  wall_clock_ordering:
+    - pattern: "cross_node_timestamp_compare"
+      description: "Comparing timestamps from different machines"
+      severity: "critical"
+      detection: "Events appear out of order"
+      fix: "Use logical clocks or synchronized time service"
+      code_example: |
+        # Bug: comparing wall clock across nodes
+        if event_from_node_a.timestamp < event_from_node_b.timestamp:
+            # This comparison is meaningless with clock skew!
+            process_a_first()
+        
+        # Fix: use hybrid logical clock
+        if event_from_node_a.hlc < event_from_node_b.hlc:
+            process_a_first()
+    
+    - pattern: "timestamp_for_lease"
+      description: "Using wall clock for leader lease validity"
+      severity: "critical"
+      detection: "Two leaders active simultaneously"
+      fix: "Account for clock skew in lease duration"
+      code_example: |
+        # Bug: not accounting for skew
+        lease_valid = current_time < lease_expiry
+        
+        # Fix: subtract max possible skew
+        MAX_CLOCK_SKEW = 0.5  # seconds
+        lease_valid = current_time < (lease_expiry - MAX_CLOCK_SKEW)
+
+  duration_measurement:
+    - pattern: "wall_clock_for_elapsed"
+      description: "Using wall clock for duration measurement"
+      severity: "high"
+      detection: "Negative or incorrect durations"
+      fix: "Use monotonic clock"
+      code_example: |
+        # Bug: wall clock for duration
+        start = time.time()
+        do_work()
+        elapsed = time.time() - start  # Can be negative!
+        
+        # Fix: monotonic clock
+        start = time.monotonic()
+        do_work()
+        elapsed = time.monotonic() - start  # Always positive
+    
+    - pattern: "timeout_with_wall_clock"
+      description: "Timeout logic using wall clock"
+      severity: "high"
+      detection: "Premature or delayed timeouts"
+      fix: "Use monotonic clock for timeouts"
+
+  ntp_handling:
+    - pattern: "no_step_handling"
+      description: "Not handling NTP step adjustments"
+      severity: "high"
+      detection: "Data inconsistency after NTP correction"
+      fix: "Use monotonic clock or handle steps explicitly"
+    
+    - pattern: "assuming_forward_time"
+      description: "Assuming time always moves forward"
+      severity: "high"
+      detection: "Logic errors when clock goes backward"
+      fix: "Handle backward time jumps gracefully"
+      code_example: |
+        # Bug: assuming forward time
+        if current_time < last_seen_time:
+            raise Error("Impossible!")  # Not impossible!
+        
+        # Fix: handle gracefully
+        if current_time < last_seen_time:
+            logger.warning("Clock went backward, adjusting")
+            current_time = last_seen_time
+
+  leap_second_handling:
+    - pattern: "no_leap_second_handling"
+      description: "Not handling leap second insertion"
+      severity: "medium"
+      detection: "Errors at leap second boundaries"
+      fix: "Use leap second smearing or explicit handling"
+    
+    - pattern: "assuming_60_seconds"
+      description: "Assuming minutes always have 60 seconds"
+      severity: "medium"
+      detection: "Off-by-one errors at leap seconds"
+      fix: "Don't assume fixed seconds per minute"
+
+  timezone_issues:
+    - pattern: "local_time_comparison"
+      description: "Comparing local times without timezone"
+      severity: "medium"
+      detection: "Incorrect ordering across timezones"
+      fix: "Always use UTC for storage and comparison"
+    
+    - pattern: "dst_transition_bug"
+      description: "Not handling DST transitions"
+      severity: "medium"
+      detection: "Missing or duplicate hours"
+      fix: "Use UTC or proper timezone handling"
+
+# === EDGE CASES ===
+edge_cases:
+  clock_adjustment_scenarios:
+    - "NTP step adjustment of 1 second"
+    - "NTP step adjustment of 1 hour"
+    - "NTP slew adjustment over 30 minutes"
+    - "Clock correction while transaction in progress"
+    - "Multiple rapid NTP adjustments"
+    - "NTP daemon restart causing gap"
+    - "System time set to past manually"
+    - "System time set to future manually"
+    - "Clock source change (TSC to HPET)"
+    - "Hypervisor time injection"
+
+  extreme_skew_scenarios:
+    - "100ms skew between nodes"
+    - "1 second skew between nodes"
+    - "10 second skew between nodes"
+    - "Clock skew larger than heartbeat interval"
+    - "Clock skew larger than lease duration"
+    - "Skew direction reverses during operation"
+    - "One node much faster than others"
+    - "One node much slower than others"
+
+  leap_second_scenarios:
+    - "Positive leap second (23:59:60)"
+    - "Negative leap second (skipped second)"
+    - "Leap second during transaction"
+    - "Leap second during failover"
+    - "System with leap second smearing"
+    - "System without leap second smearing"
+    - "Mixed smearing configuration"
+
+  vm_and_container_scenarios:
+    - "VM suspend and resume"
+    - "VM live migration"
+    - "Container pause and unpause"
+    - "Container migration"
+    - "Overloaded hypervisor"
+    - "CPU steal time affecting timing"
+    - "Nested virtualization"
+
+  network_scenarios:
+    - "NTP server unreachable"
+    - "All NTP servers unreachable"
+    - "NTP server returning bad time"
+    - "Network partition isolating from time servers"
+    - "High latency to NTP servers"
+    - "Asymmetric network paths"
+
+# === DIFFICULTY MULTIPLIERS ===
+difficulty_multipliers:
+  precision_requirements:
+    sub_millisecond:
+      multiplier: 1.5
+      description: "Sub-millisecond ordering required"
+      considerations:
+        - "PTP requirement"
+        - "Hardware timestamping"
+        - "Kernel bypass"
+    
+    sub_microsecond:
+      multiplier: 2.0
+      description: "Microsecond-level precision"
+      considerations:
+        - "Specialized hardware"
+        - "Direct clock access"
+        - "Interrupt handling"
+
+  consistency_requirements:
+    external_consistency:
+      multiplier: 2.0
+      description: "TrueTime-style external consistency"
+      considerations:
+        - "Commit wait overhead"
+        - "GPS/atomic clock requirements"
+        - "Uncertainty tracking"
+    
+    linearizability_with_time:
+      multiplier: 1.8
+      description: "Linearizable with real-time ordering"
+      considerations:
+        - "Clock synchronization"
+        - "Read freshness"
+        - "Write visibility"
+
+  deployment_complexity:
+    multi_datacenter:
+      multiplier: 1.8
+      description: "Cross-datacenter time synchronization"
+      considerations:
+        - "WAN latency"
+        - "Multiple time sources"
+        - "Asymmetric paths"
+    
+    edge_deployment:
+      multiplier: 1.5
+      description: "Edge locations with poor connectivity"
+      considerations:
+        - "Intermittent NTP access"
+        - "Local clock drift"
+        - "Recovery procedures"
+
+# === SCENARIO TEMPLATES ===
+scenario_templates:
+  basic_ordering_bug:
+    description: "Using wall clock for event ordering"
+    setup: |
+      - 3 node cluster
+      - Nodes have ~50ms clock skew
+      - Events generated on all nodes
+    symptoms: |
+      - Events appear out of order
+      - Causally related events misordered
+      - Inconsistent state across nodes
+    root_cause: "Using System.currentTimeMillis() for ordering"
+    fix: |
+      - Implement hybrid logical clocks
+      - Use vector clocks for causality
+      - Centralized timestamp allocation
+
+  ntp_step_disruption:
+    description: "NTP step adjustment causes issues"
+    setup: |
+      - Node clock 5 minutes ahead
+      - NTP corrects with step adjustment
+      - Application has active transactions
+    symptoms: |
+      - Transactions appear to time out
+      - Negative durations calculated
+      - Lease violations
+    root_cause: "Using wall clock for durations and timeouts"
+    fix: |
+      - Use monotonic clock for durations
+      - Handle time discontinuities
+      - Use NTP slew mode
+
+  lease_violation:
+    description: "Clock skew causes lease overlap"
+    setup: |
+      - Leader with lease until T+10s
+      - Leader clock is 2s fast
+      - Other nodes with accurate clocks
+    symptoms: |
+      - Two nodes act as leader
+      - Data corruption
+      - Split-brain behavior
+    root_cause: "Lease validity not accounting for skew"
+    fix: |
+      - Subtract max_skew from lease
+      - Use bounded uncertainty
+      - Implement fencing tokens
+
+  vm_clock_drift:
+    description: "VM clock drifts after suspend"
+    setup: |
+      - VM suspended for maintenance
+      - VM resumed after 1 hour
+      - VM clock 1 hour behind
+    symptoms: |
+      - All timestamps in past
+      - Data appears stale
+      - Synchronization failures
+    root_cause: "VM clock not updated on resume"
+    fix: |
+      - Force NTP sync on resume
+      - Detect large clock jumps
+      - Use hypervisor clock
+
+# === REFERENCE SOLUTION ===
+reference_solution: |
+  #!/usr/bin/env python3
+  """
+  Comprehensive clock handling for distributed systems.
+  Implements hybrid logical clocks, skew detection, and proper time handling.
+  """
+  import time
+  import threading
+  import struct
+  import hashlib
+  from typing import Dict, List, Tuple, Optional, Callable, Any
+  from dataclasses import dataclass, field
+  from enum import Enum, auto
+  from collections import defaultdict
+  import logging
+  import statistics
+  
+  logging.basicConfig(level=logging.INFO)
+  logger = logging.getLogger(__name__)
+  
+  # === HYBRID LOGICAL CLOCK ===
+  
+  @dataclass(frozen=True)
+  class HybridTimestamp:
+      """
+      Hybrid Logical Clock timestamp.
+      Combines physical time with logical counter for ordering.
+      """
+      physical: int  # Wall clock in microseconds
+      logical: int   # Logical counter
+      node_id: str   # Node identifier for tie-breaking
+      
+      def __lt__(self, other: 'HybridTimestamp') -> bool:
+          if self.physical != other.physical:
+              return self.physical < other.physical
+          if self.logical != other.logical:
+              return self.logical < other.logical
+          return self.node_id < other.node_id
+      
+      def __le__(self, other: 'HybridTimestamp') -> bool:
+          return self == other or self < other
+      
+      def __gt__(self, other: 'HybridTimestamp') -> bool:
+          return other < self
+      
+      def __ge__(self, other: 'HybridTimestamp') -> bool:
+          return other <= self
+      
+      def __eq__(self, other: object) -> bool:
+          if not isinstance(other, HybridTimestamp):
+              return NotImplemented
+          return (self.physical == other.physical and 
+                  self.logical == other.logical and
+                  self.node_id == other.node_id)
+      
+      def __hash__(self) -> int:
+          return hash((self.physical, self.logical, self.node_id))
+      
+      def to_bytes(self) -> bytes:
+          """Serialize for network transmission."""
+          node_bytes = self.node_id.encode('utf-8')[:16].ljust(16, b'\x00')
+          return struct.pack('>QI', self.physical, self.logical) + node_bytes
+      
+      @classmethod
+      def from_bytes(cls, data: bytes) -> 'HybridTimestamp':
+          """Deserialize from network."""
+          physical, logical = struct.unpack('>QI', data[:12])
+          node_id = data[12:28].rstrip(b'\x00').decode('utf-8')
+          return cls(physical, logical, node_id)
+      
+      def __str__(self) -> str:
+          return f"HLC({self.physical}.{self.logical}@{self.node_id})"
+  
+  class HybridLogicalClock:
+      """
+      Hybrid Logical Clock implementation.
+      Provides causally consistent timestamps across distributed nodes.
+      """
+      
+      # Maximum allowed drift from physical time
+      MAX_DRIFT_US = 1_000_000  # 1 second
+      
+      def __init__(self, node_id: str, physical_clock: Callable[[], int] = None):
+          self.node_id = node_id
+          self._physical_clock = physical_clock or self._default_physical_clock
+          self._last_physical = 0
+          self._logical = 0
+          self._lock = threading.Lock()
+          self._max_seen_physical = 0
+      
+      @staticmethod
+      def _default_physical_clock() -> int:
+          """Get current physical time in microseconds."""
+          return int(time.time() * 1_000_000)
+      
+      def now(self) -> HybridTimestamp:
+          """Generate a new timestamp for a local event."""
+          with self._lock:
+              physical = self._physical_clock()
+              
+              # Detect clock going backward
+              if physical < self._last_physical:
+                  logger.warning(
+                      f"Clock went backward: {self._last_physical} -> {physical}"
+                  )
+              
+              if physical > self._last_physical:
+                  self._last_physical = physical
+                  self._logical = 0
+              else:
+                  # Physical clock hasn't advanced, increment logical
+                  self._logical += 1
+              
+              # Check for excessive drift
+              if self._last_physical - physical > self.MAX_DRIFT_US:
+                  logger.error(
+                      f"HLC drift too large: {self._last_physical - physical}us"
+                  )
+              
+              return HybridTimestamp(
+                  self._last_physical,
+                  self._logical,
+                  self.node_id
+              )
+      
+      def receive(self, remote_ts: HybridTimestamp) -> HybridTimestamp:
+          """
+          Update clock based on received message timestamp.
+          Returns timestamp for the receive event.
+          """
+          with self._lock:
+              physical = self._physical_clock()
+              
+              # Track maximum seen physical time
+              self._max_seen_physical = max(
+                  self._max_seen_physical,
+                  remote_ts.physical
+              )
+              
+              # Take max of local physical, remote physical, and last seen
+              new_physical = max(physical, remote_ts.physical, self._last_physical)
+              
+              # Check for excessive drift from remote
+              if new_physical - physical > self.MAX_DRIFT_US:
+                  logger.warning(
+                      f"Remote clock too far ahead: {new_physical - physical}us, "
+                      f"limiting to max drift"
+                  )
+                  new_physical = physical + self.MAX_DRIFT_US
+              
+              if new_physical == self._last_physical == remote_ts.physical:
+                  # All same physical time - increment logical
+                  self._logical = max(self._logical, remote_ts.logical) + 1
+              elif new_physical == self._last_physical:
+                  # Local physical highest
+                  self._logical += 1
+              elif new_physical == remote_ts.physical:
+                  # Remote physical highest
+                  self._logical = remote_ts.logical + 1
+              else:
+                  # New physical time highest
+                  self._logical = 0
+              
+              self._last_physical = new_physical
+              
+              return HybridTimestamp(
+                  self._last_physical,
+                  self._logical,
+                  self.node_id
+              )
+      
+      def get_uncertainty_window(self) -> Tuple[int, int]:
+          """Get current time uncertainty window."""
+          with self._lock:
+              physical = self._physical_clock()
+              return (physical - self.MAX_DRIFT_US, physical + self.MAX_DRIFT_US)
+  
+  # === MONOTONIC TIMER ===
+  
+  class MonotonicTimer:
+      """
+      Timer using monotonic clock for duration measurements.
+      Not affected by NTP adjustments or leap seconds.
+      """
+      
+      def __init__(self):
+          self._start = time.monotonic()
+          self._last_check = self._start
+      
+      def elapsed(self) -> float:
+          """Return elapsed time in seconds since creation."""
+          return time.monotonic() - self._start
+      
+      def elapsed_since_last_check(self) -> float:
+          """Return elapsed time since last check."""
+          now = time.monotonic()
+          elapsed = now - self._last_check
+          self._last_check = now
+          return elapsed
+      
+      def reset(self):
+          """Reset timer to now."""
+          self._start = time.monotonic()
+          self._last_check = self._start
+      
+      @staticmethod
+      def sleep(seconds: float):
+          """Sleep for specified duration using monotonic reference."""
+          end = time.monotonic() + seconds
+          while time.monotonic() < end:
+              remaining = end - time.monotonic()
+              if remaining > 0:
+                  time.sleep(min(remaining, 0.1))  # Wake up periodically
+  
+  class Deadline:
+      """
+      Deadline tracking using monotonic clock.
+      """
+      
+      def __init__(self, timeout_seconds: float):
+          self._deadline = time.monotonic() + timeout_seconds
+      
+      def expired(self) -> bool:
+          """Check if deadline has passed."""
+          return time.monotonic() >= self._deadline
+      
+      def remaining(self) -> float:
+          """Get remaining time until deadline."""
+          return max(0, self._deadline - time.monotonic())
+      
+      def extend(self, seconds: float):
+          """Extend deadline by specified seconds."""
+          self._deadline += seconds
+  
+  # === CLOCK SKEW DETECTION ===
+  
+  class ClockSkewDetector:
+      """
+      Detect and measure clock skew between nodes.
+      Uses NTP-style round-trip measurements.
+      """
+      
+      def __init__(self, local_node: str, max_samples: int = 100):
+          self.local_node = local_node
+          self.max_samples = max_samples
+          self._skew_samples: Dict[str, List[Tuple[float, float]]] = defaultdict(list)
+          self._lock = threading.Lock()
+      
+      def record_roundtrip(
+          self, 
+          remote_node: str,
+          t1: float,  # Local send time (monotonic)
+          t2: float,  # Remote receive time (remote's clock)
+          t3: float,  # Remote send time (remote's clock)
+          t4: float   # Local receive time (monotonic)
+      ):
+          """
+          Record NTP-style roundtrip for skew calculation.
+          
+          Skew (offset) = ((t2 - t1) + (t3 - t4)) / 2
+          RTT (delay) = (t4 - t1) - (t3 - t2)
+          """
+          skew = ((t2 - t1) + (t3 - t4)) / 2
+          rtt = (t4 - t1) - (t3 - t2)
+          
+          if rtt < 0:
+              logger.warning(f"Negative RTT to {remote_node}: {rtt}")
+              return
+          
+          with self._lock:
+              self._skew_samples[remote_node].append((skew, rtt))
+              
+              # Keep only recent samples
+              if len(self._skew_samples[remote_node]) > self.max_samples:
+                  self._skew_samples[remote_node] = \
+                      self._skew_samples[remote_node][-self.max_samples:]
+      
+      def get_skew(self, remote_node: str) -> Optional[float]:
+          """
+          Get estimated clock skew to remote node.
+          Positive means remote is ahead, negative means behind.
+          """
+          with self._lock:
+              samples = self._skew_samples.get(remote_node, [])
+              if not samples:
+                  return None
+              
+              # Use samples with lowest RTT (most accurate)
+              sorted_samples = sorted(samples, key=lambda x: x[1])
+              best_samples = sorted_samples[:min(10, len(sorted_samples))]
+              
+              # Return median of best samples
+              skews = [s[0] for s in best_samples]
+              return statistics.median(skews)
+      
+      def get_skew_with_confidence(
+          self, 
+          remote_node: str
+      ) -> Optional[Tuple[float, float, float]]:
+          """
+          Get skew estimate with confidence interval.
+          Returns (skew, lower_bound, upper_bound).
+          """
+          with self._lock:
+              samples = self._skew_samples.get(remote_node, [])
+              if len(samples) < 3:
+                  return None
+              
+              sorted_samples = sorted(samples, key=lambda x: x[1])
+              best_samples = sorted_samples[:min(20, len(sorted_samples))]
+              skews = [s[0] for s in best_samples]
+              
+              median_skew = statistics.median(skews)
+              stdev = statistics.stdev(skews) if len(skews) > 1 else 0
+              
+              return (
+                  median_skew,
+                  median_skew - 2 * stdev,
+                  median_skew + 2 * stdev
+              )
+      
+      def is_clock_healthy(
+          self, 
+          remote_node: str, 
+          threshold_ms: float = 100
+      ) -> bool:
+          """Check if clock skew is within acceptable threshold."""
+          skew = self.get_skew(remote_node)
+          if skew is None:
+              return True  # No data yet, assume healthy
+          return abs(skew * 1000) < threshold_ms
+      
+      def get_all_skews(self) -> Dict[str, float]:
+          """Get estimated skew to all known nodes."""
+          result = {}
+          with self._lock:
+              for node in self._skew_samples:
+                  skew = self.get_skew(node)
+                  if skew is not None:
+                      result[node] = skew
+          return result
+  
+  # === TIME UNCERTAINTY TRACKING ===
+  
+  @dataclass
+  class TimeInterval:
+      """Represents a time uncertainty interval [earliest, latest]."""
+      earliest: int  # Microseconds
+      latest: int    # Microseconds
+      
+      def overlaps(self, other: 'TimeInterval') -> bool:
+          """Check if intervals overlap."""
+          return self.earliest <= other.latest and other.earliest <= self.latest
+      
+      def contains(self, timestamp: int) -> bool:
+          """Check if timestamp is within interval."""
+          return self.earliest <= timestamp <= self.latest
+      
+      def width(self) -> int:
+          """Get interval width in microseconds."""
+          return self.latest - self.earliest
+      
+      def __lt__(self, other: 'TimeInterval') -> bool:
+          """This interval is definitely before other."""
+          return self.latest < other.earliest
+      
+      def __gt__(self, other: 'TimeInterval') -> bool:
+          """This interval is definitely after other."""
+          return self.earliest > other.latest
+  
+  class TrueTimeSimulator:
+      """
+      Simulates TrueTime API for systems without GPS/atomic clocks.
+      Tracks uncertainty based on NTP synchronization.
+      """
+      
+      def __init__(
+          self, 
+          base_uncertainty_us: int = 10_000,  # 10ms base
+          drift_rate_ppm: float = 200.0       # 200 ppm drift
+      ):
+          self.base_uncertainty = base_uncertainty_us
+          self.drift_rate = drift_rate_ppm / 1_000_000
+          self._last_sync = time.monotonic()
+          self._lock = threading.Lock()
+      
+      def now(self) -> TimeInterval:
+          """
+          Get current time as uncertainty interval.
+          Equivalent to TrueTime.now().
+          """
+          with self._lock:
+              physical = int(time.time() * 1_000_000)
+              
+              # Calculate uncertainty based on time since last sync
+              time_since_sync = time.monotonic() - self._last_sync
+              drift_uncertainty = int(time_since_sync * self.drift_rate * 1_000_000)
+              
+              total_uncertainty = self.base_uncertainty + drift_uncertainty
+              
+              return TimeInterval(
+                  physical - total_uncertainty,
+                  physical + total_uncertainty
+              )
+      
+      def after(self, timestamp: int) -> bool:
+          """
+          Check if current time is definitely after timestamp.
+          Equivalent to TrueTime.after(t).
+          """
+          interval = self.now()
+          return interval.earliest > timestamp
+      
+      def before(self, timestamp: int) -> bool:
+          """
+          Check if current time is definitely before timestamp.
+          Equivalent to TrueTime.before(t).
+          """
+          interval = self.now()
+          return interval.latest < timestamp
+      
+      def record_sync(self, sync_error_us: int = 0):
+          """Record that clock synchronization occurred."""
+          with self._lock:
+              self._last_sync = time.monotonic()
+              self.base_uncertainty = max(1000, sync_error_us)  # At least 1ms
+      
+      def commit_wait(self, commit_timestamp: int):
+          """
+          Wait until current time is definitely after commit timestamp.
+          Implements Spanner's commit-wait.
+          """
+          while not self.after(commit_timestamp):
+              interval = self.now()
+              wait_time = (commit_timestamp - interval.earliest) / 1_000_000
+              if wait_time > 0:
+                  time.sleep(min(wait_time, 0.01))  # Max 10ms sleeps
+  
+  # === DISTRIBUTED EVENT ORDERING ===
+  
+  @dataclass
+  class DistributedEvent:
+      """Event with proper timestamp for distributed ordering."""
+      timestamp: HybridTimestamp
+      event_type: str
+      data: Any
+      node_id: str
+      
+      def __lt__(self, other: 'DistributedEvent') -> bool:
+          return self.timestamp < other.timestamp
+      
+      def __eq__(self, other: object) -> bool:
+          if not isinstance(other, DistributedEvent):
+              return NotImplemented
+          return self.timestamp == other.timestamp
+      
+      def __hash__(self) -> int:
+          return hash(self.timestamp)
+  
+  class EventOrderer:
+      """Orders events from multiple nodes correctly."""
+      
+      def __init__(self):
+          self._events: List[DistributedEvent] = []
+          self._lock = threading.Lock()
+      
+      def add_event(self, event: DistributedEvent):
+          """Add event to the ordering."""
+          with self._lock:
+              self._events.append(event)
+      
+      def get_ordered_events(self) -> List[DistributedEvent]:
+          """Get all events in correct causal order."""
+          with self._lock:
+              return sorted(self._events)
+      
+      def get_events_after(self, timestamp: HybridTimestamp) -> List[DistributedEvent]:
+          """Get events after the given timestamp."""
+          with self._lock:
+              return sorted([e for e in self._events if e.timestamp > timestamp])
+  
+  # === NTP ADJUSTMENT DETECTION ===
+  
+  class ClockAdjustmentDetector:
+      """Detect NTP step adjustments and clock jumps."""
+      
+      def __init__(self, threshold_seconds: float = 0.1):
+          self.threshold = threshold_seconds
+          self._last_wall = time.time()
+          self._last_mono = time.monotonic()
+          self._callbacks: List[Callable[[float], None]] = []
+          self._lock = threading.Lock()
+      
+      def check(self) -> Optional[float]:
+          """
+          Check for clock adjustment.
+          Returns adjustment size in seconds if detected, None otherwise.
+          """
+          with self._lock:
+              wall = time.time()
+              mono = time.monotonic()
+              
+              wall_delta = wall - self._last_wall
+              mono_delta = mono - self._last_mono
+              
+              adjustment = wall_delta - mono_delta
+              
+              self._last_wall = wall
+              self._last_mono = mono
+              
+              if abs(adjustment) > self.threshold:
+                  logger.warning(f"Clock adjustment detected: {adjustment}s")
+                  for callback in self._callbacks:
+                      try:
+                          callback(adjustment)
+                      except Exception as e:
+                          logger.error(f"Callback error: {e}")
+                  return adjustment
+              
+              return None
+      
+      def on_adjustment(self, callback: Callable[[float], None]):
+          """Register callback for clock adjustments."""
+          with self._lock:
+              self._callbacks.append(callback)
+  
+  # === TESTS ===
+  
+  def test_hlc_ordering():
+      """Test HLC provides correct ordering."""
+      hlc1 = HybridLogicalClock("node1")
+      hlc2 = HybridLogicalClock("node2")
+      
+      # Generate timestamps
+      ts1 = hlc1.now()
+      ts2 = hlc2.now()
+      
+      # Receive message from node1 to node2
+      ts3 = hlc2.receive(ts1)
+      
+      # ts3 should be after both ts1 and ts2
+      assert ts3 > ts1, "Receive timestamp should be after sent"
+      assert ts3 > ts2, "Receive timestamp should be after local"
+      
+      print("✓ HLC ordering correct")
+  
+  def test_monotonic_timer():
+      """Test monotonic timer is not affected by wall clock."""
+      timer = MonotonicTimer()
+      
+      time.sleep(0.1)
+      elapsed = timer.elapsed()
+      
+      assert 0.09 < elapsed < 0.2, f"Elapsed should be ~0.1s, got {elapsed}"
+      
+      # Elapsed should always be positive and increasing
+      prev = timer.elapsed()
+      for _ in range(100):
+          curr = timer.elapsed()
+          assert curr >= prev, "Monotonic time should never go backward"
+          prev = curr
+      
+      print("✓ Monotonic timer works")
+  
+  def test_skew_detection():
+      """Test clock skew detection."""
+      detector = ClockSkewDetector("local")
+      
+      # Simulate roundtrip with 50ms skew
+      # Remote clock is 50ms ahead
+      skew = 0.05  # 50ms
+      for i in range(10):
+          t1 = time.monotonic()
+          t2 = t1 + 0.005 + skew  # 5ms network delay + skew
+          t3 = t2 + 0.001  # 1ms processing
+          t4 = t1 + 0.011  # 11ms total roundtrip
+          
+          detector.record_roundtrip("remote", t1, t2, t3, t4)
+      
+      estimated_skew = detector.get_skew("remote")
+      assert estimated_skew is not None
+      assert abs(estimated_skew - skew) < 0.01, f"Skew estimate off: {estimated_skew}"
+      
+      print("✓ Skew detection works")
+  
+  def test_truetime_commit_wait():
+      """Test TrueTime-style commit wait."""
+      tt = TrueTimeSimulator(base_uncertainty_us=10_000)  # 10ms
+      
+      interval = tt.now()
+      commit_ts = interval.latest  # Commit at latest possible time
+      
+      # Should need to wait for uncertainty window
+      start = time.monotonic()
+      tt.commit_wait(commit_ts)
+      elapsed = time.monotonic() - start
+      
+      # Should have waited at least the uncertainty
+      assert elapsed >= 0.01, f"Commit wait too short: {elapsed}s"
+      
+      print("✓ Commit wait works")
+  
+  if __name__ == "__main__":
+      test_hlc_ordering()
+      test_monotonic_timer()
+      test_skew_detection()
+      test_truetime_commit_wait()
+      print("\nAll tests passed!")
+
+# LLM trap configurations
+traps:
+  - type: "wall_clock_ordering"
+    description: "Using system time for event ordering across nodes"
+    trigger: "Comparing timestamps from different machines"
+  
+  - type: "non_monotonic_time"
+    description: "System clock can go backwards (NTP adjustment)"
+    trigger: "Assuming time always increases"
+  
+  - type: "leap_second"
+    description: "Leap second causes time discontinuity"
+    trigger: "Not handling leap second smearing"
+  
+  - type: "vm_clock_drift"
+    description: "VM clock drifts significantly after suspend"
+    trigger: "Trusting VM clock without verification"
+  
+  - type: "duration_with_wall_clock"
+    description: "Measuring duration with wall clock"
+    trigger: "Using time.time() for elapsed time"
+  
+  - type: "lease_without_skew"
+    description: "Leader lease not accounting for clock skew"
+    trigger: "Two leaders active simultaneously"
+
+# Task generation template
+instruction_template: |
+  You are debugging a {{ scenario_type }} with clock-related ordering bugs.
+  The system code is at {{ path }}.
+  
+  Measured clock skew: {{ max_skew_ms }} ms between nodes
+  Event ordering errors: {{ ordering_errors }} per hour
+  
+  Your task:
+  {{ task_steps }}
+
+# Test cases
+fail_to_pass:
+  - "test_ordering_with_skew"
+  - "test_ntp_adjustment_handling"
+  - "test_leap_second_handling"
+  - "test_vm_suspend_resume"
+  - "test_monotonic_for_duration"
+  - "test_lease_with_skew"
+
+pass_to_pass:
+  - "test_hlc_basic_ordering"
+  - "test_monotonic_timer"
+
+# Variables for task generation
+variables:
+  - name: scenario_type
+    type: string
+    options: 
+      - "distributed transaction"
+      - "event sourcing"
+      - "distributed log"
+      - "consensus protocol"
+      - "cache invalidation"
+      - "distributed lock"
+      - "leader election"
+  - name: path
+    type: path
+    generator: random_path
+  - name: max_skew_ms
+    type: int
+    min: 10
+    max: 1000
+  - name: ordering_errors
+    type: int
+    min: 1
+    max: 10000
+  - name: task_steps
+    type: template
+    value: |
+      1. Measure clock skew between all nodes
+      2. Identify wall-clock ordering bugs
+      3. Implement hybrid logical clocks
+      4. Use monotonic time for all durations
+      5. Handle NTP adjustments gracefully
+      6. Add clock health monitoring
+      7. Account for skew in lease/timeout logic
+
+# Anti-hardcoding measures
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  clock_issues:
+    - ntp_step_adjustment
+    - leap_second_jump
+    - vm_clock_drift
+    - timezone_confusion
+    - wall_clock_duration
+    - lease_skew_violation
+
+# Anti-patterns that LLMs commonly fail on
+anti_patterns:
+  llm_failure_modes:
+    - "Applying userspace patterns to kernel-level problems"
+    - "Missing memory ordering and barrier requirements"
+    - "Ignoring NUMA topology effects on performance"
+    - "Not considering scheduler behavior under load"
+    - "Missing ABA problems in lock-free data structures"
+    - "Overlooking signal handler safety restrictions"
+    - "Assuming atomic operations are always sufficient"
+    - "Missing file descriptor inheritance across fork/exec"
+    - "Ignoring distributed consensus edge cases (Byzantine failures)"
+    - "Using wall clock for distributed event ordering"
+    - "Not accounting for clock skew in leader lease calculations"
+    - "Assuming monotonic clock is synchronized across nodes"
+    - "Missing NTP step adjustment handling in long-running transactions"
+    - "Not understanding leap second smearing inconsistencies"
+    - "Ignoring VM clock drift after suspend/resume"
+    - "Using System.currentTimeMillis() for duration measurements"
+    - "Not implementing proper HLC receive semantics"
+    - "Missing commit wait in external consistency protocols"
+    - "Assuming TSC is invariant without checking CPU features"
+    - "Not handling asymmetric network delays in clock synchronization"
+    - "Ignoring hardware timestamping requirements for precision"
+    - "Missing clock bounds in Spanner-style protocols"

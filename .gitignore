@@ -1,0 +1,23 @@
+# Build artifacts
+/target/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Rust
+*.rs.bk
+
+# Generated output directories
+/factory-output/
+/devops-output/
+/security-output/
+/algorithms-output/
+/collected/
+/output/

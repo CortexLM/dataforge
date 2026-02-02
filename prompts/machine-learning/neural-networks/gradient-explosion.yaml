@@ -1,0 +1,1905 @@
+id: "ml-nn-gradient-explosion-001"
+version: "2.0.0"
+category: "machine-learning"
+subcategory: "neural-networks"
+complexity: "expert"
+
+# === LLM GENERATION FRAMEWORK ===
+generation_framework:
+  multi_conversation_workflow:
+    phase_1_research: "Research obscure ML failure modes and training instabilities"
+    phase_2_creation: "Create task with subtle numerical and optimization bugs"
+    phase_3_amplification: "Add mathematical rigor requirements for gradient analysis"
+    phase_4_verification:
+      description: "Validate task requires deep understanding of backpropagation"
+      validation_criteria:
+        - "Has at least 5 interacting hidden traps"
+        - "Has cascading numerical instability issues"
+        - "Requires knowledge of framework internals (PyTorch/TensorFlow compilation)"
+        - "Would take experienced ML engineers 45+ minutes"
+        - "Combines mathematical theory with systems-level debugging"
+  
+  task_generation_strategy:
+    min_unique_tasks: 10000
+    complexity_levels: ["medium", "hard", "expert", "research"]
+    require_mathematical_proofs: true
+    require_framework_specific_knowledge: true
+    require_numerical_stability_analysis: true
+    time_range: [1800, 5400]
+    command_steps: [25, 75]
+  
+  quality_requirements:
+    minimum_time: "120-240 minutes for ML researchers with PhD-level expertise"
+    depth: "Requires deep understanding of automatic differentiation, numerical computing, and hardware-specific optimization"
+    traps: "10+ deeply interacting traps across numerical stability, optimization dynamics, and framework internals"
+  
+  generation_targets:
+    minimum_difficulty: "120-240 minutes, requires PhD-level ML theory, numerical analysis, and systems programming expertise"
+    target_audience: "Senior ML researchers with deep learning systems expertise and publication track record"
+    failure_mode_count: 10
+  
+  multi_agent_orchestration:
+    required_agents:
+      - agent: "numerical_analyst"
+        role: "Analyzes floating-point stability and gradient magnitude dynamics"
+        expertise: ["condition_number_analysis", "error_propagation", "precision_loss"]
+      - agent: "optimization_theorist"
+        role: "Validates convergence guarantees and loss landscape properties"
+        expertise: ["convex_optimization", "saddle_point_dynamics", "adaptive_methods"]
+      - agent: "framework_debugger"
+        role: "Debugs cross-framework gradient computation and memory issues"
+        expertise: ["pytorch_autograd", "tensorflow_gradient_tape", "jax_transforms"]
+      - agent: "hardware_optimizer"
+        role: "Optimizes training for specific GPU/TPU architectures"
+        expertise: ["cuda_optimization", "tensor_core_utilization", "memory_hierarchy"]
+      - agent: "distributed_systems_engineer"
+        role: "Debugs gradient synchronization in distributed training"
+        expertise: ["allreduce_algorithms", "gradient_compression", "pipeline_parallelism"]
+      - agent: "initialization_specialist"
+        role: "Designs and validates weight initialization schemes"
+        expertise: ["signal_propagation", "mean_field_theory", "edge_of_chaos"]
+      - agent: "normalization_architect"
+        role: "Analyzes and fixes normalization layer issues"
+        expertise: ["batch_norm_internals", "layer_norm_placement", "running_statistics"]
+    cross_framework_attack_chains:
+      - chain: "pytorch_gradient_to_tensorflow_instability"
+        description: "Debug gradient explosion originating in PyTorch that manifests as instability in TensorFlow conversion"
+        steps:
+          - "Identify gradient magnitude divergence in PyTorch training"
+          - "Trace through autograd graph to find amplification points"
+          - "Analyze ONNX export numerical precision loss"
+          - "Debug TensorFlow SavedModel gradient behavior differences"
+      - chain: "jax_jit_to_numerical_catastrophe"
+        description: "Resolve numerical instability introduced by JAX JIT compilation and XLA optimization"
+        steps:
+          - "Compare eager vs JIT gradient magnitudes"
+          - "Analyze XLA fusion operations for precision loss"
+          - "Debug vmap-induced gradient accumulation issues"
+          - "Fix pmap gradient synchronization numerical errors"
+    parallel_analysis_requirements:
+      - "Coordinate gradient flow analysis across model parallel shards"
+      - "Share numerical stability diagnostics between framework-specific agents"
+      - "Maintain consistent loss scale state across mixed-precision contexts"
+      - "Synchronize initialization validation across heterogeneous accelerators"
+    agent_handoff_protocols:
+      - protocol: "instability_chain_handoff"
+        trigger: "Gradient explosion detected in forward pass"
+        from_agent: "numerical_analyst"
+        to_agent: "initialization_specialist"
+        context_transfer: ["activation_statistics", "variance_propagation", "layer_indices"]
+      - protocol: "framework_migration_handoff"
+        trigger: "Cross-framework numerical discrepancy found"
+        from_agent: "framework_debugger"
+        to_agent: "hardware_optimizer"
+        context_transfer: ["computation_graphs", "precision_modes", "kernel_implementations"]
+  
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 3.5
+      description: "Research-level difficulty requiring deep ML theory and systems expertise"
+      requirements:
+        - "10+ interacting numerical/computational traps across optimization and numerical stability"
+        - "Requires understanding of automatic differentiation internals across PyTorch, TensorFlow, and JAX"
+        - "Time estimate: 120+ minutes for senior ML researchers"
+        - "Cross-framework compatibility issues (PyTorch vs TensorFlow vs JAX)"
+        - "Requires synthesizing linear algebra, calculus, and systems programming"
+    nightmare_plus:
+      multiplier: 10.0
+      estimated_time: [43200, 172800]  # 12-48 hours
+      command_steps: [500, 2000]
+      techniques_required: 15
+      description: "Publication-grade difficulty requiring novel algorithm design and cross-framework numerical analysis"
+      requirements:
+        - "15+ deeply coupled traps requiring simultaneous resolution across numerical, optimization, and systems domains"
+        - "Novel initialization scheme or normalization technique design"
+        - "Cross-framework gradient flow analysis spanning PyTorch, TensorFlow, JAX, and custom CUDA/Triton kernels"
+        - "Formal convergence proofs with tight bounds"
+        - "Spectral analysis of weight matrices throughout training"
+        - "Production-grade implementation scaling to 1000+ GPU training"
+        - "Loss landscape visualization and saddle point analysis"
+        - "Second-order optimization method implementation and analysis"
+  
+  theoretical_foundations:
+    information_theoretic_bounds:
+      - theorem: "gradient_noise_scale_bound"
+        statement: "SNR(∇f) ≥ ||E[∇f]||² / (σ² + ||E[∇f]||²) determines convergence rate"
+        proof_requirements: ["variance_decomposition", "bias_variance_tradeoff", "central_limit_theorem"]
+        application: "Bound minimum batch size for stable training"
+      - theorem: "critical_learning_rate"
+        statement: "η_max = 2/λ_max(H) for convergence where H is Hessian"
+        proof_requirements: ["eigenvalue_analysis", "stability_theory", "lyapunov_functions"]
+        application: "Derive maximum learning rate from loss curvature"
+    differential_geometry:
+      - concept: "loss_landscape_geometry"
+        description: "Analyze gradient flow using Riemannian geometry of loss surface"
+        requirements: ["geodesic_computation", "sectional_curvature", "exponential_map"]
+      - concept: "natural_gradient_manifold"
+        description: "Use Fisher information metric for optimization geometry"
+        requirements: ["pullback_metric", "christoffel_symbols", "parallel_transport"]
+    category_theory:
+      - concept: "automatic_differentiation_functor"
+        description: "Model AD as functor from computation category to tangent category"
+        requirements: ["cartesian_differential_categories", "reverse_mode_functor", "dual_numbers"]
+      - concept: "optimization_monad"
+        description: "Formalize optimizer state transformations as monadic computations"
+        requirements: ["state_monad", "kleisli_composition", "monad_transformers"]
+    measure_theory:
+      - concept: "gradient_distribution_analysis"
+        description: "Analyze stochastic gradient distributions using measure theory"
+        requirements: ["weak_convergence", "prokhorov_theorem", "wasserstein_distance"]
+      - concept: "loss_concentration"
+        description: "Prove loss value concentration using measure-theoretic tools"
+        requirements: ["levy_lemma", "dimension_free_bounds", "log_sobolev_inequalities"]
+  
+  cross_framework_requirements:
+    pytorch_expertise:
+      - "Custom autograd.Function with numerically stable backward passes"
+      - "Gradient hooks for monitoring and intervention"
+      - "torch.compile effects on numerical precision"
+      - "AMP integration with custom loss scaling strategies"
+      - "DistributedDataParallel gradient synchronization internals"
+    tensorflow_expertise:
+      - "GradientTape nested differentiation and persistent tapes"
+      - "XLA compilation numerical precision effects"
+      - "Keras model gradient flow through custom layers"
+      - "Mixed precision policy configuration"
+      - "tf.distribute.Strategy gradient aggregation"
+    jax_expertise:
+      - "Custom VJP and JVP rules for numerical stability"
+      - "grad, value_and_grad composition patterns"
+      - "pmap gradient reduction semantics"
+      - "Flax/Haiku variable handling in gradients"
+      - "XLA HLO operation fusion effects"
+    cuda_triton_expertise:
+      - "Custom CUDA kernels for numerically stable operations"
+      - "Triton JIT compilation numerical precision"
+      - "Tensor core mixed-precision accumulation"
+      - "NCCL gradient allreduce precision modes"
+      - "GPU memory bandwidth optimization for gradient computation"
+  
+  anti_patterns:
+    llm_failure_modes:
+      - "Applying textbook solutions without considering numerical stability"
+      - "Missing gradient flow issues in deep architectures"
+      - "Ignoring framework-specific automatic differentiation behavior"
+      - "Not considering mixed precision training edge cases"
+      - "Missing hardware-specific numerical behavior (GPU vs CPU)"
+      - "Overlooking data pipeline bottlenecks masking as model issues"
+      - "Assuming standard initialization works for all architectures"
+      - "Missing tokenizer edge cases with unicode and special characters"
+      - "Ignoring batch normalization mode (train vs eval) effects"
+      - "Confusing gradient clipping with gradient normalization"
+      - "Applying wrong initialization for activation function"
+      - "Ignoring residual branch scaling for deep networks"
+      - "Missing warmup requirements for adaptive optimizers"
+      - "Incorrect loss scaling for gradient accumulation"
+      - "Assuming layer norm and batch norm are interchangeable"
+      - "Ignoring optimizer state when resuming training"
+      - "Missing gradient checkpointing memory-compute tradeoff"
+      - "Incorrect understanding of backward hook execution order"
+      - "Assuming gradients are independent across layers"
+      - "Missing correlation between weight decay and learning rate"
+      - "Ignoring attention score explosion in transformers"
+      - "Incorrect spectral normalization implementation"
+      - "Missing gradient penalty numerical stability issues"
+      - "Assuming all losses can use the same reduction mode"
+  
+  publication_requirements:
+    venue_tier: "top_ml"
+    target_venues: ["NeurIPS", "ICML", "ICLR", "JMLR", "TMLR"]
+    novel_contributions:
+      - contribution: "new_initialization_scheme"
+        description: "Novel weight initialization enabling stable training for deeper architectures"
+        requirements: ["theoretical_justification", "signal_propagation_analysis", "extensive_experiments"]
+      - contribution: "improved_normalization"
+        description: "New normalization technique with better gradient flow properties"
+        requirements: ["variance_analysis", "batch_size_robustness", "computational_efficiency"]
+      - contribution: "convergence_analysis"
+        description: "Tighter convergence bounds for deep network optimization"
+        requirements: ["mathematical_proof", "empirical_verification", "practical_implications"]
+    evaluation_requirements:
+      - "Comparison against 5+ state-of-the-art training techniques"
+      - "Evaluation on 3+ standard deep learning benchmarks"
+      - "Ablation studies for all proposed components"
+      - "Scaling analysis from small to large models"
+      - "Wall-clock time and memory efficiency comparison"
+
+# === COMPREHENSIVE TOPIC UNIVERSE ===
+topic_universe:
+  gradient_flow_issues:
+    - "vanishing_gradients_deep_networks"
+    - "exploding_gradients_rnn"
+    - "dying_relu_neurons"
+    - "saturated_sigmoid_units"
+    - "tanh_gradient_compression"
+    - "gradient_starvation_transformers"
+    - "skip_connection_gradient_highways"
+    - "residual_gradient_magnitude"
+    - "dense_connection_gradient_amplification"
+    - "gradient_bottleneck_identification"
+    - "layer_wise_gradient_decay"
+    - "gradient_noise_accumulation"
+    - "stochastic_gradient_variance"
+    - "mini_batch_gradient_instability"
+    - "gradient_interference_multitask"
+    - "gradient_conflict_detection"
+    - "gradient_projection_methods"
+    - "gradient_surgery_techniques"
+    - "gradient_vaccine_training"
+    - "gradient_episodic_memory"
+    
+  weight_initialization_strategies:
+    - "xavier_glorot_uniform"
+    - "xavier_glorot_normal"
+    - "he_kaiming_uniform"
+    - "he_kaiming_normal"
+    - "lecun_normal_initialization"
+    - "orthogonal_initialization"
+    - "sparse_initialization"
+    - "delta_orthogonal_init"
+    - "fixup_initialization"
+    - "rezero_initialization"
+    - "t_fixup_transformers"
+    - "admin_initialization"
+    - "scaled_initialization_depth"
+    - "data_dependent_initialization"
+    - "lsuv_initialization"
+    - "metainit_learned_initialization"
+    - "gradinit_gradient_based"
+    - "zeroshot_init_transfer"
+    - "pretrained_initialization_finetuning"
+    - "lottery_ticket_initialization"
+    - "variance_scaling_analysis"
+    - "signal_propagation_theory"
+    - "mean_field_theory_initialization"
+    - "edge_of_chaos_initialization"
+    - "critical_initialization_depth"
+    
+  normalization_techniques:
+    - "batch_normalization_training"
+    - "batch_normalization_inference"
+    - "batch_norm_running_stats"
+    - "batch_norm_momentum_decay"
+    - "batch_norm_epsilon_stability"
+    - "layer_normalization"
+    - "layer_norm_pre_vs_post"
+    - "rmsnorm_efficient"
+    - "instance_normalization"
+    - "group_normalization"
+    - "weight_normalization"
+    - "spectral_normalization"
+    - "switchable_normalization"
+    - "batch_renormalization"
+    - "virtual_batch_normalization"
+    - "ghost_batch_normalization"
+    - "cross_iteration_batch_norm"
+    - "filter_response_normalization"
+    - "positional_normalization"
+    - "channel_wise_normalization"
+    - "adaptive_normalization"
+    - "conditional_batch_normalization"
+    - "modulated_normalization"
+    - "normalization_free_networks"
+    - "normalizer_free_resnets"
+    
+  gradient_clipping_methods:
+    - "gradient_norm_clipping"
+    - "gradient_value_clipping"
+    - "adaptive_gradient_clipping"
+    - "block_wise_gradient_clipping"
+    - "layer_wise_gradient_clipping"
+    - "unit_wise_gradient_clipping"
+    - "gradient_centralization"
+    - "gradient_noise_injection"
+    - "gradient_smoothing"
+    - "gradient_penalty_regularization"
+    - "gradient_magnitude_preservation"
+    - "stable_gradient_descent"
+    - "gradient_masking_sparse"
+    - "selective_gradient_clipping"
+    - "dynamic_clip_threshold"
+    - "loss_scale_adaptive_clipping"
+    
+  learning_rate_schedules:
+    - "constant_learning_rate"
+    - "step_decay_schedule"
+    - "exponential_decay"
+    - "polynomial_decay"
+    - "cosine_annealing"
+    - "cosine_annealing_warm_restarts"
+    - "linear_warmup"
+    - "polynomial_warmup"
+    - "gradual_warmup"
+    - "warmup_stable_decay"
+    - "one_cycle_policy"
+    - "triangular_cycle"
+    - "exponential_cycle"
+    - "cyclical_learning_rates"
+    - "stochastic_gradient_descent_restart"
+    - "learning_rate_range_test"
+    - "super_convergence"
+    - "slanted_triangular_learning"
+    - "discriminative_fine_tuning_lr"
+    - "layerwise_learning_rate_decay"
+    - "adaptive_learning_rate_bounds"
+    - "reduce_on_plateau"
+    - "noam_schedule_transformers"
+    - "inverse_sqrt_schedule"
+    - "rex_schedule"
+    - "piecewise_linear_schedule"
+    
+  optimizer_algorithms:
+    - "sgd_vanilla"
+    - "sgd_momentum"
+    - "sgd_nesterov"
+    - "adagrad"
+    - "adadelta"
+    - "rmsprop"
+    - "rmsprop_centered"
+    - "adam"
+    - "adamw"
+    - "adam_bias_correction"
+    - "nadam"
+    - "radam"
+    - "lamb"
+    - "lars"
+    - "novograd"
+    - "adafactor"
+    - "adabelief"
+    - "apollo"
+    - "madgrad"
+    - "sm3"
+    - "adahessian"
+    - "shampoo"
+    - "kfac"
+    - "natural_gradient"
+    - "fisher_information_optimizer"
+    - "lookahead"
+    - "ranger"
+    - "sam_sharpness_aware"
+    - "asam_adaptive_sam"
+    - "gsam_surrogate_gap"
+    - "gravity_optimizer"
+    - "amos_optimizer"
+    - "lion_optimizer"
+    - "sophia_optimizer"
+    - "prodigy_optimizer"
+    - "schedule_free_optimizer"
+    - "d_adaptation_lr_free"
+    - "mechanic_lr_free"
+    
+  regularization_methods:
+    - "l1_regularization"
+    - "l2_regularization"
+    - "elastic_net"
+    - "dropout_standard"
+    - "dropout_inverted"
+    - "alpha_dropout"
+    - "spatial_dropout"
+    - "dropconnect"
+    - "dropblock"
+    - "targeted_dropout"
+    - "curriculum_dropout"
+    - "stochastic_depth"
+    - "layerdrop"
+    - "droppath"
+    - "shake_shake_regularization"
+    - "shake_drop_regularization"
+    - "cutout"
+    - "random_erasing"
+    - "mixup"
+    - "cutmix"
+    - "manifold_mixup"
+    - "label_smoothing"
+    - "confidence_penalty"
+    - "entropy_regularization"
+    - "jacobian_regularization"
+    - "spectral_regularization"
+    - "orthogonal_regularization"
+    - "weight_decay_decoupled"
+    - "gradient_penalty_wgan"
+    - "r1_gradient_penalty"
+    - "r2_gradient_penalty"
+    - "consistency_regularization"
+    - "virtual_adversarial_training"
+    - "noise_injection_regularization"
+    - "early_stopping"
+    - "snapshot_ensembles"
+    - "stochastic_weight_averaging"
+    
+  mixed_precision_training:
+    - "fp16_training"
+    - "bf16_training"
+    - "fp8_training"
+    - "dynamic_loss_scaling"
+    - "static_loss_scaling"
+    - "loss_scale_overflow_handling"
+    - "gradient_underflow_prevention"
+    - "master_weights_fp32"
+    - "mixed_precision_optimizer_states"
+    - "automatic_mixed_precision"
+    - "apex_amp_levels"
+    - "torch_amp_autocast"
+    - "tensor_core_utilization"
+    - "reduced_precision_accumulation"
+    - "stochastic_rounding"
+    - "block_floating_point"
+    - "quantization_aware_training"
+    - "gradient_quantization"
+    - "communication_compression"
+    - "error_feedback_compression"
+    - "powersgd_compression"
+    
+  distributed_training:
+    - "data_parallelism"
+    - "model_parallelism"
+    - "pipeline_parallelism"
+    - "tensor_parallelism"
+    - "expert_parallelism_moe"
+    - "zero_optimizer_sharding"
+    - "zero_stage_1"
+    - "zero_stage_2"
+    - "zero_stage_3"
+    - "zero_offload"
+    - "zero_infinity"
+    - "fsdp_fully_sharded"
+    - "activation_checkpointing"
+    - "gradient_checkpointing"
+    - "selective_checkpointing"
+    - "memory_efficient_attention"
+    - "flash_attention"
+    - "ring_attention"
+    - "sequence_parallelism"
+    - "context_parallelism"
+    - "async_gradient_updates"
+    - "local_sgd"
+    - "federated_averaging"
+    - "gossip_sgd"
+    - "decentralized_training"
+    - "all_reduce_algorithms"
+    - "ring_allreduce"
+    - "recursive_halving_doubling"
+    - "bucket_gradient_allreduce"
+    - "hierarchical_allreduce"
+    
+  activation_functions:
+    - "relu"
+    - "leaky_relu"
+    - "prelu"
+    - "rrelu"
+    - "elu"
+    - "selu"
+    - "celu"
+    - "gelu"
+    - "gelu_approximate"
+    - "quick_gelu"
+    - "sigmoid"
+    - "tanh"
+    - "softplus"
+    - "softsign"
+    - "mish"
+    - "swish"
+    - "hard_swish"
+    - "hard_sigmoid"
+    - "hard_tanh"
+    - "silu"
+    - "star_relu"
+    - "squared_relu"
+    - "maxout"
+    - "softmax"
+    - "log_softmax"
+    - "sparsemax"
+    - "entmax"
+    - "adaptive_activation"
+    - "learnable_activation"
+    
+  attention_mechanisms:
+    - "scaled_dot_product_attention"
+    - "multi_head_attention"
+    - "multi_query_attention"
+    - "grouped_query_attention"
+    - "cross_attention"
+    - "self_attention"
+    - "causal_attention"
+    - "bidirectional_attention"
+    - "local_attention"
+    - "global_attention"
+    - "sliding_window_attention"
+    - "dilated_attention"
+    - "sparse_attention"
+    - "longformer_attention"
+    - "bigbird_attention"
+    - "performer_attention"
+    - "linear_attention"
+    - "linformer_attention"
+    - "reformer_attention"
+    - "routing_attention"
+    - "synthesizer_attention"
+    - "relative_position_attention"
+    - "rotary_position_attention"
+    - "alibi_attention"
+    - "xpos_attention"
+    - "flash_attention_2"
+    - "paged_attention"
+    - "ring_flash_attention"
+    
+  positional_encodings:
+    - "sinusoidal_positional_encoding"
+    - "learned_positional_embedding"
+    - "relative_positional_encoding"
+    - "rotary_positional_embedding"
+    - "alibi_positional_bias"
+    - "xpos_extrapolatable"
+    - "kerple_positional"
+    - "cope_contextual_position"
+    - "fire_positional_encoding"
+    - "no_positional_encoding"
+    - "convolutional_positional"
+    - "axial_positional_encoding"
+    - "2d_positional_encoding"
+    - "3d_positional_encoding"
+    - "temporal_positional"
+    - "dynamic_positional"
+    - "length_extrapolation"
+    
+  architecture_components:
+    - "residual_connections"
+    - "skip_connections"
+    - "dense_connections"
+    - "highway_networks"
+    - "squeeze_excitation"
+    - "channel_attention"
+    - "spatial_attention"
+    - "cbam_attention"
+    - "non_local_blocks"
+    - "transformer_blocks"
+    - "conformer_blocks"
+    - "mamba_blocks"
+    - "rwkv_blocks"
+    - "retention_blocks"
+    - "gated_linear_units"
+    - "swiglu"
+    - "geglu"
+    - "reglu"
+    - "ffn_expansion"
+    - "mixture_of_experts"
+    - "conditional_computation"
+    - "early_exit"
+    - "adaptive_computation"
+    - "universal_transformers"
+    - "pondering_networks"
+
+# === BUG PATTERNS AND ANTI-PATTERNS ===
+bug_patterns:
+  numerical_instability:
+    - pattern: "softmax_overflow"
+      description: "Softmax applied to large logits causes exp() overflow"
+      fix: "Subtract max logit before softmax computation"
+      severity: "critical"
+      
+    - pattern: "log_zero_nan"
+      description: "Taking log of zero or negative values in loss"
+      fix: "Add epsilon or use numerically stable log functions"
+      severity: "critical"
+      
+    - pattern: "division_by_zero_normalization"
+      description: "Division by zero in batch norm with zero variance"
+      fix: "Always use epsilon in denominator"
+      severity: "critical"
+      
+    - pattern: "gradient_accumulation_overflow"
+      description: "Accumulated gradients overflow in large batches"
+      fix: "Normalize accumulated gradients or use larger dtype"
+      severity: "high"
+      
+    - pattern: "loss_scale_oscillation"
+      description: "Loss scale bounces between values causing instability"
+      fix: "Use appropriate growth/backoff factors and intervals"
+      severity: "high"
+      
+    - pattern: "momentum_explosion"
+      description: "Momentum accumulates extreme gradient values"
+      fix: "Reset momentum on gradient spikes or use adaptive momentum"
+      severity: "high"
+      
+    - pattern: "adam_epsilon_instability"
+      description: "Adam epsilon too small causes division issues"
+      fix: "Use default epsilon (1e-8) or larger for stability"
+      severity: "medium"
+      
+    - pattern: "weight_decay_with_adam"
+      description: "L2 regularization with Adam causes incorrect updates"
+      fix: "Use decoupled weight decay (AdamW)"
+      severity: "medium"
+      
+    - pattern: "precision_loss_accumulation"
+      description: "Small values lost when added to large accumulators"
+      fix: "Use Kahan summation or higher precision accumulation"
+      severity: "medium"
+      
+    - pattern: "catastrophic_cancellation"
+      description: "Subtraction of similar values loses precision"
+      fix: "Reformulate computation to avoid subtracting similar values"
+      severity: "medium"
+      
+    - pattern: "underflow_to_zero"
+      description: "Very small gradients underflow to zero"
+      fix: "Use gradient scaling or higher precision"
+      severity: "medium"
+      
+    - pattern: "variance_collapse"
+      description: "Variance of activations collapses to zero"
+      fix: "Use proper initialization or normalization"
+      severity: "high"
+      
+    - pattern: "mean_shift"
+      description: "Running mean in batch norm drifts during training"
+      fix: "Use appropriate momentum or layer norm"
+      severity: "medium"
+      
+    - pattern: "covariate_shift"
+      description: "Internal covariate shift destabilizes training"
+      fix: "Add normalization layers appropriately"
+      severity: "medium"
+      
+    - pattern: "feature_scale_mismatch"
+      description: "Features at different scales cause optimization issues"
+      fix: "Normalize inputs and intermediate features"
+      severity: "medium"
+      
+  optimization_bugs:
+    - pattern: "gradient_not_zeroed"
+      description: "Gradients accumulate across batches unintentionally"
+      fix: "Call optimizer.zero_grad() at start of each iteration"
+      severity: "critical"
+      
+    - pattern: "wrong_train_mode"
+      description: "Model in eval mode during training or vice versa"
+      fix: "Explicitly set model.train() or model.eval()"
+      severity: "critical"
+      
+    - pattern: "detached_computation"
+      description: "Tensor detached from graph breaks gradient flow"
+      fix: "Avoid .detach() or .data access in forward pass"
+      severity: "critical"
+      
+    - pattern: "inplace_operation_breaks_grad"
+      description: "Inplace operation modifies tensor needed for backward"
+      fix: "Use out-of-place operations"
+      severity: "critical"
+      
+    - pattern: "gradient_clipping_wrong_order"
+      description: "Clipping after optimizer step has no effect"
+      fix: "Clip between backward and optimizer step"
+      severity: "critical"
+      
+    - pattern: "scheduler_wrong_position"
+      description: "LR scheduler called at wrong point in training loop"
+      fix: "Call scheduler.step() at correct position (usually after epoch)"
+      severity: "high"
+      
+    - pattern: "warmup_with_scheduler"
+      description: "Warmup conflicts with scheduler updates"
+      fix: "Use combined warmup scheduler or careful coordination"
+      severity: "high"
+      
+    - pattern: "checkpoint_optimizer_state"
+      description: "Optimizer state not saved/loaded with checkpoint"
+      fix: "Save and load optimizer.state_dict()"
+      severity: "high"
+      
+    - pattern: "scheduler_state_not_saved"
+      description: "Scheduler state not saved causing LR reset"
+      fix: "Save and load scheduler.state_dict()"
+      severity: "high"
+      
+    - pattern: "batch_norm_stats_not_updated"
+      description: "Running stats frozen during training"
+      fix: "Ensure model is in train mode"
+      severity: "high"
+      
+    - pattern: "wrong_reduction"
+      description: "Loss reduction (mean/sum) inconsistent with batch size"
+      fix: "Use consistent reduction and scaling"
+      severity: "medium"
+      
+    - pattern: "label_smoothing_with_nll"
+      description: "Label smoothing incompatible with NLL loss"
+      fix: "Use cross entropy with label smoothing support"
+      severity: "medium"
+      
+    - pattern: "auxiliary_loss_not_backpropagated"
+      description: "Auxiliary losses detached or not included"
+      fix: "Ensure all losses contribute to backward pass"
+      severity: "medium"
+      
+    - pattern: "gradient_accumulation_normalization"
+      description: "Gradients not normalized for accumulation steps"
+      fix: "Divide loss by accumulation steps"
+      severity: "medium"
+      
+  architecture_bugs:
+    - pattern: "residual_scale_accumulation"
+      description: "Residual connections accumulate variance"
+      fix: "Scale residual branch or use normalization"
+      severity: "high"
+      
+    - pattern: "batchnorm_in_residual_block"
+      description: "BatchNorm placement affects gradient flow"
+      fix: "Use post-activation or pre-activation consistently"
+      severity: "high"
+      
+    - pattern: "missing_bias_with_normalization"
+      description: "Bias redundant with normalization layer"
+      fix: "Disable bias in layer before normalization"
+      severity: "low"
+      
+    - pattern: "attention_scale_missing"
+      description: "Attention not scaled by sqrt(d_k)"
+      fix: "Always scale dot product by sqrt(d_k)"
+      severity: "high"
+      
+    - pattern: "causal_mask_incorrect"
+      description: "Causal mask allows attending to future"
+      fix: "Use proper triangular mask"
+      severity: "critical"
+      
+    - pattern: "padding_mask_leaked"
+      description: "Padding tokens affect attention computation"
+      fix: "Apply padding mask to attention scores"
+      severity: "high"
+      
+    - pattern: "positional_encoding_not_added"
+      description: "Positional information missing from input"
+      fix: "Add positional encoding to input embeddings"
+      severity: "critical"
+      
+    - pattern: "embedding_not_scaled"
+      description: "Embeddings not scaled for transformer"
+      fix: "Scale embeddings by sqrt(d_model)"
+      severity: "medium"
+      
+    - pattern: "layer_norm_pre_vs_post"
+      description: "Inconsistent layer norm placement"
+      fix: "Use consistent pre-LN or post-LN throughout"
+      severity: "medium"
+      
+    - pattern: "skip_connection_dimension_mismatch"
+      description: "Skip connection tensors have different shapes"
+      fix: "Add projection layer for dimension matching"
+      severity: "critical"
+      
+    - pattern: "pooling_before_normalization"
+      description: "Global pooling disrupts batch norm statistics"
+      fix: "Apply normalization before pooling"
+      severity: "medium"
+      
+    - pattern: "activation_after_dropout"
+      description: "Activation applied after dropout changes distribution"
+      fix: "Apply dropout after activation"
+      severity: "low"
+      
+  data_pipeline_bugs:
+    - pattern: "normalization_train_test_mismatch"
+      description: "Different normalization stats for train and test"
+      fix: "Use same normalization parameters computed on training set"
+      severity: "critical"
+      
+    - pattern: "augmentation_on_test"
+      description: "Data augmentation applied during testing"
+      fix: "Disable augmentation for evaluation"
+      severity: "high"
+      
+    - pattern: "label_leak_through_preprocessing"
+      description: "Preprocessing uses test labels"
+      fix: "Compute preprocessing stats only on training data"
+      severity: "critical"
+      
+    - pattern: "shuffle_disabled_training"
+      description: "Data not shuffled during training"
+      fix: "Enable shuffling for training dataloader"
+      severity: "high"
+      
+    - pattern: "drop_last_inconsistent"
+      description: "Last batch size varies causing norm issues"
+      fix: "Use drop_last=True or handle varying batch sizes"
+      severity: "medium"
+      
+    - pattern: "dataloader_workers_seed"
+      description: "Worker processes use same random seed"
+      fix: "Use worker_init_fn to set different seeds"
+      severity: "medium"
+      
+    - pattern: "prefetch_memory_leak"
+      description: "Prefetching causes memory accumulation"
+      fix: "Limit prefetch factor or fix reference cycles"
+      severity: "medium"
+
+# === MATHEMATICAL RIGOR REQUIREMENTS ===
+mathematical_requirements:
+  convergence_analysis:
+    - requirement: "prove_gradient_descent_convergence"
+      description: "Prove convergence of gradient descent for convex objectives"
+      formula: "||x_{t+1} - x^*|| ≤ (1 - μ/L)||x_t - x^*|| for μ-strongly convex, L-smooth f"
+      topics: ["convexity", "smoothness", "strong_convexity", "contraction"]
+      
+    - requirement: "prove_sgd_convergence_rate"
+      description: "Derive convergence rate of SGD with bounded variance"
+      formula: "E[f(x_T)] - f^* ≤ O(1/√T) for convex, O(1/T) with strong convexity"
+      topics: ["stochastic_optimization", "variance_bound", "learning_rate_decay"]
+      
+    - requirement: "prove_adam_convergence"
+      description: "Analyze Adam convergence properties and failure cases"
+      formula: "Adam may not converge for some convex problems; AMSGrad fixes this"
+      topics: ["adaptive_methods", "exponential_moving_average", "bias_correction"]
+      
+    - requirement: "analyze_momentum_convergence"
+      description: "Prove accelerated convergence with momentum"
+      formula: "Nesterov momentum achieves O(1/T²) vs O(1/T) for vanilla GD"
+      topics: ["momentum", "acceleration", "nesterov", "heavy_ball"]
+      
+    - requirement: "bound_generalization_error"
+      description: "Derive generalization bounds using Rademacher complexity"
+      formula: "E[L_D(h)] ≤ E[L_S(h)] + 2R_n(H) + √(log(1/δ)/2n)"
+      topics: ["rademacher_complexity", "vc_dimension", "pac_learning"]
+      
+  gradient_analysis:
+    - requirement: "derive_backpropagation_gradients"
+      description: "Derive gradient formulas for standard layers"
+      formula: "∂L/∂W = (∂L/∂y) · x^T for linear layer y = Wx + b"
+      topics: ["chain_rule", "jacobian", "automatic_differentiation"]
+      
+    - requirement: "analyze_gradient_magnitude"
+      description: "Bound gradient magnitudes through deep networks"
+      formula: "||∂L/∂x_l|| ≤ ∏_{i=l}^L ||W_i|| · ||∂L/∂y||"
+      topics: ["spectral_norm", "lipschitz_constant", "gradient_bound"]
+      
+    - requirement: "prove_gradient_clipping_effect"
+      description: "Analyze effect of gradient clipping on optimization"
+      formula: "Clipped gradient: g' = g · min(1, τ/||g||) preserves direction"
+      topics: ["gradient_clipping", "trust_region", "normalized_gradient"]
+      
+    - requirement: "variance_of_stochastic_gradients"
+      description: "Compute variance of mini-batch gradient estimator"
+      formula: "Var[∇f_B] = Var[∇f_i]/|B| for i.i.d. samples"
+      topics: ["variance_reduction", "batch_size", "importance_sampling"]
+      
+    - requirement: "gradient_noise_scale"
+      description: "Analyze signal-to-noise ratio in gradient updates"
+      formula: "SNR = ||E[g]||² / E[||g - E[g]||²] affects convergence"
+      topics: ["gradient_noise", "critical_batch_size", "scaling_laws"]
+      
+  numerical_stability:
+    - requirement: "analyze_floating_point_errors"
+      description: "Bound numerical errors in gradient computation"
+      formula: "fl(x ⊕ y) = (x ⊕ y)(1 + δ) where |δ| ≤ ε_mach"
+      topics: ["floating_point", "machine_epsilon", "error_propagation"]
+      
+    - requirement: "condition_number_analysis"
+      description: "Relate condition number to optimization difficulty"
+      formula: "κ = L/μ for L-smooth, μ-strongly convex; convergence ~ (1-1/κ)^t"
+      topics: ["condition_number", "preconditioning", "ill_conditioning"]
+      
+    - requirement: "loss_landscape_analysis"
+      description: "Characterize loss landscape properties"
+      formula: "Hessian eigenvalues determine local curvature and saddle points"
+      topics: ["hessian", "saddle_points", "local_minima", "loss_surface"]
+      
+    - requirement: "batch_norm_gradient_derivation"
+      description: "Derive complete batch norm backward pass"
+      formula: "∂L/∂x_i involves terms from mean, variance, and normalized output"
+      topics: ["batch_normalization", "reparameterization", "jacobian"]
+      
+    - requirement: "attention_gradient_flow"
+      description: "Analyze gradient flow through attention mechanism"
+      formula: "∂L/∂Q = softmax_grad × K^T; long paths through attention matrix"
+      topics: ["attention", "gradient_path", "vanishing_gradient"]
+      
+  information_theory:
+    - requirement: "mutual_information_bounds"
+      description: "Bound information flow through bottleneck layers"
+      formula: "I(X;T) ≥ I(X;Y) for Markov chain X → T → Y"
+      topics: ["information_bottleneck", "data_processing_inequality"]
+      
+    - requirement: "fisher_information_matrix"
+      description: "Compute Fisher information for natural gradient"
+      formula: "F = E[(∇_θ log p(x|θ))(∇_θ log p(x|θ))^T]"
+      topics: ["fisher_information", "natural_gradient", "kfac"]
+      
+    - requirement: "entropy_regularization_effect"
+      description: "Analyze entropy regularization on policy/distribution"
+      formula: "H(p) = -∑ p(x) log p(x); regularization prevents collapse"
+      topics: ["entropy", "maximum_entropy", "exploration"]
+
+# === FRAMEWORK-SPECIFIC ISSUES ===
+framework_issues:
+  pytorch:
+    gradient_issues:
+      - issue: "retain_graph_memory_leak"
+        description: "retain_graph=True causes memory accumulation"
+        symptom: "OOM error after multiple backward passes"
+        fix: "Only use retain_graph when necessary, call backward once"
+        
+      - issue: "non_leaf_tensor_grad"
+        description: "Accessing .grad on non-leaf tensor returns None"
+        symptom: "Gradient is None for intermediate tensor"
+        fix: "Use retain_grad() or register_hook()"
+        
+      - issue: "inplace_operation_error"
+        description: "Inplace operation modifies tensor needed for backward"
+        symptom: "RuntimeError about inplace operation"
+        fix: "Use out-of-place operation or clone tensor"
+        
+      - issue: "double_backward_hooks"
+        description: "Hooks registered multiple times in training loop"
+        symptom: "Hooks called multiple times per backward"
+        fix: "Register hooks once outside training loop"
+        
+      - issue: "gradient_accumulation_wrong"
+        description: "Gradients not divided by accumulation steps"
+        symptom: "Effective learning rate scaled by accumulation"
+        fix: "loss = loss / accumulation_steps before backward"
+        
+      - issue: "dataparallel_gradient_mismatch"
+        description: "DataParallel averages gradients across GPUs"
+        symptom: "Different behavior vs single GPU"
+        fix: "Account for gradient averaging in learning rate"
+        
+      - issue: "autocast_cpu_no_effect"
+        description: "autocast has no effect on CPU"
+        symptom: "No speedup from AMP on CPU"
+        fix: "AMP only benefits GPU; use channels_last for CPU"
+        
+      - issue: "scaler_inf_check_disabled"
+        description: "GradScaler inf check disabled loses safety"
+        symptom: "NaN weights after training"
+        fix: "Keep inf/nan checking enabled"
+        
+    memory_issues:
+      - issue: "cuda_memory_not_freed"
+        description: "GPU memory not released after del tensor"
+        symptom: "OOM despite deleting tensors"
+        fix: "Call torch.cuda.empty_cache() or ensure no references"
+        
+      - issue: "graph_retained_in_eval"
+        description: "Computation graph retained unnecessarily in eval"
+        symptom: "Memory grows during inference"
+        fix: "Use torch.no_grad() during evaluation"
+        
+      - issue: "large_tensor_on_cpu"
+        description: "Large tensor created on CPU then moved to GPU"
+        symptom: "Double memory usage during move"
+        fix: "Create tensor directly on target device"
+        
+      - issue: "activation_saved_unnecessarily"
+        description: "Activations saved for backward when not needed"
+        symptom: "High memory usage with .detach() missing"
+        fix: "Use .detach() for tensors not needing gradients"
+        
+  tensorflow:
+    gradient_issues:
+      - issue: "tape_not_watching"
+        description: "GradientTape not watching tensor"
+        symptom: "Gradient is None for variable"
+        fix: "Use tape.watch() for non-Variable tensors"
+        
+      - issue: "tape_deleted_early"
+        description: "GradientTape deleted before gradient call"
+        symptom: "RuntimeError about tape already accessed"
+        fix: "Use persistent=True for multiple gradient calls"
+        
+      - issue: "eager_vs_graph_mode"
+        description: "Code works in eager but fails in graph mode"
+        symptom: "tf.function traces incorrect graph"
+        fix: "Avoid Python control flow; use tf.cond, tf.while_loop"
+        
+      - issue: "variable_shape_inference"
+        description: "Dynamic shapes cause tracing issues"
+        symptom: "Retracing on every call"
+        fix: "Use input_signature to specify shapes"
+        
+      - issue: "keras_model_not_built"
+        description: "Model not built before accessing weights"
+        symptom: "Empty weights list"
+        fix: "Call model.build() or pass data through model"
+        
+      - issue: "batch_norm_training_flag"
+        description: "BatchNorm training flag not set correctly"
+        symptom: "Different behavior in training vs inference"
+        fix: "Pass training=True/False explicitly"
+        
+  jax:
+    gradient_issues:
+      - issue: "pytree_structure_mismatch"
+        description: "Gradient pytree doesn't match parameter pytree"
+        symptom: "TypeError about pytree structure"
+        fix: "Ensure function output matches parameter structure"
+        
+      - issue: "jit_tracing_python_control"
+        description: "JIT traces Python control flow at first call"
+        symptom: "Wrong behavior for different inputs"
+        fix: "Use jax.lax.cond, jax.lax.scan for control flow"
+        
+      - issue: "vmap_in_place_modification"
+        description: "vmap doesn't support in-place array modification"
+        symptom: "Error about mutating arrays"
+        fix: "Use functional updates with .at[].set()"
+        
+      - issue: "pmap_device_mismatch"
+        description: "pmap output on wrong devices"
+        symptom: "Unexpected device placement"
+        fix: "Explicitly specify device placement"
+        
+      - issue: "random_key_reuse"
+        description: "Reusing same random key gives same values"
+        symptom: "Non-random behavior in stochastic operations"
+        fix: "Always split keys: key, subkey = jax.random.split(key)"
+
+# === SCENARIO TEMPLATES ===
+scenario_templates:
+  deep_residual_network:
+    description: "Training a 100+ layer ResNet variant"
+    issues:
+      - "Gradient explosion in early layers"
+      - "Variance accumulation through residual connections"
+      - "Learning rate sensitivity"
+    required_fixes:
+      - "Proper initialization (fixup/rezero)"
+      - "Gradient clipping"
+      - "Learning rate warmup"
+      
+  transformer_pretraining:
+    description: "Pretraining a large language model"
+    issues:
+      - "Loss spikes during training"
+      - "Attention entropy collapse"
+      - "Embedding gradient explosion"
+    required_fixes:
+      - "Pre-LN architecture"
+      - "Gradient clipping"
+      - "Embedding scaling"
+      
+  gan_training:
+    description: "Training GAN with mode collapse"
+    issues:
+      - "Discriminator too strong"
+      - "Generator gradient vanishing"
+      - "Loss oscillation"
+    required_fixes:
+      - "Spectral normalization"
+      - "Two time-scale update rule"
+      - "Gradient penalty"
+      
+  diffusion_model:
+    description: "Training denoising diffusion model"
+    issues:
+      - "Loss scale varies with timestep"
+      - "Gradient magnitude varies wildly"
+      - "Training instability at high noise"
+    required_fixes:
+      - "Loss weighting by timestep"
+      - "Velocity parameterization"
+      - "EMA model averaging"
+      
+  multimodal_model:
+    description: "Training vision-language model"
+    issues:
+      - "Gradient magnitude mismatch between modalities"
+      - "Contrastive loss temperature sensitivity"
+      - "Embedding scale mismatch"
+    required_fixes:
+      - "Gradient balancing"
+      - "Learned temperature"
+      - "Projection layer normalization"
+      
+  reinforcement_learning:
+    description: "Training policy gradient agent"
+    issues:
+      - "High variance gradients"
+      - "Reward scale sensitivity"
+      - "Entropy collapse"
+    required_fixes:
+      - "Baseline subtraction"
+      - "Reward normalization"
+      - "Entropy bonus"
+      
+  fine_tuning:
+    description: "Fine-tuning pretrained model"
+    issues:
+      - "Catastrophic forgetting"
+      - "Learning rate too high for pretrained weights"
+      - "Layer-wise sensitivity mismatch"
+    required_fixes:
+      - "Discriminative fine-tuning"
+      - "Gradual unfreezing"
+      - "Lower learning rate for early layers"
+      
+  meta_learning:
+    description: "Training MAML-style meta-learner"
+    issues:
+      - "Second-order gradient explosion"
+      - "Inner loop learning rate sensitivity"
+      - "Task batch variance"
+    required_fixes:
+      - "First-order approximation"
+      - "Learned inner learning rate"
+      - "Task normalization"
+      
+  continual_learning:
+    description: "Lifelong learning without forgetting"
+    issues:
+      - "Gradient interference between tasks"
+      - "Plastic/stable balance"
+      - "Memory replay efficiency"
+    required_fixes:
+      - "Gradient projection"
+      - "Elastic weight consolidation"
+      - "Experience replay"
+      
+  federated_learning:
+    description: "Training across distributed clients"
+    issues:
+      - "Client drift"
+      - "Non-IID data heterogeneity"
+      - "Communication compression errors"
+    required_fixes:
+      - "FedProx regularization"
+      - "Local batch normalization"
+      - "Error feedback"
+
+# === DIAGNOSTIC TOOLS AND MONITORING ===
+diagnostic_tools:
+  gradient_monitoring:
+    - tool: "gradient_norm_tracking"
+      implementation: |
+        def track_gradient_norms(model):
+            norms = {}
+            for name, param in model.named_parameters():
+                if param.grad is not None:
+                    norms[name] = param.grad.norm().item()
+            return norms
+      usage: "Call after backward, before optimizer step"
+      
+    - tool: "gradient_flow_visualization"
+      implementation: |
+        def plot_grad_flow(named_parameters):
+            ave_grads = []
+            layers = []
+            for n, p in named_parameters:
+                if p.requires_grad and p.grad is not None:
+                    layers.append(n)
+                    ave_grads.append(p.grad.abs().mean().item())
+            plt.barh(layers, ave_grads)
+            plt.xlabel("Average gradient")
+            plt.title("Gradient flow")
+      usage: "Visualize gradient distribution across layers"
+      
+    - tool: "gradient_histogram"
+      implementation: |
+        def gradient_histogram(model, writer, step):
+            for name, param in model.named_parameters():
+                if param.grad is not None:
+                    writer.add_histogram(f'grad/{name}', param.grad, step)
+      usage: "Log to TensorBoard for analysis"
+      
+    - tool: "dead_neuron_detection"
+      implementation: |
+        def detect_dead_neurons(activations, threshold=0.01):
+            # activations: [batch, neurons]
+            active_ratio = (activations.abs() > threshold).float().mean(0)
+            dead_mask = active_ratio < 0.01
+            return dead_mask.sum().item()
+      usage: "Monitor for dying ReLU problem"
+      
+  loss_monitoring:
+    - tool: "loss_scale_monitor"
+      implementation: |
+        class LossScaleMonitor:
+            def __init__(self, scaler):
+                self.scaler = scaler
+                self.history = []
+            def log(self):
+                scale = self.scaler.get_scale()
+                self.history.append(scale)
+                return scale
+      usage: "Track dynamic loss scaling changes"
+      
+    - tool: "loss_spike_detection"
+      implementation: |
+        def detect_loss_spike(loss_history, threshold=10.0):
+            if len(loss_history) < 2:
+                return False
+            recent = loss_history[-1]
+            baseline = np.median(loss_history[-100:-1])
+            return recent > threshold * baseline
+      usage: "Alert on sudden loss increases"
+      
+    - tool: "nan_inf_detector"
+      implementation: |
+        def check_nan_inf(tensor, name="tensor"):
+            has_nan = torch.isnan(tensor).any().item()
+            has_inf = torch.isinf(tensor).any().item()
+            if has_nan:
+                print(f"NaN detected in {name}")
+            if has_inf:
+                print(f"Inf detected in {name}")
+            return has_nan or has_inf
+      usage: "Check tensors for numerical issues"
+      
+  weight_monitoring:
+    - tool: "weight_norm_tracking"
+      implementation: |
+        def track_weight_norms(model):
+            norms = {}
+            for name, param in model.named_parameters():
+                norms[name] = param.norm().item()
+            return norms
+      usage: "Monitor weight magnitudes over training"
+      
+    - tool: "weight_update_ratio"
+      implementation: |
+        def weight_update_ratio(model, old_weights, lr):
+            ratios = {}
+            for name, param in model.named_parameters():
+                if name in old_weights:
+                    update = (param.data - old_weights[name]).norm()
+                    weight = old_weights[name].norm()
+                    ratios[name] = (update / (weight + 1e-8)).item()
+            return ratios
+      usage: "Track relative weight updates"
+      
+    - tool: "spectral_norm_monitor"
+      implementation: |
+        def compute_spectral_norm(weight):
+            if weight.dim() >= 2:
+                # Power iteration for largest singular value
+                u = torch.randn(weight.shape[0], device=weight.device)
+                for _ in range(10):
+                    v = weight.T @ u
+                    v = v / v.norm()
+                    u = weight @ v
+                    u = u / u.norm()
+                return (u @ weight @ v).item()
+            return weight.norm().item()
+      usage: "Monitor weight matrix conditioning"
+
+# === REFERENCE SOLUTIONS ===
+reference_solutions:
+  stable_residual_block:
+    code: |
+      import torch
+      import torch.nn as nn
+      import math
+      
+      class StableResidualBlock(nn.Module):
+          """
+          Residual block with variance-preserving design.
+          
+          Key stability features:
+          1. Post-normalization (norm after residual add)
+          2. Scaled residual branch
+          3. Proper weight initialization
+          4. Optional stochastic depth
+          """
+          
+          def __init__(
+              self,
+              dim: int,
+              expansion: int = 4,
+              dropout: float = 0.0,
+              drop_path: float = 0.0,
+              layer_scale_init: float = 1e-6,
+          ):
+              super().__init__()
+              hidden_dim = dim * expansion
+              
+              # Main branch
+              self.norm1 = nn.LayerNorm(dim)
+              self.fc1 = nn.Linear(dim, hidden_dim, bias=False)
+              self.act = nn.GELU()
+              self.fc2 = nn.Linear(hidden_dim, dim, bias=False)
+              self.dropout = nn.Dropout(dropout)
+              
+              # Layer scale for residual (from CaiT/ConvNeXt)
+              self.layer_scale = nn.Parameter(
+                  layer_scale_init * torch.ones(dim)
+              )
+              
+              # Stochastic depth
+              self.drop_path = DropPath(drop_path) if drop_path > 0 else nn.Identity()
+              
+              # Initialize weights
+              self._init_weights()
+          
+          def _init_weights(self):
+              # Initialize fc1 with Xavier (input layer)
+              nn.init.xavier_uniform_(self.fc1.weight)
+              
+              # Initialize fc2 with small values (output layer)
+              # This ensures residual branch starts small
+              nn.init.xavier_uniform_(self.fc2.weight)
+              with torch.no_grad():
+                  self.fc2.weight *= 0.1
+          
+          def forward(self, x: torch.Tensor) -> torch.Tensor:
+              # Pre-norm
+              residual = self.norm1(x)
+              
+              # FFN
+              residual = self.fc1(residual)
+              residual = self.act(residual)
+              residual = self.dropout(residual)
+              residual = self.fc2(residual)
+              
+              # Scale and drop path
+              residual = self.layer_scale * residual
+              residual = self.drop_path(residual)
+              
+              # Add to identity
+              return x + residual
+      
+      class DropPath(nn.Module):
+          """Stochastic depth regularization."""
+          
+          def __init__(self, drop_prob: float = 0.0):
+              super().__init__()
+              self.drop_prob = drop_prob
+          
+          def forward(self, x: torch.Tensor) -> torch.Tensor:
+              if self.drop_prob == 0.0 or not self.training:
+                  return x
+              
+              keep_prob = 1 - self.drop_prob
+              # Work with batch dimension
+              shape = (x.shape[0],) + (1,) * (x.ndim - 1)
+              random_tensor = keep_prob + torch.rand(
+                  shape, dtype=x.dtype, device=x.device
+              )
+              random_tensor.floor_()  # Binarize
+              output = x.div(keep_prob) * random_tensor
+              return output
+
+  stable_trainer:
+    code: |
+      import torch
+      import torch.nn as nn
+      from torch.cuda.amp import autocast, GradScaler
+      from typing import Optional, Dict, Any
+      import logging
+      
+      logger = logging.getLogger(__name__)
+      
+      class StableTrainer:
+          """
+          Training loop with comprehensive stability features.
+          
+          Features:
+          1. Mixed precision with safe loss scaling
+          2. Gradient clipping with monitoring
+          3. Learning rate warmup
+          4. NaN/Inf detection and recovery
+          5. Gradient accumulation
+          """
+          
+          def __init__(
+              self,
+              model: nn.Module,
+              optimizer: torch.optim.Optimizer,
+              scheduler: Optional[Any] = None,
+              max_grad_norm: float = 1.0,
+              accumulation_steps: int = 1,
+              mixed_precision: bool = True,
+              loss_scale_init: float = 2**10,
+              loss_scale_growth_interval: int = 100,
+          ):
+              self.model = model
+              self.optimizer = optimizer
+              self.scheduler = scheduler
+              self.max_grad_norm = max_grad_norm
+              self.accumulation_steps = accumulation_steps
+              self.mixed_precision = mixed_precision
+              
+              # Mixed precision scaler
+              self.scaler = GradScaler(
+                  init_scale=loss_scale_init,
+                  growth_interval=loss_scale_growth_interval,
+                  enabled=mixed_precision,
+              )
+              
+              # Monitoring
+              self.step_count = 0
+              self.nan_count = 0
+              self.max_nan_recovery = 10
+              
+          def train_step(
+              self,
+              batch: Dict[str, torch.Tensor],
+              criterion: nn.Module,
+          ) -> Dict[str, float]:
+              """Single training step with stability checks."""
+              
+              # Accumulation logic
+              is_accumulating = (self.step_count + 1) % self.accumulation_steps != 0
+              
+              # Forward pass
+              with autocast(enabled=self.mixed_precision):
+                  outputs = self.model(**batch)
+                  loss = criterion(outputs, batch['labels'])
+                  
+                  # Scale loss for accumulation
+                  loss = loss / self.accumulation_steps
+              
+              # Check for NaN/Inf loss
+              if torch.isnan(loss) or torch.isinf(loss):
+                  logger.warning(f"NaN/Inf loss detected at step {self.step_count}")
+                  self.nan_count += 1
+                  
+                  if self.nan_count > self.max_nan_recovery:
+                      raise RuntimeError("Too many NaN losses, stopping training")
+                  
+                  # Skip this batch
+                  return {'loss': float('nan'), 'skipped': True}
+              
+              # Backward pass
+              self.scaler.scale(loss).backward()
+              
+              # Only update if not accumulating
+              if not is_accumulating:
+                  # Unscale gradients for clipping
+                  self.scaler.unscale_(self.optimizer)
+                  
+                  # Check for NaN/Inf gradients
+                  grad_norm = self._get_grad_norm()
+                  if torch.isnan(grad_norm) or torch.isinf(grad_norm):
+                      logger.warning(f"NaN/Inf gradients at step {self.step_count}")
+                      self.optimizer.zero_grad()
+                      self.scaler.update()
+                      return {'loss': loss.item() * self.accumulation_steps, 'skipped': True}
+                  
+                  # Gradient clipping
+                  if self.max_grad_norm > 0:
+                      torch.nn.utils.clip_grad_norm_(
+                          self.model.parameters(),
+                          self.max_grad_norm
+                      )
+                  
+                  # Optimizer step
+                  self.scaler.step(self.optimizer)
+                  self.scaler.update()
+                  
+                  # Zero gradients
+                  self.optimizer.zero_grad()
+                  
+                  # Scheduler step
+                  if self.scheduler is not None:
+                      self.scheduler.step()
+              
+              self.step_count += 1
+              
+              return {
+                  'loss': loss.item() * self.accumulation_steps,
+                  'grad_norm': grad_norm.item() if not is_accumulating else 0.0,
+                  'lr': self.optimizer.param_groups[0]['lr'],
+                  'loss_scale': self.scaler.get_scale(),
+              }
+          
+          def _get_grad_norm(self) -> torch.Tensor:
+              """Compute total gradient norm."""
+              total_norm = 0.0
+              for p in self.model.parameters():
+                  if p.grad is not None:
+                      param_norm = p.grad.data.norm(2)
+                      total_norm += param_norm.item() ** 2
+              return torch.tensor(total_norm ** 0.5)
+
+  warmup_scheduler:
+    code: |
+      import math
+      from torch.optim.lr_scheduler import _LRScheduler
+      
+      class WarmupCosineScheduler(_LRScheduler):
+          """
+          Learning rate scheduler with linear warmup and cosine decay.
+          
+          Args:
+              optimizer: Wrapped optimizer
+              warmup_steps: Number of warmup steps
+              total_steps: Total number of training steps
+              min_lr_ratio: Minimum LR as ratio of initial LR
+              last_epoch: Last epoch number
+          """
+          
+          def __init__(
+              self,
+              optimizer,
+              warmup_steps: int,
+              total_steps: int,
+              min_lr_ratio: float = 0.1,
+              last_epoch: int = -1,
+          ):
+              self.warmup_steps = warmup_steps
+              self.total_steps = total_steps
+              self.min_lr_ratio = min_lr_ratio
+              super().__init__(optimizer, last_epoch)
+          
+          def get_lr(self):
+              if self.last_epoch < self.warmup_steps:
+                  # Linear warmup
+                  warmup_factor = self.last_epoch / max(1, self.warmup_steps)
+                  return [base_lr * warmup_factor for base_lr in self.base_lrs]
+              else:
+                  # Cosine decay
+                  progress = (self.last_epoch - self.warmup_steps) / max(
+                      1, self.total_steps - self.warmup_steps
+                  )
+                  cosine_factor = 0.5 * (1 + math.cos(math.pi * progress))
+                  
+                  return [
+                      base_lr * (self.min_lr_ratio + (1 - self.min_lr_ratio) * cosine_factor)
+                      for base_lr in self.base_lrs
+                  ]
+
+  gradient_checkpointing:
+    code: |
+      import torch
+      from torch.utils.checkpoint import checkpoint, checkpoint_sequential
+      
+      class CheckpointedTransformerBlock(nn.Module):
+          """
+          Transformer block with gradient checkpointing for memory efficiency.
+          
+          Trades compute for memory by recomputing activations during backward.
+          """
+          
+          def __init__(
+              self,
+              dim: int,
+              num_heads: int,
+              mlp_ratio: float = 4.0,
+              dropout: float = 0.0,
+              use_checkpoint: bool = True,
+          ):
+              super().__init__()
+              self.use_checkpoint = use_checkpoint
+              
+              self.norm1 = nn.LayerNorm(dim)
+              self.attn = nn.MultiheadAttention(
+                  dim, num_heads, dropout=dropout, batch_first=True
+              )
+              
+              self.norm2 = nn.LayerNorm(dim)
+              mlp_dim = int(dim * mlp_ratio)
+              self.mlp = nn.Sequential(
+                  nn.Linear(dim, mlp_dim),
+                  nn.GELU(),
+                  nn.Dropout(dropout),
+                  nn.Linear(mlp_dim, dim),
+                  nn.Dropout(dropout),
+              )
+          
+          def _attn_block(self, x: torch.Tensor) -> torch.Tensor:
+              """Attention block for checkpointing."""
+              x_norm = self.norm1(x)
+              attn_out, _ = self.attn(x_norm, x_norm, x_norm)
+              return x + attn_out
+          
+          def _mlp_block(self, x: torch.Tensor) -> torch.Tensor:
+              """MLP block for checkpointing."""
+              return x + self.mlp(self.norm2(x))
+          
+          def forward(self, x: torch.Tensor) -> torch.Tensor:
+              if self.use_checkpoint and self.training:
+                  # Checkpoint attention
+                  x = checkpoint(self._attn_block, x, use_reentrant=False)
+                  # Checkpoint MLP
+                  x = checkpoint(self._mlp_block, x, use_reentrant=False)
+              else:
+                  x = self._attn_block(x)
+                  x = self._mlp_block(x)
+              return x
+
+# === TEST CASES ===
+test_cases:
+  fail_to_pass:
+    - "test_1000_epoch_stability"
+    - "test_no_nan_gradients"
+    - "test_gradient_clipping_effective"
+    - "test_loss_scale_recovery"
+    - "test_warmup_lr_schedule"
+    - "test_gradient_accumulation_correct"
+    - "test_checkpoint_memory_reduction"
+    - "test_weight_initialization_variance"
+    - "test_residual_scale_bounded"
+    - "test_dead_neuron_recovery"
+    
+  pass_to_pass:
+    - "test_model_forward_pass"
+    - "test_model_backward_pass"
+    - "test_optimizer_step"
+    - "test_mixed_precision_enabled"
+    - "test_dataloader_iteration"
+
+# === COMPREHENSIVE VARIABLES ===
+variables:
+  scenario_type:
+    type: string
+    options:
+      - "image_classification"
+      - "object_detection"
+      - "semantic_segmentation"
+      - "instance_segmentation"
+      - "language_modeling"
+      - "machine_translation"
+      - "question_answering"
+      - "text_classification"
+      - "speech_recognition"
+      - "speech_synthesis"
+      - "generative_adversarial"
+      - "diffusion_model"
+      - "reinforcement_learning"
+      - "graph_neural_network"
+      - "recommendation_system"
+      - "multimodal_learning"
+      - "contrastive_learning"
+      - "self_supervised_learning"
+      - "meta_learning"
+      - "continual_learning"
+      - "few_shot_learning"
+      - "zero_shot_learning"
+      - "transfer_learning"
+      - "domain_adaptation"
+      - "federated_learning"
+      - "neural_architecture_search"
+      - "hyperparameter_optimization"
+      - "model_compression"
+      - "knowledge_distillation"
+      - "neural_network_pruning"
+      
+  architecture_type:
+    type: string
+    options:
+      - "resnet"
+      - "resnext"
+      - "densenet"
+      - "efficientnet"
+      - "vision_transformer"
+      - "swin_transformer"
+      - "deit"
+      - "convnext"
+      - "transformer_encoder"
+      - "transformer_decoder"
+      - "encoder_decoder"
+      - "bert"
+      - "gpt"
+      - "t5"
+      - "llama"
+      - "mistral"
+      - "mamba"
+      - "rwkv"
+      - "retnet"
+      - "unet"
+      - "gan_generator"
+      - "gan_discriminator"
+      - "vae"
+      - "flow_model"
+      - "diffusion_unet"
+      - "dit"
+      
+  optimizer_type:
+    type: string
+    options:
+      - "sgd"
+      - "sgd_momentum"
+      - "adam"
+      - "adamw"
+      - "lamb"
+      - "lars"
+      - "adafactor"
+      - "lion"
+      - "sophia"
+      - "shampoo"
+      
+  precision_type:
+    type: string
+    options:
+      - "fp32"
+      - "fp16"
+      - "bf16"
+      - "fp8"
+      - "mixed_fp16"
+      - "mixed_bf16"
+      
+  normalization_type:
+    type: string
+    options:
+      - "batch_norm"
+      - "layer_norm"
+      - "group_norm"
+      - "instance_norm"
+      - "rmsnorm"
+      - "none"
+      
+  issue_severity:
+    type: string
+    options:
+      - "critical"
+      - "high"
+      - "medium"
+      - "low"
+
+# === PROBLEM STATEMENT TEMPLATE ===
+problem_statement: |
+  A deep neural network training pipeline is experiencing gradient explosion,
+  causing NaN losses and unstable training. The model:
+  
+  1. Uses a custom {{ architecture_type }} architecture with {{ depth }} layers
+  2. Has a {{ scheduler_type }} learning rate scheduler causing instability
+  3. Mixed precision training ({{ precision_type }}) with improper loss scaling
+  4. {{ normalization_type }} placed incorrectly in residual blocks
+  5. {{ initialization_type }} weight initialization causing variance issues
+  
+  Observed symptoms:
+  - NaN loss after ~{{ failure_epoch }} epochs
+  - Gradient norms spike to {{ max_grad_norm }}+
+  - Loss scale oscillates between {{ min_scale }} and {{ max_scale }}
+  - {{ dead_neuron_percent }}% of neurons are dead (zero activation)
+  
+  The model must train stably for {{ target_epochs }} epochs without NaN values
+  while maintaining accuracy above {{ target_accuracy }}%.
+
+requirements: |
+  - Fix gradient explosion without sacrificing model capacity
+  - Implement proper gradient clipping (max norm: {{ clip_norm }})
+  - Fix loss scaling for mixed precision training
+  - Correct {{ normalization_type }} placement
+  - Use appropriate {{ initialization_type }} weight initialization
+  - Add comprehensive training stability monitoring
+  - Ensure gradient accumulation works correctly with {{ accumulation_steps }} steps
+  - Implement learning rate warmup for {{ warmup_steps }} steps
+
+interface: |
+  Input: Training dataset with {{ num_samples }} samples, batch size {{ batch_size }}
+  Output: Trained model with stable loss curve
+  Hardware: {{ num_gpus }} x {{ gpu_type }}
+  Framework: {{ framework }} {{ framework_version }}
+  
+  Monitoring requirements:
+  - Gradient norms per layer
+  - Loss values and loss scale
+  - Learning rate schedule
+  - Dead neuron count
+  - Memory utilization
+
+# === INSTRUCTION TEMPLATE ===
+instruction_template: |
+  You are debugging a {{ scenario_type }} neural network training pipeline.
+  The model code is at {{ code_path }}.
+  
+  Architecture: {{ architecture_type }} with {{ depth }} layers
+  Framework: {{ framework }} {{ framework_version }}
+  Hardware: {{ num_gpus }} x {{ gpu_type }}
+  
+  Observed issues:
+  {{ observed_issues }}
+  
+  Configuration:
+  - Batch size: {{ batch_size }}
+  - Learning rate: {{ learning_rate }}
+  - Optimizer: {{ optimizer_type }}
+  - Precision: {{ precision_type }}
+  - Normalization: {{ normalization_type }}
+  
+  Your task:
+  {{ task_steps }}
+  
+  Mathematical requirements:
+  {{ math_requirements }}
+  
+  Validation criteria:
+  {{ validation_criteria }}
+
+# === TASK STEP TEMPLATES ===
+task_step_templates:
+  basic:
+    - "Analyze gradient flow through the {{ architecture_type }} network"
+    - "Fix {{ initialization_type }} weight initialization for {{ depth }}-layer depth"
+    - "Correct {{ normalization_type }} placement in residual blocks"
+    - "Implement gradient clipping with max norm {{ clip_norm }}"
+    - "Fix mixed precision loss scaling for {{ precision_type }}"
+    - "Verify stable training for {{ target_epochs }} epochs"
+    
+  advanced:
+    - "Derive gradient variance propagation formula for {{ depth }} layers"
+    - "Prove that current initialization causes variance explosion"
+    - "Analyze condition number of weight matrices"
+    - "Compute optimal learning rate bounds based on Lipschitz constant"
+    - "Implement adaptive gradient clipping based on gradient statistics"
+    - "Design loss scale schedule to minimize overflow probability"
+    - "Create comprehensive monitoring dashboard"
+    
+  expert:
+    - "Prove convergence guarantees under modified training loop"
+    - "Derive information-theoretic bounds on gradient noise"
+    - "Analyze Hessian eigenvalue spectrum to identify instability sources"
+    - "Implement second-order optimization methods for comparison"
+    - "Design architecture modifications to improve gradient conditioning"
+    - "Create automated stability analysis pipeline"
+
+# === ANTI-HARDCODING MEASURES ===
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  variable_initialization: true
+  architecture_variations: true
+  hyperparameter_ranges:
+    batch_size: [8, 16, 32, 64, 128, 256, 512, 1024]
+    learning_rate: [0.0001, 0.0003, 0.001, 0.003, 0.01, 0.03, 0.1]
+    depth: [10, 20, 50, 100, 200, 500, 1000]
+    hidden_dim: [64, 128, 256, 512, 1024, 2048, 4096]
+    num_heads: [1, 2, 4, 8, 12, 16, 32, 64]
+    dropout: [0.0, 0.1, 0.2, 0.3, 0.5]
+    weight_decay: [0.0, 0.0001, 0.001, 0.01, 0.1]
+    warmup_ratio: [0.0, 0.01, 0.03, 0.05, 0.1]
+    clip_norm: [0.1, 0.5, 1.0, 2.0, 5.0, 10.0]
+
+# === EVALUATION CRITERIA ===
+evaluation_criteria:
+  correctness:
+    - "Training completes without NaN/Inf values"
+    - "Final accuracy meets target threshold"
+    - "Gradient norms remain bounded throughout training"
+    - "Loss decreases monotonically (on average)"
+    
+  efficiency:
+    - "Training speed within 10% of baseline"
+    - "Memory usage does not exceed GPU capacity"
+    - "Loss scale stabilizes after warmup"
+    
+  code_quality:
+    - "Follows framework best practices"
+    - "Includes comprehensive error handling"
+    - "Properly documented with type hints"
+    - "Modular and testable design"
+    
+  mathematical_rigor:
+    - "Gradient flow analysis is correct"
+    - "Initialization variance calculations accurate"
+    - "Convergence proof (if required) is valid"
+
+# === METADATA ===
+metadata:
+  created: "2024-01-01"
+  updated: "2024-12-01"
+  author: "ML Research Team"
+  tags:
+    - "gradient_stability"
+    - "training_optimization"
+    - "numerical_stability"
+    - "deep_learning"
+    - "neural_networks"
+  difficulty_levels:
+    medium: "Basic gradient clipping and initialization fixes"
+    hard: "Mixed precision stability and normalization placement"
+    expert: "Mathematical analysis and convergence proofs"
+    research: "Novel architecture modifications and theoretical contributions"

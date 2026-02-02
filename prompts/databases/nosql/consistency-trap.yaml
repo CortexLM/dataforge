@@ -1,0 +1,1720 @@
+id: "db-nosql-consistency-trap-001"
+version: "2.0.0"
+category: "databases"
+subcategory: "nosql"
+
+# =============================================================================
+# LLM GENERATION FRAMEWORK
+# =============================================================================
+# This configuration enables generation of 10,000+ unique, complex tasks
+# related to NoSQL consistency models, distributed data, and CAP theorem.
+# =============================================================================
+
+generation_framework:
+  # Difficulty parameters - SIGNIFICANTLY increased for database architect-level challenges
+  time_range: [5400, 14400]  # 90-240 minutes for database architects with internals expertise
+  command_steps: [80, 200]   # Requires extensive multi-layer investigation and debugging
+  
+  generation_targets:
+    minimum_difficulty: "90+ minutes, requires deep database kernel and storage engine internals expertise"
+    target_audience: "Principal Database Architects and database kernel engineers with 10+ years experience"
+    complexity_level: "Nightmare - requires synthesizing knowledge across storage engines, consensus protocols, and distributed systems internals"
+  
+  multi_agent_orchestration:
+    description: "Coordinate 5-8 specialized database agents for complex consistency debugging"
+    required_agents:
+      - name: "consistency_model_analyzer"
+        role: "Analyze consistency guarantees and violation patterns across CAP/PACELC spectrum"
+        expertise: ["linearizability", "causal consistency", "eventual consistency", "session guarantees"]
+      - name: "replication_debugger"
+        role: "Debug replication lag, split-brain, and data divergence issues"
+        expertise: ["leader election", "log replication", "conflict resolution", "anti-entropy"]
+      - name: "consensus_protocol_expert"
+        role: "Analyze Raft/Paxos/PBFT edge cases and failure modes"
+        expertise: ["consensus rounds", "leader failover", "network partitions", "Byzantine faults"]
+      - name: "vector_clock_analyst"
+        role: "Debug causality tracking and happened-before relationships"
+        expertise: ["Lamport timestamps", "vector clocks", "version vectors", "dotted version vectors"]
+      - name: "crdt_specialist"
+        role: "Analyze CRDT merge semantics and convergence issues"
+        expertise: ["state-based CRDTs", "operation-based CRDTs", "delta CRDTs", "causal trees"]
+      - name: "storage_engine_debugger"
+        role: "Debug LSM-tree, B-tree, and write-ahead log interactions"
+        expertise: ["compaction", "memtable flushing", "WAL recovery", "checkpointing"]
+      - name: "network_partition_simulator"
+        role: "Model and debug partition behavior and healing scenarios"
+        expertise: ["asymmetric partitions", "partial connectivity", "partition detection", "quorum systems"]
+      - name: "performance_forensics_agent"
+        role: "Correlate consistency issues with performance anomalies"
+        expertise: ["latency percentiles", "throughput degradation", "resource contention", "tail latencies"]
+    
+    cross_engine_attack_chains:
+      - chain: "replication_lag -> stale_read -> lost_update -> data_corruption -> replication_poisoning"
+        description: "Exploit replication lag to cause lost updates that propagate as corrupted data"
+      - chain: "partition_detection_delay -> split_brain -> concurrent_writes -> conflict_storm -> cascade_failure"
+        description: "Delayed partition detection leads to split-brain that causes cascading conflicts"
+      - chain: "clock_skew -> lww_wrong_winner -> data_loss -> application_inconsistency -> business_logic_violation"
+        description: "Clock synchronization issues cause last-write-wins to select wrong data"
+      - chain: "quorum_misconfiguration -> stale_quorum -> phantom_consistency -> silent_data_corruption"
+        description: "Incorrect quorum settings create illusion of consistency while losing data"
+    
+    parallel_analysis_requirements:
+      - "Concurrent consistency level verification across all replicas"
+      - "Parallel vector clock reconstruction from distributed logs"
+      - "Simultaneous partition simulation on multiple network segments"
+      - "Coordinated CRDT state comparison across geo-distributed nodes"
+    
+    agent_handoff_scenarios:
+      - from: "consistency_model_analyzer"
+        to: "replication_debugger"
+        trigger: "Consistency violation traced to replication subsystem"
+      - from: "replication_debugger"
+        to: "consensus_protocol_expert"
+        trigger: "Replication issue rooted in consensus protocol edge case"
+      - from: "consensus_protocol_expert"
+        to: "network_partition_simulator"
+        trigger: "Consensus failure caused by network partition behavior"
+  
+  multi_conversation_workflow:
+    phase_1_research: |
+      Research advanced distributed consistency concepts:
+      - Consistency models and their guarantees
+      - CAP and PACELC theorems
+      - Vector clocks and Lamport timestamps
+      - CRDTs and their implementations
+      - Consensus protocols and their tradeoffs
+    
+    phase_2_creation: |
+      Create task with hidden complexity and traps including:
+      - Subtle consistency violations
+      - Edge cases in eventual consistency
+      - Lost updates and write conflicts
+      - Stale read scenarios
+      - Network partition behaviors
+    
+    phase_3_amplification: |
+      Add difficulty multipliers and edge cases:
+      - Multi-region deployments
+      - Mixed consistency requirements
+      - Real-time constraints
+      - High availability requirements
+      - Regulatory compliance needs
+    
+    phase_4_verification: |
+      Validate task requires deep distributed systems expertise:
+      - Must understand consistency models at implementation level
+      - Must know database-specific storage engine and replication behaviors
+      - Cannot be solved by simple configuration or obvious patterns
+      - Requires careful architecture decisions with multi-region tradeoffs
+      - Tests understanding of distributed systems internals and edge cases
+      - Has at least 10+ deeply interacting traps across consistency/replication/storage layers
+      - Has cascading failure modes that span consensus, storage, and application layers
+      - Requires knowledge of database kernel internals, consensus protocols, and CRDT implementations
+      - Would take experienced database architects 90+ minutes
+      - Involves cross-database compatibility issues that manifest differently per engine
+  
+  quality_requirements:
+    - "Must require understanding of distributed consistency at protocol level"
+    - "Must have at least 8 non-obvious failure modes with complex interactions"
+    - "Must not be solvable by simple configuration changes or common patterns"
+    - "Must require deep architectural considerations spanning multiple subsystems"
+    - "Must involve real-world consistency scenarios with production-level complexity"
+    - "90+ minutes for experienced database architects, 180+ for senior engineers"
+    - "Requires synthesizing CAP theorem, CRDTs, consensus protocols, and storage engine internals"
+    - "Must involve multi-region deployment complexity with regulatory constraints"
+    - "Requires understanding of clock synchronization, vector clocks, and causality tracking"
+
+# =============================================================================
+# TOPIC UNIVERSE - 150+ Consistency Topics
+# =============================================================================
+
+topic_universe:
+  # ---------------------------------------------------------------------------
+  # Consistency Models
+  # ---------------------------------------------------------------------------
+  consistency_models:
+    strong_consistency:
+      description: "All reads see most recent write"
+      characteristics:
+        - "Linearizability"
+        - "Atomic operations"
+        - "Single source of truth"
+      tradeoffs:
+        - "Higher latency"
+        - "Lower availability during partitions"
+        - "Performance overhead"
+      implementations:
+        mongodb: "readConcern: 'linearizable'"
+        cassandra: "CONSISTENCY ALL"
+        dynamodb: "Strongly consistent reads"
+        cockroachdb: "Serializable by default"
+    
+    eventual_consistency:
+      description: "Reads eventually see the write"
+      characteristics:
+        - "No timing guarantees"
+        - "May see stale data"
+        - "High availability"
+      variants:
+        basic_eventual: "No ordering guarantees"
+        causal_eventual: "Causal ordering preserved"
+        bounded_staleness: "Maximum staleness window"
+      implementations:
+        mongodb: "readConcern: 'local'"
+        cassandra: "CONSISTENCY ONE"
+        dynamodb: "Eventually consistent reads"
+        couchbase: "Default behavior"
+    
+    causal_consistency:
+      description: "Causally related operations seen in order"
+      characteristics:
+        - "If A caused B, everyone sees A before B"
+        - "Concurrent operations may be seen in different orders"
+        - "Preserves causality chains"
+      implementations:
+        mongodb: "Causal sessions"
+        cassandra: "Application-level with vector clocks"
+        cosmosdb: "Consistent Prefix"
+    
+    sequential_consistency:
+      description: "All processes see same order"
+      characteristics:
+        - "Global total order of operations"
+        - "May not match real-time order"
+        - "Stronger than eventual, weaker than linearizable"
+    
+    linearizability:
+      description: "Operations appear instantaneous"
+      characteristics:
+        - "Real-time ordering"
+        - "Each operation takes effect atomically"
+        - "Strongest consistency guarantee"
+      implementations:
+        spanner: "TrueTime for global ordering"
+        cockroachdb: "Serializable transactions"
+        yugabytedb: "YSQL with serializable"
+    
+    read_your_writes:
+      description: "Client sees own writes"
+      characteristics:
+        - "Per-session guarantee"
+        - "Other clients may see stale"
+        - "Minimum useful consistency"
+      implementations:
+        mongodb: "readConcern: 'majority', write w:majority"
+        cassandra: "LOCAL_QUORUM reads/writes"
+        dynamodb: "Consistent reads after write"
+    
+    monotonic_reads:
+      description: "Never see older version after newer"
+      characteristics:
+        - "Time doesn't go backwards"
+        - "Prevents seeing rollback"
+        - "Session-scoped guarantee"
+    
+    monotonic_writes:
+      description: "Writes by same client serialized"
+      characteristics:
+        - "Preserve write ordering"
+        - "No interleaving of same-client writes"
+
+  # ---------------------------------------------------------------------------
+  # CAP and PACELC Theorems
+  # ---------------------------------------------------------------------------
+  cap_theorem:
+    description: "Choose 2 of 3: Consistency, Availability, Partition tolerance"
+    
+    cp_systems:
+      description: "Sacrifice availability for consistency"
+      examples:
+        - "MongoDB (with majority writes)"
+        - "HBase"
+        - "Redis Cluster (with WAIT)"
+        - "Spanner"
+        - "CockroachDB"
+      behavior: "May reject writes during partition"
+    
+    ap_systems:
+      description: "Sacrifice consistency for availability"
+      examples:
+        - "Cassandra (default)"
+        - "Couchbase"
+        - "DynamoDB (eventually consistent)"
+        - "Riak"
+      behavior: "Accept writes, resolve conflicts later"
+    
+    ca_systems:
+      description: "No partition tolerance (single node)"
+      examples:
+        - "Traditional RDBMS"
+        - "Single-node databases"
+      note: "Not realistic for distributed systems"
+  
+  pacelc_theorem:
+    description: "If Partition, choose A or C; Else choose Latency or Consistency"
+    
+    pa_el_systems:
+      description: "Available during partition, low latency otherwise"
+      examples:
+        - "Cassandra"
+        - "DynamoDB (default)"
+    
+    pa_ec_systems:
+      description: "Available during partition, consistent otherwise"
+      examples:
+        - "PNUTS"
+    
+    pc_el_systems:
+      description: "Consistent during partition, low latency otherwise"
+      examples:
+        - "MongoDB"
+    
+    pc_ec_systems:
+      description: "Consistent always"
+      examples:
+        - "Spanner"
+        - "VoltDB"
+
+  # ---------------------------------------------------------------------------
+  # Conflict Resolution
+  # ---------------------------------------------------------------------------
+  conflict_resolution:
+    last_write_wins:
+      description: "Latest timestamp wins"
+      mechanisms:
+        physical_timestamp: "Wall clock time"
+        logical_timestamp: "Lamport clock"
+        hybrid_timestamp: "Combination approach"
+      problems:
+        - "Clock skew causes wrong winner"
+        - "Lost updates"
+        - "Concurrent writes not mergeable"
+      databases: ["Cassandra", "DynamoDB", "Riak"]
+    
+    first_write_wins:
+      description: "First write preserved"
+      use_cases:
+        - "Insert-only data"
+        - "Immutable records"
+    
+    merge_functions:
+      description: "Custom logic to merge conflicts"
+      types:
+        crdts: "Mathematically guaranteed convergence"
+        application_logic: "Domain-specific merging"
+        manual_resolution: "Human intervention"
+      databases: ["Riak", "CouchDB"]
+    
+    vector_clocks:
+      description: "Track causal dependencies"
+      mechanism:
+        - "Each node has logical clock"
+        - "Clock incremented on local events"
+        - "Clock vector sent with messages"
+        - "Receiving node updates own clock"
+      use_cases:
+        - "Detect concurrent updates"
+        - "Causal ordering"
+        - "Conflict detection"
+      databases: ["Riak", "Dynamo (original)"]
+    
+    version_vectors:
+      description: "Track version per node"
+      difference_from_vector_clocks: "Per-replica vs per-client"
+      databases: ["Cassandra", "Voldemort"]
+
+  # ---------------------------------------------------------------------------
+  # CRDTs (Conflict-free Replicated Data Types)
+  # ---------------------------------------------------------------------------
+  crdts:
+    counters:
+      g_counter:
+        description: "Grow-only counter"
+        operations: ["increment"]
+        merge: "Max of each node's count"
+      pn_counter:
+        description: "Positive-negative counter"
+        operations: ["increment", "decrement"]
+        structure: "Two G-Counters (P and N)"
+    
+    sets:
+      g_set:
+        description: "Grow-only set"
+        operations: ["add"]
+        merge: "Union"
+      two_phase_set:
+        description: "Add and remove (once)"
+        operations: ["add", "remove"]
+        restriction: "Cannot re-add removed elements"
+      or_set:
+        description: "Observed-Remove Set"
+        operations: ["add", "remove"]
+        mechanism: "Unique tags for each add"
+      lww_element_set:
+        description: "Last-Writer-Wins Element Set"
+        operations: ["add", "remove"]
+        mechanism: "Timestamp-based resolution"
+    
+    registers:
+      lww_register:
+        description: "Last-Writer-Wins Register"
+        operations: ["write", "read"]
+        merge: "Latest timestamp wins"
+      mv_register:
+        description: "Multi-Value Register"
+        operations: ["write", "read"]
+        merge: "Preserve all concurrent values"
+    
+    sequences:
+      rga:
+        description: "Replicated Growable Array"
+        operations: ["insert", "delete"]
+        use_case: "Collaborative text editing"
+      woot:
+        description: "WithOut Operational Transform"
+        use_case: "Real-time collaboration"
+    
+    maps:
+      or_map:
+        description: "Observed-Remove Map"
+        operations: ["put", "remove"]
+        nested_crdts: "Values can be CRDTs"
+
+  # ---------------------------------------------------------------------------
+  # Consensus Protocols
+  # ---------------------------------------------------------------------------
+  consensus_protocols:
+    paxos:
+      description: "Classic consensus algorithm"
+      roles:
+        proposer: "Proposes values"
+        acceptor: "Votes on proposals"
+        learner: "Learns decided values"
+      phases:
+        prepare: "Proposer gets promises"
+        accept: "Proposer requests acceptance"
+        learn: "Acceptors inform learners"
+      variants:
+        multi_paxos: "Optimized for multiple values"
+        fast_paxos: "Reduced round trips"
+        egalitarian_paxos: "No distinguished leader"
+      implementations:
+        - "Chubby (Google)"
+        - "Apache ZooKeeper (ZAB variant)"
+    
+    raft:
+      description: "Understandable consensus"
+      components:
+        leader_election: "One leader per term"
+        log_replication: "Leader replicates to followers"
+        safety: "Only leader with complete log wins"
+      implementations:
+        - "etcd"
+        - "CockroachDB"
+        - "TiKV"
+        - "Consul"
+    
+    viewstamped_replication:
+      description: "Predecessor to Paxos"
+      similarity: "Similar to Raft"
+    
+    zab:
+      description: "ZooKeeper Atomic Broadcast"
+      phases:
+        discovery: "Find current leader"
+        synchronization: "Sync state with leader"
+        broadcast: "Process client requests"
+      implementation: "Apache ZooKeeper"
+    
+    pbft:
+      description: "Practical Byzantine Fault Tolerance"
+      fault_tolerance: "Tolerates f Byzantine faults with 3f+1 nodes"
+      use_cases:
+        - "Blockchain"
+        - "High-security systems"
+
+  # ---------------------------------------------------------------------------
+  # Gossip Protocols
+  # ---------------------------------------------------------------------------
+  gossip_protocols:
+    basic_gossip:
+      description: "Epidemic-style information spread"
+      mechanism:
+        - "Node randomly selects peer"
+        - "Exchanges state information"
+        - "Both nodes update state"
+      properties:
+        - "Probabilistic convergence"
+        - "Scalable"
+        - "Robust to failures"
+    
+    anti_entropy:
+      description: "Background state synchronization"
+      mechanisms:
+        merkle_trees: "Efficient difference detection"
+        bloom_filters: "Approximate set membership"
+      implementations:
+        cassandra: "Anti-entropy repair"
+        dynamodb: "Background reconciliation"
+    
+    rumor_mongering:
+      description: "Active state propagation"
+      mechanism: "Forward until 'old news'"
+    
+    swim:
+      description: "Scalable Weakly-consistent Infection-style Membership"
+      components:
+        membership: "Failure detection"
+        dissemination: "State propagation"
+      implementations:
+        - "Serf"
+        - "Consul"
+        - "Memberlist"
+
+  # ---------------------------------------------------------------------------
+  # Quorum Systems
+  # ---------------------------------------------------------------------------
+  quorum_systems:
+    read_write_quorums:
+      description: "R + W > N for consistency"
+      configurations:
+        strong_consistency: "R + W > N"
+        read_optimized: "R=1, W=N"
+        write_optimized: "R=N, W=1"
+        balanced: "R=W=(N+1)/2"
+      examples:
+        cassandra:
+          - "ONE, TWO, THREE"
+          - "QUORUM, ALL"
+          - "LOCAL_QUORUM, EACH_QUORUM"
+        dynamodb:
+          - "Eventually consistent (R=1)"
+          - "Strongly consistent (R=quorum)"
+    
+    sloppy_quorums:
+      description: "Allow non-replicas to participate"
+      mechanism:
+        - "Hinted handoff to available nodes"
+        - "Later replay to actual replicas"
+      tradeoff: "Higher availability, weaker consistency"
+      implementations:
+        - "Dynamo"
+        - "Cassandra"
+        - "Riak"
+    
+    hierarchical_quorums:
+      description: "Multi-level quorum structure"
+      use_case: "Geographic distribution"
+      example: "LOCAL_QUORUM + EACH_QUORUM"
+
+  # ---------------------------------------------------------------------------
+  # Database-Specific Consistency
+  # ---------------------------------------------------------------------------
+  database_specifics:
+    mongodb:
+      read_concerns:
+        local: "Latest data from node"
+        available: "May return orphaned documents"
+        majority: "Acknowledged by majority"
+        linearizable: "Real-time order guarantee"
+        snapshot: "Multi-document transactions"
+      write_concerns:
+        w_0: "No acknowledgment"
+        w_1: "Primary acknowledgment"
+        w_majority: "Majority acknowledgment"
+        w_n: "N nodes acknowledgment"
+      causal_consistency:
+        - "Requires sessions"
+        - "afterClusterTime specification"
+    
+    cassandra:
+      consistency_levels:
+        any: "Any node (including hints)"
+        one: "One replica"
+        two: "Two replicas"
+        three: "Three replicas"
+        quorum: "(RF/2)+1 replicas"
+        local_quorum: "Quorum in local DC"
+        each_quorum: "Quorum in each DC"
+        all: "All replicas"
+        serial: "For LWT operations"
+        local_serial: "Serial in local DC"
+      lightweight_transactions:
+        - "Compare-and-set (CAS)"
+        - "Uses Paxos internally"
+        - "IF NOT EXISTS, IF conditions"
+    
+    dynamodb:
+      consistency_options:
+        eventually_consistent: "Default, lower latency"
+        strongly_consistent: "Read from leader"
+      global_tables:
+        - "Multi-region active-active"
+        - "Last writer wins"
+        - "Conflict resolution: timestamp"
+      transactions:
+        - "ACID transactions"
+        - "Up to 100 items"
+        - "25 items for writes"
+    
+    couchbase:
+      consistency_options:
+        - "Read from replica"
+        - "Read from active"
+        - "MutationToken for read-your-writes"
+      durability_levels:
+        none: "In-memory acknowledgment"
+        majority: "Replicated to majority"
+        persist_to_majority: "Persisted on majority"
+    
+    redis:
+      consistency_model:
+        single_node: "Strong consistency"
+        cluster: "Eventual consistency possible"
+      wait_command: "Wait for replication"
+      streams: "Consumer groups for ordering"
+
+# =============================================================================
+# TRAP TYPES - 80+ Consistency Traps
+# =============================================================================
+
+trap_types:
+  # ---------------------------------------------------------------------------
+  # Read Consistency Traps
+  # ---------------------------------------------------------------------------
+  read_consistency:
+    - trap_id: "RC-001"
+      name: "Stale Read After Write"
+      description: "Read returns old value immediately after write"
+      trigger: "Reading from replica before write propagates"
+      difficulty: "medium"
+      scenario: |
+        Client writes to primary
+        Client reads from replica (load balanced)
+        Replica hasn't received update yet
+        Client sees stale data
+      databases: ["MongoDB", "Cassandra", "DynamoDB"]
+    
+    - trap_id: "RC-002"
+      name: "Read Skew"
+      description: "Inconsistent reads across related data"
+      trigger: "Reading related records at different times"
+      difficulty: "hard"
+      scenario: |
+        Read balance: $100
+        Transfer $50 happens
+        Read transactions: shows transfer
+        Balance + transactions don't match
+    
+    - trap_id: "RC-003"
+      name: "Non-Monotonic Reads"
+      description: "Seeing older value after newer"
+      trigger: "Load balancer switching between replicas"
+      difficulty: "medium"
+      scenario: |
+        Read from replica A: version 5
+        Read from replica B: version 3
+        Time appears to go backward
+    
+    - trap_id: "RC-004"
+      name: "Phantom Reads in NoSQL"
+      description: "New documents appear in repeated query"
+      trigger: "Concurrent inserts during query"
+      difficulty: "medium"
+      databases: ["MongoDB", "Couchbase"]
+
+  # ---------------------------------------------------------------------------
+  # Write Consistency Traps
+  # ---------------------------------------------------------------------------
+  write_consistency:
+    - trap_id: "WC-001"
+      name: "Lost Update"
+      description: "Concurrent write overwrites previous"
+      trigger: "Read-modify-write without conflict detection"
+      difficulty: "medium"
+      scenario: |
+        Client A reads: counter = 10
+        Client B reads: counter = 10
+        Client A writes: counter = 11
+        Client B writes: counter = 11
+        Expected: 12, Actual: 11
+    
+    - trap_id: "WC-002"
+      name: "Write Skew"
+      description: "Concurrent updates based on stale read"
+      trigger: "Check-then-act pattern"
+      difficulty: "hard"
+      scenario: |
+        Constraint: on_call doctors >= 1
+        Both doctors read: 2 on call
+        Both decide to go off call
+        Both write: off call
+        Result: 0 on call (constraint violated)
+    
+    - trap_id: "WC-003"
+      name: "Counter Overwrite"
+      description: "Setting counter instead of incrementing"
+      trigger: "Using SET instead of INCR"
+      difficulty: "easy"
+      solution: "Use atomic increment operations"
+    
+    - trap_id: "WC-004"
+      name: "Last Write Wins Data Loss"
+      description: "LWW resolution loses data"
+      trigger: "Concurrent writes in AP system"
+      difficulty: "medium"
+      databases: ["Cassandra", "DynamoDB"]
+    
+    - trap_id: "WC-005"
+      name: "Dirty Write"
+      description: "Write based on uncommitted data"
+      trigger: "No isolation between transactions"
+      difficulty: "medium"
+
+  # ---------------------------------------------------------------------------
+  # Replication Traps
+  # ---------------------------------------------------------------------------
+  replication:
+    - trap_id: "RP-001"
+      name: "Replication Lag Surprise"
+      description: "Reads return stale data due to lag"
+      trigger: "High write load causing replication delay"
+      difficulty: "medium"
+      monitoring: "Track replication lag metrics"
+    
+    - trap_id: "RP-002"
+      name: "Split Brain"
+      description: "Multiple nodes think they're primary"
+      trigger: "Network partition without proper fencing"
+      difficulty: "hard"
+      consequence: "Divergent data, conflicts"
+    
+    - trap_id: "RP-003"
+      name: "Quorum Intersection Failure"
+      description: "Quorums don't overlap"
+      trigger: "Misconfigured replication factor"
+      difficulty: "hard"
+      example: "R=1, W=1, N=3 doesn't guarantee consistency"
+    
+    - trap_id: "RP-004"
+      name: "Hinted Handoff Delay"
+      description: "Hints replayed after long delay"
+      trigger: "Node down for extended period"
+      difficulty: "medium"
+      consequence: "Old writes applied after newer ones"
+    
+    - trap_id: "RP-005"
+      name: "Tombstone Resurrection"
+      description: "Deleted data reappears"
+      trigger: "Delete tombstone expired before propagation"
+      difficulty: "hard"
+      databases: ["Cassandra", "Riak"]
+
+  # ---------------------------------------------------------------------------
+  # Partition Handling Traps
+  # ---------------------------------------------------------------------------
+  partitions:
+    - trap_id: "PT-001"
+      name: "Network Partition Data Divergence"
+      description: "Both sides accept writes during partition"
+      trigger: "AP system behavior during partition"
+      difficulty: "hard"
+      resolution: "Conflict resolution after partition heals"
+    
+    - trap_id: "PT-002"
+      name: "Partition Timeout Misconfiguration"
+      description: "Timeout too short causes false partitions"
+      trigger: "Network latency spike treated as partition"
+      difficulty: "medium"
+    
+    - trap_id: "PT-003"
+      name: "Asymmetric Partition"
+      description: "Node A can reach B, but B can't reach A"
+      trigger: "One-way network failure"
+      difficulty: "hard"
+      consequence: "Unexpected leader election"
+
+  # ---------------------------------------------------------------------------
+  # Timestamp Traps
+  # ---------------------------------------------------------------------------
+  timestamps:
+    - trap_id: "TS-001"
+      name: "Clock Skew Conflict Resolution"
+      description: "Wrong write wins due to clock skew"
+      trigger: "Servers have different times"
+      difficulty: "hard"
+      scenario: |
+        Server A clock: 10:00:00
+        Server B clock: 10:00:05 (5 sec ahead)
+        Real time: Server A write at 10:00:03
+        Real time: Server B write at 10:00:01
+        LWW chooses Server B (earlier real time, later clock)
+    
+    - trap_id: "TS-002"
+      name: "Logical Clock Overflow"
+      description: "Logical clock counter overflows"
+      trigger: "Very high write rate"
+      difficulty: "medium"
+    
+    - trap_id: "TS-003"
+      name: "Timestamp Precision Loss"
+      description: "Timestamp precision insufficient"
+      trigger: "Multiple writes in same millisecond"
+      difficulty: "medium"
+
+  # ---------------------------------------------------------------------------
+  # CRDT Traps
+  # ---------------------------------------------------------------------------
+  crdts:
+    - trap_id: "CR-001"
+      name: "Counter Drift"
+      description: "Counter value drifts due to implementation bug"
+      trigger: "Incorrect CRDT merge implementation"
+      difficulty: "hard"
+    
+    - trap_id: "CR-002"
+      name: "Set Tombstone Accumulation"
+      description: "Tombstones accumulate in OR-Set"
+      trigger: "Many add/remove cycles"
+      difficulty: "medium"
+      consequence: "Memory/storage growth"
+    
+    - trap_id: "CR-003"
+      name: "LWW Register Race"
+      description: "Near-simultaneous updates with wrong winner"
+      trigger: "Writes within clock precision"
+      difficulty: "hard"
+
+  # ---------------------------------------------------------------------------
+  # Application-Level Traps
+  # ---------------------------------------------------------------------------
+  application:
+    - trap_id: "AP-001"
+      name: "Read-Then-Write Race"
+      description: "Reading then writing without locking"
+      trigger: "Optimistic update without version check"
+      difficulty: "medium"
+      solution: "Use optimistic concurrency with version"
+    
+    - trap_id: "AP-002"
+      name: "Eventual Consistency Assumption"
+      description: "Assuming immediate consistency"
+      trigger: "Business logic depends on read-your-writes"
+      difficulty: "medium"
+    
+    - trap_id: "AP-003"
+      name: "Cross-Document Consistency"
+      description: "Related documents inconsistent"
+      trigger: "Updating multiple documents non-atomically"
+      difficulty: "hard"
+      solution: "Use transactions or design for eventual"
+    
+    - trap_id: "AP-004"
+      name: "Session Affinity Loss"
+      description: "Losing read-your-writes due to failover"
+      trigger: "Session to different node after write"
+      difficulty: "medium"
+
+# =============================================================================
+# EDGE CASES - 100+ Edge Cases
+# =============================================================================
+
+edge_cases:
+  # ---------------------------------------------------------------------------
+  # Timing Edge Cases
+  # ---------------------------------------------------------------------------
+  timing:
+    - case_id: "TM-001"
+      name: "Simultaneous Writes"
+      description: "Multiple writes at exact same timestamp"
+      impact: "Conflict resolution tie-breaker needed"
+    
+    - case_id: "TM-002"
+      name: "Clock Synchronization Failure"
+      description: "NTP failure causes clock drift"
+      impact: "LWW chooses wrong winner"
+    
+    - case_id: "TM-003"
+      name: "Leap Second"
+      description: "Clock adjustment during operation"
+      impact: "Timestamp ordering affected"
+    
+    - case_id: "TM-004"
+      name: "Time Zone Confusion"
+      description: "Timestamps in different zones"
+      impact: "Comparison errors"
+
+  # ---------------------------------------------------------------------------
+  # Network Edge Cases
+  # ---------------------------------------------------------------------------
+  network:
+    - case_id: "NW-001"
+      name: "Partial Partition"
+      description: "Some nodes can communicate, others can't"
+      impact: "Complex quorum scenarios"
+    
+    - case_id: "NW-002"
+      name: "High Latency Spike"
+      description: "Temporary latency increase"
+      impact: "May trigger partition behavior"
+    
+    - case_id: "NW-003"
+      name: "Packet Reordering"
+      description: "Network reorders packets"
+      impact: "Out-of-order message delivery"
+    
+    - case_id: "NW-004"
+      name: "Duplicate Delivery"
+      description: "Network delivers message twice"
+      impact: "Duplicate operations if not idempotent"
+
+  # ---------------------------------------------------------------------------
+  # Node Failure Edge Cases
+  # ---------------------------------------------------------------------------
+  node_failures:
+    - case_id: "NF-001"
+      name: "Leader Failure During Write"
+      description: "Leader fails mid-write"
+      impact: "Partial write, unknown state"
+    
+    - case_id: "NF-002"
+      name: "Slow Node vs Dead Node"
+      description: "Slow node detected as dead"
+      impact: "Unnecessary failover, data inconsistency"
+    
+    - case_id: "NF-003"
+      name: "Cascading Failure"
+      description: "One failure triggers others"
+      impact: "Quorum loss"
+    
+    - case_id: "NF-004"
+      name: "Zombie Node"
+      description: "Node returns after being declared dead"
+      impact: "Split brain if not properly fenced"
+
+  # ---------------------------------------------------------------------------
+  # Data Edge Cases
+  # ---------------------------------------------------------------------------
+  data:
+    - case_id: "DT-001"
+      name: "Empty Document Merge"
+      description: "Merging with empty document"
+      impact: "May delete all fields"
+    
+    - case_id: "DT-002"
+      name: "Null vs Missing Field"
+      description: "Different semantics in merge"
+      impact: "Unexpected merge results"
+    
+    - case_id: "DT-003"
+      name: "Array Merge Conflicts"
+      description: "Arrays modified concurrently"
+      impact: "Order or content loss"
+    
+    - case_id: "DT-004"
+      name: "Nested Document Conflicts"
+      description: "Conflicts in nested structures"
+      impact: "Complex resolution needed"
+
+# =============================================================================
+# DIFFICULTY MULTIPLIERS
+# =============================================================================
+
+difficulty_multipliers:
+  difficulty_amplifiers:
+    nightmare:
+      multiplier: 3.0
+      description: "Extreme difficulty requiring expert DBA knowledge across multiple systems"
+      requirements:
+        - "7+ interacting traps across storage engine, query optimizer, and lock manager"
+        - "Requires understanding of database internals and source code behavior"
+        - "Time estimate: 90+ minutes for senior database engineers"
+        - "Cross-database compatibility issues that manifest differently"
+        - "Requires synthesizing SQL, transactions, and distributed systems knowledge"
+    
+    nightmare_plus:
+      multiplier: 5.0
+      estimated_time: [28800, 172800]  # 8-48 hours
+      command_steps: [400, 1500]
+      techniques_required: 12
+      description: "Database kernel development difficulty requiring storage engine internals and consensus protocol expertise"
+      requirements:
+        - "12+ deeply interacting traps across consensus, replication, storage, and consistency layers"
+        - "Requires understanding of database kernel source code and protocol implementations"
+        - "Time estimate: 8-48 hours for principal database architects"
+        - "Cross-engine compatibility issues requiring deep internals knowledge"
+        - "Requires synthesizing consensus protocols, MVCC implementations, and distributed recovery"
+        - "Must debug issues that span multiple datacenter regions"
+        - "Requires understanding of clock synchronization protocols (NTP, PTP, TrueTime)"
+        - "Must handle Byzantine fault scenarios and network partition edge cases"
+  
+  storage_engine_internals:
+    btree_implementation:
+      description: "B-tree/B+tree internal mechanics affecting consistency"
+      factors:
+        - "Page split/merge during concurrent operations"
+        - "Lock coupling and crabbing protocols"
+        - "Write-ahead logging for B-tree modifications"
+        - "Buffer pool interaction with tree traversal"
+      multiplier: 1.8
+    
+    lsm_tree_implementation:
+      description: "LSM-tree compaction and consistency interactions"
+      factors:
+        - "Memtable flush timing and consistency windows"
+        - "Compaction race conditions with reads"
+        - "Bloom filter false positives during consistency checks"
+        - "Level compaction vs tiered compaction tradeoffs"
+      multiplier: 2.0
+    
+    wal_mechanics:
+      description: "Write-ahead log recovery and consistency"
+      factors:
+        - "WAL segment recycling and replication lag"
+        - "Checkpoint timing and crash recovery consistency"
+        - "Group commit batching and durability guarantees"
+        - "WAL archiving and point-in-time recovery"
+      multiplier: 1.7
+    
+    buffer_pool_management:
+      description: "Buffer pool impact on consistency"
+      factors:
+        - "Dirty page flushing order and crash consistency"
+        - "Page eviction during long-running transactions"
+        - "Double-write buffer mechanics"
+        - "Buffer pool contention under high concurrency"
+      multiplier: 1.5
+    
+    lock_manager_internals:
+      description: "Lock manager implementation details"
+      factors:
+        - "Lock table hash collision handling"
+        - "Deadlock detection algorithm overhead"
+        - "Lock escalation threshold tuning"
+        - "Intent lock propagation in hierarchies"
+      multiplier: 1.6
+    
+    mvcc_implementation:
+      description: "MVCC version chain and garbage collection"
+      factors:
+        - "Version chain traversal overhead"
+        - "Old version garbage collection timing"
+        - "Snapshot isolation anomaly detection"
+        - "Read view construction overhead"
+      multiplier: 1.9
+  
+  distributed_database_complexity:
+    consensus_edge_cases:
+      raft_edge_cases:
+        - "Leader election during network partition healing"
+        - "Log divergence after multiple leader failures"
+        - "Membership change during active replication"
+        - "Snapshot installation race with new entries"
+      paxos_edge_cases:
+        - "Dueling proposers causing livelock"
+        - "Acceptor failure during Phase 2"
+        - "Learner catching up with gaps"
+        - "Multi-Paxos instance ordering"
+      pbft_edge_cases:
+        - "Byzantine leader detection"
+        - "View change protocol corner cases"
+        - "Checkpoint synchronization failures"
+        - "Client request deduplication"
+      multiplier: 2.5
+    
+    distributed_transaction_coordination:
+      two_phase_commit:
+        - "Coordinator failure after prepare"
+        - "Participant timeout during uncertain period"
+        - "Heuristic transaction resolution"
+        - "In-doubt transaction recovery"
+      saga_pattern:
+        - "Compensating transaction failure"
+        - "Concurrent saga execution conflicts"
+        - "Partial completion visibility"
+        - "Idempotency key collision"
+      multiplier: 2.2
+    
+    replication_lag_exploitation:
+      attack_vectors:
+        - "Read-your-writes violation exploitation"
+        - "Monotonic read guarantee bypass"
+        - "Causal consistency window attacks"
+        - "Session guarantee violations"
+      multiplier: 1.8
+    
+    partition_handling:
+      scenarios:
+        - "Asymmetric partition (A can reach B, B cannot reach A)"
+        - "Partial partition (subset of nodes isolated)"
+        - "Cascading partition (sequential isolation)"
+        - "Partition healing race conditions"
+      multiplier: 2.3
+  
+  scale_factors:
+    - factor: "multi_region"
+      multiplier: 1.8
+      description: "Data across multiple regions"
+    
+    - factor: "high_write_volume"
+      multiplier: 1.5
+      description: "Thousands of writes per second"
+    
+    - factor: "large_clusters"
+      multiplier: 1.4
+      description: "Hundreds of nodes"
+  
+  consistency_factors:
+    - factor: "mixed_consistency"
+      multiplier: 1.6
+      description: "Different consistency needs in same app"
+    
+    - factor: "cross_document_consistency"
+      multiplier: 1.7
+      description: "Multi-document consistency required"
+    
+    - factor: "real_time_requirements"
+      multiplier: 1.5
+      description: "Sub-second consistency needs"
+  
+  compliance_factors:
+    - factor: "financial_accuracy"
+      multiplier: 1.5
+      description: "Financial data must be exact"
+    
+    - factor: "audit_requirements"
+      multiplier: 1.3
+      description: "Must track all changes"
+
+# =============================================================================
+# DATABASE SYSTEM SPECIFICS
+# =============================================================================
+
+database_specifics:
+  mongodb:
+    versions: ["5.0", "6.0", "7.0"]
+    consistency_features:
+      - "Read concerns"
+      - "Write concerns"
+      - "Causal sessions"
+      - "Multi-document transactions"
+    common_issues:
+      - "Default read concern is 'local'"
+      - "Rollback possible on primary failure"
+    
+  cassandra:
+    versions: ["4.0", "4.1", "5.0"]
+    consistency_features:
+      - "Tunable consistency"
+      - "Lightweight transactions"
+      - "Counter columns"
+    common_issues:
+      - "Tombstone accumulation"
+      - "Read repair overhead"
+    
+  dynamodb:
+    consistency_features:
+      - "Eventually consistent reads (default)"
+      - "Strongly consistent reads"
+      - "Transactions"
+      - "Global tables"
+    common_issues:
+      - "Global table conflict resolution"
+      - "Transaction limits"
+    
+  couchbase:
+    versions: ["7.0", "7.1", "7.2"]
+    consistency_features:
+      - "MutationTokens"
+      - "ACID transactions"
+      - "N1QL consistency"
+    common_issues:
+      - "Cross-datacenter consistency"
+
+# =============================================================================
+# PROBLEM STATEMENT TEMPLATES
+# =============================================================================
+
+problem_statement: |
+  A {{ application_type }} built on {{ database_system }} has consistency issues.
+  The system handles {{ write_volume }} writes per second across {{ region_count }} regions.
+  
+  Observed problems:
+  {{ consistency_problems }}
+  
+  Current configuration:
+  - Read consistency: {{ read_consistency }}
+  - Write consistency: {{ write_consistency }}
+  - Replication factor: {{ replication_factor }}
+  - Cluster size: {{ cluster_size }} nodes
+  
+  Business requirements:
+  {{ business_requirements }}
+
+requirements: |
+  - Ensure {{ consistency_guarantee }} consistency
+  - Handle {{ failure_scenarios }} failure scenarios
+  - Maintain {{ availability_target }} availability
+  - Support {{ throughput_requirement }} throughput
+  - Implement {{ conflict_resolution }} conflict resolution
+
+interface: |
+  Input: {{ input_description }}
+  Output: {{ output_description }}
+  Validation: {{ validation_criteria }}
+
+# =============================================================================
+# REFERENCE SOLUTION PATTERNS
+# =============================================================================
+
+reference_solution: |
+  #!/usr/bin/env python3
+  """
+  NoSQL Consistency Patterns
+  
+  Comprehensive patterns for handling consistency in distributed databases.
+  """
+  
+  from typing import Dict, Optional, Any, List, Tuple
+  from dataclasses import dataclass, field
+  from datetime import datetime
+  import time
+  import uuid
+  import hashlib
+  
+  # ============================================================
+  # PATTERN 1: Read-Your-Writes Guarantee
+  # ============================================================
+  
+  """
+  PROBLEM:
+  Client writes data, immediately reads, sees stale version.
+  
+  SCENARIO:
+  1. Client writes to primary
+  2. Write acknowledged
+  3. Client reads from replica (load balanced)
+  4. Replica hasn't received update
+  5. Client sees old data
+  """
+  
+  class ReadYourWritesClient:
+      """
+      Client that guarantees read-your-writes consistency.
+      """
+      
+      def __init__(self, db_client):
+          self.db = db_client
+          self._write_tokens: Dict[str, Any] = {}  # collection -> token
+      
+      def write(self, collection: str, document: Dict) -> str:
+          """
+          Write document and track write token.
+          """
+          # MongoDB example with write concern
+          result = self.db[collection].insert_one(
+              document,
+              write_concern={'w': 'majority', 'j': True}
+          )
+          
+          # Store operation time for read-your-writes
+          self._write_tokens[collection] = {
+              'operation_time': self.db.client.admin.command('serverStatus')['localTime'],
+              'timestamp': time.time()
+          }
+          
+          return str(result.inserted_id)
+      
+      def read(self, collection: str, query: Dict) -> Optional[Dict]:
+          """
+          Read with read-your-writes guarantee.
+          """
+          read_concern = {'level': 'local'}
+          
+          # If recent write, use stronger consistency
+          if collection in self._write_tokens:
+              token = self._write_tokens[collection]
+              if time.time() - token['timestamp'] < 5.0:
+                  # Recent write - read from primary
+                  read_concern = {'level': 'majority'}
+          
+          return self.db[collection].find_one(
+              query,
+              read_concern=read_concern
+          )
+  
+  # ============================================================
+  # PATTERN 2: Optimistic Concurrency Control
+  # ============================================================
+  
+  """
+  PROBLEM:
+  Lost updates from concurrent modifications.
+  
+  SCENARIO:
+  1. Client A reads document: {balance: 100, version: 1}
+  2. Client B reads document: {balance: 100, version: 1}
+  3. Client A writes: {balance: 150, version: 2}
+  4. Client B writes: {balance: 120, version: 2} - OVERWRITES A's change!
+  """
+  
+  class OptimisticConcurrencyClient:
+      """
+      Prevents lost updates using version-based optimistic concurrency.
+      """
+      
+      def __init__(self, db_client):
+          self.db = db_client
+      
+      def read_with_version(
+          self, 
+          collection: str, 
+          doc_id: str
+      ) -> Tuple[Optional[Dict], int]:
+          """Read document with its version."""
+          doc = self.db[collection].find_one({'_id': doc_id})
+          if doc:
+              return doc, doc.get('_version', 0)
+          return None, 0
+      
+      def update_with_version(
+          self,
+          collection: str,
+          doc_id: str,
+          update_func,
+          max_retries: int = 3
+      ) -> bool:
+          """
+          Update document with optimistic concurrency.
+          Retries on version conflict.
+          """
+          for attempt in range(max_retries):
+              # Read current version
+              doc, version = self.read_with_version(collection, doc_id)
+              if doc is None:
+                  return False
+              
+              # Apply update function
+              updated_doc = update_func(doc.copy())
+              updated_doc['_version'] = version + 1
+              updated_doc['_updated_at'] = datetime.utcnow()
+              
+              # Conditional update
+              result = self.db[collection].update_one(
+                  {'_id': doc_id, '_version': version},
+                  {'$set': updated_doc}
+              )
+              
+              if result.modified_count == 1:
+                  return True
+              
+              # Version conflict - retry with backoff
+              time.sleep(0.01 * (2 ** attempt))
+          
+          return False
+  
+  # ============================================================
+  # PATTERN 3: Atomic Counter Operations
+  # ============================================================
+  
+  """
+  PROBLEM:
+  Counter values lost due to read-modify-write.
+  
+  WRONG:
+  counter = get('page_views')
+  counter += 1
+  set('page_views', counter)  # Concurrent increments lost!
+  
+  RIGHT: Use atomic increment operations.
+  """
+  
+  class AtomicCounters:
+      """Atomic counter operations for NoSQL databases."""
+      
+      def __init__(self, db_client):
+          self.db = db_client
+      
+      def increment_mongodb(
+          self, 
+          collection: str, 
+          doc_id: str, 
+          field: str, 
+          amount: int = 1
+      ) -> int:
+          """Atomic increment in MongoDB using $inc."""
+          result = self.db[collection].find_one_and_update(
+              {'_id': doc_id},
+              {
+                  '$inc': {field: amount},
+                  '$setOnInsert': {'_created_at': datetime.utcnow()}
+              },
+              upsert=True,
+              return_document=True  # Return updated document
+          )
+          return result.get(field, amount)
+      
+      def increment_cassandra(
+          self,
+          session,
+          table: str,
+          key: str,
+          amount: int = 1
+      ):
+          """
+          Atomic increment in Cassandra using counter columns.
+          
+          Table must use counter type:
+          CREATE TABLE page_views (
+              page_id text PRIMARY KEY,
+              count counter
+          );
+          """
+          session.execute(
+              f"UPDATE {table} SET count = count + %s WHERE page_id = %s",
+              (amount, key)
+          )
+      
+      def increment_redis(self, redis_client, key: str, amount: int = 1) -> int:
+          """Atomic increment in Redis."""
+          return redis_client.incrby(key, amount)
+  
+  # ============================================================
+  # PATTERN 4: CRDTs for Conflict-Free Replication
+  # ============================================================
+  
+  @dataclass
+  class GCounter:
+      """
+      Grow-only counter CRDT.
+      Guarantees convergence across distributed nodes.
+      """
+      
+      node_id: str
+      counts: Dict[str, int] = field(default_factory=dict)
+      
+      def increment(self, amount: int = 1) -> None:
+          """Increment this node's counter."""
+          current = self.counts.get(self.node_id, 0)
+          self.counts[self.node_id] = current + amount
+      
+      def value(self) -> int:
+          """Get total count across all nodes."""
+          return sum(self.counts.values())
+      
+      def merge(self, other: 'GCounter') -> 'GCounter':
+          """
+          Merge with another GCounter.
+          Uses max() per node to ensure convergence.
+          """
+          merged_counts = {}
+          all_nodes = set(self.counts.keys()) | set(other.counts.keys())
+          
+          for node in all_nodes:
+              merged_counts[node] = max(
+                  self.counts.get(node, 0),
+                  other.counts.get(node, 0)
+              )
+          
+          return GCounter(self.node_id, merged_counts)
+  
+  
+  @dataclass
+  class PNCounter:
+      """
+      Positive-Negative counter CRDT.
+      Supports both increment and decrement.
+      """
+      
+      node_id: str
+      positive: GCounter = None
+      negative: GCounter = None
+      
+      def __post_init__(self):
+          if self.positive is None:
+              self.positive = GCounter(self.node_id)
+          if self.negative is None:
+              self.negative = GCounter(self.node_id)
+      
+      def increment(self, amount: int = 1) -> None:
+          self.positive.increment(amount)
+      
+      def decrement(self, amount: int = 1) -> None:
+          self.negative.increment(amount)
+      
+      def value(self) -> int:
+          return self.positive.value() - self.negative.value()
+      
+      def merge(self, other: 'PNCounter') -> 'PNCounter':
+          return PNCounter(
+              self.node_id,
+              self.positive.merge(other.positive),
+              self.negative.merge(other.negative)
+          )
+  
+  
+  @dataclass
+  class LWWRegister:
+      """
+      Last-Writer-Wins Register.
+      Uses timestamp for conflict resolution.
+      """
+      
+      value: Any = None
+      timestamp: float = 0.0
+      
+      def set(self, value: Any, timestamp: float = None) -> None:
+          if timestamp is None:
+              timestamp = time.time()
+          if timestamp > self.timestamp:
+              self.value = value
+              self.timestamp = timestamp
+      
+      def get(self) -> Any:
+          return self.value
+      
+      def merge(self, other: 'LWWRegister') -> 'LWWRegister':
+          if other.timestamp > self.timestamp:
+              return LWWRegister(other.value, other.timestamp)
+          return LWWRegister(self.value, self.timestamp)
+  
+  # ============================================================
+  # PATTERN 5: Saga Pattern for Distributed Transactions
+  # ============================================================
+  
+  """
+  For operations that span multiple documents/collections
+  where ACID transactions aren't available.
+  """
+  
+  @dataclass
+  class SagaStep:
+      name: str
+      action: callable
+      compensate: callable
+  
+  class SagaOrchestrator:
+      """
+      Coordinates distributed operations with compensation.
+      """
+      
+      def __init__(self, db_client):
+          self.db = db_client
+          self.steps: List[SagaStep] = []
+          self.completed_steps: List[str] = []
+      
+      def add_step(
+          self,
+          name: str,
+          action: callable,
+          compensate: callable
+      ) -> 'SagaOrchestrator':
+          self.steps.append(SagaStep(name, action, compensate))
+          return self
+      
+      def execute(self, context: Dict) -> Tuple[bool, Dict]:
+          """
+          Execute saga steps, compensate on failure.
+          """
+          self.completed_steps = []
+          
+          try:
+              for step in self.steps:
+                  result = step.action(context)
+                  context[f'{step.name}_result'] = result
+                  self.completed_steps.append(step.name)
+              
+              return True, context
+              
+          except Exception as e:
+              # Compensate in reverse order
+              for step_name in reversed(self.completed_steps):
+                  step = next(s for s in self.steps if s.name == step_name)
+                  try:
+                      step.compensate(context)
+                  except Exception as comp_error:
+                      # Log compensation failure
+                      pass
+              
+              return False, {'error': str(e)}
+  
+  # ============================================================
+  # PATTERN 6: Quorum Reads/Writes
+  # ============================================================
+  
+  """
+  Configure read and write consistency levels
+  to achieve desired consistency guarantee.
+  
+  Rule: R + W > N for strong consistency
+  Where:
+    R = replicas to read from
+    W = replicas to write to
+    N = total replicas
+  """
+  
+  class QuorumConfigurationGuide:
+      """
+      Guide for configuring quorum-based consistency.
+      """
+      
+      @staticmethod
+      def strong_consistency(replication_factor: int) -> Dict:
+          """
+          Configuration for strong consistency.
+          Ensures R + W > N.
+          """
+          quorum = (replication_factor // 2) + 1
+          return {
+              'read_consistency': 'QUORUM',  # Cassandra
+              'write_consistency': 'QUORUM',
+              'explanation': f'With RF={replication_factor}, QUORUM={quorum}. '
+                           f'{quorum} + {quorum} > {replication_factor}'
+          }
+      
+      @staticmethod
+      def read_heavy_workload(replication_factor: int) -> Dict:
+          """
+          Configuration for read-heavy workloads.
+          Sacrifice some consistency for read performance.
+          """
+          return {
+              'read_consistency': 'ONE',
+              'write_consistency': 'ALL',
+              'explanation': 'Write to all replicas, read from any. '
+                           'Eventually consistent reads but fast.'
+          }
+      
+      @staticmethod
+      def write_heavy_workload(replication_factor: int) -> Dict:
+          """
+          Configuration for write-heavy workloads.
+          Sacrifice some consistency for write performance.
+          """
+          return {
+              'read_consistency': 'ALL',
+              'write_consistency': 'ONE',
+              'explanation': 'Write to one replica, read from all. '
+                           'Fast writes but slow reads.'
+          }
+
+# =============================================================================
+# TEST CASES
+# =============================================================================
+
+fail_to_pass:
+  - "test_read_your_writes_guaranteed"
+  - "test_no_lost_updates"
+  - "test_atomic_counter_accuracy"
+  - "test_crdt_convergence"
+  - "test_conflict_resolution_correct"
+  - "test_partition_handling"
+
+pass_to_pass:
+  - "test_basic_read_write"
+  - "test_single_client_operations"
+
+# =============================================================================
+# VARIABLES FOR TASK GENERATION
+# =============================================================================
+
+variables:
+  - name: application_type
+    type: string
+    options:
+      - "social media platform"
+      - "e-commerce inventory"
+      - "real-time analytics"
+      - "collaborative editing"
+      - "IoT sensor aggregation"
+      - "financial ledger"
+  
+  - name: database_system
+    type: string
+    options: ["MongoDB", "Cassandra", "DynamoDB", "Couchbase", "Redis"]
+  
+  - name: write_volume
+    type: string
+    options: ["100", "1,000", "10,000", "100,000"]
+  
+  - name: region_count
+    type: int
+    min: 1
+    max: 10
+  
+  - name: consistency_guarantee
+    type: string
+    options:
+      - "eventual"
+      - "causal"
+      - "read-your-writes"
+      - "strong"
+      - "linearizable"
+
+# =============================================================================
+# ANTI-PATTERNS - LLM Failure Modes
+# =============================================================================
+
+anti_patterns:
+  llm_failure_modes:
+    - "Applying generic SQL patterns without considering database-specific behavior"
+    - "Missing isolation level interactions between concurrent transactions"
+    - "Ignoring lock manager implementation details"
+    - "Not considering query optimizer behavior changes across versions"
+    - "Missing hidden full table scans in seemingly optimized queries"
+    - "Overlooking index maintenance overhead during writes"
+    - "Assuming ORM generates efficient queries"
+    - "Missing deadlock potential in cross-schema operations"
+    - "Ignoring transaction log and recovery implications"
+    - "Assuming eventual consistency converges quickly without understanding anti-entropy mechanisms"
+    - "Ignoring clock skew impact on last-write-wins conflict resolution"
+    - "Missing vector clock overflow edge cases in high-throughput systems"
+    - "Assuming CRDTs automatically handle all conflict scenarios without understanding merge semantics"
+    - "Overlooking gossip protocol convergence delays under network instability"
+    - "Missing quorum intersection requirements for different consistency levels"
+    - "Ignoring hinted handoff replay ordering issues"
+    - "Assuming read-repair fixes all consistency issues without understanding its limitations"
+    - "Missing tombstone resurrection scenarios after gc_grace_seconds expiration"
+    - "Overlooking the impact of compaction on read consistency"
+    - "Assuming consensus protocols handle all Byzantine fault scenarios"
+    - "Missing split-brain detection edge cases in leader election"
+    - "Ignoring the CAP theorem implications during partition healing"
+    - "Assuming PACELC tradeoffs are symmetric across all operations"
+    - "Missing causal consistency session guarantee violations across load balancers"
+    - "Overlooking the impact of clock synchronization on distributed transactions"
+    - "Assuming snapshot isolation prevents all anomalies including write skew"
+    - "Missing replication slot overflow causing data loss in PostgreSQL logical replication"
+  
+  query_optimizer_internals:
+    cardinality_estimation_traps:
+      - "Correlated column statistics missing"
+      - "Histogram bucket boundary effects"
+      - "Join cardinality explosion"
+      - "Subquery cardinality unknown"
+    plan_cache_issues:
+      - "Parameter sniffing with skewed data"
+      - "Plan cache pollution from ad-hoc queries"
+      - "Forced parameterization side effects"
+      - "Plan guide staleness after schema changes"
+    cost_model_limitations:
+      - "I/O cost assumptions wrong for SSD"
+      - "Memory grant estimation errors"
+      - "Parallel plan overhead miscalculation"
+      - "Network cost ignored in distributed queries"
+
+# =============================================================================
+# ANTI-HARDCODING MEASURES
+# =============================================================================
+
+anti_hardcoding:
+  canary_tokens: true
+  randomize_paths: true
+  dynamic_content: true
+  randomize_identifiers: true
+  
+  consistency_issues:
+    - "stale_read"
+    - "lost_update"
+    - "write_skew"
+    - "split_brain"
+    - "replication_lag"
