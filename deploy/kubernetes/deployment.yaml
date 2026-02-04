@@ -1,35 +1,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: synth-bench
-  namespace: synth-bench
+  name: dataforge
+  namespace: dataforge
   labels:
-    app.kubernetes.io/name: synth-bench
+    app.kubernetes.io/name: dataforge
     app.kubernetes.io/component: api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: synth-bench
+      app: dataforge
   template:
     metadata:
       labels:
-        app: synth-bench
-        app.kubernetes.io/name: synth-bench
+        app: dataforge
+        app.kubernetes.io/name: dataforge
         app.kubernetes.io/component: api
     spec:
       containers:
-        - name: synth-bench
-          image: synth-bench:latest
+        - name: dataforge
+          image: dataforge:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
               name: http
           envFrom:
             - configMapRef:
-                name: synth-bench-config
+                name: dataforge-config
             - secretRef:
-                name: synth-bench-secrets
+                name: dataforge-secrets
           resources:
             requests:
               cpu: "500m"
@@ -64,15 +64,15 @@ spec:
             path: /var/run/docker.sock
         - name: data
           persistentVolumeClaim:
-            claimName: synth-bench-data
+            claimName: dataforge-data
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: synth-bench-data
-  namespace: synth-bench
+  name: dataforge-data
+  namespace: dataforge
   labels:
-    app.kubernetes.io/name: synth-bench
+    app.kubernetes.io/name: dataforge
     app.kubernetes.io/component: storage
 spec:
   accessModes:

@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: synth-bench
+  name: dataforge
   labels:
-    app.kubernetes.io/name: synth-bench
+    app.kubernetes.io/name: dataforge
     app.kubernetes.io/component: namespace
