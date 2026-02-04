@@ -660,9 +660,9 @@ def result_file(user_home):
     fn select_base_image(&self) -> &'static str {
         // Select based on category - simplified version
         match self.template.category.as_str() {
-            "containers" => "synth-bench/ubuntu-24.04:latest",
-            "data-science" => "synth-bench/python-3.11:latest",
-            _ => "synth-bench/ubuntu-24.04:latest",
+            "containers" => "dataforge/ubuntu-24.04:latest",
+            "data-science" => "dataforge/python-3.11:latest",
+            _ => "dataforge/ubuntu-24.04:latest",
         }
     }
 

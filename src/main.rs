@@ -1,4 +1,4 @@
-//! synth-bench CLI entry point.
+//! dataforge CLI entry point.
 //!
 //! Initializes logging and delegates to the CLI module for command handling.
 
@@ -7,7 +7,7 @@ use tracing_subscriber::{fmt, prelude::*, EnvFilter};
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Parse CLI arguments first to get log_level
-    let cli = synth_bench::cli::parse_cli();
+    let cli = dataforge::cli::parse_cli();
 
     // Initialize tracing with environment filter
     // Priority: RUST_LOG env var > --log-level CLI arg > default "info"
@@ -19,5 +19,5 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     // Run the CLI with parsed arguments
-    synth_bench::cli::run_with_cli(cli).await
+    dataforge::cli::run_with_cli(cli).await
 }

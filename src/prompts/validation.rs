@@ -103,7 +103,7 @@ Output ONLY the JSON object. No additional text."#;
 /// # Examples
 ///
 /// ```
-/// use synth_bench::prompts::build_validation_prompt;
+/// use dataforge::prompts::build_validation_prompt;
 ///
 /// let prompt = build_validation_prompt(
 ///     "Complex Task Title",

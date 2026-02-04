@@ -58,21 +58,18 @@ impl Default for EnvironmentConfig {
         let mut base_images = HashMap::new();
         base_images.insert(
             "python".to_string(),
-            "synth-bench/python-3.13:latest".to_string(),
+            "dataforge/python-3.13:latest".to_string(),
         );
-        base_images.insert("node".to_string(), "synth-bench/node-22:latest".to_string());
-        base_images.insert(
-            "rust".to_string(),
-            "synth-bench/rust-1.80:latest".to_string(),
-        );
-        base_images.insert("go".to_string(), "synth-bench/go-1.22:latest".to_string());
+        base_images.insert("node".to_string(), "dataforge/node-22:latest".to_string());
+        base_images.insert("rust".to_string(), "dataforge/rust-1.80:latest".to_string());
+        base_images.insert("go".to_string(), "dataforge/go-1.22:latest".to_string());
         base_images.insert(
             "multi".to_string(),
-            "synth-bench/multi-lang:latest".to_string(),
+            "dataforge/multi-lang:latest".to_string(),
         );
         base_images.insert(
             "ubuntu".to_string(),
-            "synth-bench/ubuntu-24.04:latest".to_string(),
+            "dataforge/ubuntu-24.04:latest".to_string(),
         );
 
         Self {
@@ -119,7 +116,7 @@ impl EnvironmentConfig {
         self.base_images
             .get(runtime)
             .map(|s| s.as_str())
-            .unwrap_or("synth-bench/ubuntu-24.04:latest")
+            .unwrap_or("dataforge/ubuntu-24.04:latest")
     }
 }
 
@@ -259,7 +256,7 @@ impl BuiltEnvironment {
 /// Generate a unique canary token.
 fn generate_canary_token() -> String {
     format!(
-        "SYNTH_BENCH_CANARY_{}",
+        "DATAFORGE_CANARY_{}",
         Uuid::new_v4().to_string().replace('-', "_").to_uppercase()
     )
 }
@@ -724,8 +721,8 @@ mod tests {
         let token1 = generate_canary_token();
         let token2 = generate_canary_token();
 
-        assert!(token1.starts_with("SYNTH_BENCH_CANARY_"));
-        assert!(token2.starts_with("SYNTH_BENCH_CANARY_"));
+        assert!(token1.starts_with("DATAFORGE_CANARY_"));
+        assert!(token2.starts_with("DATAFORGE_CANARY_"));
         assert_ne!(token1, token2);
     }
 
@@ -758,7 +755,7 @@ mod tests {
 
         assert!(result
             .dockerfile_content
-            .contains("synth-bench/python-3.13:latest"));
+            .contains("dataforge/python-3.13:latest"));
         assert!(result.dockerfile_content.contains("pip install"));
         assert_eq!(result.dependencies, vec!["numpy", "pandas"]);
         assert_eq!(result.runtime_version, "3.13");

@@ -1,13 +1,13 @@
-//! Simplified CLI command definitions for synth-bench.
+//! Simplified CLI command definitions for dataforge.
 //!
 //! This module provides a streamlined command-line interface for generating
 //! synthetic benchmark datasets in one shot.
 
 use crate::agents::{
     FactoryOrchestrator, FactoryOrchestratorConfig, FactoryPipelineEvent, FactoryPipelineStage,
-    FullPipelineConfig, FullPipelineEvent, FullPipelineOrchestrator,
-    SyntheticOrchestrator, SyntheticOrchestratorConfig, SyntheticPipelineEvent,
-    SyntheticPipelineStage, SyntheticTask, TaskCategory as AgentTaskCategory,
+    FullPipelineConfig, FullPipelineEvent, FullPipelineOrchestrator, SyntheticOrchestrator,
+    SyntheticOrchestratorConfig, SyntheticPipelineEvent, SyntheticPipelineStage, SyntheticTask,
+    TaskCategory as AgentTaskCategory,
 };
 use crate::llm::{create_shared_cache, LiteLlmClient, OpenRouterProvider};
 use clap::Parser;
@@ -25,11 +25,11 @@ const DEFAULT_OUTPUT_DIR: &str = "./generated-datasets";
 
 /// Synthetic benchmark dataset generator for LLM evaluation.
 #[derive(Parser)]
-#[command(name = "synth-bench")]
+#[command(name = "dataforge")]
 #[command(about = "Generate synthetic benchmark datasets for LLM evaluation")]
 #[command(version)]
 #[command(
-    long_about = "synth-bench generates synthetic terminal/CLI benchmark tasks to evaluate AI agent capabilities.\n\nIt uses a multi-agent validation system to ensure generated tasks match the requested \ndifficulty level, are solvable but challenging, and meet quality standards.\n\nExample usage:\n  synth-bench generate --count 5 --model moonshotai/kimi-k2.5 --output ./datasets"
+    long_about = "dataforge generates synthetic terminal/CLI benchmark tasks to evaluate AI agent capabilities.\n\nIt uses a multi-agent validation system to ensure generated tasks match the requested \ndifficulty level, are solvable but challenging, and meet quality standards.\n\nExample usage:\n  dataforge generate --count 5 --model moonshotai/kimi-k2.5 --output ./datasets"
 )]
 pub struct Cli {
     /// The subcommand to execute.
@@ -140,7 +140,7 @@ pub async fn run() -> anyhow::Result<()> {
 
 /// Run the CLI with the parsed arguments.
 ///
-/// This is the main entry point for the synth-bench CLI.
+/// This is the main entry point for the dataforge CLI.
 pub async fn run_with_cli(cli: Cli) -> anyhow::Result<()> {
     match cli.command {
         Commands::Generate(args) => {
@@ -535,11 +535,19 @@ async fn run_interactive_generation(
                     SyntheticPipelineEvent::DockerValidationStarted { task_id, image, .. } => {
                         println!("   🐳 Docker: validating {} with {}", task_id, image);
                     }
-                    SyntheticPipelineEvent::DockerValidationComplete { passed, duration_ms, error, .. } => {
+                    SyntheticPipelineEvent::DockerValidationComplete {
+                        passed,
+                        duration_ms,
+                        error,
+                        ..
+                    } => {
                         if passed {
                             println!("   ✓ Docker: validated in {}ms", duration_ms);
                         } else {
-                            println!("   ✗ Docker: failed - {}", error.unwrap_or_else(|| "unknown error".to_string()));
+                            println!(
+                                "   ✗ Docker: failed - {}",
+                                error.unwrap_or_else(|| "unknown error".to_string())
+                            );
                         }
                     }
                     SyntheticPipelineEvent::DockerValidationSkipped { reason, .. } => {
@@ -1038,7 +1046,9 @@ async fn run_interactive_full_pipeline(
                     FullPipelineEvent::StageStarted { stage, .. } => {
                         println!("  ├─ ⏳ Starting {}...", stage);
                     }
-                    FullPipelineEvent::StageCompleted { stage, duration_ms, .. } => {
+                    FullPipelineEvent::StageCompleted {
+                        stage, duration_ms, ..
+                    } => {
                         println!("  ├─ ✅ {} completed ({}ms)", stage, duration_ms);
                     }
                     FullPipelineEvent::StageFailed { stage, error, .. } => {
@@ -1047,27 +1057,57 @@ async fn run_interactive_full_pipeline(
                     FullPipelineEvent::StageSkipped { stage, reason, .. } => {
                         println!("  ├─ ⏭️ {} skipped: {}", stage, reason);
                     }
-                    FullPipelineEvent::ResearchComplete { weaknesses_found, traps_proposed, .. } => {
-                        println!("  │   Found {} weaknesses, {} traps proposed", weaknesses_found, traps_proposed);
+                    FullPipelineEvent::ResearchComplete {
+                        weaknesses_found,
+                        traps_proposed,
+                        ..
+                    } => {
+                        println!(
+                            "  │   Found {} weaknesses, {} traps proposed",
+                            weaknesses_found, traps_proposed
+                        );
                     }
-                    FullPipelineEvent::IdeationComplete { task_title, category, .. } => {
+                    FullPipelineEvent::IdeationComplete {
+                        task_title,
+                        category,
+                        ..
+                    } => {
                         println!("  │   Created: {} [{}]", task_title, category);
                     }
-                    FullPipelineEvent::AmplificationComplete { traps_added, difficulty_score, .. } => {
-                        println!("  │   Added {} traps, difficulty: {:.2}", traps_added, difficulty_score);
+                    FullPipelineEvent::AmplificationComplete {
+                        traps_added,
+                        difficulty_score,
+                        ..
+                    } => {
+                        println!(
+                            "  │   Added {} traps, difficulty: {:.2}",
+                            traps_added, difficulty_score
+                        );
                     }
                     FullPipelineEvent::TestDesignComplete { test_count, .. } => {
                         println!("  │   Designed {} tests", test_count);
                     }
-                    FullPipelineEvent::DockerValidationComplete { passed, duration_ms, .. } => {
+                    FullPipelineEvent::DockerValidationComplete {
+                        passed,
+                        duration_ms,
+                        ..
+                    } => {
                         if passed {
                             println!("  │   Docker validation passed ({}ms)", duration_ms);
                         } else {
                             println!("  │   Docker validation failed ({}ms)", duration_ms);
                         }
                     }
-                    FullPipelineEvent::PipelineComplete { task_id, total_duration_ms, stages_completed, .. } => {
-                        println!("  └─ ✅ Task {} generated ({} stages, {}ms)", task_id, stages_completed, total_duration_ms);
+                    FullPipelineEvent::PipelineComplete {
+                        task_id,
+                        total_duration_ms,
+                        stages_completed,
+                        ..
+                    } => {
+                        println!(
+                            "  └─ ✅ Task {} generated ({} stages, {}ms)",
+                            task_id, stages_completed, total_duration_ms
+                        );
                     }
                     _ => {}
                 }
@@ -1134,7 +1174,7 @@ mod tests {
 
     #[test]
     fn test_generate_command_defaults() {
-        let args = vec!["synth-bench", "generate"];
+        let args = vec!["dataforge", "generate"];
         let cli = Cli::try_parse_from(args).expect("should parse");
 
         match cli.command {
@@ -1154,7 +1194,7 @@ mod tests {
     #[test]
     fn test_generate_command_with_all_options() {
         let args = vec![
-            "synth-bench",
+            "dataforge",
             "generate",
             "-n",
             "5",
@@ -1192,7 +1232,7 @@ mod tests {
 
     #[test]
     fn test_generate_alias() {
-        let args = vec!["synth-bench", "gen", "-n", "2"];
+        let args = vec!["dataforge", "gen", "-n", "2"];
         let cli = Cli::try_parse_from(args).expect("should parse with alias");
 
         match cli.command {
@@ -1237,13 +1277,13 @@ mod tests {
             status: "success".to_string(),
             model: "moonshotai/kimi-k2.5".to_string(),
             tasks: vec![GeneratedTaskOutput {
-                task_id: "synth-task-001".to_string(),
+                task_id: "dataforge-task-001".to_string(),
                 category: "debugging".to_string(),
                 problem_statement: "Find the bug in the code".to_string(),
                 difficulty: "Medium".to_string(),
                 tags: vec!["memory".to_string(), "profiling".to_string()],
                 verification_criteria: vec!["Bug identified".to_string()],
-                saved_path: Some("./output/synth-task-001".to_string()),
+                saved_path: Some("./output/dataforge-task-001".to_string()),
             }],
             total_duration_ms: 5000,
             retries: 1,
@@ -1255,7 +1295,7 @@ mod tests {
         // Verify key fields are present in output
         assert!(json.contains("\"status\": \"success\""));
         assert!(json.contains("\"model\": \"moonshotai/kimi-k2.5\""));
-        assert!(json.contains("\"task_id\": \"synth-task-001\""));
+        assert!(json.contains("\"task_id\": \"dataforge-task-001\""));
         assert!(json.contains("\"category\": \"debugging\""));
         assert!(json.contains("\"total_duration_ms\": 5000"));
         assert!(json.contains("\"retries\": 1"));

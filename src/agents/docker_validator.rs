@@ -144,12 +144,7 @@ impl DockerValidationResult {
     }
 
     /// Sets solution validation result.
-    pub fn with_solution_result(
-        mut self,
-        validated: bool,
-        exit_code: i64,
-        output: String,
-    ) -> Self {
+    pub fn with_solution_result(mut self, validated: bool, exit_code: i64, output: String) -> Self {
         self.solution_validated = Some(validated);
         self.solution_exit_code = Some(exit_code);
         self.solution_output = Some(output);
@@ -194,7 +189,10 @@ impl DockerValidatorAgent {
         let docker_client = DockerClient::new().map_err(|e| {
             AgentError::ConfigurationError(format!("Failed to connect to Docker: {}", e))
         })?;
-        Ok(Self::new(Arc::new(docker_client), DockerValidatorConfig::default()))
+        Ok(Self::new(
+            Arc::new(docker_client),
+            DockerValidatorConfig::default(),
+        ))
     }
 
     /// Creates a new agent from an existing Docker client.
@@ -205,7 +203,7 @@ impl DockerValidatorAgent {
     /// Validates a synthetic task in a Docker container.
     pub async fn validate_task(&self, task: &SyntheticTask) -> AgentResult<DockerValidationResult> {
         let start_time = Instant::now();
-        
+
         info!(
             task_id = %task.id,
             category = %task.metadata.category,
@@ -216,12 +214,18 @@ impl DockerValidatorAgent {
         let container_config = self.build_container_config(task);
 
         // Ensure image exists
-        if !self.docker_client.image_exists(&container_config.image).await {
+        if !self
+            .docker_client
+            .image_exists(&container_config.image)
+            .await
+        {
             debug!(image = %container_config.image, "Pulling Docker image");
             self.docker_client
                 .pull_image(&container_config.image)
                 .await
-                .map_err(|e| AgentError::GenerationFailed(format!("Failed to pull image: {}", e)))?;
+                .map_err(|e| {
+                    AgentError::GenerationFailed(format!("Failed to pull image: {}", e))
+                })?;
         }
 
         // Create and start container
@@ -316,32 +320,44 @@ impl DockerValidatorAgent {
 
         let image = self.determine_base_image(task);
 
-        ContainerConfig::new(format!("dataforge-validate-{}", &task.id[..8.min(task.id.len())]), image)
-            .with_limits(limits)
-            .with_working_dir("/workspace")
-            .with_network_mode(self.config.network_mode.clone())
-            .with_env(vec![
-                format!("TASK_ID={}", task.id),
-                format!("TASK_CATEGORY={}", task.metadata.category),
-            ])
+        ContainerConfig::new(
+            format!("dataforge-validate-{}", &task.id[..8.min(task.id.len())]),
+            image,
+        )
+        .with_limits(limits)
+        .with_working_dir("/workspace")
+        .with_network_mode(self.config.network_mode.clone())
+        .with_env(vec![
+            format!("TASK_ID={}", task.id),
+            format!("TASK_CATEGORY={}", task.metadata.category),
+        ])
     }
 
     /// Determines the base image for a task.
     fn determine_base_image(&self, task: &SyntheticTask) -> String {
         // Analyze tags and category to determine best image
-        let tags_lower: Vec<String> = task.metadata.tags.iter()
+        let tags_lower: Vec<String> = task
+            .metadata
+            .tags
+            .iter()
             .map(|t| t.to_lowercase())
             .collect();
-        
+
         let category_lower = task.metadata.category.to_lowercase();
 
         if tags_lower.iter().any(|t| t.contains("python")) || category_lower.contains("python") {
             "python:3.11-slim".to_string()
-        } else if tags_lower.iter().any(|t| t.contains("node") || t.contains("javascript")) {
+        } else if tags_lower
+            .iter()
+            .any(|t| t.contains("node") || t.contains("javascript"))
+        {
             "node:20-slim".to_string()
         } else if tags_lower.iter().any(|t| t.contains("rust")) {
             "rust:1.75-slim".to_string()
-        } else if tags_lower.iter().any(|t| t.contains("go") || t.contains("golang")) {
+        } else if tags_lower
+            .iter()
+            .any(|t| t.contains("go") || t.contains("golang"))
+        {
             "golang:1.21-alpine".to_string()
         } else if category_lower.contains("docker") || category_lower.contains("container") {
             "docker:24-dind".to_string()
@@ -360,9 +376,13 @@ impl DockerValidatorAgent {
         ];
 
         for cmd in checks {
-            let result = container.exec(&self.docker_client, cmd).await
-                .map_err(|e| AgentError::GenerationFailed(format!("Environment check failed: {}", e)))?;
-            
+            let result = container
+                .exec(&self.docker_client, cmd)
+                .await
+                .map_err(|e| {
+                    AgentError::GenerationFailed(format!("Environment check failed: {}", e))
+                })?;
+
             if result.exit_code != 0 {
                 return Err(AgentError::GenerationFailed(format!(
                     "Environment check '{}' failed with exit code {}",
@@ -428,7 +448,7 @@ impl DockerValidatorAgent {
 mod tests {
     use super::*;
     use crate::agents::task_executor::{
-        DifficultyScoring, HiddenSolution, TaskMetadata, VerificationSpec, SyntheticTask,
+        DifficultyScoring, HiddenSolution, SyntheticTask, TaskMetadata, VerificationSpec,
     };
     use crate::difficulty::DifficultyLevel;
 
@@ -437,14 +457,12 @@ mod tests {
             .with_key_insights(vec!["Test insight"])
             .with_reference_commands(vec!["echo 'Hello'"]);
 
-        let verification = VerificationSpec::new()
-            .with_success_criteria(vec!["Task completed"]);
+        let verification = VerificationSpec::new().with_success_criteria(vec!["Task completed"]);
 
-        let difficulty = DifficultyScoring::new(DifficultyLevel::Medium)
-            .with_complexity_factors(vec!["linux"]);
+        let difficulty =
+            DifficultyScoring::new(DifficultyLevel::Medium).with_complexity_factors(vec!["linux"]);
 
-        let metadata = TaskMetadata::new("testing", "test-idea-001")
-            .with_tags(vec!["test"]);
+        let metadata = TaskMetadata::new("testing", "test-idea-001").with_tags(vec!["test"]);
 
         SyntheticTask::new(
             "Test problem",
@@ -501,9 +519,12 @@ mod tests {
 
     #[test]
     fn test_validation_result_with_solution() {
-        let result = DockerValidationResult::success(1000, None)
-            .with_solution_result(true, 0, "Success output".to_string());
-        
+        let result = DockerValidationResult::success(1000, None).with_solution_result(
+            true,
+            0,
+            "Success output".to_string(),
+        );
+
         assert!(result.passed);
         assert_eq!(result.solution_validated, Some(true));
         assert_eq!(result.solution_exit_code, Some(0));
@@ -512,9 +533,12 @@ mod tests {
 
     #[test]
     fn test_validation_result_solution_failure() {
-        let result = DockerValidationResult::success(1000, None)
-            .with_solution_result(false, 1, "Error output".to_string());
-        
+        let result = DockerValidationResult::success(1000, None).with_solution_result(
+            false,
+            1,
+            "Error output".to_string(),
+        );
+
         assert!(!result.passed); // Should be false when solution fails
         assert_eq!(result.solution_validated, Some(false));
         assert_eq!(result.solution_exit_code, Some(1));

@@ -1,4 +1,4 @@
-//! Category taxonomy system for synth-bench.
+//! Category taxonomy system for dataforge.
 //!
 //! Defines the 12 main benchmark categories and their subcategories.
 

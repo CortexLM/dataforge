@@ -1,15 +1,15 @@
 [package]
-name = "synth_bench"
+name = "dataforge"
 version = "0.1.0"
 edition = "2021"
-description = "Synthetic benchmark task generator for LLM evaluation with multi-agent validation"
+description = "Data pipeline orchestration framework for LLM evaluation with multi-agent validation"
 license = "MIT"
-repository = "https://github.com/synth-bench/synth-bench"
+repository = "https://github.com/dataforge/dataforge"
 readme = "README.md"
-keywords = ["benchmark", "llm", "evaluation", "synthetic", "agents"]
+keywords = ["dataforge", "pipeline", "llm", "evaluation", "agents"]
 
 [[bin]]
-name = "synth-bench"
+name = "dataforge"
 path = "src/main.rs"
 
 [dependencies]

@@ -296,7 +296,7 @@ Respond in JSON format:
 /// # Examples
 ///
 /// ```
-/// use synth_bench::prompts::external_data::build_collector_prompt;
+/// use dataforge::prompts::external_data::build_collector_prompt;
 ///
 /// let prompt = build_collector_prompt(
 ///     "Fix the authentication bug in the login handler",
@@ -327,7 +327,7 @@ pub fn build_collector_prompt(task: &str, source: &str, has_tests: bool) -> Stri
 /// # Examples
 ///
 /// ```
-/// use synth_bench::prompts::external_data::build_analyzer_prompt;
+/// use dataforge::prompts::external_data::build_analyzer_prompt;
 ///
 /// let prompt = build_analyzer_prompt(
 ///     "Optimize the database query performance",
@@ -358,7 +358,7 @@ pub fn build_analyzer_prompt(problem: &str, repo: &str, category_hint: Option<&s
 /// # Examples
 ///
 /// ```
-/// use synth_bench::prompts::external_data::build_crafter_prompt;
+/// use dataforge::prompts::external_data::build_crafter_prompt;
 ///
 /// let prompt = build_crafter_prompt(
 ///     "There's a bug in the parser",
@@ -389,7 +389,7 @@ pub fn build_crafter_prompt(original: &str, context: &str, max_length: usize) ->
 /// # Examples
 ///
 /// ```
-/// use synth_bench::prompts::external_data::build_test_designer_prompt;
+/// use dataforge::prompts::external_data::build_test_designer_prompt;
 ///
 /// let prompt = build_test_designer_prompt(
 ///     "Implement a rate limiter",
@@ -429,7 +429,7 @@ pub fn build_test_designer_prompt(problem: &str, existing_tests: &[String]) -> S
 /// # Examples
 ///
 /// ```
-/// use synth_bench::prompts::external_data::build_environment_prompt;
+/// use dataforge::prompts::external_data::build_environment_prompt;
 ///
 /// let prompt = build_environment_prompt(
 ///     "org/repo",
@@ -460,7 +460,7 @@ pub fn build_environment_prompt(repo: &str, language: &str, deps_hint: &str) -> 
 /// # Examples
 ///
 /// ```
-/// use synth_bench::prompts::external_data::build_synthetic_prompt;
+/// use dataforge::prompts::external_data::build_synthetic_prompt;
 ///
 /// let prompt = build_synthetic_prompt("debugging", "medium");
 /// assert!(prompt.contains("debugging"));

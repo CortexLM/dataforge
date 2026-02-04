@@ -23,7 +23,7 @@
 //! ## Deduplicating Trajectories
 //!
 //! ```rust,ignore
-//! use synth_bench::diversity::Deduplicator;
+//! use dataforge::diversity::Deduplicator;
 //!
 //! // Create a deduplicator with 85% similarity threshold
 //! let deduplicator = Deduplicator::new(0.85);
@@ -36,7 +36,7 @@
 //! ## Diverse Sampling
 //!
 //! ```rust,ignore
-//! use synth_bench::diversity::{DiverseSampler, SamplingStrategy};
+//! use dataforge::diversity::{DiverseSampler, SamplingStrategy};
 //!
 //! let sampler = DiverseSampler::new().with_seed(42);
 //!
@@ -51,7 +51,7 @@
 //! ## Measuring Diversity
 //!
 //! ```rust,ignore
-//! use synth_bench::diversity::DiversityMetrics;
+//! use dataforge::diversity::DiversityMetrics;
 //!
 //! let metrics = DiversityMetrics::calculate(&trajectories);
 //! println!("Category entropy: {:.3}", metrics.category_entropy());

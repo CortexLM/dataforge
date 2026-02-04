@@ -1,4 +1,4 @@
-//! External data source collectors for synth-bench.
+//! External data source collectors for dataforge.
 //!
 //! This module provides collectors for fetching benchmark data from external sources:
 //! - SWE-bench: Python bug instances from HuggingFace datasets

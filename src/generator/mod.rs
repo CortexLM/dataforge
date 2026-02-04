@@ -1,4 +1,4 @@
-//! Task generation pipeline for synth-bench.
+//! Task generation pipeline for dataforge.
 //!
 //! This module implements the complete pipeline for generating task instances from templates:
 //!
@@ -10,8 +10,8 @@
 //! # Example
 //!
 //! ```ignore
-//! use synth_bench::generator::{Generator, ParameterSampler, InstanceGenerator};
-//! use synth_bench::template::TaskTemplate;
+//! use dataforge::generator::{Generator, ParameterSampler, InstanceGenerator};
+//! use dataforge::template::TaskTemplate;
 //!
 //! // Load a template
 //! let template: TaskTemplate = load_template("log-analysis-001")?;

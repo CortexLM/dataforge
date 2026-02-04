@@ -12,9 +12,9 @@
 //! # Example
 //!
 //! ```ignore
-//! use synth_bench::agents::task_executor::{TaskExecutorAgent, TaskExecutorConfig};
-//! use synth_bench::agents::task_validator::{TaskIdea, ValidationAssessment};
-//! use synth_bench::llm::LiteLlmClient;
+//! use dataforge::agents::task_executor::{TaskExecutorAgent, TaskExecutorConfig};
+//! use dataforge::agents::task_validator::{TaskIdea, ValidationAssessment};
+//! use dataforge::llm::LiteLlmClient;
 //! use std::sync::Arc;
 //!
 //! // Create LLM client
@@ -63,7 +63,7 @@ pub struct TaskExecutorConfig {
     pub max_tokens: u32,
     /// Whether to include canary tokens for contamination detection. Default: true.
     pub include_canary: bool,
-    /// Prefix for canary tokens. Default: "SYNTH_BENCH_CANARY_".
+    /// Prefix for canary tokens. Default: "DATAFORGE_CANARY_".
     pub canary_prefix: String,
     /// Base seed for deterministic generation.
     pub base_seed: u64,
@@ -75,7 +75,7 @@ impl Default for TaskExecutorConfig {
             temperature: 0.5,
             max_tokens: 4000,
             include_canary: true,
-            canary_prefix: "SYNTH_BENCH_CANARY_".to_string(),
+            canary_prefix: "DATAFORGE_CANARY_".to_string(),
             base_seed: 42,
         }
     }

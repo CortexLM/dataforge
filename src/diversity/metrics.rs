@@ -61,7 +61,7 @@ impl DiversityMetrics {
     /// # Example
     ///
     /// ```rust,ignore
-    /// use synth_bench::diversity::DiversityMetrics;
+    /// use dataforge::diversity::DiversityMetrics;
     ///
     /// let metrics = DiversityMetrics::calculate(&trajectories);
     /// println!("Overall diversity: {:.2}", metrics.overall_score());
@@ -352,7 +352,7 @@ impl DiversityMetrics {
 /// # Example
 ///
 /// ```rust,ignore
-/// use synth_bench::diversity::shannon_entropy;
+/// use dataforge::diversity::shannon_entropy;
 /// use std::collections::HashMap;
 ///
 /// let mut dist = HashMap::new();

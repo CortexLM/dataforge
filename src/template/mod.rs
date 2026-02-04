@@ -1,4 +1,4 @@
-//! Template system for synth-bench task definitions.
+//! Template system for dataforge task definitions.
 //!
 //! This module provides the infrastructure for defining, loading, and validating
 //! task templates. Templates define the structure of benchmark tasks, including
@@ -8,7 +8,7 @@
 //! # Example
 //!
 //! ```ignore
-//! use synth_bench::template::{TemplateLoader, TaskTemplate};
+//! use dataforge::template::{TemplateLoader, TaskTemplate};
 //!
 //! let mut loader = TemplateLoader::new();
 //! loader.load_directory("templates/")?;

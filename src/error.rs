@@ -1,4 +1,4 @@
-//! Error types for synth-bench operations.
+//! Error types for dataforge operations.
 //!
 //! Defines comprehensive error types for all major subsystems:
 //! - Template parsing and validation

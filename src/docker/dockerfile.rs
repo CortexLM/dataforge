@@ -1,4 +1,4 @@
-//! Dockerfile generation for synth-bench tasks.
+//! Dockerfile generation for dataforge tasks.
 //!
 //! This module provides utilities for generating Dockerfiles based on task configurations,
 //! including base image selection and customization for different task categories.
@@ -7,19 +7,19 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Base Ubuntu image with essential tools.
-pub const BASE_UBUNTU: &str = "synth-bench/ubuntu-24.04:latest";
+pub const BASE_UBUNTU: &str = "dataforge/ubuntu-24.04:latest";
 
 /// Python 3.13 image for Python-focused tasks.
-pub const BASE_PYTHON: &str = "synth-bench/python-3.13:latest";
+pub const BASE_PYTHON: &str = "dataforge/python-3.13:latest";
 
 /// Node.js 22 image for JavaScript/TypeScript tasks.
-pub const BASE_NODE: &str = "synth-bench/node-22:latest";
+pub const BASE_NODE: &str = "dataforge/node-22:latest";
 
 /// Rust 1.80 image for systems programming tasks.
-pub const BASE_RUST: &str = "synth-bench/rust-1.80:latest";
+pub const BASE_RUST: &str = "dataforge/rust-1.80:latest";
 
 /// Multi-language image with Python, Node, Go, and Rust.
-pub const BASE_MULTI_LANG: &str = "synth-bench/multi-lang:latest";
+pub const BASE_MULTI_LANG: &str = "dataforge/multi-lang:latest";
 
 /// Configuration for generating a Dockerfile.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,15 +82,15 @@ impl DockerfileBuilder {
 
         // Labels
         lines.push(format!(
-            "LABEL synth-bench.task.id=\"{}\"",
+            "LABEL dataforge.task.id=\"{}\"",
             self.config.task_id
         ));
         lines.push(format!(
-            "LABEL synth-bench.task.category=\"{}\"",
+            "LABEL dataforge.task.category=\"{}\"",
             self.config.category
         ));
         lines.push(format!(
-            "LABEL synth-bench.task.difficulty=\"{}\"",
+            "LABEL dataforge.task.difficulty=\"{}\"",
             self.config.difficulty
         ));
         lines.push(String::new());
@@ -249,8 +249,8 @@ mod tests {
 
         let dockerfile = DockerfileBuilder::new(config).build();
 
-        assert!(dockerfile.contains("FROM synth-bench/ubuntu-24.04:latest"));
-        assert!(dockerfile.contains("LABEL synth-bench.task.id=\"test-001\""));
+        assert!(dockerfile.contains("FROM dataforge/ubuntu-24.04:latest"));
+        assert!(dockerfile.contains("LABEL dataforge.task.id=\"test-001\""));
         assert!(dockerfile.contains("USER user"));
         assert!(dockerfile.contains("WORKDIR /home/user"));
         assert!(dockerfile.contains("CMD [\"/bin/bash\"]"));

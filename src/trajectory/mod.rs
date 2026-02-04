@@ -15,8 +15,8 @@
 //! # Usage
 //!
 //! ```rust,ignore
-//! use synth_bench::trajectory::{TrajectoryCollector, RewardCalculator, TrajectoryStorage};
-//! use synth_bench::trajectory::types::*;
+//! use dataforge::trajectory::{TrajectoryCollector, RewardCalculator, TrajectoryStorage};
+//! use dataforge::trajectory::types::*;
 //!
 //! // Create a collector for a new execution
 //! let mut collector = TrajectoryCollector::new("task-123", "gpt-4", "react");

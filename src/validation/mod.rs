@@ -1,4 +1,4 @@
-//! Validation modules for synth-bench.
+//! Validation modules for dataforge.
 //!
 //! This module provides schema validation for task templates and
 //! task validation for ensuring tasks meet quality standards.

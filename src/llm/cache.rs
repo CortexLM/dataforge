@@ -12,7 +12,7 @@
 //! # Usage
 //!
 //! ```ignore
-//! use synth_bench::llm::{PromptCache, CachedMessage, Message};
+//! use dataforge::llm::{PromptCache, CachedMessage, Message};
 //!
 //! let cache = PromptCache::new(1000); // Max 1000 entries
 //!
@@ -247,7 +247,7 @@ impl CacheConfig {
 /// # Example
 ///
 /// ```ignore
-/// use synth_bench::llm::{PromptCache, Message};
+/// use dataforge::llm::{PromptCache, Message};
 ///
 /// let cache = PromptCache::new(100);
 ///
@@ -573,7 +573,7 @@ pub type SharedPromptCache = std::sync::Arc<PromptCache>;
 /// # Example
 ///
 /// ```ignore
-/// use synth_bench::llm::create_shared_cache;
+/// use dataforge::llm::create_shared_cache;
 ///
 /// let cache = create_shared_cache(1000);
 /// let cache_clone = cache.clone(); // Cheap clone

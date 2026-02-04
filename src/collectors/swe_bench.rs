@@ -67,7 +67,7 @@ impl CollectorConfig for SweBenchConfig {
 /// # Example
 ///
 /// ```ignore
-/// use synth_bench::collectors::SweBenchCollector;
+/// use dataforge::collectors::SweBenchCollector;
 ///
 /// let collector = SweBenchCollector::new();
 /// let tasks = collector.collect(10, 0).await?;
