@@ -1,4 +1,4 @@
-# 🛠️ Scaffold System - Agent Framework Integration
+# Scaffold System - Agent Framework Integration
 
 ## 1. What is a Scaffold?
 
@@ -19,134 +19,129 @@ Think of it as the "body" that gives the LLM "hands" to interact with the world.
 
 | Scaffold | Complexity | Tools | Language | Active | License |
 |----------|------------|-------|----------|--------|---------|
-| **OpenHands** | High | 20+ | Python | ✅ | Apache 2.0 |
-| **SWE-Agent** | Medium | 10+ | Python | ✅ | MIT |
-| **Aider** | Low | 5 | Python | ✅ | Apache 2.0 |
-| **Devon** | Medium | 15+ | TypeScript | ✅ | AGPL |
+| **OpenHands** | High | 20+ | Python | Yes | Apache 2.0 |
+| **SWE-Agent** | Medium | 10+ | Python | Yes | MIT |
+| **Aider** | Low | 5 | Python | Yes | Apache 2.0 |
+| **Devon** | Medium | 15+ | TypeScript | Yes | AGPL |
 | **Custom** | Variable | Custom | Rust | N/A | N/A |
 
 ### 2.2 Detailed Comparison
 
 #### OpenHands (formerly OpenDevin)
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      OpenHands Architecture                  │
-├─────────────────────────────────────────────────────────────┤
-│  Agent Loop                                                  │
-│  ┌────────────────────────────────────────────────────────┐│
-│  │  ┌─────────┐    ┌──────────┐    ┌─────────────────┐   ││
-│  │  │   LLM   │───▶│  Parser  │───▶│ Action Executor │   ││
-│  │  │         │    │          │    │                 │   ││
-│  │  └────▲────┘    └──────────┘    └────────┬────────┘   ││
-│  │       │                                   │            ││
-│  │       │    ┌──────────────────────────────┘            ││
-│  │       │    ▼                                           ││
-│  │  ┌────┴────────────────────────────────────────────┐  ││
-│  │  │              Observation Handler                 │  ││
-│  │  └─────────────────────────────────────────────────┘  ││
-│  └────────────────────────────────────────────────────────┘│
-│                                                             │
-│  Available Tools:                                           │
-│  • CmdRunAction      - Execute shell commands               │
-│  • FileReadAction    - Read file contents                   │
-│  • FileWriteAction   - Write to files                       │
-│  • IPythonAction     - Execute Python code                  │
-│  • BrowseAction      - Web browsing                         │
-│  • MessageAction     - Send messages                        │
-│  • ThinkAction       - Internal reasoning                   │
-│  • GitAction         - Git operations                       │
-│  • DockerAction      - Container operations                 │
-│  • And 10+ more...                                          │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph OpenHandsArch["OpenHands Architecture"]
+        subgraph AgentLoop["Agent Loop"]
+            LLM["LLM"]
+            Parser["Parser"]
+            ActionExec["Action Executor"]
+            ObsHandler["Observation Handler"]
+        end
+
+        subgraph Tools["Available Tools"]
+            T1["CmdRunAction - Execute shell commands"]
+            T2["FileReadAction - Read file contents"]
+            T3["FileWriteAction - Write to files"]
+            T4["IPythonAction - Execute Python code"]
+            T5["BrowseAction - Web browsing"]
+            T6["MessageAction - Send messages"]
+            T7["ThinkAction - Internal reasoning"]
+            T8["GitAction - Git operations"]
+            T9["DockerAction - Container operations"]
+            T10["And 10+ more..."]
+        end
+    end
+
+    LLM --> Parser --> ActionExec
+    ActionExec --> ObsHandler --> LLM
 ```
 
 **Pros:**
-- ✅ Most comprehensive tool set
-- ✅ Active development, large community
-- ✅ Web browsing capability
-- ✅ Good documentation
-- ✅ Evaluation benchmarks included
+- Most comprehensive tool set
+- Active development, large community
+- Web browsing capability
+- Good documentation
+- Evaluation benchmarks included
 
 **Cons:**
-- ❌ Complex setup (Docker, frontend, backend)
-- ❌ Heavy resource usage
-- ❌ Python-based (integration overhead with Rust)
-- ❌ Opinionated agent architecture
+- Complex setup (Docker, frontend, backend)
+- Heavy resource usage
+- Python-based (integration overhead with Rust)
+- Opinionated agent architecture
 
 #### SWE-Agent
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      SWE-Agent Architecture                  │
-├─────────────────────────────────────────────────────────────┤
-│  Agent Loop (simpler than OpenHands)                        │
-│  ┌────────────────────────────────────────────────────────┐│
-│  │  ┌─────────┐    ┌──────────────┐    ┌──────────────┐  ││
-│  │  │   LLM   │───▶│ ACR Parser   │───▶│   Executor   │  ││
-│  │  │         │    │ (thought +   │    │              │  ││
-│  │  │         │    │  action)     │    │              │  ││
-│  │  └────▲────┘    └──────────────┘    └──────┬───────┘  ││
-│  │       │                                     │          ││
-│  │       └─────────────────────────────────────┘          ││
-│  └────────────────────────────────────────────────────────┘│
-│                                                             │
-│  Available Tools:                                           │
-│  • open <file>       - View file with line numbers          │
-│  • goto <line>       - Navigate to line                     │
-│  • scroll_down/up    - Page through file                    │
-│  • search_file       - Search in file                       │
-│  • find_file         - Find files by name                   │
-│  • search_dir        - Search in directory                  │
-│  • edit <range>      - Edit lines in file                   │
-│  • submit            - Submit solution                      │
-│  • bash <cmd>        - Run shell command                    │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph SWEAgentArch["SWE-Agent Architecture"]
+        subgraph AgentLoop["Agent Loop (simpler than OpenHands)"]
+            LLM2["LLM"]
+            ACR["ACR Parser<br/>thought + action"]
+            Exec2["Executor"]
+        end
+
+        subgraph Tools2["Available Tools"]
+            S1["open file - View file with line numbers"]
+            S2["goto line - Navigate to line"]
+            S3["scroll_down/up - Page through file"]
+            S4["search_file - Search in file"]
+            S5["find_file - Find files by name"]
+            S6["search_dir - Search in directory"]
+            S7["edit range - Edit lines in file"]
+            S8["submit - Submit solution"]
+            S9["bash cmd - Run shell command"]
+        end
+    end
+
+    LLM2 --> ACR --> Exec2 --> LLM2
 ```
 
 **Pros:**
-- ✅ Designed for SWE tasks specifically
-- ✅ Simpler architecture
-- ✅ Well-tested on SWE-Bench
-- ✅ Efficient token usage
+- Designed for SWE tasks specifically
+- Simpler architecture
+- Well-tested on SWE-Bench
+- Efficient token usage
 
 **Cons:**
-- ❌ Limited to coding tasks
-- ❌ No web browsing
-- ❌ Smaller tool set
-- ❌ Less flexible
+- Limited to coding tasks
+- No web browsing
+- Smaller tool set
+- Less flexible
 
 #### Aider
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      Aider Architecture                      │
-├─────────────────────────────────────────────────────────────┤
-│  Focus: Code editing via diff/whole                         │
-│  ┌────────────────────────────────────────────────────────┐│
-│  │  User Request → LLM → Edit Instructions → File Writes  ││
-│  └────────────────────────────────────────────────────────┘│
-│                                                             │
-│  Available Tools:                                           │
-│  • /add <file>       - Add file to chat                     │
-│  • /drop <file>      - Remove file from chat                │
-│  • /run <cmd>        - Run shell command                    │
-│  • /test             - Run tests                            │
-│  • /git              - Git operations                       │
-│  • /commit           - Commit changes                       │
-└─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph AiderArch["Aider Architecture"]
+        UR["User Request"]
+        LLM3["LLM"]
+        EI["Edit Instructions"]
+        FW["File Writes"]
+
+        subgraph Tools3["Available Tools"]
+            A1["/add file - Add file to chat"]
+            A2["/drop file - Remove file from chat"]
+            A3["/run cmd - Run shell command"]
+            A4["/test - Run tests"]
+            A5["/git - Git operations"]
+            A6["/commit - Commit changes"]
+        end
+    end
+
+    UR --> LLM3 --> EI --> FW
 ```
 
 **Pros:**
-- ✅ Simple and focused
-- ✅ Excellent for code changes
-- ✅ Git integration
-- ✅ Lightweight
+- Simple and focused
+- Excellent for code changes
+- Git integration
+- Lightweight
 
 **Cons:**
-- ❌ Very limited scope
-- ❌ Not suitable for complex tasks
-- ❌ Less trajectory data
+- Very limited scope
+- Not suitable for complex tasks
+- Less trajectory data
 
 ---
 
@@ -187,7 +182,7 @@ Think of it as the "body" that gives the LLM "hands" to interact with the world.
 ### 4.1 Architecture
 
 ```rust
-pub struct SynthScaffold {
+pub struct DataforgeScaffold {
     container: DockerContainer,
     tools: Vec<Box<dyn Tool>>,
     history: ConversationHistory,
@@ -300,7 +295,7 @@ pub struct ToolResult {
 ### 4.4 Agent Loop Implementation
 
 ```rust
-impl SynthScaffold {
+impl DataforgeScaffold {
     pub async fn run(&mut self, task: &Task) -> Result<Trajectory> {
         // Initialize
         self.setup_environment(task).await?;

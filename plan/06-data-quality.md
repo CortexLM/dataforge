@@ -1,4 +1,4 @@
-# 📊 Data Quality Framework - Ensuring High-Quality Synthetic Datasets
+# Data Quality Framework - Ensuring High-Quality Synthetic Datasets
 
 ## 1. The Quality Challenge
 
@@ -16,22 +16,30 @@ A high-quality trajectory for training should be:
 
 ### 1.2 Quality Failure Modes
 
-```
-❌ INCORRECT                    ❌ INCOMPLETE
-Task: Fix the bug              Task: Implement auth
-Steps: [edit, edit, edit]      Steps: [research, plan...]
-Result: Bug still exists       Result: Implementation missing
+**INCORRECT**
+- Task: Fix the bug
+- Steps: [edit, edit, edit]
+- Result: Bug still exists
 
-❌ INCOHERENT                   ❌ REDUNDANT
-Task: Optimize function        Task: Parse JSON
-Steps: [random edits, undo]    Steps: [same as 100 others]
-Result: No clear strategy      Result: No diversity
+**INCOMPLETE**
+- Task: Implement auth
+- Steps: [research, plan...]
+- Result: Implementation missing
 
-❌ NON-GENERALIZABLE
-Task: Fix typo in line 42
-Steps: [delete char at pos 5]
-Result: Works only for this exact case
-```
+**INCOHERENT**
+- Task: Optimize function
+- Steps: [random edits, undo]
+- Result: No clear strategy
+
+**REDUNDANT**
+- Task: Parse JSON
+- Steps: [same as 100 others]
+- Result: No diversity
+
+**NON-GENERALIZABLE**
+- Task: Fix typo in line 42
+- Steps: [delete char at pos 5]
+- Result: Works only for this exact case
 
 ---
 
@@ -205,61 +213,33 @@ impl DiversityAnalyzer {
 
 ### 3.1 Multi-Stage Filtering
 
-```
-           ┌─────────────────────────────────────────────────────────────┐
-           │                   RAW TRAJECTORIES                          │
-           │                   (All generated)                           │
-           └────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-           ┌─────────────────────────────────────────────────────────────┐
-           │                 STAGE 1: BASIC FILTERING                    │
-           │  - Remove crashed/errored trajectories                      │
-           │  - Remove timeouts                                          │
-           │  - Remove empty/trivial trajectories                        │
-           │                                                             │
-           │  Pass Rate: ~70%                                            │
-           └────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-           ┌─────────────────────────────────────────────────────────────┐
-           │                 STAGE 2: CORRECTNESS FILTER                 │
-           │  - Run verification tests                                   │
-           │  - Static analysis                                          │
-           │  - Reference solution comparison                            │
-           │                                                             │
-           │  Pass Rate: ~60%                                            │
-           └────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-           ┌─────────────────────────────────────────────────────────────┐
-           │                 STAGE 3: QUALITY SCORING                    │
-           │  - Coherence check                                          │
-           │  - Completeness check                                       │
-           │  - Efficiency score                                         │
-           │                                                             │
-           │  Keep top 80% by score                                      │
-           └────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-           ┌─────────────────────────────────────────────────────────────┐
-           │                 STAGE 4: DIVERSITY FILTER                   │
-           │  - Near-duplicate detection                                 │
-           │  - Approach clustering                                      │
-           │  - Stratified sampling                                      │
-           │                                                             │
-           │  Keep diverse subset                                        │
-           └────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-           ┌─────────────────────────────────────────────────────────────┐
-           │                 STAGE 5: HUMAN REVIEW                       │
-           │  - Sample review (5-10%)                                    │
-           │  - Edge case review                                         │
-           │  - Category balance check                                   │
-           │                                                             │
-           │  Final dataset                                              │
-           └─────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Stage0["RAW TRAJECTORIES"]
+        RT["All generated trajectories"]
+    end
+
+    subgraph Stage1["STAGE 1: BASIC FILTERING"]
+        BF["Remove crashed/errored trajectories<br/>Remove timeouts<br/>Remove empty/trivial trajectories<br/>Pass Rate: ~70%"]
+    end
+
+    subgraph Stage2["STAGE 2: CORRECTNESS FILTER"]
+        CF["Run verification tests<br/>Static analysis<br/>Reference solution comparison<br/>Pass Rate: ~60%"]
+    end
+
+    subgraph Stage3["STAGE 3: QUALITY SCORING"]
+        QS["Coherence check<br/>Completeness check<br/>Efficiency score<br/>Keep top 80% by score"]
+    end
+
+    subgraph Stage4["STAGE 4: DIVERSITY FILTER"]
+        DF["Near-duplicate detection<br/>Approach clustering<br/>Stratified sampling<br/>Keep diverse subset"]
+    end
+
+    subgraph Stage5["STAGE 5: HUMAN REVIEW"]
+        HR["Sample review (5-10%)<br/>Edge case review<br/>Category balance check<br/>Final dataset"]
+    end
+
+    Stage0 --> Stage1 --> Stage2 --> Stage3 --> Stage4 --> Stage5
 ```
 
 ### 3.2 Quality Metrics Dashboard
@@ -416,7 +396,7 @@ impl DuplicateDetector {
 | Are tasks representative of real-world problems? | Transfer to actual use cases | Collect tasks from real developers |
 | Are tasks too easy? | Model won't learn complex reasoning | Add difficulty amplification |
 | Are tasks too hard? | Low success rate = wasted compute | Validate solvability before generation |
-| Do tasks have clear success criteria? | Ambiguous tasks → inconsistent rewards | Define explicit verification tests |
+| Do tasks have clear success criteria? | Ambiguous tasks lead to inconsistent rewards | Define explicit verification tests |
 
 ### 5.2 Trajectory Quality Questions
 

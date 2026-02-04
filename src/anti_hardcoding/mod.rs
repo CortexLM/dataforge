@@ -15,7 +15,7 @@
 //! # Example
 //!
 //! ```ignore
-//! use synth_bench::anti_hardcoding::{
+//! use dataforge::anti_hardcoding::{
 //!     AntiHardcodingVerifier, CanaryConfig, ProcessValidationConfig
 //! };
 //!

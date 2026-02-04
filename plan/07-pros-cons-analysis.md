@@ -1,4 +1,4 @@
-# ⚖️ Pros and Cons Analysis - Synthetic Dataset Generation
+# Pros and Cons Analysis - Synthetic Dataset Generation
 
 ## 1. Executive Summary
 
@@ -8,7 +8,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 
 ## 2. Overall Approach: Pros and Cons
 
-### 2.1 Pros ✅
+### 2.1 Pros
 
 | Pro | Impact | Confidence |
 |-----|--------|------------|
@@ -20,7 +20,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 | **Iteration Speed** | Quick to regenerate with new templates | High |
 | **24/7 Operation** | No human scheduling constraints | High |
 
-### 2.2 Cons ❌
+### 2.2 Cons
 
 | Con | Impact | Mitigation |
 |-----|--------|------------|
@@ -38,7 +38,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 
 ### 3.1 Docker Container Execution
 
-#### Pros ✅
+#### Pros
 | Advantage | Description |
 |-----------|-------------|
 | **Isolation** | Each task runs in a clean, isolated environment |
@@ -47,7 +47,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 | **Realistic** | Actual development environment, not simulation |
 | **Scalability** | Easy to spin up many containers in parallel |
 
-#### Cons ❌
+#### Cons
 | Disadvantage | Mitigation |
 |--------------|------------|
 | **Overhead** | Container startup time (~1-5s) | Pre-warm containers, pooling |
@@ -70,7 +70,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 
 ### 3.2 Multi-LLM Integration
 
-#### Pros ✅
+#### Pros
 | Advantage | Description |
 |-----------|-------------|
 | **Diversity** | Different models produce different solutions |
@@ -79,7 +79,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 | **Best-of-N** | Choose best model per task type |
 | **Research Value** | Compare model capabilities |
 
-#### Cons ❌
+#### Cons
 | Disadvantage | Mitigation |
 |--------------|------------|
 | **API Dependency** | External service outages | Multiple providers, fallbacks |
@@ -102,7 +102,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 
 ### 3.3 Scaffold System
 
-#### Pros ✅
+#### Pros
 | Advantage | Description |
 |-----------|-------------|
 | **Tool Richness** | LLMs can do more with good tools |
@@ -111,7 +111,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 | **Flexibility** | Swap scaffolds for different tasks |
 | **Community** | Leverage open-source work |
 
-#### Cons ❌
+#### Cons
 | Disadvantage | Mitigation |
 |--------------|------------|
 | **Integration Complexity** | Different APIs, languages | Unified interface |
@@ -134,7 +134,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 
 ### 3.4 Data Storage & Quality
 
-#### Pros ✅
+#### Pros
 | Advantage | Description |
 |-----------|-------------|
 | **Persistence** | Data survives system restarts |
@@ -143,7 +143,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 | **Export** | HuggingFace, Parquet formats |
 | **Audit Trail** | Know what was generated when |
 
-#### Cons ❌
+#### Cons
 | Disadvantage | Mitigation |
 |--------------|------------|
 | **Storage Costs** | Trajectories are large | Compression, tiered storage |
@@ -200,7 +200,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 
 ### 5.1 When to Use This Approach
 
-✅ **Good Fit When:**
+**Good Fit When:**
 - Need large-scale training data (10K+ examples)
 - Tasks are well-defined with clear success criteria
 - Multiple models should solve same tasks
@@ -209,7 +209,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 
 ### 5.2 When to Avoid
 
-❌ **Poor Fit When:**
+**Poor Fit When:**
 - Need small, curated dataset (<100 examples)
 - Tasks are highly ambiguous
 - No verification criteria available
@@ -271,7 +271,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 
 ## 7. Recommendations
 
-### 7.1 Must Do ✅
+### 7.1 Must Do
 
 1. **Implement multi-stage quality filtering** - Critical for data quality
 2. **Set hard budget caps** - Prevent cost overruns
@@ -279,7 +279,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 4. **Diversity metrics and enforcement** - Avoid mode collapse
 5. **Human review sampling** - Catch systematic issues
 
-### 7.2 Should Do 📋
+### 7.2 Should Do
 
 1. **Start with custom minimal scaffold** - Control before complexity
 2. **Implement cost tracking per model** - Optimize spend
@@ -287,7 +287,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 4. **Version all data schemas** - Enable evolution
 5. **Document all decisions** - Future maintainability
 
-### 7.3 Could Do 🔮
+### 7.3 Could Do
 
 1. **Self-host open models** - Long-term cost savings
 2. **A/B test scaffolds** - Find optimal configuration
@@ -295,7 +295,7 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 4. **Reward model training** - Improve quality assessment
 5. **Community dataset sharing** - Leverage external contributions
 
-### 7.4 Avoid ❌
+### 7.4 Avoid
 
 1. **Don't skip quality filtering** - Garbage in, garbage out
 2. **Don't run without resource limits** - Security/cost risk
@@ -309,11 +309,11 @@ This document presents a comprehensive analysis of the **advantages**, **disadva
 
 | Aspect | Verdict | Confidence |
 |--------|---------|------------|
-| Overall approach viability | ✅ Viable | High |
-| Docker execution | ✅ Recommended | High |
-| Multi-LLM strategy | ✅ Recommended | Medium |
-| Scaffold system | ✅ Start simple | Medium |
-| Quality assurance | ⚠️ Critical investment | High |
-| Diversity management | ⚠️ Requires active effort | Medium |
-| Cost management | ⚠️ Needs monitoring | High |
-| Security posture | ✅ Achievable with effort | High |
+| Overall approach viability | Viable | High |
+| Docker execution | Recommended | High |
+| Multi-LLM strategy | Recommended | Medium |
+| Scaffold system | Start simple | Medium |
+| Quality assurance | Critical investment | High |
+| Diversity management | Requires active effort | Medium |
+| Cost management | Needs monitoring | High |
+| Security posture | Achievable with effort | High |

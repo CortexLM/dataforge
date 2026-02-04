@@ -1,6 +1,6 @@
-# synth-bench Architecture
+# Dataforge Architecture
 
-This document describes the technical architecture of synth-bench, including the multi-agent system design, pipeline flow, and component interactions.
+This document describes the technical architecture of Dataforge, including the multi-agent system design, pipeline flow, and component interactions.
 
 ## Table of Contents
 
@@ -13,39 +13,38 @@ This document describes the technical architecture of synth-bench, including the
 
 ## System Overview
 
-synth-bench is built as a modular Rust application with the following high-level architecture:
+Dataforge is built as a modular Rust application with the following high-level architecture:
 
-```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                              synth-bench                                  │
-├──────────────────────────────────────────────────────────────────────────┤
-│                                                                          │
-│  ┌────────────┐     ┌──────────────────────────────────────────────┐    │
-│  │    CLI     │────▶│              Multi-Agent System               │    │
-│  │   Module   │     │  ┌──────────────────────────────────────────┐ │    │
-│  └────────────┘     │  │            Orchestrator Agent            │ │    │
-│        │            │  │  ┌─────────┐ ┌─────────┐ ┌────────────┐  │ │    │
-│        │            │  │  │Generator│ │Difficulty│ │Feasibility │  │ │    │
-│        ▼            │  │  │  Agent  │ │Validator │ │ Validator  │  │ │    │
-│  ┌────────────┐     │  │  └─────────┘ └─────────┘ └────────────┘  │ │    │
-│  │    TUI     │◀────│  └──────────────────────────────────────────┘ │    │
-│  │   Module   │     └──────────────────────────────────────────────┘    │
-│  └────────────┘                          │                               │
-│        ▲                                 ▼                               │
-│        │            ┌──────────────────────────────────────────────┐    │
-│        │            │                LLM Provider                   │    │
-│        │            │              (LiteLLM Client)                 │    │
-│        │            └──────────────────────────────────────────────┘    │
-│        │                                                                 │
-│  ┌─────┴──────────────────────────────────────────────────────────┐    │
-│  │                      Supporting Modules                         │    │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │    │
-│  │  │ Template │ │Generator │ │ Registry │ │  Export  │          │    │
-│  │  │  System  │ │  Engine  │ │  System  │ │  Module  │          │    │
-│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘          │    │
-│  └────────────────────────────────────────────────────────────────┘    │
-│                                                                          │
-└──────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Dataforge[Dataforge System]
+        CLI[CLI Module]
+        TUI[TUI Module]
+        
+        subgraph MAS[Multi-Agent System]
+            ORCH[Orchestrator Agent]
+            GEN[Generator Agent]
+            DIFF[Difficulty Validator]
+            FEAS[Feasibility Validator]
+        end
+        
+        LLM[LLM Provider<br/>LiteLLM Client]
+        
+        subgraph Support[Supporting Modules]
+            TMPL[Template System]
+            GENG[Generator Engine]
+            REG[Registry System]
+            EXP[Export Module]
+        end
+    end
+    
+    CLI --> MAS
+    MAS --> TUI
+    ORCH --> GEN
+    ORCH --> DIFF
+    ORCH --> FEAS
+    MAS --> LLM
+    Support --> TUI
 ```
 
 ## Multi-Agent System
@@ -54,50 +53,51 @@ The multi-agent system consists of four specialized agents that work together to
 
 ### Agent Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                          ORCHESTRATOR AGENT                             │
-│                      (Coordinates & Final Decision)                     │
-│                                                                         │
-│  • Manages pipeline flow                                                │
-│  • Coordinates agent execution                                          │
-│  • Aggregates validation scores                                         │
-│  • Makes final approval decision                                        │
-│  • Emits events for TUI updates                                         │
-└───────────────────────────────┬─────────────────────────────────────────┘
-                                │
-          ┌─────────────────────┼─────────────────────┐
-          │                     │                     │
-          ▼                     ▼                     ▼
-┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
-│  TASK GENERATOR │   │   DIFFICULTY    │   │   FEASIBILITY   │
-│      AGENT      │   │    VALIDATOR    │   │    VALIDATOR    │
-│                 │   │      AGENT      │   │      AGENT      │
-├─────────────────┤   ├─────────────────┤   ├─────────────────┤
-│ • Loads template│   │ • Uses LLM to   │   │ • Uses LLM to   │
-│ • Generates     │   │   assess task   │   │   assess task   │
-│   parameters    │   │   difficulty    │   │   solvability   │
-│ • Creates task  │   │ • Compares to   │   │ • Checks for    │
-│   instance      │   │   expected      │   │   triviality    │
-│ • Renders files │   │   level         │   │ • Validates     │
-│                 │   │ • Returns score │   │   clarity       │
-│                 │   │   & reasoning   │   │ • Returns score │
-└─────────────────┘   └─────────────────┘   └─────────────────┘
-       │                     │                     │
-       │                     │                     │
-       └──────────────┬──────┴──────────┬──────────┘
-                      │                 │
-                      ▼                 ▼
-             ┌─────────────────────────────────┐
-             │      VALIDATION RESULTS         │
-             │  ┌─────────────────────────┐    │
-             │  │ • Task metadata         │    │
-             │  │ • Individual scores     │    │
-             │  │ • Agent reasoning       │    │
-             │  │ • Overall score         │    │
-             │  │ • Approval decision     │    │
-             │  └─────────────────────────┘    │
-             └─────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Orchestrator[ORCHESTRATOR AGENT]
+        O1[Manages pipeline flow]
+        O2[Coordinates agent execution]
+        O3[Aggregates validation scores]
+        O4[Makes final approval decision]
+        O5[Emits events for TUI updates]
+    end
+    
+    Orchestrator --> Generator
+    Orchestrator --> DiffValidator
+    Orchestrator --> FeasValidator
+    
+    subgraph Generator[TASK GENERATOR AGENT]
+        G1[Loads template]
+        G2[Generates parameters]
+        G3[Creates task instance]
+        G4[Renders files]
+    end
+    
+    subgraph DiffValidator[DIFFICULTY VALIDATOR AGENT]
+        D1[Uses LLM to assess task difficulty]
+        D2[Compares to expected level]
+        D3[Returns score and reasoning]
+    end
+    
+    subgraph FeasValidator[FEASIBILITY VALIDATOR AGENT]
+        F1[Uses LLM to assess task solvability]
+        F2[Checks for triviality]
+        F3[Validates clarity]
+        F4[Returns score]
+    end
+    
+    Generator --> Results
+    DiffValidator --> Results
+    FeasValidator --> Results
+    
+    subgraph Results[VALIDATION RESULTS]
+        R1[Task metadata]
+        R2[Individual scores]
+        R3[Agent reasoning]
+        R4[Overall score]
+        R5[Approval decision]
+    end
 ```
 
 ### Task Generator Agent
@@ -231,89 +231,71 @@ OrchestratorConfig {
 
 The validation pipeline executes in four stages:
 
+```mermaid
+flowchart TB
+    START([START]) --> S1
+    
+    subgraph S1[STAGE 1: TASK GENERATION]
+        S1A[Select template matching difficulty]
+        S1B[Generate random parameters with seed]
+        S1C[Render instruction template]
+        S1D[Create task directory and files]
+        S1E[Return GeneratedTask]
+        S1A --> S1B --> S1C --> S1D --> S1E
+    end
+    
+    S1 -->|GeneratedTask| S2
+    
+    subgraph S2[STAGE 2: DIFFICULTY VALIDATION]
+        S2A[Build LLM prompt with task details]
+        S2B[Send to LLM for analysis]
+        S2C[Parse JSON response]
+        S2D[Create ValidationResult]
+        S2A --> S2B --> S2C --> S2D
+    end
+    
+    S2 -->|ValidationResult| S3
+    
+    subgraph S3[STAGE 3: FEASIBILITY VALIDATION]
+        S3A[Build LLM prompt with task and parameters]
+        S3B[Send to LLM for analysis]
+        S3C[Parse JSON response]
+        S3D[Create ValidationResult]
+        S3A --> S3B --> S3C --> S3D
+    end
+    
+    S3 -->|ValidationResult| S4
+    
+    subgraph S4[STAGE 4: FINAL APPROVAL]
+        S4A[Collect all validation scores]
+        S4B[Calculate average score]
+        S4C[Check all validations passed]
+        S4D[Compare against threshold]
+        S4E[Generate summary reasoning]
+        S4F[Create final ValidationResult]
+        S4A --> S4B --> S4C --> S4D --> S4E --> S4F
+    end
+    
+    S4 --> OUTPUT
+    
+    subgraph OUTPUT[OUTPUT: TaskValidationReport]
+        OUT1[task: GeneratedTask]
+        OUT2[validations: stage to ValidationResult]
+        OUT3[overall_score: f64]
+        OUT4[overall_passed: bool]
+        OUT5[approved: bool]
+        OUT6[summary: String]
+        OUT7[duration_ms: u64]
+    end
+    
+    OUTPUT --> END([END])
 ```
-┌───────────────────────────────────────────────────────────────────────┐
-│                        PIPELINE FLOW                                   │
-└───────────────────────────────────────────────────────────────────────┘
 
-     START
-       │
-       ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  STAGE 1: TASK GENERATION                                           │
-│  ──────────────────────────                                         │
-│  1. Select template matching difficulty                             │
-│  2. Generate random parameters with seed                            │
-│  3. Render instruction template                                     │
-│  4. Create task directory and files                                 │
-│  5. Return GeneratedTask                                            │
-│                                                                     │
-│  Events: StageStarted, StageCompleted/StageFailed                   │
-└─────────────────────────────────────────────────────────────────────┘
-       │
-       │ GeneratedTask
-       ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  STAGE 2: DIFFICULTY VALIDATION                                     │
-│  ────────────────────────────                                       │
-│  1. Build LLM prompt with task details                              │
-│  2. Send to LLM for analysis                                        │
-│  3. Parse JSON response                                             │
-│  4. Create ValidationResult                                         │
-│                                                                     │
-│  LLM Output: { score, matches_difficulty, reasoning, issues }       │
-│  Events: StageStarted, StageCompleted/StageFailed                   │
-└─────────────────────────────────────────────────────────────────────┘
-       │
-       │ ValidationResult
-       ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  STAGE 3: FEASIBILITY VALIDATION                                    │
-│  ─────────────────────────────                                      │
-│  1. Build LLM prompt with task + parameters                         │
-│  2. Send to LLM for analysis                                        │
-│  3. Parse JSON response                                             │
-│  4. Create ValidationResult                                         │
-│                                                                     │
-│  LLM Output: { score, is_solvable, is_non_trivial, reasoning }      │
-│  Events: StageStarted, StageCompleted/StageFailed                   │
-└─────────────────────────────────────────────────────────────────────┘
-       │
-       │ ValidationResult
-       ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  STAGE 4: FINAL APPROVAL                                            │
-│  ─────────────────────────                                          │
-│  1. Collect all validation scores                                   │
-│  2. Calculate average score                                         │
-│  3. Check all validations passed                                    │
-│  4. Compare against threshold (default: 0.7)                        │
-│  5. Generate summary reasoning                                      │
-│  6. Create final ValidationResult                                   │
-│                                                                     │
-│  Decision: APPROVED (score ≥ threshold && all passed)               │
-│            REJECTED (score < threshold || any failed)               │
-│  Events: StageStarted, StageCompleted, PipelineCompleted            │
-└─────────────────────────────────────────────────────────────────────┘
-       │
-       ▼
-┌─────────────────────────────────────────────────────────────────────┐
-│  OUTPUT: TaskValidationReport                                       │
-│  ──────────────────────────                                         │
-│  {                                                                  │
-│    task: GeneratedTask,                                             │
-│    validations: { stage -> ValidationResult },                      │
-│    overall_score: f64,                                              │
-│    overall_passed: bool,                                            │
-│    approved: bool,                                                  │
-│    summary: String,                                                 │
-│    duration_ms: u64,                                                │
-│  }                                                                  │
-└─────────────────────────────────────────────────────────────────────┘
-       │
-       ▼
-      END
-```
+**Decision Logic:**
+- APPROVED: score >= threshold AND all validations passed
+- REJECTED: score < threshold OR any validation failed
+
+**Events:** StageStarted, StageCompleted, StageFailed, PipelineCompleted
 
 ### Pipeline Events
 
@@ -374,50 +356,38 @@ pub enum PipelineStage {
 
 ## LLM Integration
 
-synth-bench uses a trait-based LLM integration for flexibility:
+Dataforge uses a trait-based LLM integration for flexibility:
 
-```
-┌───────────────────────────────────────────────────────────────────────┐
-│                        LLM INTEGRATION                                │
-└───────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────┐
-│    LlmProvider      │◀──── Trait (interface)
-│       Trait         │
-├─────────────────────┤
-│ + generate(req)     │
-│   -> Response       │
-└─────────────────────┘
-          ▲
-          │ implements
-          │
-┌─────────────────────┐
-│   LiteLlmClient     │
-├─────────────────────┤
-│ - base_url: String  │
-│ - api_key: Option   │
-│ - client: reqwest   │
-├─────────────────────┤
-│ + from_env()        │
-│ + generate(req)     │
-└─────────────────────┘
-          │
-          │ HTTP POST
-          ▼
-┌─────────────────────┐
-│   LiteLLM Proxy     │
-│  (External Service) │
-├─────────────────────┤
-│ POST /chat/         │
-│   completions       │
-└─────────────────────┘
-          │
-          ▼
-┌─────────────────────┐
-│   LLM Backend       │
-│ (OpenAI, Anthropic, │
-│  Ollama, etc.)      │
-└─────────────────────┘
+```mermaid
+flowchart TB
+    subgraph TraitDef[LlmProvider Trait]
+        T1["+ generate(req) -> Response"]
+    end
+    
+    TraitDef -.->|implements| Client
+    
+    subgraph Client[LiteLlmClient]
+        C1[base_url: String]
+        C2[api_key: Option]
+        C3[client: reqwest]
+        C4["+ from_env()"]
+        C5["+ generate(req)"]
+    end
+    
+    Client -->|HTTP POST| Proxy
+    
+    subgraph Proxy[LiteLLM Proxy]
+        P1[POST /chat/completions]
+    end
+    
+    Proxy --> Backend
+    
+    subgraph Backend[LLM Backend]
+        B1[OpenAI]
+        B2[Anthropic]
+        B3[Ollama]
+        B4[Other providers]
+    end
 ```
 
 ### Request/Response Types
@@ -457,33 +427,38 @@ LITELLM_API_KEY="your-key"
 
 The TUI uses an event-driven architecture with async channels:
 
-```
-┌───────────────────────────────────────────────────────────────────────┐
-│                        TUI EVENT SYSTEM                               │
-└───────────────────────────────────────────────────────────────────────┘
-
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Terminal   │     │    Event     │     │     App      │
-│    Input     │────▶│   Handler    │────▶│    State     │
-│  (crossterm) │     │              │     │              │
-└──────────────┘     └──────────────┘     └──────────────┘
-                            │                    │
-                            │                    │
-                            ▼                    ▼
-                     ┌──────────────┐     ┌──────────────┐
-                     │   Pipeline   │     │     UI       │
-                     │    Events    │     │   Renderer   │
-                     │   (mpsc rx)  │     │  (ratatui)   │
-                     └──────────────┘     └──────────────┘
-                            │                    │
-                            │                    │
-                            └────────┬───────────┘
-                                     │
-                                     ▼
-                              ┌──────────────┐
-                              │   Terminal   │
-                              │   Display    │
-                              └──────────────┘
+```mermaid
+flowchart LR
+    subgraph Input[Terminal Input]
+        TI[crossterm]
+    end
+    
+    subgraph Handler[Event Handler]
+        EH[Event Processing]
+    end
+    
+    subgraph State[App State]
+        AS[Application State]
+    end
+    
+    subgraph Pipeline[Pipeline Events]
+        PE[mpsc rx]
+    end
+    
+    subgraph Renderer[UI Renderer]
+        UI[ratatui]
+    end
+    
+    subgraph Display[Terminal Display]
+        TD[Output]
+    end
+    
+    Input --> Handler
+    Handler --> State
+    Handler --> Pipeline
+    State --> Renderer
+    Pipeline --> Renderer
+    Renderer --> Display
 ```
 
 ### Event Types

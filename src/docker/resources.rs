@@ -1,4 +1,4 @@
-//! Resource management for Docker containers in synth-bench.
+//! Resource management for Docker containers in dataforge.
 //!
 //! This module provides resource limits, volume configuration, and container
 //! configuration utilities based on task difficulty levels.
@@ -208,17 +208,17 @@ pub fn create_secure_volumes(task_id: &str) -> Vec<VolumeMount> {
         VolumeMount::read_only("./task-deps", "/task-deps"),
         // User workspace - read-write for task execution
         VolumeMount::new(
-            format!("/var/lib/synth-bench/tasks/{}/workspace", task_id),
+            format!("/var/lib/dataforge/tasks/{}/workspace", task_id),
             "/home/user",
         ),
         // Results directory - read-write for output collection
         VolumeMount::new(
-            format!("/var/lib/synth-bench/tasks/{}/results", task_id),
+            format!("/var/lib/dataforge/tasks/{}/results", task_id),
             "/home/user/results",
         ),
         // Logs directory - read-write for debugging
         VolumeMount::new(
-            format!("/var/lib/synth-bench/tasks/{}/logs", task_id),
+            format!("/var/lib/dataforge/tasks/{}/logs", task_id),
             "/var/log/task",
         ),
     ]

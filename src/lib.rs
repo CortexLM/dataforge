@@ -1,4 +1,4 @@
-//! synth-bench: Synthetic benchmark task generator for LLM evaluation.
+//! dataforge: Synthetic benchmark task generator for LLM evaluation.
 //!
 //! This library provides tools for generating, managing, and exporting
 //! synthetic terminal-based benchmark tasks.

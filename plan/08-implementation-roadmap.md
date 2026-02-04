@@ -1,36 +1,50 @@
-# 🗺️ Implementation Roadmap - Phased Delivery Plan
+# Implementation Roadmap - Phased Delivery Plan
 
 ## 1. Overview
 
-This roadmap outlines a **12-week implementation plan** to transform synth-bench into a full-scale Synthetic Dataset Generation System. The plan is structured in 4 phases, each building on the previous.
+This roadmap outlines a **12-week implementation plan** to transform dataforge into a full-scale Synthetic Dataset Generation System. The plan is structured in 4 phases, each building on the previous.
 
 ---
 
 ## 2. Timeline Overview
 
+```mermaid
+gantt
+    title Implementation Timeline
+    dateFormat  YYYY-MM-DD
+    section Phase 1: Foundation
+    Docker API           :p1a, 2025-01-06, 1w
+    Basic scaffold       :p1b, after p1a, 1w
+    Trajectory collection:p1c, after p1b, 1w
+    section Phase 2: Execution
+    Multi-LLM            :p2a, after p1c, 1w
+    SWE-Agent            :p2b, after p2a, 1w
+    Trajectory storage   :p2c, after p2b, 1w
+    section Phase 3: Quality
+    Quality filtering    :p3a, after p2c, 1w
+    Diversity analysis   :p3b, after p3a, 1w
+    Full pipeline        :p3c, after p3b, 1w
+    section Phase 4: Scale
+    Horizontal scaling   :p4a, after p3c, 1w
+    Cloud deploy         :p4b, after p4a, 1w
+    Dashboard            :p4c, after p4b, 1w
 ```
-Week:   1    2    3    4    5    6    7    8    9   10   11   12
-        ├────────────────┼────────────────┼────────────────┼────────────────┤
-Phase:  │    PHASE 1     │    PHASE 2     │    PHASE 3     │    PHASE 4     │
-        │  Foundation    │  Execution     │  Quality       │  Scale         │
-        ├────────────────┼────────────────┼────────────────┼────────────────┤
-        │ • Docker API   │ • Multi-LLM    │ • Quality      │ • Horizontal   │
-        │ • Basic scaffold│ • SWE-Agent   │   filtering    │   scaling      │
-        │ • Trajectory   │ • Trajectory   │ • Diversity    │ • Cloud deploy │
-        │   collection   │   storage      │   analysis     │ • Dashboard    │
-        │ • Simple tasks │ • Medium tasks │ • Full pipeline│ • Production   │
-        └────────────────┴────────────────┴────────────────┴────────────────┘
-```
+
+**Phase Summary:**
+- **Phase 1 (Weeks 1-3)**: Foundation - Docker API, Basic scaffold, Trajectory collection, Simple tasks
+- **Phase 2 (Weeks 4-6)**: Execution - Multi-LLM, SWE-Agent, Trajectory storage, Medium tasks
+- **Phase 3 (Weeks 7-9)**: Quality - Quality filtering, Diversity analysis, Full pipeline
+- **Phase 4 (Weeks 10-12)**: Scale - Horizontal scaling, Cloud deploy, Dashboard, Production
 
 ---
 
 ## 3. Phase 1: Foundation (Weeks 1-3)
 
 ### 3.1 Goals
-- ✅ Docker container execution working
-- ✅ Basic scaffold with core tools
-- ✅ Trajectory collection functional
-- ✅ End-to-end flow with simple tasks
+- Docker container execution working
+- Basic scaffold with core tools
+- Trajectory collection functional
+- End-to-end flow with simple tasks
 
 ### 3.2 Week 1: Docker Execution Layer
 
@@ -86,10 +100,10 @@ Phase:  │    PHASE 1     │    PHASE 2     │    PHASE 3     │    PHASE 4 
 ### 3.5 Phase 1 Success Criteria
 
 ```
-✅ Can execute: synth-bench generate-trajectory --task simple-task-001
-✅ Container starts, runs scaffold, executes tools
-✅ Trajectory saved to local file
-✅ At least 50% success rate on easy tasks
+Can execute: dataforge generate-trajectory --task simple-task-001
+Container starts, runs scaffold, executes tools
+Trajectory saved to local file
+At least 50% success rate on easy tasks
 ```
 
 ---
@@ -97,10 +111,10 @@ Phase:  │    PHASE 1     │    PHASE 2     │    PHASE 3     │    PHASE 4 
 ## 4. Phase 2: Execution Infrastructure (Weeks 4-6)
 
 ### 4.1 Goals
-- ✅ Multiple LLM providers integrated
-- ✅ SWE-Agent scaffold available
-- ✅ Persistent trajectory storage
-- ✅ Medium-complexity tasks working
+- Multiple LLM providers integrated
+- SWE-Agent scaffold available
+- Persistent trajectory storage
+- Medium-complexity tasks working
 
 ### 4.2 Week 4: Multi-LLM Router
 
@@ -156,10 +170,10 @@ Phase:  │    PHASE 1     │    PHASE 2     │    PHASE 3     │    PHASE 4 
 ### 4.5 Phase 2 Success Criteria
 
 ```
-✅ Can switch between models: gpt-4, claude, qwen
-✅ SWE-Agent solving tasks
-✅ 1000+ trajectories stored in database
-✅ 60% success rate on medium tasks
+Can switch between models: gpt-4, claude, qwen
+SWE-Agent solving tasks
+1000+ trajectories stored in database
+60% success rate on medium tasks
 ```
 
 ---
@@ -167,10 +181,10 @@ Phase:  │    PHASE 1     │    PHASE 2     │    PHASE 3     │    PHASE 4 
 ## 5. Phase 3: Quality & Diversity (Weeks 7-9)
 
 ### 5.1 Goals
-- ✅ Multi-stage quality filtering
-- ✅ Diversity analysis and enforcement
-- ✅ Full verification pipeline
-- ✅ All difficulty levels working
+- Multi-stage quality filtering
+- Diversity analysis and enforcement
+- Full verification pipeline
+- All difficulty levels working
 
 ### 5.2 Week 7: Quality Filtering Pipeline
 
@@ -226,10 +240,10 @@ Phase:  │    PHASE 1     │    PHASE 2     │    PHASE 3     │    PHASE 4 
 ### 5.5 Phase 3 Success Criteria
 
 ```
-✅ Quality pipeline filtering 40%+ of raw trajectories
-✅ Diversity metrics showing good coverage
-✅ Expert-level tasks generating trajectories
-✅ First dataset exported to HuggingFace
+Quality pipeline filtering 40%+ of raw trajectories
+Diversity metrics showing good coverage
+Expert-level tasks generating trajectories
+First dataset exported to HuggingFace
 ```
 
 ---
@@ -237,10 +251,10 @@ Phase:  │    PHASE 1     │    PHASE 2     │    PHASE 3     │    PHASE 4 
 ## 6. Phase 4: Scale & Production (Weeks 10-12)
 
 ### 6.1 Goals
-- ✅ Horizontal scaling working
-- ✅ Cloud deployment ready
-- ✅ Production monitoring
-- ✅ 10K+ trajectory generation
+- Horizontal scaling working
+- Cloud deployment ready
+- Production monitoring
+- 10K+ trajectory generation
 
 ### 6.2 Week 10: Horizontal Scaling
 
@@ -294,11 +308,11 @@ Phase:  │    PHASE 1     │    PHASE 2     │    PHASE 3     │    PHASE 4 
 ### 6.5 Phase 4 Success Criteria
 
 ```
-✅ System running on cloud infrastructure
-✅ 1000+ trajectories/day throughput
-✅ <1% system errors
-✅ Full observability stack
-✅ Documentation complete
+System running on cloud infrastructure
+1000+ trajectories/day throughput
+<1% system errors
+Full observability stack
+Documentation complete
 ```
 
 ---
@@ -353,7 +367,7 @@ Phase:  │    PHASE 1     │    PHASE 2     │    PHASE 3     │    PHASE 4 
 
 | Milestone | Week | Deliverable |
 |-----------|------|-------------|
-| **M1: First Trajectory** | 3 | Single task → trajectory |
+| **M1: First Trajectory** | 3 | Single task to trajectory |
 | **M2: Multi-Model** | 5 | 3+ models generating |
 | **M3: Quality Pipeline** | 8 | Filtered dataset |
 | **M4: First Dataset** | 9 | HuggingFace export |

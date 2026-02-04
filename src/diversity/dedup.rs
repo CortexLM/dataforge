@@ -83,7 +83,7 @@ impl Deduplicator {
     /// # Example
     ///
     /// ```
-    /// use synth_bench::diversity::Deduplicator;
+    /// use dataforge::diversity::Deduplicator;
     ///
     /// let deduplicator = Deduplicator::new(0.9); // 90% similarity threshold
     /// ```

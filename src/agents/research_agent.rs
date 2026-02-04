@@ -12,8 +12,8 @@
 //! # Example
 //!
 //! ```ignore
-//! use synth_bench::agents::research_agent::{ResearchAgent, ResearchConfig};
-//! use synth_bench::llm::LiteLlmClient;
+//! use dataforge::agents::research_agent::{ResearchAgent, ResearchConfig};
+//! use dataforge::llm::LiteLlmClient;
 //! use std::sync::Arc;
 //!
 //! let llm_client = Arc::new(LiteLlmClient::from_env()?);

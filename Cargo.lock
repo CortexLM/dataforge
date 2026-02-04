@@ -481,6 +481,47 @@ dependencies = [
 ]
 
 [[package]]
+name = "dataforge"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-stream",
+ "async-trait",
+ "base64 0.22.1",
+ "bollard",
+ "chrono",
+ "clap",
+ "futures",
+ "hex",
+ "ndarray",
+ "ordered-float",
+ "pin-project-lite",
+ "prometheus",
+ "rand",
+ "rand_chacha",
+ "rand_distr",
+ "redis",
+ "regex",
+ "reqwest",
+ "semver",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2",
+ "sqlx",
+ "tempfile",
+ "tera",
+ "thiserror",
+ "time",
+ "tokio",
+ "tokio-stream",
+ "tracing",
+ "tracing-subscriber",
+ "uuid",
+ "walkdir",
+]
+
+[[package]]
 name = "der"
 version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2719,47 +2760,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.114",
-]
-
-[[package]]
-name = "synth_bench"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-stream",
- "async-trait",
- "base64 0.22.1",
- "bollard",
- "chrono",
- "clap",
- "futures",
- "hex",
- "ndarray",
- "ordered-float",
- "pin-project-lite",
- "prometheus",
- "rand",
- "rand_chacha",
- "rand_distr",
- "redis",
- "regex",
- "reqwest",
- "semver",
- "serde",
- "serde_json",
- "serde_yaml",
- "sha2",
- "sqlx",
- "tempfile",
- "tera",
- "thiserror",
- "time",
- "tokio",
- "tokio-stream",
- "tracing",
- "tracing-subscriber",
- "uuid",
- "walkdir",
 ]
 
 [[package]]

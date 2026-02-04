@@ -1,12 +1,12 @@
 //! Metrics module for Prometheus-based monitoring.
 //!
 //! This module provides comprehensive metrics collection and export for
-//! synth-bench operations, including task execution, LLM usage, and quality scores.
+//! dataforge operations, including task execution, LLM usage, and quality scores.
 //!
 //! # Example
 //!
 //! ```ignore
-//! use synth_bench::metrics::{init_metrics, export_metrics, MetricsCollector};
+//! use dataforge::metrics::{init_metrics, export_metrics, MetricsCollector};
 //!
 //! // Initialize metrics on startup
 //! init_metrics().expect("Failed to initialize metrics");

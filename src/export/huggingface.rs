@@ -367,7 +367,7 @@ mod tests {
     use std::path::PathBuf;
 
     fn create_test_registry() -> TaskRegistry {
-        let mut registry = TaskRegistry::new(PathBuf::from("/tmp/synth-bench-test"));
+        let mut registry = TaskRegistry::new(PathBuf::from("/tmp/dataforge-test"));
 
         let metadata = TaskMetadata {
             difficulty: "medium".to_string(),
@@ -408,10 +408,10 @@ mod tests {
 
     #[test]
     fn test_export_no_tasks() {
-        let registry = TaskRegistry::new(PathBuf::from("/tmp/synth-bench-test-empty"));
+        let registry = TaskRegistry::new(PathBuf::from("/tmp/dataforge-test-empty"));
         let exporter = HuggingFaceExporter::new(registry, "org/dataset".to_string());
 
-        let temp_dir = std::env::temp_dir().join("synth-bench-test-empty");
+        let temp_dir = std::env::temp_dir().join("dataforge-test-empty");
         let result = exporter.export(&temp_dir, "v1.0.0", false);
 
         assert!(matches!(result, Err(ExportError::NoTasks)));
@@ -422,7 +422,7 @@ mod tests {
         let registry = create_test_registry();
         let exporter = HuggingFaceExporter::new(registry, "org/dataset".to_string());
 
-        let temp_dir = std::env::temp_dir().join("synth-bench-test-version");
+        let temp_dir = std::env::temp_dir().join("dataforge-test-version");
         let result = exporter.export(&temp_dir, "1.0.0", false);
 
         assert!(matches!(result, Err(ExportError::InvalidVersion(_))));

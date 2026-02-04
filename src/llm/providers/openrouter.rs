@@ -179,8 +179,8 @@ impl OpenRouterProvider {
             .post(url)
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("HTTP-Referer", "https://synth-bench.local")
-            .header("X-Title", "synth-bench")
+            .header("HTTP-Referer", "https://dataforge.local")
+            .header("X-Title", "dataforge")
             .json(request)
             .send()
             .await

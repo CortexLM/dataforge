@@ -12,8 +12,8 @@
 //! # Example
 //!
 //! ```ignore
-//! use synth_bench::agents::factory_orchestrator::{FactoryOrchestrator, FactoryOrchestratorConfig};
-//! use synth_bench::llm::LiteLlmClient;
+//! use dataforge::agents::factory_orchestrator::{FactoryOrchestrator, FactoryOrchestratorConfig};
+//! use dataforge::llm::LiteLlmClient;
 //! use std::sync::Arc;
 //! use tokio::sync::mpsc;
 //!
@@ -601,7 +601,9 @@ impl FactoryOrchestrator {
                                 ));
 
                                 if !result.passed {
-                                    let error_msg = result.error.unwrap_or_else(|| "Docker validation failed".to_string());
+                                    let error_msg = result
+                                        .error
+                                        .unwrap_or_else(|| "Docker validation failed".to_string());
                                     self.send_event(
                                         event_tx,
                                         FactoryPipelineEvent::pipeline_failed(

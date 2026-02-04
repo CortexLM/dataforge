@@ -30,8 +30,8 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use synth_bench::scheduler::{WorkerPool, WorkerPoolConfig, JobQueue, Job, TaskSpec};
-//! use synth_bench::pipeline::PipelineOrchestrator;
+//! use dataforge::scheduler::{WorkerPool, WorkerPoolConfig, JobQueue, Job, TaskSpec};
+//! use dataforge::pipeline::PipelineOrchestrator;
 //! use std::sync::Arc;
 //! use std::time::Duration;
 //!

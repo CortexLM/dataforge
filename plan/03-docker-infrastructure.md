@@ -1,4 +1,4 @@
-# 🐳 Docker Infrastructure - Container Orchestration Plan
+# Docker Infrastructure - Container Orchestration Plan
 
 ## 1. Overview
 
@@ -10,86 +10,88 @@ The Docker infrastructure is the execution backbone of the synthetic dataset gen
 
 ### Option A: Docker-in-Docker (DinD)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Host Machine                                 │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │                  Worker Container (DinD)                   │ │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐         │ │
-│  │  │ Task        │ │ Task        │ │ Task        │         │ │
-│  │  │ Container 1 │ │ Container 2 │ │ Container N │         │ │
-│  │  └─────────────┘ └─────────────┘ └─────────────┘         │ │
-│  │                    Docker Daemon                          │ │
-│  └───────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Host["Host Machine"]
+        subgraph WorkerDinD["Worker Container (DinD)"]
+            TC1["Task Container 1"]
+            TC2["Task Container 2"]
+            TCN["Task Container N"]
+            DD["Docker Daemon"]
+        end
+    end
+
+    DD --> TC1
+    DD --> TC2
+    DD --> TCN
 ```
 
 **Pros:**
-- ✅ Complete isolation
-- ✅ Clean resource limits
-- ✅ Easy to reason about
+- Complete isolation
+- Clean resource limits
+- Easy to reason about
 
 **Cons:**
-- ❌ Performance overhead
-- ❌ Nested complexity
-- ❌ Storage layer issues
+- Performance overhead
+- Nested complexity
+- Storage layer issues
 
 ### Option B: Sibling Containers (Recommended)
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Host Machine                                 │
-│                                                                  │
-│  ┌───────────────────┐                                         │
-│  │   Worker Process  │──────────────┐                          │
-│  │   (Orchestrator)  │              │ Docker Socket            │
-│  └───────────────────┘              │ /var/run/docker.sock     │
-│                                     ▼                          │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐               │
-│  │ Task        │ │ Task        │ │ Task        │               │
-│  │ Container 1 │ │ Container 2 │ │ Container N │               │
-│  └─────────────┘ └─────────────┘ └─────────────┘               │
-│                    Host Docker Daemon                           │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Host["Host Machine"]
+        WP["Worker Process<br/>Orchestrator"]
+        DS["Docker Socket<br/>/var/run/docker.sock"]
+        HDD["Host Docker Daemon"]
+
+        subgraph Containers["Task Containers"]
+            TC1["Task Container 1"]
+            TC2["Task Container 2"]
+            TCN["Task Container N"]
+        end
+    end
+
+    WP --> DS
+    DS --> HDD
+    HDD --> TC1
+    HDD --> TC2
+    HDD --> TCN
 ```
 
 **Pros:**
-- ✅ Better performance
-- ✅ Simpler architecture
-- ✅ Direct Docker access
+- Better performance
+- Simpler architecture
+- Direct Docker access
 
 **Cons:**
-- ❌ Less isolation (shares daemon)
-- ❌ Requires socket access
-- ❌ Cleanup responsibility
+- Less isolation (shares daemon)
+- Requires socket access
+- Cleanup responsibility
 
 ### Option C: Kubernetes Pods
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Kubernetes Cluster                           │
-│  ┌───────────────────────────────────────────────────────────┐ │
-│  │                        Node 1                              │ │
-│  │  ┌─────────────────────────────────────────────────────┐ │ │
-│  │  │ Pod: task-executor-abc                               │ │ │
-│  │  │ ┌─────────────┐ ┌─────────────┐                    │ │ │
-│  │  │ │  scaffold   │ │  workspace  │                    │ │ │
-│  │  │ │  container  │ │  container  │                    │ │ │
-│  │  │ └─────────────┘ └─────────────┘                    │ │ │
-│  │  └─────────────────────────────────────────────────────┘ │ │
-│  └───────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph K8s["Kubernetes Cluster"]
+        subgraph Node1["Node 1"]
+            subgraph Pod["Pod: task-executor-abc"]
+                SC["scaffold container"]
+                WC["workspace container"]
+            end
+        end
+    end
 ```
 
 **Pros:**
-- ✅ Production-ready scaling
-- ✅ Built-in orchestration
-- ✅ Resource quotas
+- Production-ready scaling
+- Built-in orchestration
+- Resource quotas
 
 **Cons:**
-- ❌ Complexity overhead
-- ❌ Requires K8s expertise
-- ❌ Higher infrastructure cost
+- Complexity overhead
+- Requires K8s expertise
+- Higher infrastructure cost
 
 ---
 
@@ -97,11 +99,11 @@ The Docker infrastructure is the execution backbone of the synthetic dataset gen
 
 | Factor | Docker Sibling | DinD | Kubernetes |
 |--------|---------------|------|------------|
-| Simplicity | ✅ | ⚠️ | ❌ |
-| Performance | ✅ | ⚠️ | ✅ |
-| Isolation | ⚠️ | ✅ | ✅ |
-| Scalability | ⚠️ | ⚠️ | ✅ |
-| Development Speed | ✅ | ⚠️ | ❌ |
+| Simplicity | High | Medium | Low |
+| Performance | High | Medium | High |
+| Isolation | Medium | High | High |
+| Scalability | Medium | Medium | High |
+| Development Speed | High | Medium | Low |
 
 **Recommendation**: Start with **Docker Sibling Containers**, migrate to **Kubernetes** when scale requires.
 
@@ -227,21 +229,22 @@ networks:
 
 ### 5.1 Lifecycle States
 
-```
-┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│ PENDING  │────▶│ CREATING │────▶│ RUNNING  │────▶│ COMPLETED│
-└──────────┘     └──────────┘     └────┬─────┘     └──────────┘
-                                       │
-                                       ▼
-                                  ┌──────────┐     ┌──────────┐
-                                  │  FAILED  │     │ TIMEOUT  │
-                                  └──────────┘     └──────────┘
-                                       │                │
-                                       └───────┬────────┘
-                                               ▼
-                                          ┌──────────┐
-                                          │ CLEANUP  │
-                                          └──────────┘
+```mermaid
+flowchart LR
+    PENDING["PENDING"]
+    CREATING["CREATING"]
+    RUNNING["RUNNING"]
+    COMPLETED["COMPLETED"]
+    FAILED["FAILED"]
+    TIMEOUT["TIMEOUT"]
+    CLEANUP["CLEANUP"]
+
+    PENDING --> CREATING --> RUNNING --> COMPLETED
+    RUNNING --> FAILED
+    RUNNING --> TIMEOUT
+    FAILED --> CLEANUP
+    TIMEOUT --> CLEANUP
+    COMPLETED --> CLEANUP
 ```
 
 ### 5.2 Cleanup Policy
@@ -272,7 +275,7 @@ pub struct CleanupPolicy {
 
 ```
 /workspace/                    # Main working directory
-├── .synth/                    # System files (read-only)
+├── .dataforge/                # System files (read-only)
 │   ├── task.json              # Task specification
 │   ├── tools.json             # Available tools
 │   └── config.yaml            # Configuration
@@ -292,7 +295,7 @@ pub fn create_mounts(task: &Task) -> Vec<Mount> {
         // Task specification (read-only)
         Mount::bind(
             &task.spec_path,
-            "/workspace/.synth",
+            "/workspace/.dataforge",
             true, // read_only
         ),
         // Working directory (read-write, ephemeral)
@@ -302,7 +305,7 @@ pub fn create_mounts(task: &Task) -> Vec<Mount> {
         ),
         // Artifact output (persistent)
         Mount::volume(
-            &format!("synth-artifacts-{}", task.id),
+            &format!("dataforge-artifacts-{}", task.id),
             "/workspace/output",
             false,
         ),
@@ -319,8 +322,8 @@ version: '3.8'
 
 services:
   task-executor:
-    image: ${TASK_IMAGE:-synth-bench/python-base:latest}
-    container_name: synth-task-${TASK_ID}
+    image: ${TASK_IMAGE:-dataforge/python-base:latest}
+    container_name: dataforge-task-${TASK_ID}
     
     # Resource limits
     deploy:
@@ -354,27 +357,27 @@ services:
       - task-artifacts:/workspace/output
       - type: bind
         source: ${TASK_SPEC_PATH}
-        target: /workspace/.synth
+        target: /workspace/.dataforge
         read_only: true
     
     # Environment
     environment:
       - TASK_ID=${TASK_ID}
-      - SYNTH_MODE=execution
+      - DATAFORGE_MODE=execution
       - PYTHONDONTWRITEBYTECODE=1
     
     # Healthcheck
     healthcheck:
-      test: ["CMD", "test", "-f", "/workspace/.synth/task.json"]
+      test: ["CMD", "test", "-f", "/workspace/.dataforge/task.json"]
       interval: 30s
       timeout: 10s
       retries: 3
     
     # Labels for management
     labels:
-      synth.task_id: ${TASK_ID}
-      synth.created_at: ${CREATED_AT}
-      synth.difficulty: ${DIFFICULTY}
+      dataforge.task_id: ${TASK_ID}
+      dataforge.created_at: ${CREATED_AT}
+      dataforge.difficulty: ${DIFFICULTY}
 
 networks:
   task-network:

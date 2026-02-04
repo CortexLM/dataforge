@@ -24,14 +24,14 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use synth_bench::pipeline::{PipelineOrchestrator, PipelineConfig, TaskSpec};
+//! use dataforge::pipeline::{PipelineOrchestrator, PipelineConfig, TaskSpec};
 //! use std::time::Duration;
 //!
 //! // Create configuration
 //! let config = PipelineConfig::new()
 //!     .with_max_concurrent_tasks(4)
 //!     .with_task_timeout(Duration::from_secs(1800))
-//!     .with_database_url("postgres://localhost/synth_bench");
+//!     .with_database_url("postgres://localhost/dataforge");
 //!
 //! // Create orchestrator
 //! let orchestrator = PipelineOrchestrator::new(config).await?;

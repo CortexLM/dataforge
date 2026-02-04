@@ -25,7 +25,6 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
-
 use crate::execution::DockerClient;
 use crate::llm::LlmProvider;
 
@@ -33,8 +32,12 @@ use super::analyzer_agent::{AnalyzedTask as AnalyzerAnalyzedTask, AnalyzerAgent,
 use super::collector_agent::{CollectedTask, CollectorAgent, CollectorConfig, TaskSource};
 use super::difficulty_amplifier::{AmplifierConfig, DifficultyAmplifierAgent};
 use super::difficulty_validator::{DifficultyValidatorAgent, DifficultyValidatorConfig};
-use super::docker_validator::{DockerValidationResult, DockerValidatorAgent, DockerValidatorConfig};
-use super::environment_builder::{AnalyzedTask as EnvAnalyzedTask, BuiltEnvironment, EnvironmentBuilderAgent, EnvironmentConfig};
+use super::docker_validator::{
+    DockerValidationResult, DockerValidatorAgent, DockerValidatorConfig,
+};
+use super::environment_builder::{
+    AnalyzedTask as EnvAnalyzedTask, BuiltEnvironment, EnvironmentBuilderAgent, EnvironmentConfig,
+};
 use super::error::{AgentError, AgentResult};
 use super::factory_types::{AmplifiedTask, FactoryTaskSpec, ResearchFindings};
 use super::feasibility_validator::{FeasibilityValidatorAgent, FeasibilityValidatorConfig};
@@ -424,16 +427,31 @@ impl FullPipelineOrchestrator {
     pub fn new(llm_client: Arc<dyn LlmProvider>, config: FullPipelineConfig) -> Self {
         let collector = CollectorAgent::new(Arc::clone(&llm_client));
         let analyzer = AnalyzerAgent::new(Arc::clone(&llm_client));
-        let research_agent = ResearchAgent::new(Arc::clone(&llm_client), config.research_config.clone());
+        let research_agent =
+            ResearchAgent::new(Arc::clone(&llm_client), config.research_config.clone());
         let ideator = IdeatorAgent::new(Arc::clone(&llm_client), config.ideator_config.clone());
         let problem_crafter = ProblemCrafterAgent::new(Arc::clone(&llm_client));
-        let amplifier = DifficultyAmplifierAgent::new(Arc::clone(&llm_client), config.amplifier_config.clone());
-        let feasibility_validator = FeasibilityValidatorAgent::new(Arc::clone(&llm_client), config.feasibility_config.clone());
-        let difficulty_validator = DifficultyValidatorAgent::new(Arc::clone(&llm_client), config.difficulty_validator_config.clone());
-        let task_validator = TaskValidatorAgent::new(Arc::clone(&llm_client), config.task_validator_config.clone());
-        let executor = TaskExecutorAgent::new(Arc::clone(&llm_client), config.executor_config.clone());
+        let amplifier =
+            DifficultyAmplifierAgent::new(Arc::clone(&llm_client), config.amplifier_config.clone());
+        let feasibility_validator = FeasibilityValidatorAgent::new(
+            Arc::clone(&llm_client),
+            config.feasibility_config.clone(),
+        );
+        let difficulty_validator = DifficultyValidatorAgent::new(
+            Arc::clone(&llm_client),
+            config.difficulty_validator_config.clone(),
+        );
+        let task_validator = TaskValidatorAgent::new(
+            Arc::clone(&llm_client),
+            config.task_validator_config.clone(),
+        );
+        let executor =
+            TaskExecutorAgent::new(Arc::clone(&llm_client), config.executor_config.clone());
         let test_designer = TestDesignerAgent::new(Arc::clone(&llm_client));
-        let environment_builder = EnvironmentBuilderAgent::new(Arc::clone(&llm_client), config.environment_config.clone());
+        let environment_builder = EnvironmentBuilderAgent::new(
+            Arc::clone(&llm_client),
+            config.environment_config.clone(),
+        );
         let validator = ValidatorAgent::new(llm_client, config.validator_config.clone());
 
         // Initialize Docker validator if enabled
@@ -487,7 +505,11 @@ impl FullPipelineOrchestrator {
         let mut completed_stages = Vec::new();
 
         // Stage 1: Research
-        let _ = event_tx.send(FullPipelineEvent::stage_started(FullPipelineStage::Research)).await;
+        let _ = event_tx
+            .send(FullPipelineEvent::stage_started(
+                FullPipelineStage::Research,
+            ))
+            .await;
         let stage_start = Instant::now();
 
         let category_str = category
@@ -496,30 +518,40 @@ impl FullPipelineOrchestrator {
 
         let research_findings = match self.research_agent.research_category(&category_str).await {
             Ok(findings) => {
-                let _ = event_tx.send(FullPipelineEvent::ResearchComplete {
-                    weaknesses_found: findings.identified_weaknesses.len(),
-                    traps_proposed: findings.proposed_traps.len(),
-                    timestamp: Utc::now(),
-                }).await;
-                let _ = event_tx.send(FullPipelineEvent::stage_completed(
-                    FullPipelineStage::Research,
-                    stage_start.elapsed().as_millis() as u64,
-                )).await;
+                let _ = event_tx
+                    .send(FullPipelineEvent::ResearchComplete {
+                        weaknesses_found: findings.identified_weaknesses.len(),
+                        traps_proposed: findings.proposed_traps.len(),
+                        timestamp: Utc::now(),
+                    })
+                    .await;
+                let _ = event_tx
+                    .send(FullPipelineEvent::stage_completed(
+                        FullPipelineStage::Research,
+                        stage_start.elapsed().as_millis() as u64,
+                    ))
+                    .await;
                 completed_stages.push(FullPipelineStage::Research);
                 Some(findings)
             }
             Err(e) => {
                 tracing::warn!("Research failed, continuing without: {}", e);
-                let _ = event_tx.send(FullPipelineEvent::stage_failed(
-                    FullPipelineStage::Research,
-                    e.to_string(),
-                )).await;
+                let _ = event_tx
+                    .send(FullPipelineEvent::stage_failed(
+                        FullPipelineStage::Research,
+                        e.to_string(),
+                    ))
+                    .await;
                 None
             }
         };
 
         // Stage 2: Ideation with retries
-        let _ = event_tx.send(FullPipelineEvent::stage_started(FullPipelineStage::Ideation)).await;
+        let _ = event_tx
+            .send(FullPipelineEvent::stage_started(
+                FullPipelineStage::Ideation,
+            ))
+            .await;
         let stage_start = Instant::now();
 
         let mut idea: Option<IdeatorTaskIdea> = None;
@@ -549,7 +581,9 @@ impl FullPipelineOrchestrator {
                 }
             };
 
-            if validation.is_valid && validation.complexity_score >= self.config.min_validation_score {
+            if validation.is_valid
+                && validation.complexity_score >= self.config.min_validation_score
+            {
                 idea = Some(generated_idea);
                 assessment = Some(validation);
                 break;
@@ -567,20 +601,28 @@ impl FullPipelineOrchestrator {
         })?;
         let assessment = assessment.unwrap();
 
-        let _ = event_tx.send(FullPipelineEvent::IdeationComplete {
-            task_title: idea.title.clone(),
-            category: idea.category.to_benchmark_category().to_string(),
-            timestamp: Utc::now(),
-        }).await;
-        let _ = event_tx.send(FullPipelineEvent::stage_completed(
-            FullPipelineStage::Ideation,
-            stage_start.elapsed().as_millis() as u64,
-        )).await;
+        let _ = event_tx
+            .send(FullPipelineEvent::IdeationComplete {
+                task_title: idea.title.clone(),
+                category: idea.category.to_benchmark_category().to_string(),
+                timestamp: Utc::now(),
+            })
+            .await;
+        let _ = event_tx
+            .send(FullPipelineEvent::stage_completed(
+                FullPipelineStage::Ideation,
+                stage_start.elapsed().as_millis() as u64,
+            ))
+            .await;
         completed_stages.push(FullPipelineStage::Ideation);
         completed_stages.push(FullPipelineStage::TaskValidation);
 
         // Stage 4: Difficulty Amplification
-        let _ = event_tx.send(FullPipelineEvent::stage_started(FullPipelineStage::Amplification)).await;
+        let _ = event_tx
+            .send(FullPipelineEvent::stage_started(
+                FullPipelineStage::Amplification,
+            ))
+            .await;
         let stage_start = Instant::now();
 
         let amplified_task = if let Some(ref findings) = research_findings {
@@ -592,56 +634,83 @@ impl FullPipelineOrchestrator {
             )
             .with_required_skills(idea.required_skills.clone());
 
-            match self.amplifier.amplify_task(&base_spec, &findings.proposed_traps).await {
+            match self
+                .amplifier
+                .amplify_task(&base_spec, &findings.proposed_traps)
+                .await
+            {
                 Ok(amplified) => {
-                    let _ = event_tx.send(FullPipelineEvent::AmplificationComplete {
-                        traps_added: amplified.traps_added.len(),
-                        difficulty_score: amplified.difficulty_score,
-                        timestamp: Utc::now(),
-                    }).await;
-                    let _ = event_tx.send(FullPipelineEvent::stage_completed(
-                        FullPipelineStage::Amplification,
-                        stage_start.elapsed().as_millis() as u64,
-                    )).await;
+                    let _ = event_tx
+                        .send(FullPipelineEvent::AmplificationComplete {
+                            traps_added: amplified.traps_added.len(),
+                            difficulty_score: amplified.difficulty_score,
+                            timestamp: Utc::now(),
+                        })
+                        .await;
+                    let _ = event_tx
+                        .send(FullPipelineEvent::stage_completed(
+                            FullPipelineStage::Amplification,
+                            stage_start.elapsed().as_millis() as u64,
+                        ))
+                        .await;
                     completed_stages.push(FullPipelineStage::Amplification);
                     Some(amplified)
                 }
                 Err(e) => {
                     tracing::warn!("Amplification failed: {}", e);
-                    let _ = event_tx.send(FullPipelineEvent::stage_failed(
-                        FullPipelineStage::Amplification,
-                        e.to_string(),
-                    )).await;
+                    let _ = event_tx
+                        .send(FullPipelineEvent::stage_failed(
+                            FullPipelineStage::Amplification,
+                            e.to_string(),
+                        ))
+                        .await;
                     None
                 }
             }
         } else {
-            let _ = event_tx.send(FullPipelineEvent::stage_skipped(
-                FullPipelineStage::Amplification,
-                "No research findings available",
-            )).await;
+            let _ = event_tx
+                .send(FullPipelineEvent::stage_skipped(
+                    FullPipelineStage::Amplification,
+                    "No research findings available",
+                ))
+                .await;
             None
         };
 
         // Stage 5: Task Execution
-        let _ = event_tx.send(FullPipelineEvent::stage_started(FullPipelineStage::Execution)).await;
+        let _ = event_tx
+            .send(FullPipelineEvent::stage_started(
+                FullPipelineStage::Execution,
+            ))
+            .await;
         let stage_start = Instant::now();
 
         let validator_idea = Self::convert_to_validator_idea(&idea);
-        let task = self.executor.create_task(&validator_idea, &assessment).await?;
+        let task = self
+            .executor
+            .create_task(&validator_idea, &assessment)
+            .await?;
 
-        let _ = event_tx.send(FullPipelineEvent::ExecutionComplete {
-            task_id: task.id.clone(),
-            timestamp: Utc::now(),
-        }).await;
-        let _ = event_tx.send(FullPipelineEvent::stage_completed(
-            FullPipelineStage::Execution,
-            stage_start.elapsed().as_millis() as u64,
-        )).await;
+        let _ = event_tx
+            .send(FullPipelineEvent::ExecutionComplete {
+                task_id: task.id.clone(),
+                timestamp: Utc::now(),
+            })
+            .await;
+        let _ = event_tx
+            .send(FullPipelineEvent::stage_completed(
+                FullPipelineStage::Execution,
+                stage_start.elapsed().as_millis() as u64,
+            ))
+            .await;
         completed_stages.push(FullPipelineStage::Execution);
 
         // Stage 6: Test Design
-        let _ = event_tx.send(FullPipelineEvent::stage_started(FullPipelineStage::TestDesign)).await;
+        let _ = event_tx
+            .send(FullPipelineEvent::stage_started(
+                FullPipelineStage::TestDesign,
+            ))
+            .await;
         let stage_start = Instant::now();
 
         let test_spec = {
@@ -664,30 +733,40 @@ impl FullPipelineOrchestrator {
 
             match self.test_designer.design_tests(&analyzed, None).await {
                 Ok(spec) => {
-                    let _ = event_tx.send(FullPipelineEvent::TestDesignComplete {
-                        test_count: spec.total_tests(),
-                        timestamp: Utc::now(),
-                    }).await;
-                    let _ = event_tx.send(FullPipelineEvent::stage_completed(
-                        FullPipelineStage::TestDesign,
-                        stage_start.elapsed().as_millis() as u64,
-                    )).await;
+                    let _ = event_tx
+                        .send(FullPipelineEvent::TestDesignComplete {
+                            test_count: spec.total_tests(),
+                            timestamp: Utc::now(),
+                        })
+                        .await;
+                    let _ = event_tx
+                        .send(FullPipelineEvent::stage_completed(
+                            FullPipelineStage::TestDesign,
+                            stage_start.elapsed().as_millis() as u64,
+                        ))
+                        .await;
                     completed_stages.push(FullPipelineStage::TestDesign);
                     Some(spec)
                 }
                 Err(e) => {
                     tracing::warn!("Test design failed: {}", e);
-                    let _ = event_tx.send(FullPipelineEvent::stage_failed(
-                        FullPipelineStage::TestDesign,
-                        e.to_string(),
-                    )).await;
+                    let _ = event_tx
+                        .send(FullPipelineEvent::stage_failed(
+                            FullPipelineStage::TestDesign,
+                            e.to_string(),
+                        ))
+                        .await;
                     None
                 }
             }
         };
 
         // Stage 7: Environment Building
-        let _ = event_tx.send(FullPipelineEvent::stage_started(FullPipelineStage::EnvironmentBuilding)).await;
+        let _ = event_tx
+            .send(FullPipelineEvent::stage_started(
+                FullPipelineStage::EnvironmentBuilding,
+            ))
+            .await;
         let stage_start = Instant::now();
 
         let environment = {
@@ -700,25 +779,35 @@ impl FullPipelineOrchestrator {
             );
 
             let output_path = Path::new(&self.config.output_dir);
-            match self.environment_builder.build(&env_analyzed, output_path).await {
+            match self
+                .environment_builder
+                .build(&env_analyzed, output_path)
+                .await
+            {
                 Ok(env) => {
-                    let _ = event_tx.send(FullPipelineEvent::EnvironmentComplete {
-                        dockerfile_generated: !env.dockerfile_content.is_empty(),
-                        timestamp: Utc::now(),
-                    }).await;
-                    let _ = event_tx.send(FullPipelineEvent::stage_completed(
-                        FullPipelineStage::EnvironmentBuilding,
-                        stage_start.elapsed().as_millis() as u64,
-                    )).await;
+                    let _ = event_tx
+                        .send(FullPipelineEvent::EnvironmentComplete {
+                            dockerfile_generated: !env.dockerfile_content.is_empty(),
+                            timestamp: Utc::now(),
+                        })
+                        .await;
+                    let _ = event_tx
+                        .send(FullPipelineEvent::stage_completed(
+                            FullPipelineStage::EnvironmentBuilding,
+                            stage_start.elapsed().as_millis() as u64,
+                        ))
+                        .await;
                     completed_stages.push(FullPipelineStage::EnvironmentBuilding);
                     Some(env)
                 }
                 Err(e) => {
                     tracing::warn!("Environment building failed: {}", e);
-                    let _ = event_tx.send(FullPipelineEvent::stage_failed(
-                        FullPipelineStage::EnvironmentBuilding,
-                        e.to_string(),
-                    )).await;
+                    let _ = event_tx
+                        .send(FullPipelineEvent::stage_failed(
+                            FullPipelineStage::EnvironmentBuilding,
+                            e.to_string(),
+                        ))
+                        .await;
                     None
                 }
             }
@@ -726,57 +815,77 @@ impl FullPipelineOrchestrator {
 
         // Stage 8: Docker Validation
         let docker_validation = if let Some(ref validator) = self.docker_validator {
-            let _ = event_tx.send(FullPipelineEvent::stage_started(FullPipelineStage::DockerValidation)).await;
+            let _ = event_tx
+                .send(FullPipelineEvent::stage_started(
+                    FullPipelineStage::DockerValidation,
+                ))
+                .await;
             let stage_start = Instant::now();
 
             match validator.validate_task(&task).await {
                 Ok(result) => {
-                    let _ = event_tx.send(FullPipelineEvent::DockerValidationComplete {
-                        passed: result.passed,
-                        duration_ms: result.duration_ms,
-                        timestamp: Utc::now(),
-                    }).await;
-                    let _ = event_tx.send(FullPipelineEvent::stage_completed(
-                        FullPipelineStage::DockerValidation,
-                        stage_start.elapsed().as_millis() as u64,
-                    )).await;
+                    let _ = event_tx
+                        .send(FullPipelineEvent::DockerValidationComplete {
+                            passed: result.passed,
+                            duration_ms: result.duration_ms,
+                            timestamp: Utc::now(),
+                        })
+                        .await;
+                    let _ = event_tx
+                        .send(FullPipelineEvent::stage_completed(
+                            FullPipelineStage::DockerValidation,
+                            stage_start.elapsed().as_millis() as u64,
+                        ))
+                        .await;
                     completed_stages.push(FullPipelineStage::DockerValidation);
                     Some(result)
                 }
                 Err(e) => {
                     tracing::warn!("Docker validation failed: {}", e);
-                    let _ = event_tx.send(FullPipelineEvent::stage_failed(
-                        FullPipelineStage::DockerValidation,
-                        e.to_string(),
-                    )).await;
+                    let _ = event_tx
+                        .send(FullPipelineEvent::stage_failed(
+                            FullPipelineStage::DockerValidation,
+                            e.to_string(),
+                        ))
+                        .await;
                     None
                 }
             }
         } else {
-            let _ = event_tx.send(FullPipelineEvent::stage_skipped(
-                FullPipelineStage::DockerValidation,
-                "Docker validation not enabled",
-            )).await;
+            let _ = event_tx
+                .send(FullPipelineEvent::stage_skipped(
+                    FullPipelineStage::DockerValidation,
+                    "Docker validation not enabled",
+                ))
+                .await;
             None
         };
 
         // Quality check
-        let _ = event_tx.send(FullPipelineEvent::stage_started(FullPipelineStage::QualityCheck)).await;
+        let _ = event_tx
+            .send(FullPipelineEvent::stage_started(
+                FullPipelineStage::QualityCheck,
+            ))
+            .await;
         self.quality_check(&task)?;
         completed_stages.push(FullPipelineStage::QualityCheck);
-        let _ = event_tx.send(FullPipelineEvent::stage_completed(
-            FullPipelineStage::QualityCheck,
-            0,
-        )).await;
+        let _ = event_tx
+            .send(FullPipelineEvent::stage_completed(
+                FullPipelineStage::QualityCheck,
+                0,
+            ))
+            .await;
 
         let total_duration_ms = start_time.elapsed().as_millis() as u64;
 
-        let _ = event_tx.send(FullPipelineEvent::PipelineComplete {
-            task_id: task.id.clone(),
-            total_duration_ms,
-            stages_completed: completed_stages.len(),
-            timestamp: Utc::now(),
-        }).await;
+        let _ = event_tx
+            .send(FullPipelineEvent::PipelineComplete {
+                task_id: task.id.clone(),
+                total_duration_ms,
+                stages_completed: completed_stages.len(),
+                timestamp: Utc::now(),
+            })
+            .await;
 
         Ok(FullPipelineResult {
             task,
@@ -874,7 +983,10 @@ mod tests {
         assert_eq!(format!("{}", FullPipelineStage::Research), "Research");
         assert_eq!(format!("{}", FullPipelineStage::Ideation), "Ideation");
         assert_eq!(format!("{}", FullPipelineStage::Execution), "Execution");
-        assert_eq!(format!("{}", FullPipelineStage::DockerValidation), "Docker Validation");
+        assert_eq!(
+            format!("{}", FullPipelineStage::DockerValidation),
+            "Docker Validation"
+        );
     }
 
     #[test]
@@ -913,7 +1025,9 @@ mod tests {
 
         let event = FullPipelineEvent::stage_completed(FullPipelineStage::Execution, 1000);
         match event {
-            FullPipelineEvent::StageCompleted { stage, duration_ms, .. } => {
+            FullPipelineEvent::StageCompleted {
+                stage, duration_ms, ..
+            } => {
                 assert_eq!(stage, FullPipelineStage::Execution);
                 assert_eq!(duration_ms, 1000);
             }

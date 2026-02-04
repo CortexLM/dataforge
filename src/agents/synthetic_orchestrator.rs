@@ -306,7 +306,11 @@ impl SyntheticPipelineEvent {
     }
 
     /// Creates a DockerValidationComplete event.
-    pub fn docker_validation_complete(passed: bool, duration_ms: u64, error: Option<String>) -> Self {
+    pub fn docker_validation_complete(
+        passed: bool,
+        duration_ms: u64,
+        error: Option<String>,
+    ) -> Self {
         Self::DockerValidationComplete {
             passed,
             duration_ms,
@@ -494,7 +498,9 @@ impl SyntheticOrchestrator {
                         .await;
 
                         if !result.passed {
-                            let error_msg = result.error.unwrap_or_else(|| "Docker validation failed".to_string());
+                            let error_msg = result
+                                .error
+                                .unwrap_or_else(|| "Docker validation failed".to_string());
                             self.send_event(
                                 &event_tx,
                                 SyntheticPipelineEvent::pipeline_failed(

@@ -15,7 +15,7 @@
 //! # Usage
 //!
 //! ```no_run
-//! use synth_bench::prompts::{
+//! use dataforge::prompts::{
 //!     get_category_prompt, build_ideation_prompt, build_validation_prompt, build_execution_prompt
 //! };
 //!

@@ -1,6 +1,6 @@
-# Prometheus configuration for synth-bench monitoring
+# Prometheus configuration for dataforge monitoring
 #
-# This configuration scrapes metrics from synth-bench services and related
+# This configuration scrapes metrics from dataforge services and related
 # infrastructure components.
 
 global:
@@ -11,22 +11,22 @@ global:
   # Attach these labels to any time series or alerts when communicating with
   # external systems (federation, remote storage, Alertmanager)
   external_labels:
-    monitor: 'synth-bench'
+    monitor: 'dataforge'
 
-# Scrape configuration for synth-bench services
+# Scrape configuration for dataforge services
 scrape_configs:
-  # Main synth-bench application
-  - job_name: 'synth-bench'
+  # Main dataforge application
+  - job_name: 'dataforge'
     static_configs:
-      - targets: ['synth-bench:8080']
+      - targets: ['dataforge:8080']
     metrics_path: '/metrics'
     scrape_interval: 15s
     scrape_timeout: 10s
 
-  # Synth-bench worker processes
-  - job_name: 'synth-workers'
+  # Dataforge worker processes
+  - job_name: 'dataforge-workers'
     static_configs:
-      - targets: ['synth-bench-worker:8080']
+      - targets: ['dataforge-worker:8080']
     metrics_path: '/metrics'
     scrape_interval: 15s
     scrape_timeout: 10s

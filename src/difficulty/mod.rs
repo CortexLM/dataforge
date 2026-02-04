@@ -1,4 +1,4 @@
-//! Difficulty system for synth-bench benchmarks.
+//! Difficulty system for dataforge benchmarks.
 //!
 //! This module provides difficulty levels, resource limits, and scoring calculations
 //! for benchmark tasks.

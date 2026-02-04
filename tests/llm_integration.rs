@@ -3,7 +3,7 @@
 //! These tests make real API calls to OpenRouter.
 //! Run with: OPENROUTER_API_KEY=your_key cargo test --test llm_integration -- --ignored
 
-use synth_bench::llm::litellm::{GenerationRequest, LiteLlmClient, LlmProvider, Message};
+use dataforge::llm::litellm::{GenerationRequest, LiteLlmClient, LlmProvider, Message};
 
 fn get_test_api_key() -> String {
     std::env::var("OPENROUTER_API_KEY")
@@ -82,7 +82,7 @@ async fn test_multi_turn_conversation() {
 #[tokio::test]
 #[ignore]
 async fn test_template_assistant_generation() {
-    use synth_bench::llm::litellm::TemplateAssistant;
+    use dataforge::llm::litellm::TemplateAssistant;
 
     let client = create_test_client();
     let assistant = TemplateAssistant::new(Box::new(client));
@@ -110,7 +110,7 @@ async fn test_template_assistant_generation() {
 #[tokio::test]
 #[ignore]
 async fn test_instruction_improvement() {
-    use synth_bench::llm::litellm::TemplateAssistant;
+    use dataforge::llm::litellm::TemplateAssistant;
 
     let client = create_test_client();
     let assistant = TemplateAssistant::new(Box::new(client));

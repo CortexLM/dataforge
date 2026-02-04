@@ -1,4 +1,4 @@
-//! Multi-agent validation system for synth-bench.
+//! Multi-agent validation system for dataforge.
 //!
 //! This module provides a multi-agent architecture for generating and validating
 //! synthetic benchmark tasks. The system consists of:
@@ -15,11 +15,11 @@
 //! # Example
 //!
 //! ```ignore
-//! use synth_bench::agents::{
+//! use dataforge::agents::{
 //!     OrchestratorAgent, OrchestratorConfig, GeneratorAgentConfig,
 //!     PipelineEvent, DifficultyLevel,
 //! };
-//! use synth_bench::llm::LiteLlmClient;
+//! use dataforge::llm::LiteLlmClient;
 //! use std::sync::Arc;
 //! use tokio::sync::mpsc;
 //!
@@ -60,11 +60,11 @@ pub mod difficulty_amplifier;
 pub mod difficulty_validator;
 pub mod docker_validator;
 pub mod environment_builder;
-pub mod full_pipeline_orchestrator;
 pub mod error;
 pub mod factory_orchestrator;
 pub mod factory_types;
 pub mod feasibility_validator;
+pub mod full_pipeline_orchestrator;
 pub mod generator;
 pub mod ideator;
 pub mod orchestrator;
@@ -88,15 +88,11 @@ pub use collector_agent::{
 };
 pub use difficulty_amplifier::{AmplifierConfig, DifficultyAmplifierAgent};
 pub use difficulty_validator::{DifficultyValidatorAgent, DifficultyValidatorConfig};
-pub use docker_validator::{DockerValidatorAgent, DockerValidatorConfig, DockerValidationResult};
+pub use docker_validator::{DockerValidationResult, DockerValidatorAgent, DockerValidatorConfig};
 pub use environment_builder::{
     AnalyzedTask, BuiltEnvironment, EnvironmentBuilderAgent, EnvironmentConfig,
 };
 pub use error::{AgentError, AgentResult};
-pub use full_pipeline_orchestrator::{
-    FullPipelineConfig, FullPipelineEvent, FullPipelineOrchestrator, FullPipelineResult,
-    FullPipelineStage,
-};
 pub use factory_orchestrator::{
     FactoryOrchestrator, FactoryOrchestratorBuilder, FactoryOrchestratorConfig,
 };
@@ -106,6 +102,10 @@ pub use factory_types::{
     LlmWeaknessType, ResearchFindings,
 };
 pub use feasibility_validator::{FeasibilityValidatorAgent, FeasibilityValidatorConfig};
+pub use full_pipeline_orchestrator::{
+    FullPipelineConfig, FullPipelineEvent, FullPipelineOrchestrator, FullPipelineResult,
+    FullPipelineStage,
+};
 pub use generator::{GeneratorAgent, GeneratorAgentConfig};
 pub use ideator::{IdeatorAgent, IdeatorConfig, TaskCategory, TaskIdea as IdeatorTaskIdea};
 pub use orchestrator::{OrchestratorAgent, OrchestratorBuilder, OrchestratorConfig};

@@ -239,7 +239,7 @@ impl MultiModelRouter {
     /// # Example
     ///
     /// ```
-    /// use synth_bench::llm::router::{MultiModelRouter, RoutingStrategy};
+    /// use dataforge::llm::router::{MultiModelRouter, RoutingStrategy};
     ///
     /// let router = MultiModelRouter::new(RoutingStrategy::CostOptimized);
     /// ```

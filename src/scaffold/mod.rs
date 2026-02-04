@@ -11,8 +11,8 @@
 //! # Example
 //!
 //! ```ignore
-//! use synth_bench::scaffold::{AgentLoop, AgentConfig, ExecutionContext};
-//! use synth_bench::llm::LiteLlmClient;
+//! use dataforge::scaffold::{AgentLoop, AgentConfig, ExecutionContext};
+//! use dataforge::llm::LiteLlmClient;
 //!
 //! let llm_client = Arc::new(LiteLlmClient::from_env()?);
 //! let config = AgentConfig::default();

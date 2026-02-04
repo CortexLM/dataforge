@@ -132,7 +132,7 @@ Output ONLY the JSON object. No additional text."##;
 /// # Examples
 ///
 /// ```
-/// use synth_bench::prompts::build_execution_prompt;
+/// use dataforge::prompts::build_execution_prompt;
 ///
 /// let prompt = build_execution_prompt(
 ///     "Complex Debugging Task",

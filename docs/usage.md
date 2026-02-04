@@ -1,6 +1,6 @@
-# synth-bench Usage Guide
+# Dataforge Usage Guide
 
-This guide provides detailed instructions for using synth-bench, including TUI controls, JSON output format, template creation, and configuration options.
+This guide provides detailed instructions for using Dataforge, including TUI controls, JSON output format, template creation, and configuration options.
 
 ## Table of Contents
 
@@ -17,15 +17,15 @@ The interactive TUI provides real-time visualization of the multi-agent validati
 ### Launching the TUI
 
 ```bash
-synth-bench tui
+dataforge tui
 ```
 
 ### Controls
 
 | Key | Action |
 |-----|--------|
-| `↑` / `k` | Move selection up |
-| `↓` / `j` | Move selection down |
+| `Up` / `k` | Move selection up |
+| `Down` / `j` | Move selection down |
 | `Space` | Start task generation/validation |
 | `Tab` | Switch focus between panels |
 | `Shift+Tab` | Switch focus (reverse) |
@@ -38,37 +38,37 @@ synth-bench tui
 The TUI is divided into three main panels:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                         synth-bench                             │
-├────────────────────┬────────────────────────────────────────────┤
-│                    │                                            │
-│    Difficulty      │           Pipeline Progress                │
-│    ────────────    │           ─────────────────                │
-│    > Easy          │  ○ Task Generation                         │
-│      Medium        │  ○ Difficulty Validation                   │
-│      Hard          │  ○ Feasibility Validation                  │
-│                    │  ○ Final Approval                          │
-│                    │                                            │
-├────────────────────┴────────────────────────────────────────────┤
-│                        Agent Reasoning                          │
-│  ─────────────────────────────────────────────────────────────  │
-│  [12:34:56] Starting Task Generation...                         │
-│  [12:34:57] Task generator: Created task-abc123                 │
-│  [12:34:58] Starting Difficulty Validation...                   │
-│                                                                 │
-├─────────────────────────────────────────────────────────────────┤
-│ Status: Ready - Press <Space> to start generation               │
-└─────────────────────────────────────────────────────────────────┘
++------------------------------------------------------------------+
+|                           dataforge                              |
++---------------------+--------------------------------------------+
+|                     |                                            |
+|    Difficulty       |           Pipeline Progress                |
+|    -----------      |           -----------------                |
+|    > Easy           |  [ ] Task Generation                       |
+|      Medium         |  [ ] Difficulty Validation                 |
+|      Hard           |  [ ] Feasibility Validation                |
+|                     |  [ ] Final Approval                        |
+|                     |                                            |
++---------------------+--------------------------------------------+
+|                        Agent Reasoning                           |
+|  ---------------------------------------------------------------  |
+|  [12:34:56] Starting Task Generation...                          |
+|  [12:34:57] Task generator: Created task-abc123                  |
+|  [12:34:58] Starting Difficulty Validation...                    |
+|                                                                  |
++------------------------------------------------------------------+
+| Status: Ready - Press <Space> to start generation                |
++------------------------------------------------------------------+
 ```
 
 **Panels:**
 
 1. **Difficulty Selection** (Left): Select task difficulty level
 2. **Pipeline Progress** (Right): Shows validation stages with status indicators
-   - `○` Pending
-   - `⟳` Running
-   - `✓` Completed
-   - `✗` Failed
+   - `[ ]` Pending
+   - `[~]` Running
+   - `[x]` Completed
+   - `[!]` Failed
 3. **Agent Reasoning** (Bottom): Real-time log of agent activity and reasoning
 
 ### Status Indicators
@@ -83,7 +83,7 @@ The status bar at the bottom shows:
 Use `--json` flag to output structured JSON instead of the TUI:
 
 ```bash
-synth-bench tui --json --difficulty medium --seed 42
+dataforge tui --json --difficulty medium --seed 42
 ```
 
 ### Output Schema
@@ -145,7 +145,7 @@ synth-bench tui --json --difficulty medium --seed 42
 #!/bin/bash
 
 # Generate task and parse result
-result=$(synth-bench tui --json --difficulty hard --seed $RANDOM)
+result=$(dataforge tui --json --difficulty hard --seed $RANDOM)
 
 # Check if approved
 status=$(echo "$result" | jq -r '.status')
@@ -288,24 +288,24 @@ expected_outputs:
 
 1. **Initialize scaffold:**
    ```bash
-   synth-bench init --id my-task --category debugging --output ./templates
+   dataforge init --id my-task --category debugging --output ./templates
    ```
 
 2. **Edit the generated YAML file** to define your task
 
 3. **Validate the template:**
    ```bash
-   synth-bench validate --path ./templates/my-task.yaml --validate-type template
+   dataforge validate --path ./templates/my-task.yaml --validate-type template
    ```
 
 4. **Test task generation:**
    ```bash
-   synth-bench generate --template ./templates/my-task.yaml --seed 42 --output ./test-output
+   dataforge generate --template ./templates/my-task.yaml --seed 42 --output ./test-output
    ```
 
 ## Difficulty Levels
 
-synth-bench uses three calibrated difficulty levels:
+Dataforge uses three calibrated difficulty levels:
 
 ### Easy
 
@@ -375,7 +375,7 @@ synth-bench uses three calibrated difficulty levels:
 Task difficulty is calculated using weighted factors:
 
 ```
-difficulty_score = 0.4 × time_factor + 0.4 × success_factor + 0.2 × hints_factor
+difficulty_score = 0.4 * time_factor + 0.4 * success_factor + 0.2 * hints_factor
 ```
 
 Where:
@@ -442,7 +442,7 @@ FeasibilityValidatorConfig {
 
 ### Environment Configuration
 
-Configure synth-bench behavior via environment variables:
+Configure Dataforge behavior via environment variables:
 
 ```bash
 # Required: LiteLLM endpoint
@@ -454,18 +454,18 @@ export LITELLM_API_KEY="your-api-key"
 # Optional: Logging level
 export RUST_LOG="info"              # Default
 export RUST_LOG="debug"             # Verbose
-export RUST_LOG="synth_bench=debug" # Module-specific
+export RUST_LOG="dataforge=debug"   # Module-specific
 
 # Optional: Template directory
-export SYNTH_BENCH_TEMPLATES="./my-templates"
+export DATAFORGE_TEMPLATES="./my-templates"
 
 # Optional: Output directory
-export SYNTH_BENCH_OUTPUT="./output"
+export DATAFORGE_OUTPUT="./output"
 ```
 
 ### LiteLLM Integration
 
-synth-bench uses LiteLLM as the LLM backend. Configure your LiteLLM proxy with supported models:
+Dataforge uses LiteLLM as the LLM backend. Configure your LiteLLM proxy with supported models:
 
 ```yaml
 # litellm_config.yaml
@@ -486,8 +486,8 @@ Start the proxy:
 litellm --config litellm_config.yaml --port 4000
 ```
 
-Then configure synth-bench:
+Then configure Dataforge:
 ```bash
 export LITELLM_API_BASE="http://localhost:4000"
-synth-bench tui
+dataforge tui
 ```

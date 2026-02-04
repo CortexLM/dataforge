@@ -1,33 +1,33 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: synth-bench-worker
-  namespace: synth-bench
+  name: dataforge-worker
+  namespace: dataforge
   labels:
-    app.kubernetes.io/name: synth-bench
+    app.kubernetes.io/name: dataforge
     app.kubernetes.io/component: worker
 spec:
   replicas: 4
   selector:
     matchLabels:
-      app: synth-bench-worker
+      app: dataforge-worker
   template:
     metadata:
       labels:
-        app: synth-bench-worker
-        app.kubernetes.io/name: synth-bench
+        app: dataforge-worker
+        app.kubernetes.io/name: dataforge
         app.kubernetes.io/component: worker
     spec:
       containers:
         - name: worker
-          image: synth-bench:latest
+          image: dataforge:latest
           imagePullPolicy: IfNotPresent
-          command: ["synth-bench", "worker", "--queue", "tasks"]
+          command: ["dataforge", "worker", "--queue", "tasks"]
           envFrom:
             - configMapRef:
-                name: synth-bench-config
+                name: dataforge-config
             - secretRef:
-                name: synth-bench-secrets
+                name: dataforge-secrets
           resources:
             requests:
               cpu: "250m"
@@ -40,7 +40,7 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - "pgrep synth-bench"
+                - "pgrep dataforge"
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5

@@ -13,11 +13,11 @@
 //! # Usage
 //!
 //! ```rust,ignore
-//! use synth_bench::storage::{Database, ArtifactStorage, TrajectoryFilter};
+//! use dataforge::storage::{Database, ArtifactStorage, TrajectoryFilter};
 //! use std::sync::Arc;
 //!
 //! // Connect to database
-//! let db = Database::connect("postgres://user:pass@localhost/synth_bench").await?;
+//! let db = Database::connect("postgres://user:pass@localhost/dataforge").await?;
 //!
 //! // Run migrations
 //! db.run_migrations().await?;

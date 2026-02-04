@@ -1,4 +1,4 @@
-//! Docker execution layer for synth-bench tasks.
+//! Docker execution layer for dataforge tasks.
 //!
 //! This module provides the Docker execution layer using the bollard crate
 //! for container lifecycle management, resource control, and task execution.
@@ -13,7 +13,7 @@
 //! # Example
 //!
 //! ```ignore
-//! use synth_bench::execution::{DockerClient, Container, ContainerConfig};
+//! use dataforge::execution::{DockerClient, Container, ContainerConfig};
 //!
 //! let client = DockerClient::new()?;
 //!

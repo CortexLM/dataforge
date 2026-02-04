@@ -1,4 +1,4 @@
-//! Command-line interface for synth-bench.
+//! Command-line interface for dataforge.
 //!
 //! Provides commands for template management, task generation, validation,
 //! and export operations.

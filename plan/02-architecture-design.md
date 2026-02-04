@@ -1,69 +1,59 @@
-# 🏗️ Architecture Design - Detailed Technical Specification
+# Architecture Design - Detailed Technical Specification
 
 ## 1. High-Level Architecture
 
-```
-┌────────────────────────────────────────────────────────────────────────────────┐
-│                              CONTROL PLANE                                      │
-│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐    │
-│  │   Task Registry     │  │  Mega-Flow Scheduler │  │  Quality Monitor    │    │
-│  │   - Templates       │  │  - Queue Management  │  │  - Real-time Stats  │    │
-│  │   - Categories      │  │  - Worker Assignment │  │  - Alerts           │    │
-│  │   - Versions        │  │  - Load Balancing    │  │  - Dashboards       │    │
-│  └─────────────────────┘  └─────────────────────┘  └─────────────────────┘    │
-└────────────────────────────────────────────────────────────────────────────────┘
-                                        │
-                    ┌───────────────────┴───────────────────┐
-                    ▼                                       ▼
-┌───────────────────────────────────┐   ┌───────────────────────────────────────┐
-│          LLM LAYER                │   │         STORAGE LAYER                 │
-│                                   │   │                                       │
-│  ┌─────────┐ ┌─────────┐         │   │  ┌─────────────┐  ┌─────────────┐    │
-│  │OpenRouter│ │ Direct  │         │   │  │ PostgreSQL  │  │ Object Store│    │
-│  │ (Multi-  │ │ APIs    │         │   │  │ (Metadata)  │  │ (Artifacts) │    │
-│  │ Provider)│ │         │         │   │  └─────────────┘  └─────────────┘    │
-│  └─────────┘ └─────────┘         │   │                                       │
-│       │           │               │   │  ┌─────────────┐  ┌─────────────┐    │
-│       └─────┬─────┘               │   │  │ Redis       │  │ Parquet/    │    │
-│             ▼                     │   │  │ (Cache/     │  │ HuggingFace │    │
-│  ┌─────────────────────┐         │   │  │  Queue)     │  │ (Datasets)  │    │
-│  │   LLM Router        │         │   │  └─────────────┘  └─────────────┘    │
-│  │   - Model Selection │         │   │                                       │
-│  │   - Load Balancing  │         │   └───────────────────────────────────────┘
-│  │   - Fallback Logic  │         │
-│  │   - Cost Tracking   │         │
-│  └─────────────────────┘         │
-└───────────────────────────────────┘
-                    │
-                    ▼
-┌────────────────────────────────────────────────────────────────────────────────┐
-│                           EXECUTION LAYER                                       │
-│                                                                                 │
-│   ┌─────────────────────────────────────────────────────────────────────────┐ │
-│   │                      Worker Pool (N Workers)                             │ │
-│   │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │ │
-│   │  │   Worker 1      │  │   Worker 2      │  │   Worker N      │         │ │
-│   │  │ ┌─────────────┐ │  │ ┌─────────────┐ │  │ ┌─────────────┐ │         │ │
-│   │  │ │  Scaffold   │ │  │ │  Scaffold   │ │  │ │  Scaffold   │ │         │ │
-│   │  │ │ (OpenHands) │ │  │ │ (SWE-Agent) │ │  │ │  (Custom)   │ │         │ │
-│   │  │ └─────────────┘ │  │ └─────────────┘ │  │ └─────────────┘ │         │ │
-│   │  │       │         │  │       │         │  │       │         │         │ │
-│   │  │       ▼         │  │       ▼         │  │       ▼         │         │ │
-│   │  │ ╔═══════════╗   │  │ ╔═══════════╗   │  │ ╔═══════════╗   │         │ │
-│   │  │ ║  Docker   ║   │  │ ║  Docker   ║   │  │ ║  Docker   ║   │         │ │
-│   │  │ ║ Container ║   │  │ ║ Container ║   │  │ ║ Container ║   │         │ │
-│   │  │ ║           ║   │  │ ║           ║   │  │ ║           ║   │         │ │
-│   │  │ ╚═══════════╝   │  │ ╚═══════════╝   │  │ ╚═══════════╝   │         │ │
-│   │  └─────────────────┘  └─────────────────┘  └─────────────────┘         │ │
-│   └─────────────────────────────────────────────────────────────────────────┘ │
-│                                                                                 │
-│   ┌─────────────────────────────────────────────────────────────────────────┐ │
-│   │                     Trajectory Collector                                 │ │
-│   │   - Capture all interactions (state, action, observation, reward)       │ │
-│   │   - Stream to storage                                                    │ │
-│   │   - Compute intermediate rewards                                         │ │
-│   └─────────────────────────────────────────────────────────────────────────┘ │
-└────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph ControlPlane["CONTROL PLANE"]
+        TR["Task Registry<br/>Templates, Categories, Versions"]
+        MFS["Mega-Flow Scheduler<br/>Queue Management, Worker Assignment, Load Balancing"]
+        QM["Quality Monitor<br/>Real-time Stats, Alerts, Dashboards"]
+    end
+
+    subgraph LLMLayer["LLM LAYER"]
+        subgraph Providers["Providers"]
+            OR["OpenRouter<br/>Multi-Provider"]
+            DA["Direct APIs"]
+        end
+        LR["LLM Router<br/>Model Selection, Load Balancing, Fallback Logic, Cost Tracking"]
+    end
+
+    subgraph StorageLayer["STORAGE LAYER"]
+        PG["PostgreSQL<br/>Metadata"]
+        OS["Object Store<br/>Artifacts"]
+        RD["Redis<br/>Cache/Queue"]
+        PQ["Parquet/HuggingFace<br/>Datasets"]
+    end
+
+    subgraph ExecutionLayer["EXECUTION LAYER"]
+        subgraph WorkerPool["Worker Pool (N Workers)"]
+            subgraph W1["Worker 1"]
+                SC1["Scaffold<br/>OpenHands"]
+                DC1["Docker Container"]
+            end
+            subgraph W2["Worker 2"]
+                SC2["Scaffold<br/>SWE-Agent"]
+                DC2["Docker Container"]
+            end
+            subgraph WN["Worker N"]
+                SCN["Scaffold<br/>Custom"]
+                DCN["Docker Container"]
+            end
+        end
+        TC["Trajectory Collector<br/>Capture interactions, Stream to storage, Compute rewards"]
+    end
+
+    ControlPlane --> LLMLayer
+    LLMLayer --> ExecutionLayer
+    ExecutionLayer --> StorageLayer
+
+    SC1 --> DC1
+    SC2 --> DC2
+    SCN --> DCN
+
+    DC1 --> TC
+    DC2 --> TC
+    DCN --> TC
 ```
 
 ---
@@ -213,14 +203,16 @@ pub struct ResourceLimits {
 ```
 
 **Container Lifecycle**:
-```
-CREATE → START → EXECUTE → MONITOR → CLEANUP
-   │         │        │         │        │
-   │         │        │         │        └─ Remove container, volumes
-   │         │        │         └─ Health checks, resource usage
-   │         │        └─ Run scaffold steps
-   │         └─ Container running
-   └─ Pull image, create container
+
+```mermaid
+flowchart LR
+    CREATE["CREATE<br/>Pull image, create container"]
+    START["START<br/>Container running"]
+    EXECUTE["EXECUTE<br/>Run scaffold steps"]
+    MONITOR["MONITOR<br/>Health checks, resource usage"]
+    CLEANUP["CLEANUP<br/>Remove container, volumes"]
+
+    CREATE --> START --> EXECUTE --> MONITOR --> CLEANUP
 ```
 
 ### 2.5 Trajectory Collector
@@ -408,30 +400,35 @@ GET    /api/v1/stats              # Aggregated statistics
 
 ### 5.1 Horizontal Scaling
 
-```
-                    Load Balancer
-                         │
-           ┌─────────────┼─────────────┐
-           ▼             ▼             ▼
-      ┌─────────┐   ┌─────────┐   ┌─────────┐
-      │ API     │   │ API     │   │ API     │
-      │ Server 1│   │ Server 2│   │ Server 3│
-      └────┬────┘   └────┬────┘   └────┬────┘
-           │             │             │
-           └─────────────┼─────────────┘
-                         │
-                    ┌────┴────┐
-                    │  Redis  │  (Queue + Cache)
-                    │ Cluster │
-                    └────┬────┘
-                         │
-           ┌─────────────┼─────────────┐
-           ▼             ▼             ▼
-      ┌─────────┐   ┌─────────┐   ┌─────────┐
-      │Worker   │   │Worker   │   │Worker   │
-      │Node 1   │   │Node 2   │   │Node N   │
-      │(10 cont)│   │(10 cont)│   │(10 cont)│
-      └─────────┘   └─────────┘   └─────────┘
+```mermaid
+flowchart TB
+    LB["Load Balancer"]
+
+    subgraph APIServers["API Servers"]
+        API1["API Server 1"]
+        API2["API Server 2"]
+        API3["API Server 3"]
+    end
+
+    RC["Redis Cluster<br/>Queue + Cache"]
+
+    subgraph WorkerNodes["Worker Nodes"]
+        WN1["Worker Node 1<br/>10 containers"]
+        WN2["Worker Node 2<br/>10 containers"]
+        WNN["Worker Node N<br/>10 containers"]
+    end
+
+    LB --> API1
+    LB --> API2
+    LB --> API3
+
+    API1 --> RC
+    API2 --> RC
+    API3 --> RC
+
+    RC --> WN1
+    RC --> WN2
+    RC --> WNN
 ```
 
 ### 5.2 Resource Estimates
@@ -484,26 +481,26 @@ pub struct SecurityConfig {
 
 ```
 # Task metrics
-synth_tasks_submitted_total
-synth_tasks_completed_total
-synth_tasks_failed_total
-synth_task_duration_seconds
+dataforge_tasks_submitted_total
+dataforge_tasks_completed_total
+dataforge_tasks_failed_total
+dataforge_task_duration_seconds
 
 # Trajectory metrics
-synth_trajectory_length_steps
-synth_trajectory_reward_total
-synth_trajectory_tokens_total
+dataforge_trajectory_length_steps
+dataforge_trajectory_reward_total
+dataforge_trajectory_tokens_total
 
 # Worker metrics
-synth_worker_active_containers
-synth_worker_cpu_usage_percent
-synth_worker_memory_usage_bytes
+dataforge_worker_active_containers
+dataforge_worker_cpu_usage_percent
+dataforge_worker_memory_usage_bytes
 
 # LLM metrics
-synth_llm_requests_total
-synth_llm_tokens_total
-synth_llm_cost_dollars_total
-synth_llm_latency_seconds
+dataforge_llm_requests_total
+dataforge_llm_tokens_total
+dataforge_llm_cost_dollars_total
+dataforge_llm_latency_seconds
 ```
 
 ### 7.2 Logging Structure
