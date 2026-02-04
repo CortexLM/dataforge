@@ -1,4 +1,4 @@
-# 📋 System Overview - Synthetic Dataset Generation
+# System Overview - Synthetic Dataset Generation
 
 ## 1. What Are We Building?
 
@@ -50,17 +50,17 @@ A **Synthetic Dataset Generation System** that produces high-quality training da
 | Goal | Description | Success Metric |
 |------|-------------|----------------|
 | **Cost Efficiency** | Minimize LLM API costs | <$0.50 per trajectory |
-| **Reproducibility** | Deterministic task generation | Same seed → Same task |
+| **Reproducibility** | Deterministic task generation | Same seed produces same task |
 | **Extensibility** | Easy to add new tasks/LLMs/scaffolds | Plugin architecture |
 
 ---
 
 ## 4. What We're NOT Building
 
-❌ **A production AI agent** - This is a data generation pipeline
-❌ **A general-purpose compute platform** - Focused on LLM data generation
-❌ **A real-time system** - Batch processing is acceptable
-❌ **A replacement for human curation** - Human review remains essential
+- **A production AI agent** - This is a data generation pipeline
+- **A general-purpose compute platform** - Focused on LLM data generation
+- **A real-time system** - Batch processing is acceptable
+- **A replacement for human curation** - Human review remains essential
 
 ---
 
@@ -72,10 +72,10 @@ A trajectory is a complete sequence of interactions:
 
 ```
 Trajectory = [
-    (s₀, a₁, o₁, r₁),  # Initial state, first action, observation, reward
-    (s₁, a₂, o₂, r₂),  # New state, second action, ...
+    (s0, a1, o1, r1),  # Initial state, first action, observation, reward
+    (s1, a2, o2, r2),  # New state, second action, ...
     ...
-    (sₙ₋₁, aₙ, oₙ, rₙ) # Final state, final action, final result
+    (sn-1, an, on, rn) # Final state, final action, final result
 ]
 ```
 
@@ -110,58 +110,53 @@ A **task** is a specification that includes:
 
 ## 6. Data Flow Overview
 
-```
-                    USER/SYSTEM
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │   1. TASK SUBMISSION │
-              │   Complex coding task│
-              └──────────┬───────────┘
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │   2. TASK SCHEDULER  │
-              │   Decompose, queue,  │
-              │   assign to workers  │
-              └──────────┬───────────┘
-                         │
-         ┌───────────────┼───────────────┐
-         ▼               ▼               ▼
-    ┌─────────┐     ┌─────────┐     ┌─────────┐
-    │Worker 1 │     │Worker 2 │     │Worker N │
-    │LLM+Scaff│     │LLM+Scaff│     │LLM+Scaff│
-    │Docker   │     │Docker   │     │Docker   │
-    └────┬────┘     └────┬────┘     └────┬────┘
-         │               │               │
-         └───────────────┼───────────────┘
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │  3. TRAJECTORY       │
-              │  COLLECTION          │
-              │  State, Action,      │
-              │  Observation, Reward │
-              └──────────┬───────────┘
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │  4. QUALITY FILTER   │
-              │  Dedup, validate,    │
-              │  score trajectories  │
-              └──────────┬───────────┘
-                         │
-                         ▼
-              ┌──────────────────────┐
-              │  5. DATASET STORAGE  │
-              │  Parquet, HuggingFace│
-              │  versioned exports   │
-              └──────────────────────┘
+```mermaid
+flowchart TB
+    subgraph Input
+        US["USER/SYSTEM"]
+    end
+
+    subgraph Stage1["Stage 1"]
+        TS["TASK SUBMISSION<br/>Complex coding task"]
+    end
+
+    subgraph Stage2["Stage 2"]
+        SCHED["TASK SCHEDULER<br/>Decompose, queue, assign to workers"]
+    end
+
+    subgraph Workers["Worker Pool"]
+        W1["Worker 1<br/>LLM+Scaffold+Docker"]
+        W2["Worker 2<br/>LLM+Scaffold+Docker"]
+        WN["Worker N<br/>LLM+Scaffold+Docker"]
+    end
+
+    subgraph Stage3["Stage 3"]
+        TC["TRAJECTORY COLLECTION<br/>State, Action, Observation, Reward"]
+    end
+
+    subgraph Stage4["Stage 4"]
+        QF["QUALITY FILTER<br/>Dedup, validate, score trajectories"]
+    end
+
+    subgraph Stage5["Stage 5"]
+        DS["DATASET STORAGE<br/>Parquet, HuggingFace, versioned exports"]
+    end
+
+    US --> TS
+    TS --> SCHED
+    SCHED --> W1
+    SCHED --> W2
+    SCHED --> WN
+    W1 --> TC
+    W2 --> TC
+    WN --> TC
+    TC --> QF
+    QF --> DS
 ```
 
 ---
 
-## 7. Integration with Existing synth-bench
+## 7. Integration with Existing dataforge
 
 ### What We Keep
 
@@ -206,8 +201,7 @@ A **task** is a specification that includes:
       "observation": "# Server code with memory leak...",
       "reward": 0.0,
       "reasoning": "Need to understand the code structure first"
-    },
-    // ... more steps
+    }
   ],
   "final_result": "success",
   "total_reward": 1.0,

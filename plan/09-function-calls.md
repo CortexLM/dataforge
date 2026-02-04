@@ -1,4 +1,4 @@
-# 🔧 Function Calls & Tool Calling - Agent Runtime Specification
+# Function Calls & Tool Calling - Agent Runtime Specification
 
 ## 1. Overview
 
@@ -10,59 +10,37 @@
 
 ### 2.1 High-Level Flow
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           FUNCTION CALL FLOW                                     │
-│                                                                                  │
-│   ┌──────────┐      ┌───────────────┐      ┌──────────────┐      ┌───────────┐ │
-│   │   LLM    │─────▶│  Tool Call    │─────▶│   Scaffold   │─────▶│ Container │ │
-│   │ Provider │      │  Response     │      │   Runtime    │      │ Execution │ │
-│   └──────────┘      └───────────────┘      └──────────────┘      └───────────┘ │
-│        ▲                                           │                     │      │
-│        │                                           │                     │      │
-│        │            ┌───────────────┐              │                     │      │
-│        └────────────│  Observation  │◀─────────────┴─────────────────────┘      │
-│                     │  Response     │                                           │
-│                     └───────────────┘                                           │
-└─────────────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart LR
+    subgraph FunctionCallFlow["FUNCTION CALL FLOW"]
+        LLM["LLM Provider"]
+        TCR["Tool Call Response"]
+        SR["Scaffold Runtime"]
+        CE["Container Execution"]
+        OR["Observation Response"]
+    end
+
+    LLM --> TCR --> SR --> CE
+    CE --> OR --> LLM
 ```
 
 ### 2.2 Detailed Sequence
 
-```
-┌─────────┐          ┌─────────────┐          ┌──────────┐          ┌───────────┐
-│   LLM   │          │   Router    │          │ Scaffold │          │ Container │
-└────┬────┘          └──────┬──────┘          └────┬─────┘          └─────┬─────┘
-     │                      │                      │                      │
-     │  1. Chat Request     │                      │                      │
-     │  (with tools)        │                      │                      │
-     │─────────────────────▶│                      │                      │
-     │                      │                      │                      │
-     │  2. Tool Call        │                      │                      │
-     │◀─────────────────────│                      │                      │
-     │                      │                      │                      │
-     │                      │  3. Parse &          │                      │
-     │                      │     Validate         │                      │
-     │                      │─────────────────────▶│                      │
-     │                      │                      │                      │
-     │                      │                      │  4. Execute          │
-     │                      │                      │     Command          │
-     │                      │                      │─────────────────────▶│
-     │                      │                      │                      │
-     │                      │                      │  5. Return           │
-     │                      │                      │     Output           │
-     │                      │                      │◀─────────────────────│
-     │                      │                      │                      │
-     │                      │  6. Format           │                      │
-     │                      │     Observation      │                      │
-     │                      │◀─────────────────────│                      │
-     │                      │                      │                      │
-     │  7. Tool Result      │                      │                      │
-     │◀─────────────────────│                      │                      │
-     │                      │                      │                      │
-     │  8. Next Action      │                      │                      │
-     │  (Continue loop)     │                      │                      │
-     │─────────────────────▶│                      │                      │
+```mermaid
+sequenceDiagram
+    participant LLM
+    participant Router
+    participant Scaffold
+    participant Container
+
+    LLM->>Router: 1. Chat Request (with tools)
+    Router->>LLM: 2. Tool Call
+    Router->>Scaffold: 3. Parse & Validate
+    Scaffold->>Container: 4. Execute Command
+    Container->>Scaffold: 5. Return Output
+    Scaffold->>Router: 6. Format Observation
+    Router->>LLM: 7. Tool Result
+    LLM->>Router: 8. Next Action (Continue loop)
 ```
 
 ---
@@ -513,12 +491,12 @@ pub enum ToolError {
 
 | Provider | Function Calling | Parallel Calls | Streaming | JSON Mode | Tool Choice |
 |----------|------------------|----------------|-----------|-----------|-------------|
-| **OpenAI** (GPT-4) | ✅ Native | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
-| **Anthropic** (Claude) | ✅ Native | ✅ Yes | ✅ Yes | ✅ Via system | ✅ Yes |
-| **Google** (Gemini) | ✅ Native | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
-| **OpenRouter** | ✅ Proxy | ✅ Depends | ✅ Yes | ✅ Depends | ✅ Depends |
-| **Local** (Ollama) | ⚠️ Limited | ❌ No | ✅ Yes | ⚠️ Limited | ❌ No |
-| **Local** (vLLM) | ✅ OpenAI-compat | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
+| **OpenAI** (GPT-4) | Native | Yes | Yes | Yes | Yes |
+| **Anthropic** (Claude) | Native | Yes | Yes | Via system | Yes |
+| **Google** (Gemini) | Native | Yes | Yes | Yes | Yes |
+| **OpenRouter** | Proxy | Depends | Yes | Depends | Depends |
+| **Local** (Ollama) | Limited | No | Yes | Limited | No |
+| **Local** (vLLM) | OpenAI-compat | Yes | Yes | Yes | Yes |
 
 ### 4.2 OpenAI Function Call Format
 
@@ -1314,17 +1292,15 @@ pub fn format_error_for_llm(error: &ToolError) -> String {
 
 ### 8.1 Streaming Architecture
 
-```
-┌──────────┐        ┌──────────────┐        ┌──────────────┐
-│   LLM    │──SSE──▶│  Stream      │──Async─▶│  Scaffold   │
-│ Provider │        │  Processor   │         │  Runtime    │
-└──────────┘        └──────────────┘         └──────────────┘
-                           │
-                           ▼
-              ┌────────────────────────┐
-              │   Partial Tool Call    │
-              │   Detection & Buffer   │
-              └────────────────────────┘
+```mermaid
+flowchart LR
+    LP["LLM Provider"]
+    SP["Stream Processor"]
+    SR["Scaffold Runtime"]
+    PTC["Partial Tool Call<br/>Detection & Buffer"]
+
+    LP -->|SSE| SP -->|Async| SR
+    SP --> PTC
 ```
 
 ### 8.2 Stream Processing Implementation
@@ -1810,14 +1786,12 @@ pub fn provision_tools_for_task(
 
 | Environment Type | Bash | Files | Git | Tests | Network | Browser | Docker |
 |------------------|------|-------|-----|-------|---------|---------|--------|
-| **Minimal** | ✅ | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
-| **Standard** | ✅ | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ |
-| **Full** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **SWE-Agent** | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ | ❌ |
-| **OpenHands** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
-| **Custom** | ✅ | ✅ | ✅ | ✅ | ⚙️ | ⚙️ | ⚙️ |
-
-**Legend**: ✅ = Included | ❌ = Not included | ⚙️ = Configurable
+| **Minimal** | Yes | Yes | No | No | No | No | No |
+| **Standard** | Yes | Yes | Yes | Yes | Yes | No | No |
+| **Full** | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| **SWE-Agent** | Yes | Yes | Yes | Yes | No | No | No |
+| **OpenHands** | Yes | Yes | Yes | Yes | Yes | Yes | Yes |
+| **Custom** | Yes | Yes | Yes | Yes | Configurable | Configurable | Configurable |
 
 ### 11.7 Ensuring Complete Coverage
 

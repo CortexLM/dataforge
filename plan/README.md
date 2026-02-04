@@ -1,8 +1,8 @@
-# 🎯 Synthetic Dataset Generation System - Master Plan
+# Synthetic Dataset Generation System - Master Plan
 
 ## Executive Summary
 
-This document outlines a comprehensive plan to transform **synth-bench** into a full-scale **Synthetic Dataset Generation System** using Reinforcement Learning with Long Horizon trajectories. The system will leverage Docker containers, multiple LLMs, and specialized scaffolds (OpenHands, SWE-Agent style) to generate high-quality training datasets at scale.
+This document outlines a comprehensive plan to transform **dataforge** into a full-scale **Synthetic Dataset Generation System** using Reinforcement Learning with Long Horizon trajectories. The system will leverage Docker containers, multiple LLMs, and specialized scaffolds (OpenHands, SWE-Agent style) to generate high-quality training datasets at scale.
 
 ## Table of Contents
 
@@ -20,72 +20,75 @@ This document outlines a comprehensive plan to transform **synth-bench** into a 
 
 ## Current State Assessment
 
-### Existing Infrastructure ✅
+### Existing Infrastructure
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| Multi-Agent System | ✅ Implemented | 24+ specialized agents (Orchestrator, Ideator, Validator, etc.) |
-| Docker Generation | ✅ Implemented | Dockerfile/Compose builders with resource limits |
-| Template System | ✅ Implemented | 100+ YAML templates across 9 categories |
-| LLM Integration | ✅ Implemented | LiteLLM client with caching |
-| Anti-Hardcoding | ✅ Implemented | Canary tokens, sealed verification |
-| Test Framework | ✅ Implemented | Pytest generation, reward scoring |
+| Multi-Agent System | Implemented | 24+ specialized agents (Orchestrator, Ideator, Validator, etc.) |
+| Docker Generation | Implemented | Dockerfile/Compose builders with resource limits |
+| Template System | Implemented | 100+ YAML templates across 9 categories |
+| LLM Integration | Implemented | LiteLLM client with caching |
+| Anti-Hardcoding | Implemented | Canary tokens, sealed verification |
+| Test Framework | Implemented | Pytest generation, reward scoring |
 
-### Missing Components ❌
+### Missing Components
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| Container Execution | ❌ Not implemented | Actual Docker API integration for task execution |
-| Multi-LLM Orchestration | ❌ Not implemented | Parallel calls to diverse LLMs |
-| Trajectory Collection | ❌ Not implemented | SARSA-style data collection |
-| Persistent Storage | ❌ Not implemented | Database for datasets |
-| Mega-Flow Scheduler | ❌ Not implemented | Large-scale task distribution |
-| Scaffold Runtime | ❌ Not implemented | OpenHands/SWE-Agent integration |
+| Container Execution | Not implemented | Actual Docker API integration for task execution |
+| Multi-LLM Orchestration | Not implemented | Parallel calls to diverse LLMs |
+| Trajectory Collection | Not implemented | SARSA-style data collection |
+| Persistent Storage | Not implemented | Database for datasets |
+| Mega-Flow Scheduler | Not implemented | Large-scale task distribution |
+| Scaffold Runtime | Not implemented | OpenHands/SWE-Agent integration |
 
 ---
 
 ## Target Architecture
 
-```
-                          ┌─────────────────────────────────┐
-                          │       MEGA-FLOW SCHEDULER       │
-                          │   (Task Distribution Engine)    │
-                          └───────────────┬─────────────────┘
-                                          │
-              ┌───────────────────────────┼───────────────────────────┐
-              │                           │                           │
-              ▼                           ▼                           ▼
-    ┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
-    │   LLM Router    │         │   LLM Router    │         │   LLM Router    │
-    │ (GPT-4/Claude/  │         │ (Qwen/Llama/    │         │ (Mixtral/       │
-    │  Gemini)        │         │  DeepSeek)      │         │  CodeLlama)     │
-    └────────┬────────┘         └────────┬────────┘         └────────┬────────┘
-             │                           │                           │
-             ▼                           ▼                           ▼
-    ┌─────────────────┐         ┌─────────────────┐         ┌─────────────────┐
-    │   SCAFFOLD      │         │   SCAFFOLD      │         │   SCAFFOLD      │
-    │   (OpenHands)   │         │   (SWE-Agent)   │         │   (Aider/       │
-    │                 │         │                 │         │    Custom)      │
-    └────────┬────────┘         └────────┬────────┘         └────────┬────────┘
-             │                           │                           │
-             ▼                           ▼                           ▼
-    ╔═════════════════╗         ╔═════════════════╗         ╔═════════════════╗
-    ║ DOCKER CONTAINER║         ║ DOCKER CONTAINER║         ║ DOCKER CONTAINER║
-    ║ (ECS Instance)  ║         ║ (ECS Instance)  ║         ║ (ECS Instance)  ║
-    ║                 ║         ║                 ║         ║                 ║
-    ║  └─ Workspace   ║         ║  └─ Workspace   ║         ║  └─ Workspace   ║
-    ║  └─ Tools       ║         ║  └─ Tools       ║         ║  └─ Tools       ║
-    ║  └─ Sandbox     ║         ║  └─ Sandbox     ║         ║  └─ Sandbox     ║
-    ╚════════┬════════╝         ╚════════┬════════╝         ╚════════┬════════╝
-             │                           │                           │
-             └───────────────────────────┴───────────────────────────┘
-                                         │
-                                         ▼
-                          ┌─────────────────────────────────┐
-                          │     TRAJECTORY COLLECTOR        │
-                          │   (State, Action, Observation,  │
-                          │    Reward) → Dataset Storage    │
-                          └─────────────────────────────────┘
+```mermaid
+flowchart TB
+    subgraph ControlPlane["Control Plane"]
+        MFS["MEGA-FLOW SCHEDULER<br/>Task Distribution Engine"]
+    end
+
+    subgraph LLMRouters["LLM Router Layer"]
+        LLM1["LLM Router<br/>GPT-4/Claude/Gemini"]
+        LLM2["LLM Router<br/>Qwen/Llama/DeepSeek"]
+        LLM3["LLM Router<br/>Mixtral/CodeLlama"]
+    end
+
+    subgraph Scaffolds["Scaffold Layer"]
+        S1["SCAFFOLD<br/>OpenHands"]
+        S2["SCAFFOLD<br/>SWE-Agent"]
+        S3["SCAFFOLD<br/>Aider/Custom"]
+    end
+
+    subgraph Containers["Docker Container Layer"]
+        C1["DOCKER CONTAINER<br/>ECS Instance<br/>Workspace, Tools, Sandbox"]
+        C2["DOCKER CONTAINER<br/>ECS Instance<br/>Workspace, Tools, Sandbox"]
+        C3["DOCKER CONTAINER<br/>ECS Instance<br/>Workspace, Tools, Sandbox"]
+    end
+
+    subgraph DataLayer["Data Collection"]
+        TC["TRAJECTORY COLLECTOR<br/>State, Action, Observation, Reward<br/>Dataset Storage"]
+    end
+
+    MFS --> LLM1
+    MFS --> LLM2
+    MFS --> LLM3
+
+    LLM1 --> S1
+    LLM2 --> S2
+    LLM3 --> S3
+
+    S1 --> C1
+    S2 --> C2
+    S3 --> C3
+
+    C1 --> TC
+    C2 --> TC
+    C3 --> TC
 ```
 
 ---
@@ -118,12 +121,12 @@ Before implementation, the following strategic decisions need to be made:
 
 | Document | Status | Last Updated |
 |----------|--------|--------------|
-| 01-system-overview.md | ✅ Complete | 2025-02-04 |
-| 02-architecture-design.md | ✅ Complete | 2025-02-04 |
-| 03-docker-infrastructure.md | ✅ Complete | 2025-02-04 |
-| 04-llm-integration.md | ✅ Complete | 2025-02-04 |
-| 05-scaffold-system.md | ✅ Complete | 2025-02-04 |
-| 06-data-quality.md | ✅ Complete | 2025-02-04 |
-| 07-pros-cons-analysis.md | ✅ Complete | 2025-02-04 |
-| 08-implementation-roadmap.md | ✅ Complete | 2025-02-04 |
-| 09-function-calls.md | ✅ Complete | 2026-02-04 |
+| 01-system-overview.md | Complete | 2025-02-04 |
+| 02-architecture-design.md | Complete | 2025-02-04 |
+| 03-docker-infrastructure.md | Complete | 2025-02-04 |
+| 04-llm-integration.md | Complete | 2025-02-04 |
+| 05-scaffold-system.md | Complete | 2025-02-04 |
+| 06-data-quality.md | Complete | 2025-02-04 |
+| 07-pros-cons-analysis.md | Complete | 2025-02-04 |
+| 08-implementation-roadmap.md | Complete | 2025-02-04 |
+| 09-function-calls.md | Complete | 2026-02-04 |

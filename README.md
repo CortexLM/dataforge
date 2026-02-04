@@ -1,15 +1,16 @@
-# synth-bench
+# dataforge
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 
 **Synthetic benchmark task generator for LLM evaluation with multi-agent validation.**
 
-synth-bench generates synthetic terminal/CLI benchmark tasks to evaluate AI agent capabilities. It uses a multi-agent validation system to ensure generated tasks match the requested difficulty level, are solvable but challenging, and meet quality standards.
+dataforge generates synthetic terminal/CLI benchmark tasks to evaluate AI agent capabilities. It uses a multi-agent validation system to ensure generated tasks match the requested difficulty level, are solvable but challenging, and meet quality standards.
 
-## 🌟 Features
+## Features
 
 ### Multi-Agent Validation System
+
 Four specialized agents work together to validate task quality in real-time:
 
 | Agent | Role | Description |
@@ -20,16 +21,18 @@ Four specialized agents work together to validate task quality in real-time:
 | **Orchestrator** | `[final approval]` | Coordinates pipeline and makes final decisions |
 
 ### Interactive TUI with Ratatui
+
 Real-time visualization of agent activity with:
 - **Tree-based progress display** showing pipeline stages
 - **Difficulty selection panel** (Easy/Medium/Hard)
 - **Agent reasoning panel** with live updates
-- **Status indicators**: `○` pending, `⟳` running, `✓` completed, `✗` failed
+- **Status indicators**: `pending`, `running`, `completed`, `failed`
 
 ### JSON Output Mode
+
 Skip the TUI for CI/CD integration:
 ```bash
-synth-bench tui --json --difficulty hard --seed 12345
+dataforge tui --json --difficulty hard --seed 12345
 ```
 
 ### Difficulty Levels
@@ -41,12 +44,13 @@ synth-bench tui --json --difficulty hard --seed 12345
 | **Hard** | 8-20 commands | 10-30min | 40% |
 
 ### Additional Features
+
 - **Template System** - YAML-based templates with Tera templating
-- **Task Registry** - Lifecycle management (draft → review → published → deprecated)
+- **Task Registry** - Lifecycle management (draft, review, published, deprecated)
 - **HuggingFace Export** - Dataset export for ML workflows
 - **Anti-Hardcoding** - Canary tokens to detect memorization
 
-## 🚀 Installation
+## Installation
 
 ### Prerequisites
 
@@ -58,13 +62,13 @@ synth-bench tui --json --difficulty hard --seed 12345
 
 ```bash
 # Clone the repository
-git clone https://github.com/synth-bench/synth-bench.git
-cd synth-bench
+git clone https://github.com/dataforge/dataforge.git
+cd dataforge
 
 # Build in release mode
 cargo build --release
 
-# The binary will be at target/release/synth-bench
+# The binary will be at target/release/dataforge
 ```
 
 ### Quick Install
@@ -73,11 +77,11 @@ cargo build --release
 cargo install --path .
 ```
 
-## ⚡ Quick Start
+## Quick Start
 
 ### 1. Set up LLM Integration
 
-synth-bench supports multiple LLM providers via an OpenAI-compatible API:
+dataforge supports multiple LLM providers via an OpenAI-compatible API:
 
 ```bash
 # Option A: Using OpenRouter (recommended)
@@ -96,38 +100,23 @@ export LITELLM_API_KEY="sk-your-openai-key"
 ### 2. Launch Interactive TUI
 
 ```bash
-synth-bench tui
+dataforge tui
 ```
 
 **TUI Controls:**
+
 | Key | Action |
 |-----|--------|
-| `↑/↓` or `k/j` | Navigate selection |
+| `Up/Down` or `k/j` | Navigate selection |
 | `Space` | Start validation pipeline |
 | `Tab` | Switch between panels |
 | `q` or `Esc` | Quit |
 
-The TUI shows real-time agent activity:
-```
-┌─ Difficulty ─┐┌─ Task Validation Pipeline ──────────────┐
-│ ▶ Easy  🟢   ││ ⟳ [✓] Task Generation                   │
-│   Medium 🟡  ││ ⟳ [⟳] Difficulty Validation             │
-│   Hard   🔴  ││   [ ] Feasibility Validation            │
-│              ││   [ ] Final Approval                    │
-│ ↑/↓: Select  │└─────────────────────────────────────────┘
-│ Space: Start │┌─ Agent Activity ────────────────────────┐
-└──────────────┘│ [14:23:01] Creating task from template  │
-                │ [14:23:02] Generated task-abc12345      │
-                │ [14:23:03] Validating difficulty...     │
-                │ [14:23:05] Agent: Task requires 5 steps │
-                └─────────────────────────────────────────┘
-```
-
-### 3. Generate Tasks (JSON Output - No TUI)
+### 3. Generate Tasks (JSON Output)
 
 ```bash
 # Skip TUI, output JSON directly
-synth-bench tui --json --difficulty hard --seed 12345
+dataforge tui --json --difficulty hard --seed 12345
 ```
 
 Output:
@@ -146,13 +135,13 @@ Output:
 ### 4. Generate Task Instances from Template
 
 ```bash
-synth-bench generate --template log-analysis-001 --seed 42 --output ./output
+dataforge generate --template log-analysis-001 --seed 42 --output ./output
 ```
 
 ### 5. Validate a Task
 
 ```bash
-synth-bench validate --path ./output/task-001 --validate-type task
+dataforge validate --path ./output/task-001 --validate-type task
 ```
 
 ## CLI Usage
@@ -160,7 +149,7 @@ synth-bench validate --path ./output/task-001 --validate-type task
 ### Commands
 
 ```
-synth-bench <COMMAND>
+dataforge <COMMAND>
 
 Commands:
   tui        Launch the interactive TUI for task validation
@@ -179,16 +168,16 @@ Launch the interactive terminal user interface:
 
 ```bash
 # Default TUI with medium difficulty
-synth-bench tui
+dataforge tui
 
 # JSON output mode (skip TUI)
-synth-bench tui --json
+dataforge tui --json
 
 # Specify difficulty and seed
-synth-bench tui --json --difficulty hard --seed 12345
+dataforge tui --json --difficulty hard --seed 12345
 
 # Use a specific template
-synth-bench tui --template log-analysis-001
+dataforge tui --template log-analysis-001
 ```
 
 **Options:**
@@ -203,10 +192,10 @@ Generate task instances from templates:
 
 ```bash
 # Generate single task
-synth-bench generate --template debug-001 --seed 42 --output ./output
+dataforge generate --template debug-001 --seed 42 --output ./output
 
 # Generate multiple instances
-synth-bench generate --template debug-001 --seed 42 --output ./output --count 10
+dataforge generate --template debug-001 --seed 42 --output ./output --count 10
 ```
 
 **Options:**
@@ -221,10 +210,10 @@ Validate templates or generated tasks:
 
 ```bash
 # Validate a template file
-synth-bench validate --path ./templates/my-template.yaml --validate-type template
+dataforge validate --path ./templates/my-template.yaml --validate-type template
 
 # Validate a generated task
-synth-bench validate --path ./output/task-001 --validate-type task
+dataforge validate --path ./output/task-001 --validate-type task
 ```
 
 **Options:**
@@ -237,22 +226,22 @@ Manage the task registry:
 
 ```bash
 # List all registered tasks
-synth-bench registry list
+dataforge registry list
 
 # Filter by status
-synth-bench registry list --status published
+dataforge registry list --status published
 
 # Filter by category
-synth-bench registry list --category debugging
+dataforge registry list --category debugging
 
 # Add a task to registry
-synth-bench registry add --path ./output/task-001
+dataforge registry add --path ./output/task-001
 
 # Update task status
-synth-bench registry status --task-id task-abc123 --new-status published
+dataforge registry status --task-id task-abc123 --new-status published
 
 # Show task details
-synth-bench registry show --task-id task-abc123
+dataforge registry show --task-id task-abc123
 ```
 
 **Status values:** draft, review, published, deprecated
@@ -263,13 +252,13 @@ Export tasks in various formats:
 
 ```bash
 # Export in HuggingFace format
-synth-bench export --output ./dist --version v1.0.0 --format huggingface
+dataforge export --output ./dist --version v1.0.0 --format huggingface
 
 # Export as JSON
-synth-bench export --output ./dist --version v1.0.0 --format json
+dataforge export --output ./dist --version v1.0.0 --format json
 
 # Include solutions in export
-synth-bench export --output ./dist --version v1.0.0 --include-solutions
+dataforge export --output ./dist --version v1.0.0 --include-solutions
 ```
 
 **Options:**
@@ -284,13 +273,13 @@ List and manage templates:
 
 ```bash
 # List all templates
-synth-bench templates
+dataforge templates
 
 # Filter by category
-synth-bench templates --category debugging
+dataforge templates --category debugging
 
 # Filter by difficulty
-synth-bench templates --difficulty hard
+dataforge templates --difficulty hard
 ```
 
 ### Initialize New Template
@@ -298,7 +287,7 @@ synth-bench templates --difficulty hard
 Create a new template scaffold:
 
 ```bash
-synth-bench init --id my-task-001 --category debugging --output ./templates
+dataforge init --id my-task-001 --category debugging --output ./templates
 ```
 
 This creates a YAML template file ready for customization.
@@ -313,34 +302,27 @@ This creates a YAML template file ready for customization.
 
 ## Architecture Overview
 
-synth-bench uses a multi-agent architecture for task validation:
+dataforge uses a multi-agent architecture for task validation:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Orchestrator                         │
-│                    (Coordinates Pipeline)                   │
-└─────────────────────────┬───────────────────────────────────┘
-                          │
-        ┌─────────────────┼─────────────────┐
-        │                 │                 │
-        ▼                 ▼                 ▼
-┌───────────────┐ ┌───────────────┐ ┌───────────────┐
-│    Task       │ │  Difficulty   │ │  Feasibility  │
-│   Generator   │ │  Validator    │ │   Validator   │
-│               │ │    (LLM)      │ │     (LLM)     │
-└───────────────┘ └───────────────┘ └───────────────┘
-        │                 │                 │
-        └─────────────────┼─────────────────┘
-                          │
-                          ▼
-                 ┌─────────────────┐
-                 │  Final Report   │
-                 │ (Approved/      │
-                 │  Rejected)      │
-                 └─────────────────┘
+```mermaid
+flowchart TB
+    subgraph Orchestrator[Orchestrator - Coordinates Pipeline]
+        direction LR
+    end
+    
+    Orchestrator --> Generator[Task Generator]
+    Orchestrator --> DiffValidator[Difficulty Validator LLM]
+    Orchestrator --> FeasValidator[Feasibility Validator LLM]
+    
+    Generator --> Results
+    DiffValidator --> Results
+    FeasValidator --> Results
+    
+    Results[Validation Results] --> Report[Final Report - Approved/Rejected]
 ```
 
 **Pipeline Stages:**
+
 1. **Task Generation** - Create task from template with parameters
 2. **Difficulty Validation** - LLM verifies task matches expected difficulty
 3. **Feasibility Validation** - LLM ensures task is solvable but not trivial
@@ -385,7 +367,7 @@ For detailed template documentation, see [docs/usage.md](docs/usage.md).
 
 ## Contributing
 
-Contributions are welcome! Please follow these guidelines:
+Contributions are welcome. Please follow these guidelines:
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/my-feature`)
@@ -399,8 +381,8 @@ Contributions are welcome! Please follow these guidelines:
 
 ```bash
 # Clone and build
-git clone https://github.com/synth-bench/synth-bench.git
-cd synth-bench
+git clone https://github.com/dataforge/dataforge.git
+cd dataforge
 cargo build
 
 # Run tests
