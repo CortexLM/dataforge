@@ -60,6 +60,7 @@ pub mod difficulty_amplifier;
 pub mod difficulty_validator;
 pub mod docker_validator;
 pub mod environment_builder;
+pub mod full_pipeline_orchestrator;
 pub mod error;
 pub mod factory_orchestrator;
 pub mod factory_types;
@@ -92,6 +93,10 @@ pub use environment_builder::{
     AnalyzedTask, BuiltEnvironment, EnvironmentBuilderAgent, EnvironmentConfig,
 };
 pub use error::{AgentError, AgentResult};
+pub use full_pipeline_orchestrator::{
+    FullPipelineConfig, FullPipelineEvent, FullPipelineOrchestrator, FullPipelineResult,
+    FullPipelineStage,
+};
 pub use factory_orchestrator::{
     FactoryOrchestrator, FactoryOrchestratorBuilder, FactoryOrchestratorConfig,
 };

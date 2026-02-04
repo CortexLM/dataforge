@@ -5,6 +5,7 @@
 
 use crate::agents::{
     FactoryOrchestrator, FactoryOrchestratorConfig, FactoryPipelineEvent, FactoryPipelineStage,
+    FullPipelineConfig, FullPipelineEvent, FullPipelineOrchestrator,
     SyntheticOrchestrator, SyntheticOrchestratorConfig, SyntheticPipelineEvent,
     SyntheticPipelineStage, SyntheticTask, TaskCategory as AgentTaskCategory,
 };
@@ -98,8 +99,12 @@ pub struct GenerateArgs {
     pub api_key: Option<String>,
 
     /// Use the factory multi-agent pipeline (more sophisticated, includes research and amplification).
-    #[arg(long)]
+    #[arg(long, conflicts_with = "full")]
     pub factory: bool,
+
+    /// Use the full 14-agent pipeline for maximum quality (slowest but best quality).
+    #[arg(long, conflicts_with = "factory")]
+    pub full: bool,
 
     /// Enable prompt caching for efficiency (only with --factory).
     #[arg(long, default_value = "true")]
@@ -293,7 +298,16 @@ async fn run_generate_command(args: GenerateArgs) -> anyhow::Result<()> {
     fs::create_dir_all(output_path)?;
     info!(output = %output_dir, "Output directory ready");
 
-    if args.factory {
+    if args.full {
+        run_full_pipeline_generation(
+            llm_client,
+            args,
+            parsed_category,
+            validated_min_score,
+            output_path,
+        )
+        .await
+    } else if args.factory {
         run_factory_generation(
             llm_client,
             args,
@@ -888,6 +902,220 @@ fn save_task(task: &SyntheticTask, task_dir: &Path) -> anyhow::Result<()> {
                 .join("\n\n")
         );
         fs::write(&solution_path, solution_content)?;
+    }
+
+    Ok(())
+}
+
+/// Runs the full 14-agent pipeline for maximum quality generation.
+async fn run_full_pipeline_generation(
+    llm_client: Arc<dyn crate::llm::LlmProvider>,
+    args: GenerateArgs,
+    category: Option<AgentTaskCategory>,
+    min_score: f64,
+    output_path: &Path,
+) -> anyhow::Result<()> {
+    // Determine Docker validation settings
+    let docker_enabled = args.validate_docker && !args.no_docker;
+    let docker_solution = args.validate_solution;
+
+    info!("Using full 14-agent pipeline for maximum quality");
+    if docker_enabled {
+        info!("Docker validation enabled for full pipeline");
+    }
+
+    // Configure the full pipeline orchestrator
+    let config = FullPipelineConfig::default()
+        .with_min_validation_score(min_score)
+        .with_max_retries(args.max_retries)
+        .with_docker_validation(docker_enabled)
+        .with_solution_validation(docker_solution)
+        .with_output_dir(output_path.to_string_lossy().to_string());
+
+    let orchestrator = FullPipelineOrchestrator::new(llm_client, config);
+
+    if args.json {
+        run_json_full_pipeline(&orchestrator, &args, category, output_path).await
+    } else {
+        run_interactive_full_pipeline(&orchestrator, &args, category, output_path).await
+    }
+}
+
+/// Runs the full pipeline and outputs JSON to stdout.
+async fn run_json_full_pipeline(
+    orchestrator: &FullPipelineOrchestrator,
+    args: &GenerateArgs,
+    category: Option<AgentTaskCategory>,
+    output_path: &Path,
+) -> anyhow::Result<()> {
+    let start_time = std::time::Instant::now();
+    let mut tasks = Vec::new();
+
+    for i in 0..args.count {
+        let (event_tx, _event_rx) = tokio::sync::mpsc::channel::<FullPipelineEvent>(100);
+
+        match orchestrator.generate_task(category, event_tx).await {
+            Ok(result) => {
+                let task = &result.task;
+                let task_dir = output_path.join(&task.id);
+                let saved_path = match save_task(task, &task_dir) {
+                    Ok(()) => Some(task_dir.to_string_lossy().to_string()),
+                    Err(e) => {
+                        warn!(error = %e, task_id = %task.id, "Failed to save task to disk");
+                        None
+                    }
+                };
+                tasks.push(GeneratedTaskOutput::from_synthetic_task(task, saved_path));
+            }
+            Err(e) => {
+                error!(task_index = i, error = %e, "Failed to generate task");
+            }
+        }
+    }
+
+    let duration_ms = start_time.elapsed().as_millis() as u64;
+
+    let output = GenerationOutput {
+        status: if tasks.is_empty() && args.count > 0 {
+            "failed".to_string()
+        } else {
+            "success".to_string()
+        },
+        model: args.model.clone(),
+        tasks,
+        total_duration_ms: duration_ms,
+        retries: 0,
+        output_directory: output_path.to_string_lossy().to_string(),
+    };
+
+    let json_output = serde_json::to_string_pretty(&output)
+        .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
+    println!("{}", json_output);
+
+    Ok(())
+}
+
+/// Runs the interactive full pipeline with progress output.
+async fn run_interactive_full_pipeline(
+    orchestrator: &FullPipelineOrchestrator,
+    args: &GenerateArgs,
+    category: Option<AgentTaskCategory>,
+    output_path: &Path,
+) -> anyhow::Result<()> {
+    println!("\n🚀 Full 14-Agent Pipeline Generation");
+    println!("=====================================");
+    println!("Model: {}", args.model);
+    println!("Count: {}", args.count);
+    println!("Output: {}", output_path.display());
+    if let Some(cat) = &args.category {
+        println!("Category: {}", cat);
+    }
+    println!();
+
+    println!("Pipeline stages (14 agents):");
+    println!("├─ ○ Research (ResearchAgent)");
+    println!("├─ ○ Ideation (IdeatorAgent)");
+    println!("├─ ○ Task Validation (TaskValidatorAgent)");
+    println!("├─ ○ Amplification (DifficultyAmplifierAgent)");
+    println!("├─ ○ Execution (TaskExecutorAgent)");
+    println!("├─ ○ Test Design (TestDesignerAgent)");
+    println!("├─ ○ Environment Building (EnvironmentBuilderAgent)");
+    println!("├─ ○ Docker Validation (DockerValidatorAgent)");
+    println!("└─ ○ Quality Check\n");
+
+    let mut generated_tasks: Vec<SyntheticTask> = Vec::new();
+    let mut failed_count = 0u32;
+
+    for i in 0..args.count {
+        println!("📝 Generating dataset {}/{}...", i + 1, args.count);
+
+        let (event_tx, mut event_rx) = tokio::sync::mpsc::channel::<FullPipelineEvent>(100);
+
+        // Spawn event handler for this task
+        let event_handle = tokio::spawn(async move {
+            while let Some(event) = event_rx.recv().await {
+                match event {
+                    FullPipelineEvent::StageStarted { stage, .. } => {
+                        println!("  ├─ ⏳ Starting {}...", stage);
+                    }
+                    FullPipelineEvent::StageCompleted { stage, duration_ms, .. } => {
+                        println!("  ├─ ✅ {} completed ({}ms)", stage, duration_ms);
+                    }
+                    FullPipelineEvent::StageFailed { stage, error, .. } => {
+                        println!("  ├─ ❌ {} failed: {}", stage, error);
+                    }
+                    FullPipelineEvent::StageSkipped { stage, reason, .. } => {
+                        println!("  ├─ ⏭️ {} skipped: {}", stage, reason);
+                    }
+                    FullPipelineEvent::ResearchComplete { weaknesses_found, traps_proposed, .. } => {
+                        println!("  │   Found {} weaknesses, {} traps proposed", weaknesses_found, traps_proposed);
+                    }
+                    FullPipelineEvent::IdeationComplete { task_title, category, .. } => {
+                        println!("  │   Created: {} [{}]", task_title, category);
+                    }
+                    FullPipelineEvent::AmplificationComplete { traps_added, difficulty_score, .. } => {
+                        println!("  │   Added {} traps, difficulty: {:.2}", traps_added, difficulty_score);
+                    }
+                    FullPipelineEvent::TestDesignComplete { test_count, .. } => {
+                        println!("  │   Designed {} tests", test_count);
+                    }
+                    FullPipelineEvent::DockerValidationComplete { passed, duration_ms, .. } => {
+                        if passed {
+                            println!("  │   Docker validation passed ({}ms)", duration_ms);
+                        } else {
+                            println!("  │   Docker validation failed ({}ms)", duration_ms);
+                        }
+                    }
+                    FullPipelineEvent::PipelineComplete { task_id, total_duration_ms, stages_completed, .. } => {
+                        println!("  └─ ✅ Task {} generated ({} stages, {}ms)", task_id, stages_completed, total_duration_ms);
+                    }
+                    _ => {}
+                }
+            }
+        });
+
+        match orchestrator.generate_task(category, event_tx).await {
+            Ok(result) => {
+                let task = result.task;
+                let task_dir = output_path.join(&task.id);
+                match save_task(&task, &task_dir) {
+                    Ok(()) => {
+                        println!("  📁 Saved to: {}\n", task_dir.display());
+                    }
+                    Err(e) => {
+                        warn!(error = %e, task_id = %task.id, "Failed to save task to disk");
+                        println!("  ⚠️ Failed to save: {}\n", e);
+                    }
+                }
+                generated_tasks.push(task);
+            }
+            Err(e) => {
+                println!("  └─ ❌ Generation failed: {}\n", e);
+                failed_count += 1;
+            }
+        }
+
+        // Wait for event handler to complete
+        let _ = event_handle.await;
+    }
+
+    // Print summary
+    println!("\n📊 Generation Summary");
+    println!("━━━━━━━━━━━━━━━━━━━━━");
+    println!("Total requested: {}", args.count);
+    println!("Successfully generated: {}", generated_tasks.len());
+    println!("Failed: {}", failed_count);
+
+    if !generated_tasks.is_empty() {
+        println!("\n📋 Generated Tasks:");
+        for task in &generated_tasks {
+            println!(
+                "  • {} [{}] - {}",
+                task.id,
+                task.metadata.category,
+                task.problem_statement.chars().take(60).collect::<String>()
+            );
+        }
     }
 
     Ok(())
