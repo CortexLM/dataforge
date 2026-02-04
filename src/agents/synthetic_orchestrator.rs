@@ -14,8 +14,10 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 
+use crate::execution::DockerClient;
 use crate::llm::LlmProvider;
 
+use super::docker_validator::{DockerValidatorAgent, DockerValidatorConfig};
 use super::error::{AgentError, AgentResult};
 use super::ideator::{IdeatorAgent, IdeatorConfig, TaskCategory, TaskIdea as IdeatorTaskIdea};
 use super::task_executor::{SyntheticTask, TaskExecutorAgent, TaskExecutorConfig};
@@ -42,6 +44,10 @@ pub struct SyntheticOrchestratorConfig {
     pub max_ideation_retries: u32,
     /// Whether to continue generating if one task fails.
     pub continue_on_failure: bool,
+    /// Whether to validate tasks in Docker containers.
+    pub docker_validation_enabled: bool,
+    /// Whether to validate the reference solution in Docker.
+    pub docker_validate_solution: bool,
 }
 
 impl Default for SyntheticOrchestratorConfig {
@@ -53,6 +59,8 @@ impl Default for SyntheticOrchestratorConfig {
             min_validation_score: 0.6,
             max_ideation_retries: 3,
             continue_on_failure: true,
+            docker_validation_enabled: false,
+            docker_validate_solution: true,
         }
     }
 }
@@ -98,6 +106,18 @@ impl SyntheticOrchestratorConfig {
         self.continue_on_failure = continue_on_failure;
         self
     }
+
+    /// Enables or disables Docker validation.
+    pub fn with_docker_validation(mut self, enabled: bool) -> Self {
+        self.docker_validation_enabled = enabled;
+        self
+    }
+
+    /// Sets whether to validate the reference solution in Docker.
+    pub fn with_docker_solution_validation(mut self, enabled: bool) -> Self {
+        self.docker_validate_solution = enabled;
+        self
+    }
 }
 
 // ============================================================================
@@ -113,6 +133,8 @@ pub enum SyntheticPipelineStage {
     Validation,
     /// Creating full task specification with hidden solution.
     Execution,
+    /// Docker-based validation of the task environment.
+    DockerValidation,
     /// Final quality check.
     QualityCheck,
 }
@@ -123,6 +145,7 @@ impl std::fmt::Display for SyntheticPipelineStage {
             SyntheticPipelineStage::Ideation => write!(f, "Ideation"),
             SyntheticPipelineStage::Validation => write!(f, "Validation"),
             SyntheticPipelineStage::Execution => write!(f, "Execution"),
+            SyntheticPipelineStage::DockerValidation => write!(f, "Docker Validation"),
             SyntheticPipelineStage::QualityCheck => write!(f, "Quality Check"),
         }
     }
@@ -172,6 +195,33 @@ pub enum SyntheticPipelineEvent {
         /// The created synthetic task.
         task: SyntheticTask,
         /// When execution completed.
+        timestamp: DateTime<Utc>,
+    },
+    /// Docker validation started.
+    DockerValidationStarted {
+        /// Task ID being validated.
+        task_id: String,
+        /// Container image being used.
+        image: String,
+        /// When validation started.
+        timestamp: DateTime<Utc>,
+    },
+    /// Docker validation completed.
+    DockerValidationComplete {
+        /// Whether Docker validation passed.
+        passed: bool,
+        /// Duration in milliseconds.
+        duration_ms: u64,
+        /// Error message if failed.
+        error: Option<String>,
+        /// When validation completed.
+        timestamp: DateTime<Utc>,
+    },
+    /// Docker validation was skipped (Docker not available or disabled).
+    DockerValidationSkipped {
+        /// Reason for skipping.
+        reason: String,
+        /// When skipped.
         timestamp: DateTime<Utc>,
     },
     /// Pipeline completed successfully.
@@ -246,6 +296,33 @@ impl SyntheticPipelineEvent {
         }
     }
 
+    /// Creates a DockerValidationStarted event.
+    pub fn docker_validation_started(task_id: impl Into<String>, image: impl Into<String>) -> Self {
+        Self::DockerValidationStarted {
+            task_id: task_id.into(),
+            image: image.into(),
+            timestamp: Utc::now(),
+        }
+    }
+
+    /// Creates a DockerValidationComplete event.
+    pub fn docker_validation_complete(passed: bool, duration_ms: u64, error: Option<String>) -> Self {
+        Self::DockerValidationComplete {
+            passed,
+            duration_ms,
+            error,
+            timestamp: Utc::now(),
+        }
+    }
+
+    /// Creates a DockerValidationSkipped event.
+    pub fn docker_validation_skipped(reason: impl Into<String>) -> Self {
+        Self::DockerValidationSkipped {
+            reason: reason.into(),
+            timestamp: Utc::now(),
+        }
+    }
+
     /// Creates a PipelineFailed event.
     pub fn pipeline_failed(error: impl Into<String>, stage: SyntheticPipelineStage) -> Self {
         Self::PipelineFailed {
@@ -266,7 +343,8 @@ impl SyntheticPipelineEvent {
 /// 1. **Ideation**: Generate creative task ideas using high temperature LLM
 /// 2. **Validation**: Validate complexity, memorization risk, and reasoning requirements
 /// 3. **Execution**: Create complete task specification with hidden solution
-/// 4. **Quality Check**: Verify task has all required fields and anti-memorization config
+/// 4. **Docker Validation**: Validate task runs in Docker container (optional)
+/// 5. **Quality Check**: Verify task has all required fields and anti-memorization config
 pub struct SyntheticOrchestrator {
     /// The ideator agent for task idea generation.
     ideator: IdeatorAgent,
@@ -274,6 +352,8 @@ pub struct SyntheticOrchestrator {
     validator: TaskValidatorAgent,
     /// The executor agent for task creation.
     executor: TaskExecutorAgent,
+    /// Docker validator agent (lazy-initialized).
+    docker_validator: Option<DockerValidatorAgent>,
     /// Orchestrator configuration.
     config: SyntheticOrchestratorConfig,
 }
@@ -289,10 +369,28 @@ impl SyntheticOrchestrator {
             TaskValidatorAgent::new(Arc::clone(&llm_client), config.validator_config.clone());
         let executor = TaskExecutorAgent::new(llm_client, config.executor_config.clone());
 
+        // Initialize Docker validator if enabled
+        let docker_validator = if config.docker_validation_enabled {
+            match DockerClient::new() {
+                Ok(client) => {
+                    let docker_config = DockerValidatorConfig::new()
+                        .with_solution_validation(config.docker_validate_solution);
+                    Some(DockerValidatorAgent::new(Arc::new(client), docker_config))
+                }
+                Err(e) => {
+                    tracing::warn!("Docker validation enabled but Docker unavailable: {}", e);
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
         Self {
             ideator,
             validator,
             executor,
+            docker_validator,
             config,
         }
     }
@@ -300,6 +398,12 @@ impl SyntheticOrchestrator {
     /// Creates a new orchestrator with default configuration.
     pub fn with_defaults(llm_client: Arc<dyn LlmProvider>) -> Self {
         Self::new(llm_client, SyntheticOrchestratorConfig::default())
+    }
+
+    /// Creates a new orchestrator with Docker validation enabled.
+    pub fn with_docker_validation(llm_client: Arc<dyn LlmProvider>) -> Self {
+        let config = SyntheticOrchestratorConfig::default().with_docker_validation(true);
+        Self::new(llm_client, config)
     }
 
     /// Runs the complete synthetic task generation pipeline.
@@ -359,7 +463,82 @@ impl SyntheticOrchestrator {
         )
         .await;
 
-        // Stage 4: Quality Check
+        // Stage 4: Docker Validation (if enabled)
+        if self.config.docker_validation_enabled {
+            self.send_event(
+                &event_tx,
+                SyntheticPipelineEvent::stage_started(SyntheticPipelineStage::DockerValidation),
+            )
+            .await;
+
+            if let Some(ref docker_validator) = self.docker_validator {
+                self.send_event(
+                    &event_tx,
+                    SyntheticPipelineEvent::docker_validation_started(
+                        &task.id,
+                        "python:3.11-slim", // Default image
+                    ),
+                )
+                .await;
+
+                match docker_validator.validate_task(&task).await {
+                    Ok(result) => {
+                        self.send_event(
+                            &event_tx,
+                            SyntheticPipelineEvent::docker_validation_complete(
+                                result.passed,
+                                result.duration_ms,
+                                result.error.clone(),
+                            ),
+                        )
+                        .await;
+
+                        if !result.passed {
+                            let error_msg = result.error.unwrap_or_else(|| "Docker validation failed".to_string());
+                            self.send_event(
+                                &event_tx,
+                                SyntheticPipelineEvent::pipeline_failed(
+                                    &error_msg,
+                                    SyntheticPipelineStage::DockerValidation,
+                                ),
+                            )
+                            .await;
+                            return Err(AgentError::GenerationFailed(error_msg));
+                        }
+                    }
+                    Err(e) => {
+                        self.send_event(
+                            &event_tx,
+                            SyntheticPipelineEvent::docker_validation_complete(
+                                false,
+                                0,
+                                Some(e.to_string()),
+                            ),
+                        )
+                        .await;
+                        self.send_event(
+                            &event_tx,
+                            SyntheticPipelineEvent::pipeline_failed(
+                                e.to_string(),
+                                SyntheticPipelineStage::DockerValidation,
+                            ),
+                        )
+                        .await;
+                        return Err(e);
+                    }
+                }
+            } else {
+                self.send_event(
+                    &event_tx,
+                    SyntheticPipelineEvent::docker_validation_skipped(
+                        "Docker daemon not available",
+                    ),
+                )
+                .await;
+            }
+        }
+
+        // Stage 5: Quality Check
         self.send_event(
             &event_tx,
             SyntheticPipelineEvent::stage_started(SyntheticPipelineStage::QualityCheck),
@@ -716,6 +895,8 @@ impl SyntheticOrchestratorBuilder {
             min_validation_score: self.min_validation_score,
             max_ideation_retries: self.max_ideation_retries,
             continue_on_failure: self.continue_on_failure,
+            docker_validation_enabled: false,
+            docker_validate_solution: true,
         };
 
         Ok(SyntheticOrchestrator::new(llm_client, config))

@@ -36,9 +36,11 @@ use std::time::Instant;
 
 use tokio::sync::mpsc;
 
+use crate::execution::DockerClient;
 use crate::llm::LlmProvider;
 
 use super::difficulty_amplifier::{AmplifierConfig, DifficultyAmplifierAgent};
+use super::docker_validator::{DockerValidatorAgent, DockerValidatorConfig};
 use super::error::{AgentError, AgentResult};
 use super::factory_types::{
     AgentConversation, AmplifiedTask, ConversationTurn, FactoryPipelineEvent, FactoryPipelineStage,
@@ -76,6 +78,10 @@ pub struct FactoryOrchestratorConfig {
     pub continue_on_failure: bool,
     /// Whether to cache research findings between tasks of the same category.
     pub cache_research: bool,
+    /// Whether to validate tasks in Docker containers.
+    pub docker_validation_enabled: bool,
+    /// Whether to validate the reference solution in Docker.
+    pub docker_validate_solution: bool,
 }
 
 impl Default for FactoryOrchestratorConfig {
@@ -90,6 +96,8 @@ impl Default for FactoryOrchestratorConfig {
             max_creation_retries: 3,
             continue_on_failure: true,
             cache_research: true,
+            docker_validation_enabled: false,
+            docker_validate_solution: true,
         }
     }
 }
@@ -153,6 +161,18 @@ impl FactoryOrchestratorConfig {
         self.cache_research = cache;
         self
     }
+
+    /// Enables or disables Docker validation.
+    pub fn with_docker_validation(mut self, enabled: bool) -> Self {
+        self.docker_validation_enabled = enabled;
+        self
+    }
+
+    /// Sets whether to validate the reference solution in Docker.
+    pub fn with_docker_solution_validation(mut self, enabled: bool) -> Self {
+        self.docker_validate_solution = enabled;
+        self
+    }
 }
 
 // ============================================================================
@@ -190,7 +210,8 @@ impl ResearchCache {
 /// 2. **Creation**: Generate creative task idea using ideator
 /// 3. **Amplification**: Add difficulty traps based on research findings
 /// 4. **Validation**: Validate task meets quality and difficulty requirements
-/// 5. **Finalization**: Create complete task specification
+/// 5. **Docker Validation**: Validate task runs in Docker container (optional)
+/// 6. **Finalization**: Create complete task specification
 pub struct FactoryOrchestrator {
     /// The research agent for weakness identification.
     research_agent: ResearchAgent,
@@ -202,6 +223,8 @@ pub struct FactoryOrchestrator {
     validator: TaskValidatorAgent,
     /// The executor agent for task specification creation.
     executor: TaskExecutorAgent,
+    /// Docker validator agent (lazy-initialized).
+    docker_validator: Option<DockerValidatorAgent>,
     /// Orchestrator configuration.
     config: FactoryOrchestratorConfig,
     /// Cache for research findings.
@@ -225,12 +248,30 @@ impl FactoryOrchestrator {
             TaskValidatorAgent::new(Arc::clone(&llm_client), config.validator_config.clone());
         let executor = TaskExecutorAgent::new(llm_client, config.executor_config.clone());
 
+        // Initialize Docker validator if enabled
+        let docker_validator = if config.docker_validation_enabled {
+            match DockerClient::new() {
+                Ok(client) => {
+                    let docker_config = DockerValidatorConfig::new()
+                        .with_solution_validation(config.docker_validate_solution);
+                    Some(DockerValidatorAgent::new(Arc::new(client), docker_config))
+                }
+                Err(e) => {
+                    tracing::warn!("Docker validation enabled but Docker unavailable: {}", e);
+                    None
+                }
+            }
+        } else {
+            None
+        };
+
         Self {
             research_agent,
             ideator,
             amplifier,
             validator,
             executor,
+            docker_validator,
             config,
             research_cache: std::sync::Mutex::new(ResearchCache::new()),
             conversations: std::sync::Mutex::new(Vec::new()),
@@ -535,6 +576,66 @@ impl FactoryOrchestrator {
                             .collect::<String>()
                     ),
                 ));
+
+                // Stage 6: Docker Validation (if enabled)
+                if self.config.docker_validation_enabled {
+                    if let Some(ref docker_validator) = self.docker_validator {
+                        self.send_event(
+                            event_tx,
+                            FactoryPipelineEvent::agent_conversation(
+                                "docker_validator",
+                                format!("Validating task {} in Docker container", final_task.id),
+                            ),
+                        )
+                        .await;
+
+                        match docker_validator.validate_task(&final_task).await {
+                            Ok(result) => {
+                                conversation.add_turn(ConversationTurn::assistant(
+                                    "docker_validator",
+                                    format!(
+                                        "Docker validation {}: {}ms",
+                                        if result.passed { "passed" } else { "failed" },
+                                        result.duration_ms
+                                    ),
+                                ));
+
+                                if !result.passed {
+                                    let error_msg = result.error.unwrap_or_else(|| "Docker validation failed".to_string());
+                                    self.send_event(
+                                        event_tx,
+                                        FactoryPipelineEvent::pipeline_failed(
+                                            &error_msg,
+                                            FactoryPipelineStage::Finalization,
+                                        ),
+                                    )
+                                    .await;
+                                    return Err(AgentError::GenerationFailed(error_msg));
+                                }
+                            }
+                            Err(e) => {
+                                self.send_event(
+                                    event_tx,
+                                    FactoryPipelineEvent::pipeline_failed(
+                                        e.to_string(),
+                                        FactoryPipelineStage::Finalization,
+                                    ),
+                                )
+                                .await;
+                                return Err(e);
+                            }
+                        }
+                    } else {
+                        self.send_event(
+                            event_tx,
+                            FactoryPipelineEvent::agent_conversation(
+                                "orchestrator",
+                                "Docker validation skipped: Docker daemon not available",
+                            ),
+                        )
+                        .await;
+                    }
+                }
 
                 // Store conversation
                 self.conversations
@@ -872,6 +973,8 @@ impl FactoryOrchestratorBuilder {
             max_creation_retries: self.max_creation_retries,
             continue_on_failure: self.continue_on_failure,
             cache_research: self.cache_research,
+            docker_validation_enabled: false,
+            docker_validate_solution: true,
         };
 
         Ok(FactoryOrchestrator::new(llm_client, config))

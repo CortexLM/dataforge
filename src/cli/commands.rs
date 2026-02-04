@@ -104,6 +104,18 @@ pub struct GenerateArgs {
     /// Enable prompt caching for efficiency (only with --factory).
     #[arg(long, default_value = "true")]
     pub cache: bool,
+
+    /// Enable Docker validation to verify tasks are executable in containers.
+    #[arg(long)]
+    pub validate_docker: bool,
+
+    /// Disable Docker validation (useful in CI without Docker).
+    #[arg(long, conflicts_with = "validate_docker")]
+    pub no_docker: bool,
+
+    /// Also validate the reference solution in Docker (requires --validate-docker).
+    #[arg(long, requires = "validate_docker")]
+    pub validate_solution: bool,
 }
 
 /// Parse CLI arguments and return the Cli struct.
@@ -310,10 +322,20 @@ async fn run_synthetic_generation(
     min_score: f64,
     output_path: &Path,
 ) -> anyhow::Result<()> {
+    // Determine Docker validation settings
+    let docker_enabled = args.validate_docker && !args.no_docker;
+    let docker_solution = args.validate_solution;
+
+    if docker_enabled {
+        info!("Docker validation enabled");
+    }
+
     // Configure the orchestrator
     let config = SyntheticOrchestratorConfig::default()
         .with_min_validation_score(min_score)
-        .with_max_ideation_retries(args.max_retries);
+        .with_max_ideation_retries(args.max_retries)
+        .with_docker_validation(docker_enabled)
+        .with_docker_solution_validation(docker_solution);
 
     let orchestrator = SyntheticOrchestrator::new(llm_client, config);
 
@@ -339,10 +361,20 @@ async fn run_factory_generation(
         None
     };
 
+    // Determine Docker validation settings
+    let docker_enabled = args.validate_docker && !args.no_docker;
+    let docker_solution = args.validate_solution;
+
+    if docker_enabled {
+        info!("Docker validation enabled for factory pipeline");
+    }
+
     // Configure the factory orchestrator
     let config = FactoryOrchestratorConfig::default()
         .with_min_validation_score(min_score)
-        .with_max_creation_retries(args.max_retries);
+        .with_max_creation_retries(args.max_retries)
+        .with_docker_validation(docker_enabled)
+        .with_docker_solution_validation(docker_solution);
 
     let orchestrator = FactoryOrchestrator::new(llm_client, config);
 
@@ -463,6 +495,7 @@ async fn run_interactive_generation(
                             SyntheticPipelineStage::Ideation => "Ideation",
                             SyntheticPipelineStage::Validation => "Validation",
                             SyntheticPipelineStage::Execution => "Execution",
+                            SyntheticPipelineStage::DockerValidation => "Docker Validation",
                             SyntheticPipelineStage::QualityCheck => "Quality Check",
                         };
                         println!("   ⟳ {} started...", stage_name);
@@ -484,6 +517,19 @@ async fn run_interactive_generation(
                     }
                     SyntheticPipelineEvent::ExecutionComplete { .. } => {
                         println!("   ✓ Execution: task created");
+                    }
+                    SyntheticPipelineEvent::DockerValidationStarted { task_id, image, .. } => {
+                        println!("   🐳 Docker: validating {} with {}", task_id, image);
+                    }
+                    SyntheticPipelineEvent::DockerValidationComplete { passed, duration_ms, error, .. } => {
+                        if passed {
+                            println!("   ✓ Docker: validated in {}ms", duration_ms);
+                        } else {
+                            println!("   ✗ Docker: failed - {}", error.unwrap_or_else(|| "unknown error".to_string()));
+                        }
+                    }
+                    SyntheticPipelineEvent::DockerValidationSkipped { reason, .. } => {
+                        println!("   ⏭ Docker: skipped - {}", reason);
                     }
                     SyntheticPipelineEvent::PipelineComplete {
                         total_duration_ms, ..

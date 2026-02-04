@@ -58,6 +58,7 @@ pub mod analyzer_agent;
 pub mod collector_agent;
 pub mod difficulty_amplifier;
 pub mod difficulty_validator;
+pub mod docker_validator;
 pub mod environment_builder;
 pub mod error;
 pub mod factory_orchestrator;
@@ -86,6 +87,7 @@ pub use collector_agent::{
 };
 pub use difficulty_amplifier::{AmplifierConfig, DifficultyAmplifierAgent};
 pub use difficulty_validator::{DifficultyValidatorAgent, DifficultyValidatorConfig};
+pub use docker_validator::{DockerValidatorAgent, DockerValidatorConfig, DockerValidationResult};
 pub use environment_builder::{
     AnalyzedTask, BuiltEnvironment, EnvironmentBuilderAgent, EnvironmentConfig,
 };
