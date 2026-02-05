@@ -104,7 +104,7 @@ impl ExecutionLimits {
 ///
 /// let limits = get_execution_limits("hard");
 /// assert_eq!(limits.memory_mb, 2048);
-/// assert_eq!(limits.timeout_seconds, 1800);
+/// assert_eq!(limits.timeout_seconds, 2400);
 /// ```
 pub fn get_execution_limits(difficulty: &str) -> ExecutionLimits {
     match difficulty.to_lowercase().as_str() {
