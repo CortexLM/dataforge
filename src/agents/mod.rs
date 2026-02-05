@@ -72,6 +72,7 @@ pub mod problem_crafter;
 pub mod research_agent;
 pub mod synthetic_generator_agent;
 pub mod synthetic_orchestrator;
+pub mod task_evaluator;
 pub mod task_executor;
 pub mod task_validator;
 pub mod test_designer;
@@ -118,6 +119,9 @@ pub use synthetic_generator_agent::{
 pub use synthetic_orchestrator::{
     SyntheticOrchestrator, SyntheticOrchestratorBuilder, SyntheticOrchestratorConfig,
     SyntheticPipelineEvent, SyntheticPipelineStage,
+};
+pub use task_evaluator::{
+    AgentAction, AgentStep, EvaluationConfig, EvaluationResult, TaskEvaluator, TerminationReason,
 };
 pub use task_executor::{
     AntiMemorizationConfig, AutomatedCheck, CheckType, DifficultyScoring, HiddenSolution,

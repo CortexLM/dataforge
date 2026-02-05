@@ -553,17 +553,26 @@ impl ParameterSampler {
     ///
     /// Supports: ? for random letter, # for random digit
     fn generate_from_pattern(&mut self, pattern: &str) -> String {
+        // Pre-define character sets as arrays for safe, bounds-checked indexing
+        const LETTERS: [char; 26] = [
+            'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
+            'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+        ];
+        const DIGITS: [char; 10] = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+
         let mut result = String::new();
 
         for c in pattern.chars() {
             let generated = match c {
                 '?' => {
-                    let letters = "abcdefghijklmnopqrstuvwxyz";
-                    letters.chars().nth(self.ctx.rng.gen_range(0..26)).unwrap()
+                    // Safe array indexing - gen_range is bounded to valid indices
+                    let idx = self.ctx.rng.gen_range(0..LETTERS.len());
+                    LETTERS[idx]
                 }
                 '#' => {
-                    let digits = "0123456789";
-                    digits.chars().nth(self.ctx.rng.gen_range(0..10)).unwrap()
+                    // Safe array indexing - gen_range is bounded to valid indices
+                    let idx = self.ctx.rng.gen_range(0..DIGITS.len());
+                    DIGITS[idx]
                 }
                 _ => c,
             };

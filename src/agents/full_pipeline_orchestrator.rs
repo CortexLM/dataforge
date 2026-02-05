@@ -727,7 +727,7 @@ impl FullPipelineOrchestrator {
                 task.difficulty.level,
                 task.metadata.tags.clone(),
                 &task.problem_statement,
-                (task.hidden_solution.expected_time_seconds / 60) as u32,
+                task.hidden_solution.expected_time_seconds / 60,
                 vec![],
             );
 

@@ -51,6 +51,14 @@ pub enum Commands {
     /// multi-agent pipeline including ideation, validation, and quality checks.
     #[command(alias = "gen")]
     Generate(GenerateArgs),
+
+    /// Evaluate generated tasks using an autonomous agent.
+    ///
+    /// This command runs an autonomous agent against generated benchmark tasks,
+    /// providing only the problem statement without any hints. It measures success
+    /// rate, duration, and correlates results with task difficulty.
+    #[command(alias = "eval")]
+    Evaluate(EvaluateArgs),
 }
 
 /// Arguments for the generate command.
@@ -123,6 +131,48 @@ pub struct GenerateArgs {
     pub validate_solution: bool,
 }
 
+/// Default maximum steps for the evaluation agent.
+const DEFAULT_EVAL_MAX_STEPS: u32 = 20;
+
+/// Default timeout in seconds for task evaluation.
+const DEFAULT_EVAL_TIMEOUT_SECS: u64 = 300;
+
+/// Arguments for the evaluate command.
+#[derive(Parser, Debug)]
+pub struct EvaluateArgs {
+    /// Directory containing generated tasks to evaluate.
+    ///
+    /// Each subdirectory should contain a task.yaml file with the task specification.
+    #[arg(short = 't', long)]
+    pub tasks_dir: String,
+
+    /// LLM model to use for the evaluation agent (OpenRouter format).
+    ///
+    /// Examples: moonshotai/kimi-k2.5, anthropic/claude-3-opus, openai/gpt-4
+    #[arg(short = 'm', long, default_value = DEFAULT_MODEL)]
+    pub model: String,
+
+    /// OpenRouter API key (can also be set via OPENROUTER_API_KEY or LITELLM_API_KEY env var).
+    #[arg(long, env = "OPENROUTER_API_KEY")]
+    pub api_key: Option<String>,
+
+    /// Maximum steps for the agent per task.
+    #[arg(long, default_value_t = DEFAULT_EVAL_MAX_STEPS)]
+    pub max_steps: u32,
+
+    /// Timeout in seconds per task.
+    #[arg(long, default_value_t = DEFAULT_EVAL_TIMEOUT_SECS)]
+    pub timeout: u64,
+
+    /// Output file for results (JSON format).
+    #[arg(short = 'o', long)]
+    pub output: Option<String>,
+
+    /// Output JSON to stdout instead of interactive progress.
+    #[arg(short = 'j', long)]
+    pub json: bool,
+}
+
 /// Parse CLI arguments and return the Cli struct.
 ///
 /// This allows main.rs to access CLI arguments (like log_level) before running commands.
@@ -145,6 +195,9 @@ pub async fn run_with_cli(cli: Cli) -> anyhow::Result<()> {
     match cli.command {
         Commands::Generate(args) => {
             run_generate_command(args).await?;
+        }
+        Commands::Evaluate(args) => {
+            run_evaluate_command(args).await?;
         }
     }
     Ok(())
@@ -1161,6 +1214,517 @@ async fn run_interactive_full_pipeline(
     Ok(())
 }
 
+// ============================================================================
+// Evaluate Command Implementation
+// ============================================================================
+
+/// JSON output structure for evaluation results.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EvaluationOutput {
+    /// Overall status: "success" or "failed".
+    pub status: String,
+    /// Model used for evaluation.
+    pub model: String,
+    /// Total number of tasks evaluated.
+    pub total_tasks: usize,
+    /// Number of successfully solved tasks.
+    pub successful_tasks: usize,
+    /// Overall success rate (0.0 to 1.0).
+    pub success_rate: f64,
+    /// Average duration per task in milliseconds.
+    pub average_duration_ms: u64,
+    /// Individual task results.
+    pub task_results: Vec<TaskEvaluationResult>,
+    /// Difficulty correlation metrics.
+    pub difficulty_metrics: DifficultyMetrics,
+    /// Total evaluation duration in milliseconds.
+    pub total_duration_ms: u64,
+}
+
+/// Result of evaluating a single task.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskEvaluationResult {
+    /// Task identifier.
+    pub task_id: String,
+    /// Task category.
+    pub category: String,
+    /// Difficulty level.
+    pub difficulty: String,
+    /// Whether the task was successfully solved.
+    pub success: bool,
+    /// Number of steps taken by the agent.
+    pub steps_taken: u32,
+    /// Duration in milliseconds.
+    pub duration_ms: u64,
+    /// Error message if the task failed.
+    pub error: Option<String>,
+    /// Agent's final output/response.
+    pub agent_output: Option<String>,
+}
+
+/// Metrics correlating success rate with difficulty levels.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DifficultyMetrics {
+    /// Success rate for easy tasks.
+    pub easy_success_rate: Option<f64>,
+    /// Success rate for medium tasks.
+    pub medium_success_rate: Option<f64>,
+    /// Success rate for hard tasks.
+    pub hard_success_rate: Option<f64>,
+    /// Average duration for easy tasks (ms).
+    pub easy_avg_duration_ms: Option<u64>,
+    /// Average duration for medium tasks (ms).
+    pub medium_avg_duration_ms: Option<u64>,
+    /// Average duration for hard tasks (ms).
+    pub hard_avg_duration_ms: Option<u64>,
+}
+
+impl DifficultyMetrics {
+    /// Compute difficulty metrics from task results.
+    fn from_results(results: &[TaskEvaluationResult]) -> Self {
+        let mut easy_results: Vec<&TaskEvaluationResult> = Vec::new();
+        let mut medium_results: Vec<&TaskEvaluationResult> = Vec::new();
+        let mut hard_results: Vec<&TaskEvaluationResult> = Vec::new();
+
+        for result in results {
+            match result.difficulty.to_lowercase().as_str() {
+                "easy" => easy_results.push(result),
+                "medium" => medium_results.push(result),
+                "hard" => hard_results.push(result),
+                _ => medium_results.push(result), // Default to medium
+            }
+        }
+
+        Self {
+            easy_success_rate: Self::calculate_success_rate(&easy_results),
+            medium_success_rate: Self::calculate_success_rate(&medium_results),
+            hard_success_rate: Self::calculate_success_rate(&hard_results),
+            easy_avg_duration_ms: Self::calculate_avg_duration(&easy_results),
+            medium_avg_duration_ms: Self::calculate_avg_duration(&medium_results),
+            hard_avg_duration_ms: Self::calculate_avg_duration(&hard_results),
+        }
+    }
+
+    fn calculate_success_rate(results: &[&TaskEvaluationResult]) -> Option<f64> {
+        if results.is_empty() {
+            return None;
+        }
+        let successful = results.iter().filter(|r| r.success).count();
+        Some(successful as f64 / results.len() as f64)
+    }
+
+    fn calculate_avg_duration(results: &[&TaskEvaluationResult]) -> Option<u64> {
+        if results.is_empty() {
+            return None;
+        }
+        let total_duration: u64 = results.iter().map(|r| r.duration_ms).sum();
+        Some(total_duration / results.len() as u64)
+    }
+}
+
+/// Information about a task loaded from disk.
+struct LoadedTask {
+    task_id: String,
+    category: String,
+    difficulty: String,
+    problem_statement: String,
+    success_criteria: Vec<String>,
+}
+
+/// Runs the evaluate command with the provided arguments.
+async fn run_evaluate_command(args: EvaluateArgs) -> anyhow::Result<()> {
+    // Validate that the tasks directory exists
+    let tasks_path = Path::new(&args.tasks_dir);
+    if !tasks_path.exists() {
+        return Err(anyhow::anyhow!(
+            "Tasks directory does not exist: {}",
+            args.tasks_dir
+        ));
+    }
+
+    if !tasks_path.is_dir() {
+        return Err(anyhow::anyhow!(
+            "Tasks path is not a directory: {}",
+            args.tasks_dir
+        ));
+    }
+
+    // Get API key from argument or environment
+    let api_key = args
+        .api_key
+        .clone()
+        .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
+        .or_else(|| std::env::var("LITELLM_API_KEY").ok());
+
+    // Initialize LLM client
+    let llm_client: Arc<dyn crate::llm::LlmProvider> = if let Some(key) = api_key {
+        info!(model = %args.model, "Using OpenRouter with specified API key");
+        Arc::new(OpenRouterProvider::with_model(key, args.model.clone()))
+    } else {
+        // Fall back to LiteLlmClient from environment
+        info!("Using LiteLLM client from environment");
+        Arc::new(LiteLlmClient::from_env().map_err(|e| {
+            anyhow::anyhow!(
+                "Failed to initialize LLM client: {}. \
+                 Please provide --api-key or set OPENROUTER_API_KEY/LITELLM_API_KEY env var.",
+                e
+            )
+        })?)
+    };
+
+    // Load tasks from directory
+    let tasks = load_tasks_from_directory(tasks_path)?;
+    if tasks.is_empty() {
+        return Err(anyhow::anyhow!(
+            "No valid tasks found in directory: {}",
+            args.tasks_dir
+        ));
+    }
+
+    info!(count = tasks.len(), "Loaded tasks for evaluation");
+
+    if args.json {
+        run_json_evaluation(llm_client, &args, tasks).await
+    } else {
+        run_interactive_evaluation(llm_client, &args, tasks).await
+    }
+}
+
+/// Load tasks from a directory containing task subdirectories.
+fn load_tasks_from_directory(dir: &Path) -> anyhow::Result<Vec<LoadedTask>> {
+    let mut tasks = Vec::new();
+
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+
+        if path.is_dir() {
+            // Look for task.yaml in the subdirectory
+            let task_yaml_path = path.join("task.yaml");
+            if task_yaml_path.exists() {
+                match load_task_from_yaml(&task_yaml_path) {
+                    Ok(task) => tasks.push(task),
+                    Err(e) => {
+                        warn!(
+                            path = %task_yaml_path.display(),
+                            error = %e,
+                            "Failed to load task, skipping"
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(tasks)
+}
+
+/// Load a single task from a task.yaml file.
+fn load_task_from_yaml(path: &Path) -> anyhow::Result<LoadedTask> {
+    let content = fs::read_to_string(path)?;
+    let task: SyntheticTask = serde_yaml::from_str(&content)
+        .map_err(|e| anyhow::anyhow!("Failed to parse task YAML: {}", e))?;
+
+    Ok(LoadedTask {
+        task_id: task.id,
+        category: task.metadata.category,
+        difficulty: format!("{:?}", task.difficulty.level),
+        problem_statement: task.problem_statement,
+        success_criteria: task.verification.success_criteria,
+    })
+}
+
+/// Evaluate a single task using the LLM agent.
+async fn evaluate_single_task(
+    llm_client: Arc<dyn crate::llm::LlmProvider>,
+    task: &LoadedTask,
+    max_steps: u32,
+    timeout_secs: u64,
+) -> TaskEvaluationResult {
+    use crate::llm::{GenerationRequest, Message};
+    use std::time::Instant;
+
+    let start_time = Instant::now();
+
+    // Build the agent prompt with ONLY the problem statement
+    let system_prompt = r#"You are an autonomous agent tasked with solving terminal/CLI benchmark tasks.
+You will be given a problem statement. Your goal is to solve the task by reasoning through it step-by-step.
+
+Guidelines:
+- Think carefully about what the problem is asking
+- Break down the problem into steps
+- Provide your solution approach
+- State clearly when you believe the task is complete
+
+Respond with your reasoning and solution approach. When you have solved the task, 
+end your response with "TASK COMPLETE" followed by your final answer."#;
+
+    let user_prompt = format!(
+        "## Problem Statement\n\n{}\n\n## Success Criteria\n\n{}\n\nSolve this task.",
+        task.problem_statement,
+        task.success_criteria
+            .iter()
+            .map(|c| format!("- {}", c))
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+
+    let mut steps_taken = 0u32;
+    let mut final_output = String::new();
+    let mut success = false;
+    let mut error_message: Option<String> = None;
+
+    // Run the agent loop with timeout
+    let timeout_duration = std::time::Duration::from_secs(timeout_secs);
+
+    while steps_taken < max_steps {
+        if start_time.elapsed() >= timeout_duration {
+            error_message = Some(format!("Timeout after {} seconds", timeout_secs));
+            break;
+        }
+
+        steps_taken += 1;
+
+        let request = GenerationRequest::new(
+            "",
+            vec![
+                Message::system(system_prompt),
+                Message::user(&user_prompt),
+                if !final_output.is_empty() {
+                    Message::assistant(&final_output)
+                } else {
+                    Message::user("Begin solving the task.")
+                },
+            ],
+        )
+        .with_temperature(0.3)
+        .with_max_tokens(2000);
+
+        match llm_client.generate(request).await {
+            Ok(response) => {
+                if let Some(content) = response.first_content() {
+                    final_output = content.to_string();
+
+                    // Check if the agent believes it has completed the task
+                    if final_output.contains("TASK COMPLETE") {
+                        success = true;
+                        break;
+                    }
+                } else {
+                    error_message = Some("Empty response from LLM".to_string());
+                    break;
+                }
+            }
+            Err(e) => {
+                error_message = Some(format!("LLM error: {}", e));
+                break;
+            }
+        }
+    }
+
+    if steps_taken >= max_steps && !success {
+        error_message = Some(format!(
+            "Max steps ({}) reached without completion",
+            max_steps
+        ));
+    }
+
+    let duration_ms = start_time.elapsed().as_millis() as u64;
+
+    TaskEvaluationResult {
+        task_id: task.task_id.clone(),
+        category: task.category.clone(),
+        difficulty: task.difficulty.clone(),
+        success,
+        steps_taken,
+        duration_ms,
+        error: error_message,
+        agent_output: if final_output.is_empty() {
+            None
+        } else {
+            // Truncate to avoid huge outputs
+            Some(final_output.chars().take(1000).collect())
+        },
+    }
+}
+
+/// Run evaluation in JSON mode (outputs JSON to stdout).
+async fn run_json_evaluation(
+    llm_client: Arc<dyn crate::llm::LlmProvider>,
+    args: &EvaluateArgs,
+    tasks: Vec<LoadedTask>,
+) -> anyhow::Result<()> {
+    let start_time = std::time::Instant::now();
+    let total_tasks = tasks.len();
+    let mut task_results: Vec<TaskEvaluationResult> = Vec::new();
+
+    for task in &tasks {
+        let result =
+            evaluate_single_task(llm_client.clone(), task, args.max_steps, args.timeout).await;
+        task_results.push(result);
+    }
+
+    let total_duration_ms = start_time.elapsed().as_millis() as u64;
+    let successful_tasks = task_results.iter().filter(|r| r.success).count();
+    let success_rate = if total_tasks > 0 {
+        successful_tasks as f64 / total_tasks as f64
+    } else {
+        0.0
+    };
+    let average_duration_ms = if total_tasks > 0 {
+        task_results.iter().map(|r| r.duration_ms).sum::<u64>() / total_tasks as u64
+    } else {
+        0
+    };
+
+    let difficulty_metrics = DifficultyMetrics::from_results(&task_results);
+
+    let output = EvaluationOutput {
+        status: if successful_tasks > 0 {
+            "success".to_string()
+        } else {
+            "failed".to_string()
+        },
+        model: args.model.clone(),
+        total_tasks,
+        successful_tasks,
+        success_rate,
+        average_duration_ms,
+        task_results,
+        difficulty_metrics,
+        total_duration_ms,
+    };
+
+    let json_output = serde_json::to_string_pretty(&output)
+        .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
+
+    // Write to file if specified
+    if let Some(output_path) = &args.output {
+        fs::write(output_path, &json_output)
+            .map_err(|e| anyhow::anyhow!("Failed to write output file: {}", e))?;
+        info!(path = %output_path, "Results written to file");
+    }
+
+    println!("{}", json_output);
+
+    Ok(())
+}
+
+/// Run evaluation in interactive mode with progress output.
+async fn run_interactive_evaluation(
+    llm_client: Arc<dyn crate::llm::LlmProvider>,
+    args: &EvaluateArgs,
+    tasks: Vec<LoadedTask>,
+) -> anyhow::Result<()> {
+    let start_time = std::time::Instant::now();
+    let total_tasks = tasks.len();
+
+    println!("\n🔬 Task Evaluation");
+    println!("==================");
+    println!("Model: {}", args.model);
+    println!("Tasks: {}", total_tasks);
+    println!("Max steps per task: {}", args.max_steps);
+    println!("Timeout per task: {}s", args.timeout);
+    println!();
+
+    let mut task_results: Vec<TaskEvaluationResult> = Vec::new();
+
+    for (idx, task) in tasks.iter().enumerate() {
+        println!(
+            "📝 Evaluating task {}/{}: {} [{}]",
+            idx + 1,
+            total_tasks,
+            task.task_id,
+            task.difficulty
+        );
+
+        let result =
+            evaluate_single_task(llm_client.clone(), task, args.max_steps, args.timeout).await;
+
+        let status_icon = if result.success { "✓" } else { "✗" };
+        println!(
+            "   {} {} in {}ms ({} steps)",
+            status_icon,
+            if result.success { "Success" } else { "Failed" },
+            result.duration_ms,
+            result.steps_taken
+        );
+
+        if let Some(ref err) = result.error {
+            println!("   ⚠ {}", err);
+        }
+
+        task_results.push(result);
+        println!();
+    }
+
+    let total_duration_ms = start_time.elapsed().as_millis() as u64;
+    let successful_tasks = task_results.iter().filter(|r| r.success).count();
+    let success_rate = if total_tasks > 0 {
+        successful_tasks as f64 / total_tasks as f64
+    } else {
+        0.0
+    };
+    let average_duration_ms = if total_tasks > 0 {
+        task_results.iter().map(|r| r.duration_ms).sum::<u64>() / total_tasks as u64
+    } else {
+        0
+    };
+
+    let difficulty_metrics = DifficultyMetrics::from_results(&task_results);
+
+    // Print summary
+    println!("{}", "=".repeat(50));
+    println!("📊 Evaluation Summary");
+    println!("{}", "=".repeat(50));
+    println!("Total tasks: {}", total_tasks);
+    println!("Successful: {}", successful_tasks);
+    println!("Failed: {}", total_tasks - successful_tasks);
+    println!("Success rate: {:.1}%", success_rate * 100.0);
+    println!("Average duration: {}ms", average_duration_ms);
+    println!("Total duration: {}ms", total_duration_ms);
+
+    println!("\n📈 Difficulty Correlation:");
+    if let Some(rate) = difficulty_metrics.easy_success_rate {
+        println!("  Easy:   {:.1}% success", rate * 100.0);
+    }
+    if let Some(rate) = difficulty_metrics.medium_success_rate {
+        println!("  Medium: {:.1}% success", rate * 100.0);
+    }
+    if let Some(rate) = difficulty_metrics.hard_success_rate {
+        println!("  Hard:   {:.1}% success", rate * 100.0);
+    }
+
+    // Write to file if specified
+    if let Some(output_path) = &args.output {
+        let output = EvaluationOutput {
+            status: if successful_tasks > 0 {
+                "success".to_string()
+            } else {
+                "failed".to_string()
+            },
+            model: args.model.clone(),
+            total_tasks,
+            successful_tasks,
+            success_rate,
+            average_duration_ms,
+            task_results,
+            difficulty_metrics,
+            total_duration_ms,
+        };
+
+        let json_output = serde_json::to_string_pretty(&output)
+            .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
+
+        fs::write(output_path, &json_output)
+            .map_err(|e| anyhow::anyhow!("Failed to write output file: {}", e))?;
+
+        println!("\n📁 Results saved to: {}", output_path);
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1188,6 +1752,7 @@ mod tests {
                 assert_eq!(args.max_retries, 3);
                 assert!(!args.factory);
             }
+            _ => panic!("Expected Generate command"),
         }
     }
 
@@ -1227,6 +1792,7 @@ mod tests {
                 assert_eq!(args.max_retries, 5);
                 assert!(args.factory);
             }
+            _ => panic!("Expected Generate command"),
         }
     }
 
@@ -1239,6 +1805,7 @@ mod tests {
             Commands::Generate(args) => {
                 assert_eq!(args.count, 2);
             }
+            _ => panic!("Expected Generate command"),
         }
     }
 
@@ -1299,5 +1866,207 @@ mod tests {
         assert!(json.contains("\"category\": \"debugging\""));
         assert!(json.contains("\"total_duration_ms\": 5000"));
         assert!(json.contains("\"retries\": 1"));
+    }
+
+    #[test]
+    fn test_evaluate_command_defaults() {
+        let args = vec!["dataforge", "evaluate", "--tasks-dir", "/tmp/tasks"];
+        let cli = Cli::try_parse_from(args).expect("should parse");
+
+        match cli.command {
+            Commands::Evaluate(args) => {
+                assert_eq!(args.tasks_dir, "/tmp/tasks");
+                assert_eq!(args.model, DEFAULT_MODEL);
+                assert_eq!(args.max_steps, DEFAULT_EVAL_MAX_STEPS);
+                assert_eq!(args.timeout, DEFAULT_EVAL_TIMEOUT_SECS);
+                assert!(args.output.is_none());
+                assert!(!args.json);
+            }
+            _ => panic!("Expected Evaluate command"),
+        }
+    }
+
+    #[test]
+    fn test_evaluate_command_with_all_options() {
+        let args = vec![
+            "dataforge",
+            "evaluate",
+            "--tasks-dir",
+            "./my-tasks",
+            "-m",
+            "anthropic/claude-3-opus",
+            "--max-steps",
+            "50",
+            "--timeout",
+            "600",
+            "-o",
+            "./results.json",
+            "-j",
+        ];
+        let cli = Cli::try_parse_from(args).expect("should parse");
+
+        match cli.command {
+            Commands::Evaluate(args) => {
+                assert_eq!(args.tasks_dir, "./my-tasks");
+                assert_eq!(args.model, "anthropic/claude-3-opus");
+                assert_eq!(args.max_steps, 50);
+                assert_eq!(args.timeout, 600);
+                assert_eq!(args.output, Some("./results.json".to_string()));
+                assert!(args.json);
+            }
+            _ => panic!("Expected Evaluate command"),
+        }
+    }
+
+    #[test]
+    fn test_evaluate_alias() {
+        let args = vec!["dataforge", "eval", "-t", "/tmp/tasks"];
+        let cli = Cli::try_parse_from(args).expect("should parse with alias");
+
+        match cli.command {
+            Commands::Evaluate(args) => {
+                assert_eq!(args.tasks_dir, "/tmp/tasks");
+            }
+            _ => panic!("Expected Evaluate command"),
+        }
+    }
+
+    #[test]
+    fn test_evaluation_output_serialization() {
+        let output = EvaluationOutput {
+            status: "success".to_string(),
+            model: "moonshotai/kimi-k2.5".to_string(),
+            total_tasks: 3,
+            successful_tasks: 2,
+            success_rate: 0.667,
+            average_duration_ms: 5000,
+            task_results: vec![
+                TaskEvaluationResult {
+                    task_id: "task-001".to_string(),
+                    category: "debugging".to_string(),
+                    difficulty: "Easy".to_string(),
+                    success: true,
+                    steps_taken: 3,
+                    duration_ms: 3000,
+                    error: None,
+                    agent_output: Some("Solved the task".to_string()),
+                },
+                TaskEvaluationResult {
+                    task_id: "task-002".to_string(),
+                    category: "security".to_string(),
+                    difficulty: "Hard".to_string(),
+                    success: false,
+                    steps_taken: 20,
+                    duration_ms: 10000,
+                    error: Some("Max steps reached".to_string()),
+                    agent_output: None,
+                },
+            ],
+            difficulty_metrics: DifficultyMetrics {
+                easy_success_rate: Some(1.0),
+                medium_success_rate: None,
+                hard_success_rate: Some(0.0),
+                easy_avg_duration_ms: Some(3000),
+                medium_avg_duration_ms: None,
+                hard_avg_duration_ms: Some(10000),
+            },
+            total_duration_ms: 13000,
+        };
+
+        let json = serde_json::to_string_pretty(&output).expect("serialization should succeed");
+
+        // Verify key fields are present in output
+        assert!(json.contains("\"status\": \"success\""));
+        assert!(json.contains("\"model\": \"moonshotai/kimi-k2.5\""));
+        assert!(json.contains("\"total_tasks\": 3"));
+        assert!(json.contains("\"successful_tasks\": 2"));
+        assert!(json.contains("\"success_rate\": 0.667"));
+        assert!(json.contains("\"task_id\": \"task-001\""));
+        assert!(json.contains("\"easy_success_rate\": 1.0"));
+    }
+
+    #[test]
+    fn test_difficulty_metrics_from_results() {
+        let results = vec![
+            TaskEvaluationResult {
+                task_id: "t1".to_string(),
+                category: "cat".to_string(),
+                difficulty: "Easy".to_string(),
+                success: true,
+                steps_taken: 2,
+                duration_ms: 1000,
+                error: None,
+                agent_output: None,
+            },
+            TaskEvaluationResult {
+                task_id: "t2".to_string(),
+                category: "cat".to_string(),
+                difficulty: "Easy".to_string(),
+                success: true,
+                steps_taken: 3,
+                duration_ms: 2000,
+                error: None,
+                agent_output: None,
+            },
+            TaskEvaluationResult {
+                task_id: "t3".to_string(),
+                category: "cat".to_string(),
+                difficulty: "Medium".to_string(),
+                success: true,
+                steps_taken: 5,
+                duration_ms: 5000,
+                error: None,
+                agent_output: None,
+            },
+            TaskEvaluationResult {
+                task_id: "t4".to_string(),
+                category: "cat".to_string(),
+                difficulty: "Medium".to_string(),
+                success: false,
+                steps_taken: 10,
+                duration_ms: 8000,
+                error: Some("Failed".to_string()),
+                agent_output: None,
+            },
+            TaskEvaluationResult {
+                task_id: "t5".to_string(),
+                category: "cat".to_string(),
+                difficulty: "Hard".to_string(),
+                success: false,
+                steps_taken: 20,
+                duration_ms: 15000,
+                error: Some("Failed".to_string()),
+                agent_output: None,
+            },
+        ];
+
+        let metrics = DifficultyMetrics::from_results(&results);
+
+        // Easy: 2/2 = 100%
+        assert!((metrics.easy_success_rate.unwrap() - 1.0).abs() < 0.01);
+        // Medium: 1/2 = 50%
+        assert!((metrics.medium_success_rate.unwrap() - 0.5).abs() < 0.01);
+        // Hard: 0/1 = 0%
+        assert!((metrics.hard_success_rate.unwrap() - 0.0).abs() < 0.01);
+
+        // Easy avg duration: (1000 + 2000) / 2 = 1500
+        assert_eq!(metrics.easy_avg_duration_ms.unwrap(), 1500);
+        // Medium avg duration: (5000 + 8000) / 2 = 6500
+        assert_eq!(metrics.medium_avg_duration_ms.unwrap(), 6500);
+        // Hard avg duration: 15000 / 1 = 15000
+        assert_eq!(metrics.hard_avg_duration_ms.unwrap(), 15000);
+    }
+
+    #[test]
+    fn test_difficulty_metrics_empty_results() {
+        let results: Vec<TaskEvaluationResult> = vec![];
+        let metrics = DifficultyMetrics::from_results(&results);
+
+        assert!(metrics.easy_success_rate.is_none());
+        assert!(metrics.medium_success_rate.is_none());
+        assert!(metrics.hard_success_rate.is_none());
+        assert!(metrics.easy_avg_duration_ms.is_none());
+        assert!(metrics.medium_avg_duration_ms.is_none());
+        assert!(metrics.hard_avg_duration_ms.is_none());
     }
 }

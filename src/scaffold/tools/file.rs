@@ -19,6 +19,56 @@ use super::{ExecutionContext, Tool, ToolError, ToolResult};
 /// Maximum file size that can be read (1MB).
 const MAX_FILE_SIZE: usize = 1_048_576;
 
+/// Escape a path for safe use in shell commands.
+/// Uses printf-based escaping to handle all special characters including single quotes.
+fn escape_path_for_shell(path: &str) -> String {
+    // Validate path doesn't contain null bytes
+    if path.contains('\0') {
+        return String::new(); // Will trigger validation error
+    }
+
+    // Use double-quoting with proper escaping for all shell special characters
+    // This handles single quotes, double quotes, backslashes, $, `, etc.
+    let mut escaped = String::with_capacity(path.len() * 2);
+    for c in path.chars() {
+        match c {
+            '"' | '\\' | '$' | '`' => {
+                escaped.push('\\');
+                escaped.push(c);
+            }
+            _ => escaped.push(c),
+        }
+    }
+    format!("\"{}\"", escaped)
+}
+
+/// Validate a file path for safety.
+fn validate_path(path: &str) -> Result<(), ToolError> {
+    // Check for empty path
+    if path.trim().is_empty() {
+        return Err(ToolError::InvalidParameters(
+            "Path cannot be empty".to_string(),
+        ));
+    }
+
+    // Check for null bytes (could be used for injection)
+    if path.contains('\0') {
+        return Err(ToolError::InvalidParameters(
+            "Path contains invalid null character".to_string(),
+        ));
+    }
+
+    // Check for path traversal attempts outside reasonable bounds
+    // Allow relative paths but prevent obvious escape attempts
+    if path.contains("../../../") {
+        return Err(ToolError::InvalidParameters(
+            "Path contains suspicious traversal sequence".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
 /// Timeout for file operations in seconds.
 const FILE_OP_TIMEOUT: u64 = 30;
 
@@ -171,11 +221,8 @@ impl Tool for ReadFileTool {
         let params: ReadFileParams = serde_json::from_value(args)
             .map_err(|e| ToolError::InvalidParameters(format!("Invalid parameters: {}", e)))?;
 
-        if params.path.trim().is_empty() {
-            return Err(ToolError::InvalidParameters(
-                "Path cannot be empty".to_string(),
-            ));
-        }
+        // Validate path for safety
+        validate_path(&params.path)?;
 
         // Validate line range
         if let (Some(start), Some(end)) = (params.start_line, params.end_line) {
@@ -192,28 +239,31 @@ impl Tool for ReadFileTool {
             .as_ref()
             .ok_or_else(|| ToolError::DockerError("Docker client not available".to_string()))?;
 
+        // Escape path for safe shell usage
+        let safe_path = escape_path_for_shell(&params.path);
+
         // Build the command based on line range
         let command = if let (Some(start), Some(end)) = (params.start_line, params.end_line) {
             format!(
-                "sed -n '{},$p' '{}' | head -n {} | nl -ba -v {} -w 6",
+                "sed -n '{},$p' {} | head -n {} | nl -ba -v {} -w 6",
                 start,
-                params.path,
+                safe_path,
                 end - start + 1,
                 start
             )
         } else if let Some(start) = params.start_line {
             format!(
-                "sed -n '{},$p' '{}' | nl -ba -v {} -w 6",
-                start, params.path, start
+                "sed -n '{},$p' {} | nl -ba -v {} -w 6",
+                start, safe_path, start
             )
         } else if let Some(end) = params.end_line {
-            format!("head -n {} '{}' | nl -ba -w 6", end, params.path)
+            format!("head -n {} {} | nl -ba -w 6", end, safe_path)
         } else {
-            format!("cat '{}' | nl -ba -w 6", params.path)
+            format!("cat {} | nl -ba -w 6", safe_path)
         };
 
         // Check file size first
-        let size_cmd = format!("stat -c %s '{}' 2>/dev/null || echo 0", params.path);
+        let size_cmd = format!("stat -c %s {} 2>/dev/null || echo 0", safe_path);
         let (size_out, _, _) = exec_command(
             docker,
             &ctx.container_id,
@@ -326,11 +376,8 @@ impl Tool for WriteFileTool {
         let params: WriteFileParams = serde_json::from_value(args)
             .map_err(|e| ToolError::InvalidParameters(format!("Invalid parameters: {}", e)))?;
 
-        if params.path.trim().is_empty() {
-            return Err(ToolError::InvalidParameters(
-                "Path cannot be empty".to_string(),
-            ));
-        }
+        // Validate path for safety
+        validate_path(&params.path)?;
 
         // Check content size
         if params.content.len() > MAX_FILE_SIZE {
@@ -346,13 +393,17 @@ impl Tool for WriteFileTool {
             .as_ref()
             .ok_or_else(|| ToolError::DockerError("Docker client not available".to_string()))?;
 
+        // Escape paths for safe shell usage
+        let safe_path = escape_path_for_shell(&params.path);
+
         // Create parent directories
         let dir_path = std::path::Path::new(&params.path)
             .parent()
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_else(|| ".".to_string());
+        let safe_dir_path = escape_path_for_shell(&dir_path);
 
-        let mkdir_cmd = format!("mkdir -p '{}'", dir_path);
+        let mkdir_cmd = format!("mkdir -p {}", safe_dir_path);
         let (_, stderr, exit_code) = exec_command(
             docker,
             &ctx.container_id,
@@ -371,7 +422,7 @@ impl Tool for WriteFileTool {
         // Write the file using base64 to handle special characters
         let encoded =
             base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &params.content);
-        let write_cmd = format!("echo '{}' | base64 -d > '{}'", encoded, params.path);
+        let write_cmd = format!("echo '{}' | base64 -d > {}", encoded, safe_path);
 
         let (_, stderr, exit_code) = exec_command(
             docker,
@@ -472,11 +523,8 @@ impl Tool for EditFileTool {
         let params: EditFileParams = serde_json::from_value(args)
             .map_err(|e| ToolError::InvalidParameters(format!("Invalid parameters: {}", e)))?;
 
-        if params.path.trim().is_empty() {
-            return Err(ToolError::InvalidParameters(
-                "Path cannot be empty".to_string(),
-            ));
-        }
+        // Validate path for safety
+        validate_path(&params.path)?;
 
         if params.old_content.is_empty() {
             return Err(ToolError::InvalidParameters(
@@ -489,8 +537,11 @@ impl Tool for EditFileTool {
             .as_ref()
             .ok_or_else(|| ToolError::DockerError("Docker client not available".to_string()))?;
 
+        // Escape path for safe shell usage
+        let safe_path = escape_path_for_shell(&params.path);
+
         // First, read the file
-        let read_cmd = format!("cat '{}'", params.path);
+        let read_cmd = format!("cat {}", safe_path);
         let (content, stderr, exit_code) = exec_command(
             docker,
             &ctx.container_id,
@@ -529,7 +580,7 @@ impl Tool for EditFileTool {
         // Write back using base64 to handle special characters
         let encoded =
             base64::Engine::encode(&base64::engine::general_purpose::STANDARD, &new_content);
-        let write_cmd = format!("echo '{}' | base64 -d > '{}'", encoded, params.path);
+        let write_cmd = format!("echo '{}' | base64 -d > {}", encoded, safe_path);
 
         let (_, stderr, exit_code) = exec_command(
             docker,

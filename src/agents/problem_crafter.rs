@@ -8,6 +8,7 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use crate::llm::{GenerationRequest, LlmProvider, Message};
+use crate::utils::json_extraction::find_matching_brace;
 
 use super::analyzer_agent::AnalyzedTask;
 use super::error::{AgentError, AgentResult};
@@ -384,41 +385,6 @@ impl ProblemCrafterAgent {
             "Could not extract JSON from response".to_string(),
         ))
     }
-}
-
-/// Helper function to find the matching closing brace for a JSON object.
-fn find_matching_brace(s: &str) -> Option<usize> {
-    let mut depth = 0;
-    let mut in_string = false;
-    let mut escape_next = false;
-
-    for (i, c) in s.char_indices() {
-        if escape_next {
-            escape_next = false;
-            continue;
-        }
-
-        match c {
-            '\\' if in_string => {
-                escape_next = true;
-            }
-            '"' => {
-                in_string = !in_string;
-            }
-            '{' if !in_string => {
-                depth += 1;
-            }
-            '}' if !in_string => {
-                depth -= 1;
-                if depth == 0 {
-                    return Some(i);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    None
 }
 
 /// Response structure from LLM crafting.

@@ -46,6 +46,7 @@ use uuid::Uuid;
 use crate::anti_hardcoding::CanaryConfig;
 use crate::difficulty::DifficultyLevel;
 use crate::llm::{GenerationRequest, LlmProvider, Message};
+use crate::utils::json_extraction::extract_json_from_response;
 
 use super::error::{AgentError, AgentResult};
 use super::task_validator::{TaskIdea, ValidationAssessment};
@@ -73,7 +74,7 @@ impl Default for TaskExecutorConfig {
     fn default() -> Self {
         Self {
             temperature: 0.5,
-            max_tokens: 4000,
+            max_tokens: 6000,
             include_canary: true,
             canary_prefix: "DATAFORGE_CANARY_".to_string(),
             base_seed: 42,
@@ -536,12 +537,23 @@ Your job is to create a complete task specification where:
 1. The PROBLEM STATEMENT reveals NOTHING about the solution approach
 2. The HIDDEN SOLUTION contains the methodology other LLMs must discover
 3. The problem should be solvable through work, but the answer is NOT obvious
+4. The task requires GENUINE INVESTIGATION - symptoms don't directly reveal the cause
 
-CRITICAL RULES:
-- Problem statement must NOT hint at the solution
-- Problem statement must NOT mention specific tools/commands unless truly necessary for context
-- Verification tests must check results, NOT methodology
-- Include anti-memorization measures (use the provided canary_token in appropriate places)
+CRITICAL RULES FOR HARD TASKS:
+- Problem statement must describe SYMPTOMS not causes
+- Problem statement must NOT hint at the root cause or solution approach
+- Problem statement must NOT mention specific tools/commands that would solve the problem
+- Include MISLEADING DETAILS that could send solvers down wrong paths
+- The solution must require 8-20 discrete steps (investigation + implementation)
+- Include edge cases that naive approaches will miss
+- Verification tests must check RESULTS not methodology
+
+DIFFICULTY CALIBRATION:
+- Easy tasks: 1-3 steps, obvious solution path, 90% expected success rate
+- Medium tasks: 3-8 steps, some investigation needed, 70% expected success rate
+- Hard tasks: 8-20 steps, non-obvious root cause, multiple files to check, 40% expected success rate
+
+Include anti-memorization measures (use the provided canary_token in appropriate places).
 
 You must respond with ONLY valid JSON, no markdown formatting or code blocks."#;
 
@@ -741,11 +753,17 @@ impl TaskExecutorAgent {
     }
 
     /// Determine difficulty level from validation assessment.
+    ///
+    /// Difficulty is determined by complexity score, with thresholds adjusted
+    /// to ensure hard tasks require significant investigation:
+    /// - Easy: complexity < 0.40 (simple, direct tasks)
+    /// - Medium: complexity 0.40-0.60 (some investigation needed)
+    /// - Hard: complexity >= 0.60 (non-obvious root cause, multi-step investigation)
     fn determine_difficulty_level(&self, assessment: &ValidationAssessment) -> DifficultyLevel {
         let score = assessment.complexity_score;
-        if score < 0.34 {
+        if score < 0.40 {
             DifficultyLevel::Easy
-        } else if score < 0.67 {
+        } else if score < 0.60 {
             DifficultyLevel::Medium
         } else {
             DifficultyLevel::Hard
@@ -812,10 +830,11 @@ impl TaskExecutorAgent {
         let json_content = extract_json_from_response(content);
 
         let llm_response: LlmTaskResponse = serde_json::from_str(&json_content).map_err(|e| {
+            // Safely truncate to avoid char boundary issues
+            let truncated: String = json_content.chars().take(500).collect();
             AgentError::ResponseParseError(format!(
                 "Failed to parse LLM response as JSON: {}. Content: {}",
-                e,
-                &json_content[..json_content.len().min(500)]
+                e, truncated
             ))
         })?;
 
@@ -878,42 +897,6 @@ impl TaskExecutorAgent {
     pub fn config(&self) -> &TaskExecutorConfig {
         &self.config
     }
-}
-
-/// Extract JSON content from an LLM response that might be wrapped in markdown.
-fn extract_json_from_response(content: &str) -> String {
-    let trimmed = content.trim();
-
-    // Try to find JSON block in markdown code fence
-    if let Some(start) = trimmed.find("```json") {
-        let after_fence = &trimmed[start + 7..];
-        if let Some(end) = after_fence.find("```") {
-            return after_fence[..end].trim().to_string();
-        }
-    }
-
-    // Try generic code fence
-    if let Some(start) = trimmed.find("```") {
-        let after_fence = &trimmed[start + 3..];
-        // Skip language identifier if present
-        let content_start = after_fence.find('\n').map(|i| i + 1).unwrap_or(0);
-        let after_newline = &after_fence[content_start..];
-        if let Some(end) = after_newline.find("```") {
-            return after_newline[..end].trim().to_string();
-        }
-    }
-
-    // Try to find raw JSON object
-    if let Some(start) = trimmed.find('{') {
-        if let Some(end) = trimmed.rfind('}') {
-            if end > start {
-                return trimmed[start..=end].to_string();
-            }
-        }
-    }
-
-    // Return as-is
-    trimmed.to_string()
 }
 
 /// Parse a check type string into CheckType enum.

@@ -12,44 +12,152 @@ use uuid::Uuid;
 
 use crate::difficulty::DifficultyLevel;
 use crate::llm::{GenerationRequest, LlmProvider, Message};
+use crate::utils::json_extraction::{
+    extract_from_generic_code_block, extract_from_json_code_block, extract_json_with_regex,
+    find_matching_brace,
+};
 
 use super::error::{AgentError, AgentResult};
 
 /// System prompt for creative task ideation.
-const IDEATION_SYSTEM_PROMPT: &str = r#"You are a creative benchmark task designer generating CHALLENGING tasks for testing AI capabilities.
+const IDEATION_SYSTEM_PROMPT: &str = r#"You are a benchmark task designer generating EXTREMELY CHALLENGING TERMINAL TASKS for testing AI coding agents. Your goal is to create tasks where ONLY 30-40% of AI agents succeed.
 
-Requirements for generated tasks:
-1. Tasks must require MULTI-STEP reasoning (5+ distinct steps)
-2. Tasks must require DOMAIN EXPERTISE, not just pattern matching
-3. Tasks must be SOLVABLE but with NO OBVIOUS ANSWER
-4. Tasks should take an experienced human 10-30 minutes
-5. Tasks must NOT have answers that can be memorized or looked up
-6. Include specific anti-patterns to avoid in solutions
+CRITICAL CONSTRAINT: Tasks must be EXECUTABLE in a Docker container with:
+- Standard Linux utilities (grep, awk, sed, find, etc.)
+- Common programming languages (Python, Bash, Node.js, etc.)
+- Files and data that can be generated or provided in the container
 
-Your goal is to push the limits of AI problem-solving while ensuring tasks remain feasible for skilled practitioners."#;
+DO NOT CREATE tasks that require:
+- Cloud provider access (AWS, GCP, Azure consoles)
+- External APIs, databases, or services that don't exist locally
+- Network infrastructure (BGP, firewalls, VPNs)
+- Hardware or physical systems
+- Real production environments
+
+=== MANDATORY DIFFICULTY REQUIREMENTS ===
+
+Every task MUST include ALL of the following:
+
+1. MULTIPLE LAYERS OF MISDIRECTION (minimum 3):
+   - The error message or symptom MUST point away from the actual cause
+   - At least 3 "red herring" investigation paths that seem promising but lead nowhere
+   - The component that appears broken is NOT where the bug actually lives
+   - Example: A "database connection timeout" caused by a cron job that silently fills /tmp
+
+2. COUNTER-INTUITIVE ROOT CAUSES:
+   - The obvious/naive fix MUST NOT work (and ideally makes things worse)
+   - The actual cause must be at least 2 layers removed from the symptom
+   - The fix requires understanding non-obvious system interactions
+   - Example: "Slow API" actually caused by log rotation triggering GC pressure
+
+3. REQUIRED STATE ANALYSIS:
+   - Solution requires examining system state BEFORE any action will work
+   - Timing-dependent issues (race conditions, order of operations)
+   - Hidden prerequisites that aren't documented
+   - Example: A config file that's correct but being overwritten by another process
+
+4. OBFUSCATED SYMPTOMS:
+   - Error messages should be misleading or incomplete
+   - Symptoms should manifest far from their source
+   - Multiple issues that mask each other
+   - Example: Test failures caused by environment variable leaking from unrelated code
+
+EXAMPLE TASKS THAT MEET THESE REQUIREMENTS:
+
+GOOD (30-40% success rate):
+- "The /app/api/server.py returns 500 errors intermittently. Logs show 'Connection refused' to the database. The database is running fine. [ACTUAL CAUSE: A background worker in /app/workers/sync.py exhausts the connection pool during scheduled syncs, but only when sync conflicts trigger retry logic that doesn't release connections. The connection timeout in the log is a secondary effect.]"
+
+- "Tests in /app/tests/ fail with 'AssertionError: expected 100, got 99' but only in CI, never locally. The test code looks correct. [ACTUAL CAUSE: A fixture in conftest.py uses time.time() for seeding, and CI runs at exactly midnight UTC where a timezone edge case in date parsing drops one record. The 'obvious' fix of using a fixed seed doesn't work because another test depends on randomness.]"
+
+- "Build at /app/Makefile fails with 'undefined reference to foo' but foo is clearly defined in /app/src/lib.c. The linker command looks correct. [ACTUAL CAUSE: There are TWO versions of lib.c - one in src/ and one generated in build/ by a code generator. The build/ version is missing the function due to a regex bug in the generator that strips functions with 'foo' in comments.]"
+
+BAD (70%+ success rate - TOO EASY):
+- "Fix a crash in process.py" (single file, obvious error)
+- "Database queries are slow, add an index" (obvious solution)
+- "Find and fix the typo in the config" (single grep command)
+- "Memory leak in the application" (too direct, profiler reveals immediately)
+
+TASK DESIGN PRINCIPLES:
+1. The FIRST approach an AI would try must FAIL
+2. At least 3 investigation dead-ends before finding the real issue
+3. The solution requires synthesizing information from 4+ files/sources
+4. Understanding "why" is harder than understanding "what"
+5. The fix is non-obvious even after finding the root cause"#;
 
 /// User prompt template for task ideation.
-const IDEATION_USER_TEMPLATE: &str = r#"Generate a creative, challenging task for the following category.
+const IDEATION_USER_TEMPLATE: &str = r#"Generate an EXTREMELY CHALLENGING terminal task for category: {category}
 
-Category: {category}
+=== DIFFICULTY TARGET: 30% AI SUCCESS RATE ===
 
-The task should:
-- Require deep domain expertise in {category}
-- Have multiple valid solution approaches
-- Not be solvable by simple memorization
-- Challenge both reasoning and practical skills
-- Take 10-30 minutes for an experienced professional
+The task must be hard enough that 70% of AI agents will FAIL. This requires:
 
-Output as JSON:
+MANDATORY COMPLEXITY REQUIREMENTS:
+
+1. INVESTIGATION DEPTH (15-30 steps required):
+   - Minimum 15 discrete investigation/action steps to solve
+   - At least 5 files/sources must be examined to understand the problem
+   - Information must be synthesized across multiple components
+   - The path from symptom to root cause is NOT linear
+
+2. MANDATORY DEAD-ENDS (at least 3):
+   - Include at least 3 plausible-but-wrong investigation paths
+   - Each dead-end should consume significant effort before revealing it's wrong
+   - The "obvious" solution path must lead to a dead-end
+   - Example dead-ends: wrong config file, decoy error messages, misleading stack traces
+
+3. OBFUSCATED SYMPTOMS:
+   - The error message/symptom MUST NOT match the actual cause
+   - Symptoms should manifest in a different component than where the bug lives
+   - Include "noise" - unrelated warnings/errors that distract from the real issue
+   - The symptom description should make the solver initially look in the WRONG place
+
+4. HIDDEN COMPLEXITY:
+   - The problem statement should seem simpler than it actually is
+   - Critical information is NOT in the obvious location
+   - Solving requires understanding implicit system behavior
+   - There are undocumented dependencies or side effects
+
+5. NAIVE SOLUTION MUST FAIL:
+   - The first approach any AI would try MUST NOT work
+   - "Quick fixes" should either fail or make things worse
+   - The real solution requires deeper understanding
+
+CONTAINER CONSTRAINTS:
+- Must work in isolated Docker container (Ubuntu-based)
+- Use specific file paths (e.g., /app/src/main.py, /var/log/app.log)
+- Concrete verifiable output (file to create, value to compute)
+- No external services, cloud access, or network infrastructure
+
+EXAMPLE OF PROPERLY DIFFICULT TASK:
+
+Category: debugging
+Title: "Intermittent API Timeout Investigation"
+Description: "The REST API at /app/api/server.py occasionally returns 504 Gateway Timeout errors. The nginx logs at /var/log/nginx/error.log show 'upstream timed out'. The API process appears healthy and responds to health checks. Users report timeouts happen 'randomly' but roughly 10% of requests fail. Identify the root cause and implement a fix. Document your findings in /home/user/investigation.txt"
+
+Why this is properly hard:
+- Dead-end 1: Checking nginx config (it's correct)
+- Dead-end 2: API code review (no obvious issues)
+- Dead-end 3: Database connection investigation (DB is fine)
+- ACTUAL CAUSE: A middleware in /app/middleware/cache.py has a race condition with /app/workers/cleaner.py that corrupts the in-memory cache during cleanup, causing the API to block waiting for a lock that's never released - but only when cache cleanup coincides with cache reads for specific key patterns.
+
+AVOID THESE (too easy, 60%+ success rate):
+- Single-file bugs with clear error messages
+- Performance issues solvable with profiling alone
+- Config mistakes that grep can find
+- Bugs where the error message points to the cause
+
+You MUST respond with ONLY a valid JSON object:
 {
   "title": "Brief descriptive title (max 80 characters)",
-  "description": "Detailed task description with context, constraints, and objectives. Be specific about the scenario, what files or systems are involved, and what success looks like.",
-  "estimated_difficulty": "easy|medium|hard",
-  "required_skills": ["skill1", "skill2", "skill3"],
-  "anti_patterns": ["approach_to_avoid1", "approach_to_avoid2"]
+  "description": "3-5 sentences describing SYMPTOMS only (not causes). Mention files/paths involved. Specify output location. The description must be MISLEADING - it should make the solver initially investigate the WRONG component.",
+  "estimated_difficulty": "hard",
+  "required_skills": ["skill1", "skill2", "skill3", "skill4"],
+  "anti_patterns": ["naive_approach_that_will_fail_1", "obvious_fix_that_wont_work_2", "common_mistake_3"],
+  "input_files": ["/path/to/file1", "/path/to/file2", "/path/to/file3", "/path/to/file4"],
+  "output_file": "/home/user/result.txt"
 }
 
-IMPORTANT: Output ONLY the JSON object, no additional text."#;
+Remember: If an average AI agent could solve this in under 15 steps, it's TOO EASY."#;
 
 /// Categories for task ideation that map to benchmark domains.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -226,6 +334,12 @@ pub struct TaskIdea {
     pub required_skills: Vec<String>,
     /// Approaches that should NOT be used (anti-patterns).
     pub anti_patterns: Vec<String>,
+    /// Input files that must exist for the task (paths in container).
+    #[serde(default)]
+    pub input_files: Vec<String>,
+    /// Output file where the result should be written.
+    #[serde(default)]
+    pub output_file: Option<String>,
     /// Timestamp when this idea was created.
     pub created_at: DateTime<Utc>,
 }
@@ -251,6 +365,36 @@ impl TaskIdea {
             estimated_difficulty,
             required_skills,
             anti_patterns,
+            input_files: Vec::new(),
+            output_file: None,
+            created_at: Utc::now(),
+        }
+    }
+
+    /// Creates a new TaskIdea with file information.
+    #[allow(clippy::too_many_arguments)]
+    pub fn with_files(
+        category: TaskCategory,
+        subcategory: impl Into<String>,
+        title: impl Into<String>,
+        description: impl Into<String>,
+        estimated_difficulty: DifficultyLevel,
+        required_skills: Vec<String>,
+        anti_patterns: Vec<String>,
+        input_files: Vec<String>,
+        output_file: Option<String>,
+    ) -> Self {
+        Self {
+            id: Uuid::new_v4().to_string(),
+            category,
+            subcategory: subcategory.into(),
+            title: title.into(),
+            description: description.into(),
+            estimated_difficulty,
+            required_skills,
+            anti_patterns,
+            input_files,
+            output_file,
             created_at: Utc::now(),
         }
     }
@@ -277,7 +421,7 @@ impl Default for IdeatorConfig {
         Self {
             temperature: 1.0,
             top_p: 0.95,
-            max_tokens: 2000,
+            max_tokens: 4000,
         }
     }
 }
@@ -347,6 +491,11 @@ impl IdeatorAgent {
     /// # Returns
     ///
     /// A `TaskIdea` containing the generated task concept.
+    ///
+    /// # Retry Logic
+    ///
+    /// This method will retry up to 3 times on parse failures to handle
+    /// truncated or malformed JSON responses from the LLM.
     pub async fn generate_task_idea(
         &self,
         category: Option<TaskCategory>,
@@ -358,7 +507,27 @@ impl IdeatorAgent {
             categories[index]
         });
 
-        let prompt = self.build_ideation_prompt(selected_category);
+        let mut last_error = None;
+        for attempt in 0..3 {
+            match self.attempt_generate_idea(selected_category).await {
+                Ok(result) => return Ok(result),
+                Err(e) => {
+                    tracing::warn!(
+                        attempt = attempt + 1,
+                        error = %e,
+                        category = ?selected_category,
+                        "Task idea generation failed, retrying..."
+                    );
+                    last_error = Some(e);
+                }
+            }
+        }
+        Err(last_error.expect("should have an error after 3 failed attempts"))
+    }
+
+    /// Attempts a single generation of a task idea.
+    async fn attempt_generate_idea(&self, category: TaskCategory) -> AgentResult<TaskIdea> {
+        let prompt = self.build_ideation_prompt(category);
 
         let request = GenerationRequest::new(
             "",
@@ -377,7 +546,7 @@ impl IdeatorAgent {
             .first_content()
             .ok_or_else(|| AgentError::ResponseParseError("Empty LLM response".to_string()))?;
 
-        self.parse_idea_response(content, selected_category)
+        self.parse_idea_response(content, category)
     }
 
     /// Generates a batch of task ideas.
@@ -442,7 +611,7 @@ impl IdeatorAgent {
         // Generate subcategory from the task domain
         let subcategory = Self::infer_subcategory(&parsed.title, &parsed.description, category);
 
-        Ok(TaskIdea::new(
+        Ok(TaskIdea::with_files(
             category,
             subcategory,
             parsed.title,
@@ -450,52 +619,82 @@ impl IdeatorAgent {
             difficulty,
             parsed.required_skills,
             parsed.anti_patterns,
+            parsed.input_files,
+            parsed.output_file,
         ))
     }
 
-    /// Extracts JSON from the response, handling potential markdown code blocks.
+    /// Extracts JSON from the response, handling potential markdown code blocks and mixed content.
+    ///
+    /// This function attempts multiple strategies to extract valid JSON:
+    /// 1. Direct JSON (starts with '{')
+    /// 2. JSON in markdown code blocks (```json ... ```)
+    /// 3. JSON in generic code blocks (``` ... ```)
+    /// 4. Raw JSON object anywhere in the content (first '{' to matching '}')
+    /// 5. Regex-based extraction for complex cases
     fn extract_json(&self, content: &str) -> AgentResult<String> {
         let trimmed = content.trim();
 
-        // If it already starts with '{', use as-is
+        tracing::debug!(
+            "Attempting to extract JSON from response (length: {} chars)",
+            trimmed.len()
+        );
+
+        // Strategy 1: If it already starts with '{', find the matching closing brace
         if trimmed.starts_with('{') {
-            // Find the matching closing brace
             if let Some(end) = find_matching_brace(trimmed) {
-                return Ok(trimmed[..=end].to_string());
+                let json = trimmed[..=end].to_string();
+                tracing::debug!("Extracted JSON using direct match (strategy 1)");
+                return Ok(json);
             }
-            return Ok(trimmed.to_string());
+            // If no matching brace found, try other strategies
+            tracing::debug!(
+                "Direct JSON detected but no matching brace found, trying other strategies"
+            );
         }
 
-        // Try to extract from markdown code block
-        if let Some(start) = trimmed.find("```json") {
-            let json_start = start + 7;
-            if let Some(end) = trimmed[json_start..].find("```") {
-                return Ok(trimmed[json_start..json_start + end].trim().to_string());
-            }
+        // Strategy 2: Try to extract from markdown ```json code block
+        if let Some(json) = extract_from_json_code_block(trimmed) {
+            tracing::debug!("Extracted JSON from ```json code block (strategy 2)");
+            return Ok(json);
         }
 
-        // Try to extract from generic code block
-        if let Some(start) = trimmed.find("```") {
-            let content_start = start + 3;
-            let line_end = trimmed[content_start..]
-                .find('\n')
-                .map(|i| content_start + i + 1)
-                .unwrap_or(content_start);
-            if let Some(end) = trimmed[line_end..].find("```") {
-                return Ok(trimmed[line_end..line_end + end].trim().to_string());
-            }
+        // Strategy 3: Try to extract from generic ``` code block
+        if let Some(json) = extract_from_generic_code_block(trimmed) {
+            tracing::debug!("Extracted JSON from generic code block (strategy 3)");
+            return Ok(json);
         }
 
-        // Try to find JSON object anywhere in the content
+        // Strategy 4: Try to find JSON object anywhere in the content using brace matching
         if let Some(start) = trimmed.find('{') {
             if let Some(end) = find_matching_brace(&trimmed[start..]) {
-                return Ok(trimmed[start..=start + end].to_string());
+                let json = trimmed[start..=start + end].to_string();
+                tracing::debug!("Extracted JSON using brace matching (strategy 4)");
+                return Ok(json);
             }
         }
 
-        Err(AgentError::ResponseParseError(
-            "Could not extract JSON from response".to_string(),
-        ))
+        // Strategy 5: Last resort - use regex to find JSON-like content
+        if let Some(json) = extract_json_with_regex(trimmed) {
+            tracing::debug!("Extracted JSON using regex fallback (strategy 5)");
+            return Ok(json);
+        }
+
+        // Log the problematic content for debugging
+        let preview = if trimmed.len() > 200 {
+            format!("{}...[truncated]", &trimmed[..200])
+        } else {
+            trimmed.to_string()
+        };
+        tracing::warn!(
+            "Could not extract JSON from response. Content preview: {}",
+            preview
+        );
+
+        Err(AgentError::ResponseParseError(format!(
+            "Could not extract JSON from response. Content starts with: '{}'",
+            &trimmed[..trimmed.len().min(100)]
+        )))
     }
 
     /// Parses a difficulty string into a DifficultyLevel.
@@ -657,41 +856,6 @@ impl IdeatorAgent {
     }
 }
 
-/// Helper function to find the matching closing brace for a JSON object.
-fn find_matching_brace(s: &str) -> Option<usize> {
-    let mut depth = 0;
-    let mut in_string = false;
-    let mut escape_next = false;
-
-    for (i, c) in s.char_indices() {
-        if escape_next {
-            escape_next = false;
-            continue;
-        }
-
-        match c {
-            '\\' if in_string => {
-                escape_next = true;
-            }
-            '"' => {
-                in_string = !in_string;
-            }
-            '{' if !in_string => {
-                depth += 1;
-            }
-            '}' if !in_string => {
-                depth -= 1;
-                if depth == 0 {
-                    return Some(i);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    None
-}
-
 /// Response structure from LLM idea generation.
 #[derive(Debug, Deserialize)]
 struct IdeaResponse {
@@ -700,6 +864,12 @@ struct IdeaResponse {
     estimated_difficulty: String,
     required_skills: Vec<String>,
     anti_patterns: Vec<String>,
+    /// Input files that must exist for the task.
+    #[serde(default)]
+    input_files: Vec<String>,
+    /// Output file where the result should be written.
+    #[serde(default)]
+    output_file: Option<String>,
 }
 
 #[cfg(test)]
@@ -793,7 +963,7 @@ mod tests {
         let config = IdeatorConfig::default();
         assert!((config.temperature - 1.0).abs() < 0.01);
         assert!((config.top_p - 0.95).abs() < 0.01);
-        assert_eq!(config.max_tokens, 2000);
+        assert_eq!(config.max_tokens, 4000);
     }
 
     #[test]
@@ -1021,5 +1191,128 @@ This task tests memory debugging skills."#;
         let agent = IdeatorAgent::new(mock_provider, config);
 
         assert!((agent.config().temperature - 1.1).abs() < 0.01);
+    }
+
+    #[tokio::test]
+    async fn test_extract_json_with_text_before_and_after() {
+        let mock_response = r#"I'll generate a challenging task for you.
+
+Here's my response:
+
+{
+    "title": "Complex Task",
+    "description": "A very complex task description.",
+    "estimated_difficulty": "hard",
+    "required_skills": ["skill1"],
+    "anti_patterns": ["pattern1"]
+}
+
+I hope this task is challenging enough!"#;
+
+        let mock_provider = Arc::new(MockLlmProvider::new(mock_response));
+        let agent = IdeatorAgent::with_defaults(mock_provider);
+
+        let idea = agent
+            .generate_task_idea(Some(TaskCategory::AlgorithmDesign))
+            .await
+            .expect("should extract JSON from mixed content");
+
+        assert_eq!(idea.title, "Complex Task");
+    }
+
+    #[tokio::test]
+    async fn test_extract_json_with_generic_code_block() {
+        let mock_response = r#"Here's the task:
+
+```
+{
+    "title": "Generic Block Task",
+    "description": "Task in generic code block.",
+    "estimated_difficulty": "medium",
+    "required_skills": ["skill"],
+    "anti_patterns": ["anti"]
+}
+```
+
+Done."#;
+
+        let mock_provider = Arc::new(MockLlmProvider::new(mock_response));
+        let agent = IdeatorAgent::with_defaults(mock_provider);
+
+        let idea = agent
+            .generate_task_idea(Some(TaskCategory::Debugging))
+            .await
+            .expect("should extract JSON from generic code block");
+
+        assert_eq!(idea.title, "Generic Block Task");
+    }
+
+    #[tokio::test]
+    async fn test_extract_json_with_extra_text_in_code_block() {
+        // Some LLMs add comments or extra text inside code blocks
+        let mock_response = r#"```json
+// Here's the JSON:
+{
+    "title": "Task With Comments",
+    "description": "Task description.",
+    "estimated_difficulty": "easy",
+    "required_skills": ["basic"],
+    "anti_patterns": []
+}
+// End of JSON
+```"#;
+
+        let mock_provider = Arc::new(MockLlmProvider::new(mock_response));
+        let agent = IdeatorAgent::with_defaults(mock_provider);
+
+        let idea = agent
+            .generate_task_idea(Some(TaskCategory::FileOperations))
+            .await
+            .expect("should extract JSON even with comments in code block");
+
+        assert_eq!(idea.title, "Task With Comments");
+    }
+
+    #[test]
+    fn test_extract_from_json_code_block_helper() {
+        let content = r#"Some text
+```json
+{"key": "value", "nested": {"a": 1}}
+```
+More text"#;
+        let result = extract_from_json_code_block(content);
+        assert!(result.is_some());
+        let json = result.expect("json found");
+        assert!(json.contains("key"));
+        assert!(json.contains("nested"));
+    }
+
+    #[test]
+    fn test_extract_from_generic_code_block_helper() {
+        let content = r#"```
+{"simple": "json"}
+```"#;
+        let result = extract_from_generic_code_block(content);
+        assert!(result.is_some());
+        assert!(result.expect("json found").contains("simple"));
+    }
+
+    #[test]
+    fn test_extract_json_with_regex_helper() {
+        let content = r#"Before text {"valid": "json", "number": 42} after text"#;
+        let result = extract_json_with_regex(content);
+        assert!(result.is_some());
+        let json = result.expect("json found");
+        // Verify it's valid JSON
+        assert!(serde_json::from_str::<serde_json::Value>(&json).is_ok());
+    }
+
+    #[test]
+    fn test_extract_json_with_nested_braces() {
+        let content = r#"Response: {"outer": {"inner": {"deep": "value"}}}"#;
+        let result = extract_json_with_regex(content);
+        assert!(result.is_some());
+        let json = result.expect("json found");
+        assert!(serde_json::from_str::<serde_json::Value>(&json).is_ok());
     }
 }
