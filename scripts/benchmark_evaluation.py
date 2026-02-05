@@ -57,7 +57,7 @@ def run_command(cmd: list[str], env: Optional[dict] = None) -> tuple[int, str, s
         capture_output=True,
         text=True,
         env=merged_env,
-        timeout=600  # 10 minute timeout
+        timeout=1800  # 30 minute timeout
     )
     return result.returncode, result.stdout, result.stderr
 
@@ -115,8 +115,8 @@ def evaluate_tasks(
     tasks_dir: str,
     model: str,
     api_key: str,
-    max_steps: int = 15,
-    timeout: int = 180
+    max_steps: int = 50,
+    timeout: int = 1200
 ) -> Optional[dict]:
     """Evaluate tasks using the evaluate command."""
     
