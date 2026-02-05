@@ -132,10 +132,10 @@ pub struct GenerateArgs {
 }
 
 /// Default maximum steps for the evaluation agent.
-const DEFAULT_EVAL_MAX_STEPS: u32 = 20;
+const DEFAULT_EVAL_MAX_STEPS: u32 = 50;
 
 /// Default timeout in seconds for task evaluation.
-const DEFAULT_EVAL_TIMEOUT_SECS: u64 = 300;
+const DEFAULT_EVAL_TIMEOUT_SECS: u64 = 1200;
 
 /// Arguments for the evaluate command.
 #[derive(Parser, Debug)]
