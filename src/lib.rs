@@ -28,6 +28,7 @@ pub mod storage;
 pub mod template;
 pub mod test_framework;
 pub mod trajectory;
+pub mod utils;
 pub mod validation;
 
 // Re-export commonly used error types

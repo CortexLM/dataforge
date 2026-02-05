@@ -12,6 +12,7 @@ use tokio::sync::mpsc::Sender;
 use uuid::Uuid;
 
 use crate::llm::{GenerationRequest, LlmProvider, Message};
+use crate::utils::json_extraction::find_matching_brace;
 
 use super::error::{AgentError, AgentResult};
 use super::types::PipelineEvent;
@@ -526,41 +527,6 @@ impl CollectorAgent {
             "Could not extract JSON from response".to_string(),
         ))
     }
-}
-
-/// Helper function to find the matching closing brace for a JSON object.
-fn find_matching_brace(s: &str) -> Option<usize> {
-    let mut depth = 0;
-    let mut in_string = false;
-    let mut escape_next = false;
-
-    for (i, c) in s.char_indices() {
-        if escape_next {
-            escape_next = false;
-            continue;
-        }
-
-        match c {
-            '\\' if in_string => {
-                escape_next = true;
-            }
-            '"' => {
-                in_string = !in_string;
-            }
-            '{' if !in_string => {
-                depth += 1;
-            }
-            '}' if !in_string => {
-                depth -= 1;
-                if depth == 0 {
-                    return Some(i);
-                }
-            }
-            _ => {}
-        }
-    }
-
-    None
 }
 
 /// Response structure from LLM prioritization.

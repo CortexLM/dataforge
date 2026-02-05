@@ -12,27 +12,49 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use crate::llm::{GenerationRequest, LlmProvider, Message};
+use crate::utils::json_extraction::{
+    extract_from_generic_code_block, extract_from_json_code_block, extract_json_with_regex,
+    find_matching_brace,
+};
 
 use super::error::{AgentError, AgentResult};
 
 /// System prompt for task validation.
-const TASK_VALIDATION_SYSTEM_PROMPT: &str = r#"You are a benchmark task quality validator. Your job is to assess if a task is GENUINELY CHALLENGING and cannot be solved through memorization or pattern matching.
+const TASK_VALIDATION_SYSTEM_PROMPT: &str = r#"You are a terminal benchmark task validator. Your job is to assess if a task is PRACTICAL, EXECUTABLE, and SUFFICIENTLY CHALLENGING for testing AI coding agents.
 
 Evaluate the following task and determine:
-1. COMPLEXITY: How many distinct reasoning steps are required? (score 0.0-1.0)
-2. MEMORIZATION RISK: Could this be answered from training data? (score 0.0-1.0)
-3. THINKING TIME: How long would an expert need? (minutes)
-4. GENUINE REASONING: Does this require actual problem-solving? (true/false)
+1. COMPLEXITY: How many distinct investigation/action steps needed? (score 0.0-1.0)
+   - 1-3 steps → 0.2-0.4 (easy, reject for benchmark)
+   - 4-7 steps → 0.5-0.6 (medium)
+   - 8-15 steps → 0.7-0.85 (hard, ideal for benchmark)
+   - 15+ steps → 0.85-1.0 (very hard)
+2. MEMORIZATION RISK: Is this solvable by recalling common patterns? (score 0.0-1.0)
+3. THINKING TIME: How long for a skilled developer to solve? (minutes)
+4. GENUINE REASONING: Does this require investigation before the solution is clear? (true/false)
+
+HARD TASK INDICATORS (should have MOST of these for complexity > 0.7):
+- Symptoms don't directly reveal the root cause
+- Multiple files/components need investigation
+- Edge cases that break naive solutions
+- Requires understanding data/state before acting
+- Red herrings or misleading error messages
+
+APPROVAL CRITERIA (APPROVE if task):
+- References specific file paths in the task description
+- Requires 5+ distinct steps to solve
+- Has a clear, verifiable output file
+- Can be executed in a Docker container
+- Requires investigation/debugging (not just execution)
 
 REJECTION CRITERIA (reject if ANY apply):
-- Task has a well-known solution (e.g., "implement quicksort")
-- Answer can be found in documentation or Stack Overflow
-- Task is a common interview question
-- Task requires only recall, not reasoning
-- Task can be solved with a single command or formula
+- Requires external cloud services (AWS, Azure, GCP)
+- Requires real network infrastructure
+- Has no concrete file paths or outputs
+- Is purely theoretical without executable components
+- Can be solved with a single command or trivial pipeline
+- Root cause is immediately obvious from the description
 
-Output Format:
-You MUST respond with ONLY a JSON object in this exact format:
+You MUST respond with ONLY a valid JSON object in this exact format:
 {
   "complexity_score": <float between 0.0 and 1.0>,
   "memorization_risk": <float between 0.0 and 1.0>,
@@ -43,7 +65,7 @@ You MUST respond with ONLY a JSON object in this exact format:
   "reasoning": "<detailed explanation of your assessment>"
 }
 
-Do not include any text outside the JSON object."#;
+CRITICAL: Your entire response must be ONLY the JSON object."#;
 
 /// User prompt template for task validation.
 const TASK_VALIDATION_USER_TEMPLATE: &str = r#"Task to validate:
@@ -177,11 +199,11 @@ pub struct TaskValidatorConfig {
 impl Default for TaskValidatorConfig {
     fn default() -> Self {
         Self {
-            min_complexity_score: 0.6,
-            min_thinking_time_minutes: 5,
-            rejection_threshold: 0.4,
+            min_complexity_score: 0.55, // Increased to ensure tasks require real investigation
+            min_thinking_time_minutes: 5, // Tasks should require at least 5 mins of thinking
+            rejection_threshold: 0.4,   // Stricter: reject if memorization risk > 40%
             temperature: 0.3,
-            max_tokens: 1500,
+            max_tokens: 3000,
         }
     }
 }
@@ -261,7 +283,35 @@ impl TaskValidatorAgent {
     /// # Returns
     ///
     /// A `ValidationAssessment` containing the validation results.
+    ///
+    /// # Retry Logic
+    ///
+    /// This method will retry up to 3 times on parse failures to handle
+    /// truncated or malformed JSON responses from the LLM.
     pub async fn validate_task(&self, task_idea: &TaskIdea) -> AgentResult<ValidationAssessment> {
+        let mut last_error = None;
+        for attempt in 0..3 {
+            match self.attempt_validate_task(task_idea).await {
+                Ok(result) => return Ok(result),
+                Err(e) => {
+                    tracing::warn!(
+                        attempt = attempt + 1,
+                        error = %e,
+                        task_title = %task_idea.title,
+                        "Task validation failed, retrying..."
+                    );
+                    last_error = Some(e);
+                }
+            }
+        }
+        Err(last_error.expect("should have an error after 3 failed attempts"))
+    }
+
+    /// Attempts a single validation of a task idea.
+    async fn attempt_validate_task(
+        &self,
+        task_idea: &TaskIdea,
+    ) -> AgentResult<ValidationAssessment> {
         let prompt = self.format_validation_prompt(task_idea);
 
         let request = GenerationRequest::new(
@@ -381,47 +431,77 @@ impl TaskValidatorAgent {
         })
     }
 
-    /// Extracts JSON from the response, handling potential markdown code blocks.
+    /// Extracts JSON from the response, handling potential markdown code blocks and mixed content.
+    ///
+    /// This function attempts multiple strategies to extract valid JSON:
+    /// 1. Direct JSON (starts with '{')
+    /// 2. JSON in markdown code blocks (```json ... ```)
+    /// 3. JSON in generic code blocks (``` ... ```)
+    /// 4. Raw JSON object anywhere in the content (first '{' to matching '}')
+    /// 5. Regex-based extraction for complex cases
     fn extract_json(&self, content: &str) -> AgentResult<String> {
         let trimmed = content.trim();
 
-        // If it already starts with '{', use as-is
+        tracing::debug!(
+            "Attempting to extract JSON from response (length: {} chars)",
+            trimmed.len()
+        );
+
+        // Strategy 1: If it already starts with '{', find the matching closing brace
         if trimmed.starts_with('{') {
-            return Ok(trimmed.to_string());
-        }
-
-        // Try to extract from markdown code block
-        if let Some(start) = trimmed.find("```json") {
-            let json_start = start + 7;
-            if let Some(end) = trimmed[json_start..].find("```") {
-                return Ok(trimmed[json_start..json_start + end].trim().to_string());
+            if let Some(end) = find_matching_brace(trimmed) {
+                let json = trimmed[..=end].to_string();
+                tracing::debug!("Extracted JSON using direct match (strategy 1)");
+                return Ok(json);
             }
+            // If no matching brace found, try other strategies
+            tracing::debug!(
+                "Direct JSON detected but no matching brace found, trying other strategies"
+            );
         }
 
-        // Try to extract from generic code block
-        if let Some(start) = trimmed.find("```") {
-            let content_start = start + 3;
-            let line_end = trimmed[content_start..]
-                .find('\n')
-                .map(|i| content_start + i + 1)
-                .unwrap_or(content_start);
-            if let Some(end) = trimmed[line_end..].find("```") {
-                return Ok(trimmed[line_end..line_end + end].trim().to_string());
-            }
+        // Strategy 2: Try to extract from markdown ```json code block
+        if let Some(json) = extract_from_json_code_block(trimmed) {
+            tracing::debug!("Extracted JSON from ```json code block (strategy 2)");
+            return Ok(json);
         }
 
-        // Try to find JSON object anywhere in the content
+        // Strategy 3: Try to extract from generic ``` code block
+        if let Some(json) = extract_from_generic_code_block(trimmed) {
+            tracing::debug!("Extracted JSON from generic code block (strategy 3)");
+            return Ok(json);
+        }
+
+        // Strategy 4: Try to find JSON object anywhere in the content using brace matching
         if let Some(start) = trimmed.find('{') {
-            if let Some(end) = trimmed.rfind('}') {
-                if end > start {
-                    return Ok(trimmed[start..=end].to_string());
-                }
+            if let Some(end) = find_matching_brace(&trimmed[start..]) {
+                let json = trimmed[start..=start + end].to_string();
+                tracing::debug!("Extracted JSON using brace matching (strategy 4)");
+                return Ok(json);
             }
         }
 
-        Err(AgentError::ResponseParseError(
-            "Could not extract JSON from response".to_string(),
-        ))
+        // Strategy 5: Last resort - use regex to find JSON-like content
+        if let Some(json) = extract_json_with_regex(trimmed) {
+            tracing::debug!("Extracted JSON using regex fallback (strategy 5)");
+            return Ok(json);
+        }
+
+        // Log the problematic content for debugging
+        let preview = if trimmed.len() > 200 {
+            format!("{}...[truncated]", &trimmed[..200])
+        } else {
+            trimmed.to_string()
+        };
+        tracing::warn!(
+            "Could not extract JSON from response. Content preview: {}",
+            preview
+        );
+
+        Err(AgentError::ResponseParseError(format!(
+            "Could not extract JSON from response. Content starts with: '{}'",
+            &trimmed[..trimmed.len().min(100)]
+        )))
     }
 }
 
@@ -765,7 +845,7 @@ The task is appropriate."#;
 
         let assessment = ValidationAssessment {
             is_valid: false,
-            complexity_score: 0.4, // Below default 0.6
+            complexity_score: 0.3, // Below default 0.4 (lowered for practical terminal tasks)
             memorization_risk: 0.2,
             estimated_thinking_time_minutes: 10,
             requires_genuine_reasoning: true,

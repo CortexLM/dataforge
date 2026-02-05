@@ -37,6 +37,7 @@ use serde::Deserialize;
 
 use crate::llm::{GenerationRequest, LlmProvider, Message};
 use crate::prompts::{build_amplifier_prompt, AMPLIFIER_AGENT_SYSTEM};
+use crate::utils::json_extraction::extract_json_from_response;
 
 use super::error::{AgentError, AgentResult};
 use super::factory_types::{
@@ -505,7 +506,7 @@ Output ONLY the JSON object."#,
                 AgentError::ResponseParseError(format!(
                     "Failed to parse amplification response: {}. Content: {}",
                     e,
-                    &json_content[..json_content.len().min(500)]
+                    json_content.chars().take(500).collect::<String>()
                 ))
             })?;
 
@@ -567,40 +568,6 @@ Output ONLY the JSON object."#,
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/// Extracts JSON content from an LLM response that might be wrapped in markdown.
-fn extract_json_from_response(content: &str) -> String {
-    let trimmed = content.trim();
-
-    // Try to find JSON block in markdown code fence
-    if let Some(start) = trimmed.find("```json") {
-        let after_fence = &trimmed[start + 7..];
-        if let Some(end) = after_fence.find("```") {
-            return after_fence[..end].trim().to_string();
-        }
-    }
-
-    // Try generic code fence
-    if let Some(start) = trimmed.find("```") {
-        let after_fence = &trimmed[start + 3..];
-        let content_start = after_fence.find('\n').map(|i| i + 1).unwrap_or(0);
-        let after_newline = &after_fence[content_start..];
-        if let Some(end) = after_newline.find("```") {
-            return after_newline[..end].trim().to_string();
-        }
-    }
-
-    // Try to find raw JSON object
-    if let Some(start) = trimmed.find('{') {
-        if let Some(end) = trimmed.rfind('}') {
-            if end > start {
-                return trimmed[start..=end].to_string();
-            }
-        }
-    }
-
-    trimmed.to_string()
-}
 
 /// Parses a trap type string into the enum.
 fn parse_trap_type(s: &str) -> DifficultyTrapType {

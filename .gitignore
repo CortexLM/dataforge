@@ -21,3 +21,7 @@ Thumbs.db
 /algorithms-output/
 /collected/
 /output/
+
+# Test outputs
+test-outputs/
+
