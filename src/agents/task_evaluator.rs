@@ -66,8 +66,8 @@ pub struct EvaluationConfig {
 impl Default for EvaluationConfig {
     fn default() -> Self {
         Self {
-            max_steps: 20,
-            timeout_seconds: 300,
+            max_steps: 50,
+            timeout_seconds: 1200,
             model: String::new(),
             temperature: 0.3,
             max_tokens: 2000,
@@ -842,8 +842,8 @@ mod tests {
     #[test]
     fn test_evaluation_config_defaults() {
         let config = EvaluationConfig::default();
-        assert_eq!(config.max_steps, 20);
-        assert_eq!(config.timeout_seconds, 300);
+        assert_eq!(config.max_steps, 50);
+        assert_eq!(config.timeout_seconds, 1200);
         assert!(config.model.is_empty());
         assert!((config.temperature - 0.3).abs() < 0.01);
         assert_eq!(config.max_tokens, 2000);

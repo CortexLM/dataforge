@@ -93,8 +93,8 @@ The task must be hard enough that 70% of AI agents will FAIL. This requires:
 
 MANDATORY COMPLEXITY REQUIREMENTS:
 
-1. INVESTIGATION DEPTH (15-30 steps required):
-   - Minimum 15 discrete investigation/action steps to solve
+1. INVESTIGATION DEPTH (25-50 steps required):
+   - Minimum 25 discrete investigation/action steps to solve
    - At least 5 files/sources must be examined to understand the problem
    - Information must be synthesized across multiple components
    - The path from symptom to root cause is NOT linear
@@ -157,7 +157,7 @@ You MUST respond with ONLY a valid JSON object:
   "output_file": "/home/user/result.txt"
 }
 
-Remember: If an average AI agent could solve this in under 15 steps, it's TOO EASY."#;
+Remember: If an average AI agent could solve this in under 25 steps, it's TOO EASY."#;
 
 /// Categories for task ideation that map to benchmark domains.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]

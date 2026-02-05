@@ -31,7 +31,7 @@ impl Default for ExecutionLimits {
             cpu_cores: 1.0,
             disk_gb: 5,
             max_processes: 100,
-            timeout_seconds: 900, // 15 minutes
+            timeout_seconds: 1200, // 20 minutes
         }
     }
 }
@@ -113,35 +113,35 @@ pub fn get_execution_limits(difficulty: &str) -> ExecutionLimits {
             cpu_cores: 0.5,
             disk_gb: 2,
             max_processes: 50,
-            timeout_seconds: 300, // 5 minutes
+            timeout_seconds: 600, // 10 minutes
         },
         "medium" => ExecutionLimits {
             memory_mb: 1024,
             cpu_cores: 1.0,
             disk_gb: 5,
             max_processes: 100,
-            timeout_seconds: 900, // 15 minutes
+            timeout_seconds: 1200, // 20 minutes
         },
         "hard" => ExecutionLimits {
             memory_mb: 2048,
             cpu_cores: 2.0,
             disk_gb: 10,
             max_processes: 200,
-            timeout_seconds: 1800, // 30 minutes
+            timeout_seconds: 2400, // 40 minutes
         },
         "expert" => ExecutionLimits {
             memory_mb: 4096,
             cpu_cores: 4.0,
             disk_gb: 20,
             max_processes: 500,
-            timeout_seconds: 3600, // 1 hour
+            timeout_seconds: 4800, // 80 minutes
         },
         "nightmare" => ExecutionLimits {
             memory_mb: 8192,
             cpu_cores: 8.0,
             disk_gb: 50,
             max_processes: 1000,
-            timeout_seconds: 7200, // 2 hours
+            timeout_seconds: 9000, // 150 minutes
         },
         // Unknown difficulty defaults to medium
         _ => ExecutionLimits::default(),
@@ -159,7 +159,7 @@ mod tests {
         assert_eq!(limits.cpu_cores, 0.5);
         assert_eq!(limits.disk_gb, 2);
         assert_eq!(limits.max_processes, 50);
-        assert_eq!(limits.timeout_seconds, 300);
+        assert_eq!(limits.timeout_seconds, 600);
     }
 
     #[test]
@@ -169,7 +169,7 @@ mod tests {
         assert_eq!(limits.cpu_cores, 1.0);
         assert_eq!(limits.disk_gb, 5);
         assert_eq!(limits.max_processes, 100);
-        assert_eq!(limits.timeout_seconds, 900);
+        assert_eq!(limits.timeout_seconds, 1200);
     }
 
     #[test]
@@ -179,7 +179,7 @@ mod tests {
         assert_eq!(limits.cpu_cores, 2.0);
         assert_eq!(limits.disk_gb, 10);
         assert_eq!(limits.max_processes, 200);
-        assert_eq!(limits.timeout_seconds, 1800);
+        assert_eq!(limits.timeout_seconds, 2400);
     }
 
     #[test]
@@ -189,7 +189,7 @@ mod tests {
         assert_eq!(limits.cpu_cores, 4.0);
         assert_eq!(limits.disk_gb, 20);
         assert_eq!(limits.max_processes, 500);
-        assert_eq!(limits.timeout_seconds, 3600);
+        assert_eq!(limits.timeout_seconds, 4800);
     }
 
     #[test]
@@ -199,7 +199,7 @@ mod tests {
         assert_eq!(limits.cpu_cores, 8.0);
         assert_eq!(limits.disk_gb, 50);
         assert_eq!(limits.max_processes, 1000);
-        assert_eq!(limits.timeout_seconds, 7200);
+        assert_eq!(limits.timeout_seconds, 9000);
     }
 
     #[test]

@@ -27,18 +27,18 @@ impl DifficultyLevel {
     /// Returns the expected time range in seconds (min, max) for this difficulty level.
     pub fn expected_time_range(&self) -> (u32, u32) {
         match self {
-            DifficultyLevel::Easy => (30, 120),    // 30 seconds to 2 minutes
-            DifficultyLevel::Medium => (120, 600), // 2 to 10 minutes
-            DifficultyLevel::Hard => (600, 1800),  // 10 to 30 minutes
+            DifficultyLevel::Easy => (180, 360),   // 3 to 6 minutes
+            DifficultyLevel::Medium => (480, 900), // 8 to 15 minutes
+            DifficultyLevel::Hard => (900, 3600),  // 15 to 60 minutes
         }
     }
 
     /// Returns the expected number of command steps (min, max) for this difficulty level.
     pub fn command_steps_range(&self) -> (u32, u32) {
         match self {
-            DifficultyLevel::Easy => (1, 3),
-            DifficultyLevel::Medium => (3, 8),
-            DifficultyLevel::Hard => (8, 20),
+            DifficultyLevel::Easy => (5, 10),      // More steps for easy
+            DifficultyLevel::Medium => (10, 25),   // More steps for medium
+            DifficultyLevel::Hard => (25, 50),     // More steps for hard
         }
     }
 
@@ -205,8 +205,8 @@ impl CalibrationResult {
 /// A difficulty score between 0.0 and 1.0
 pub fn calculate_difficulty_score(mean_time: f64, success_rate: f64, mean_hints: f64) -> f64 {
     // Time component: normalize to 0-1 range
-    // Assume max time is 1800 seconds (30 minutes) for hardest tasks
-    const MAX_TIME: f64 = 1800.0;
+    // Assume max time is 3600 seconds (60 minutes) for hardest tasks
+    const MAX_TIME: f64 = 3600.0;
     let time_component = (mean_time / MAX_TIME).min(1.0);
 
     // Success rate component: invert (lower success = higher difficulty)
@@ -293,7 +293,8 @@ mod tests {
         );
 
         // Hard task: slow completion, low success, many hints
-        let hard_score = calculate_difficulty_score(1500.0, 0.30, 4.0);
+        // Using 3000 seconds (50 minutes) with MAX_TIME of 3600 seconds
+        let hard_score = calculate_difficulty_score(3000.0, 0.30, 4.0);
         assert!(
             hard_score > 0.66,
             "Hard task should have score > 0.66, got {}",

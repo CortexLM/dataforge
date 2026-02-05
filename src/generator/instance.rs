@@ -669,10 +669,10 @@ def result_file(user_home):
     /// Estimates timeout based on difficulty.
     fn estimate_timeout(&self, timeout_type: &str) -> u64 {
         let base_time = match self.template.difficulty.estimated.as_str() {
-            "easy" => 60,
-            "medium" => 180,
-            "hard" => 300,
-            _ => 180,
+            "easy" => 180,     // 3 minutes base
+            "medium" => 480,   // 8 minutes base
+            "hard" => 900,     // 15 minutes base
+            _ => 480,          // default to medium
         };
 
         match timeout_type {
