@@ -36,9 +36,9 @@ impl DifficultyLevel {
     /// Returns the expected number of command steps (min, max) for this difficulty level.
     pub fn command_steps_range(&self) -> (u32, u32) {
         match self {
-            DifficultyLevel::Easy => (5, 10),      // More steps for easy
-            DifficultyLevel::Medium => (10, 25),   // More steps for medium
-            DifficultyLevel::Hard => (25, 50),     // More steps for hard
+            DifficultyLevel::Easy => (5, 10),    // More steps for easy
+            DifficultyLevel::Medium => (10, 25), // More steps for medium
+            DifficultyLevel::Hard => (25, 50),   // More steps for hard
         }
     }
 

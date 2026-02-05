@@ -47,9 +47,9 @@ use super::error::{AgentError, AgentResult};
 /// Configuration for the Task Evaluator.
 #[derive(Debug, Clone)]
 pub struct EvaluationConfig {
-    /// Maximum number of steps the agent can take. Default: 20.
+    /// Maximum number of steps the agent can take. Default: 50.
     pub max_steps: u32,
-    /// Timeout for the entire evaluation in seconds. Default: 300 (5 minutes).
+    /// Timeout for the entire evaluation in seconds. Default: 1200 (20 minutes).
     pub timeout_seconds: u64,
     /// Model to use for the evaluation agent. Default: empty (uses provider default).
     pub model: String,
