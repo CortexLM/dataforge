@@ -118,8 +118,6 @@ impl LanguageTarget {
     }
 }
 
-
-
 impl std::fmt::Display for LanguageTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.display_name())
@@ -216,8 +214,6 @@ impl ProjectCategory {
     }
 }
 
-
-
 impl std::fmt::Display for ProjectCategory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let name = match self {
@@ -292,8 +288,6 @@ impl DifficultyLevel {
         }
     }
 }
-
-
 
 impl std::fmt::Display for DifficultyLevel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

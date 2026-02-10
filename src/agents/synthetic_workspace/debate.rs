@@ -476,7 +476,7 @@ impl DebateSession {
 
     /// Returns whether consensus was reached.
     pub fn has_consensus(&self) -> bool {
-        self.consensus.as_ref().map_or(false, |c| c.reached)
+        self.consensus.as_ref().is_some_and(|c| c.reached)
     }
 
     /// Returns all messages across all rounds.

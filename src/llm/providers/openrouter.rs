@@ -23,8 +23,8 @@ const MAX_RETRIES: u32 = 3;
 /// Base delay for exponential backoff in milliseconds.
 const BASE_RETRY_DELAY_MS: u64 = 1000;
 
-/// Request timeout in seconds.
-const REQUEST_TIMEOUT_SECS: u64 = 120;
+/// Request timeout in seconds (increased for large code generation).
+const REQUEST_TIMEOUT_SECS: u64 = 300;
 
 /// OpenRouter provider for LLM requests.
 ///

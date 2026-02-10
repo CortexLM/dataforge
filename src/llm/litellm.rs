@@ -171,7 +171,7 @@ impl LiteLlmClient {
             api_key,
             default_model,
             http_client: Client::builder()
-                .timeout(Duration::from_secs(120))
+                .timeout(Duration::from_secs(300))
                 .build()
                 .expect("Failed to build HTTP client"),
         }
@@ -194,7 +194,7 @@ impl LiteLlmClient {
             api_key: Some(api_key),
             default_model: "anthropic/claude-opus-4.5".to_string(),
             http_client: Client::builder()
-                .timeout(Duration::from_secs(120))
+                .timeout(Duration::from_secs(300))
                 .build()
                 .expect("Failed to build HTTP client"),
         }
@@ -221,7 +221,7 @@ impl LiteLlmClient {
             api_key,
             default_model,
             http_client: Client::builder()
-                .timeout(Duration::from_secs(120))
+                .timeout(Duration::from_secs(300))
                 .build()
                 .expect("Failed to build HTTP client"),
         })

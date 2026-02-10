@@ -120,7 +120,7 @@ impl WorkspaceTemplate {
                 // Core application files (each 150-300 lines)
                 FileTemplate::source("app/__init__.py", "Flask application factory with full extensions initialization, error handlers, request hooks, and logging setup. Include app context management, health checks, and graceful shutdown handling.", true),
                 FileTemplate::source("app/extensions.py", "Flask extensions initialization: SQLAlchemy with connection pooling, Flask-Migrate, Flask-CORS with configurable origins, Flask-JWT-Extended with custom token callbacks, Flask-Limiter for rate limiting, Flask-Mail for emails, and Celery setup.", false),
-                
+
                 // Route files - API v1 (each 200-400 lines with full CRUD, validation, error handling)
                 FileTemplate::source("app/routes/__init__.py", "Blueprint registration with error handlers and request/response logging middleware", false),
                 FileTemplate::source("app/routes/api/v1/__init__.py", "V1 API blueprint with version-specific middleware, CORS configuration, and route registration", false),
@@ -130,7 +130,7 @@ impl WorkspaceTemplate {
                 FileTemplate::source("app/routes/api/v1/files.py", "File management: upload with multipart support and progress tracking, download with range requests and streaming, list files with filtering, delete files, file metadata update, virus scanning integration, file type validation, S3 presigned URLs, and file sharing with expiring links.", true),
                 FileTemplate::source("app/routes/api/v1/notifications.py", "Notification system: list notifications with read/unread status, mark as read, bulk mark read, notification preferences, push notification registration, email notification triggers, SMS integration stubs, and notification templates.", true),
                 FileTemplate::source("app/routes/api/v1/webhooks.py", "Webhook management: register webhooks with URL validation, list/update/delete webhooks, webhook event types, delivery logs, retry failed deliveries, webhook secret rotation, and signature verification helpers.", true),
-                
+
                 // Model files (each 100-200 lines with relationships, validations, methods)
                 FileTemplate::source("app/models/__init__.py", "Model exports and common utilities like pagination mixin and soft delete mixin", false),
                 FileTemplate::source("app/models/base.py", "Base model with ID, timestamps, soft delete, audit fields, common query methods, and serialization helpers", false),
@@ -140,7 +140,7 @@ impl WorkspaceTemplate {
                 FileTemplate::source("app/models/file.py", "File model with metadata fields, storage backend info, file versions, access logs, sharing settings, and methods for generating presigned URLs and managing file lifecycle.", true),
                 FileTemplate::source("app/models/audit_log.py", "Audit log model with user reference, action type, resource type, old/new values, IP address, user agent, and query methods for audit trail retrieval.", false),
                 FileTemplate::source("app/models/webhook.py", "Webhook model with URL, events, secret, status, delivery logs relationship, retry configuration, and methods for triggering and verifying webhooks.", true),
-                
+
                 // Service layer (each 200-400 lines with business logic)
                 FileTemplate::source("app/services/__init__.py", "Service exports and base service class with common patterns", false),
                 FileTemplate::source("app/services/auth.py", "Authentication service: login validation, token generation with claims, token refresh logic, password reset flow, email verification, OAuth2 token exchange, 2FA validation with TOTP, session management, and account lockout logic.", true),
@@ -149,7 +149,7 @@ impl WorkspaceTemplate {
                 FileTemplate::source("app/services/email.py", "Email service: template rendering with Jinja2, SMTP sending with retry logic, email queue integration, HTML/text multipart, attachments, email verification tokens, and password reset emails.", true),
                 FileTemplate::source("app/services/notification.py", "Notification service: create notifications, bulk notifications, push notification sending (Firebase stub), email notification trigger, notification preferences check, and notification cleanup.", true),
                 FileTemplate::source("app/services/webhook.py", "Webhook service: event dispatching, delivery with retry and exponential backoff, signature generation, delivery status tracking, and failed webhook reprocessing.", true),
-                
+
                 // Utility files (each 150-300 lines)
                 FileTemplate::source("app/utils/__init__.py", "Utility exports", false),
                 FileTemplate::source("app/utils/crypto.py", "Cryptographic utilities: password hashing with bcrypt, token generation with secrets, encryption/decryption with Fernet, HMAC signature generation, TOTP generation and verification, and secure random string generation.", true),
@@ -157,20 +157,20 @@ impl WorkspaceTemplate {
                 FileTemplate::source("app/utils/decorators.py", "Custom decorators: require_auth with role check, rate_limit with custom keys, cache_response with TTL, audit_log decorator, validate_json with schema, and require_permissions.", true),
                 FileTemplate::source("app/utils/helpers.py", "Helper functions: pagination helpers, response formatting, error response builder, date/time utilities, string utilities, IP address utilities, and JSON serialization helpers.", false),
                 FileTemplate::source("app/utils/file_handler.py", "File handling: secure filename generation, MIME type detection, file size validation, archive extraction, image processing stubs, and temporary file management.", true),
-                
+
                 // Middleware (each 100-200 lines)
                 FileTemplate::source("app/middleware/__init__.py", "Middleware exports and registration", false),
                 FileTemplate::source("app/middleware/auth.py", "Authentication middleware: JWT validation, token refresh logic, user loading, permission checking, and request context population.", true),
                 FileTemplate::source("app/middleware/rate_limit.py", "Rate limiting middleware: Redis-based rate limiting, per-endpoint limits, user-based limits, IP-based limits, and rate limit headers.", true),
                 FileTemplate::source("app/middleware/security.py", "Security middleware: CORS headers, CSP headers, XSS protection, clickjacking protection, and request sanitization.", true),
-                
+
                 // Database
                 FileTemplate::source("app/database.py", "Database utilities: connection management, session handling, query logging, transaction helpers, and database health check.", true),
-                
+
                 // Configuration
                 FileTemplate::config("config.py", "Configuration with environment support, validation, secrets loading, and default values for all settings.", true),
                 FileTemplate::config("requirements.txt", "Python dependencies with version pinning", false),
-                
+
                 // Tests (each 200-400 lines)
                 FileTemplate::test("tests/__init__.py", "Test package init", false),
                 FileTemplate::test("tests/conftest.py", "Pytest fixtures: app fixture, client fixture, database fixtures, user fixtures, mock fixtures, and cleanup.", false),
@@ -323,7 +323,7 @@ impl WorkspaceTemplate {
                 FileTemplate::source("src/main.rs", "Entry point with clap CLI argument parsing including subcommands for process, exec, encrypt, hash, compress, search, and config. Include version info, logging setup with tracing-subscriber, error handling with exit codes, and signal handling for graceful shutdown.", true),
                 FileTemplate::source("src/lib.rs", "Library root exposing public API for programmatic use, re-exports of key types, and prelude module", false),
                 FileTemplate::source("src/error.rs", "Custom error types using thiserror: IoError, ConfigError, ProcessError, CryptoError, ParseError, NetworkError. Include error conversion impls and user-friendly error messages.", false),
-                
+
                 // Command modules (each 200-350 lines with full implementation)
                 FileTemplate::source("src/commands/mod.rs", "Command module exports and CommandResult type alias", false),
                 FileTemplate::source("src/commands/process.rs", "File processing command: read files in multiple formats (JSON, CSV, YAML, TOML, XML, binary), transform data (map, filter, sort, group), write to output format, support for stdin/stdout, recursive directory processing, and progress reporting. Include format auto-detection.", true),
@@ -333,40 +333,40 @@ impl WorkspaceTemplate {
                 FileTemplate::source("src/commands/compress.rs", "Compression/decompression: support gzip, zstd, brotli, xz formats, compression level control, archive creation (tar.gz, zip), archive extraction with path traversal protection, streaming compression for large files, and multi-threaded compression.", true),
                 FileTemplate::source("src/commands/search.rs", "File search with regex: recursive directory search, regex pattern matching, glob patterns for file filtering, context lines (before/after), output formatting (plain, JSON, match-only), replacement mode with backup, and parallel search with rayon.", true),
                 FileTemplate::source("src/commands/config.rs", "Configuration management: get/set config values, list all settings, reset to defaults, config file location management, environment variable override, and config validation with schema.", false),
-                
+
                 // Configuration (each 150-200 lines)
                 FileTemplate::source("src/config/mod.rs", "Config module exports and Config struct definition", false),
                 FileTemplate::source("src/config/settings.rs", "Configuration settings: all CLI options as config fields, serialization/deserialization with serde, config file paths (user, system, local), config merging from multiple sources, and validation.", true),
                 FileTemplate::source("src/config/loader.rs", "Config loader: load from TOML/JSON/YAML files, environment variables with prefix, command-line override, default values, config file search in standard locations, and error reporting for invalid config.", true),
-                
+
                 // File processors (each 200-300 lines with full parsing/serialization)
                 FileTemplate::source("src/processors/mod.rs", "Processor trait definition and factory function", false),
                 FileTemplate::source("src/processors/json.rs", "JSON processor: parse with serde_json, streaming for large files with json_stream, pretty printing, JSON path queries, schema validation stub, and merge/diff operations.", true),
                 FileTemplate::source("src/processors/csv.rs", "CSV processor: parse with csv crate, header handling, delimiter configuration, quote handling, type inference for columns, CSV to JSON conversion, and aggregate operations (sum, count, avg).", true),
                 FileTemplate::source("src/processors/yaml.rs", "YAML processor: parse with serde_yaml, multi-document support, anchor/alias handling, YAML to JSON conversion, and merge key handling.", true),
                 FileTemplate::source("src/processors/binary.rs", "Binary processor: hex dump, binary to base64, file analysis (entropy, magic bytes), binary diff, and simple pattern search in binary files.", true),
-                
+
                 // Utilities (each 150-250 lines)
                 FileTemplate::source("src/utils/mod.rs", "Utility module exports", false),
                 FileTemplate::source("src/utils/file.rs", "File system utilities: path canonicalization, safe path joining, recursive directory operations, file copy with progress, atomic file writes, temporary file creation, file locking, and file type detection.", true),
                 FileTemplate::source("src/utils/crypto.rs", "Cryptographic utilities: AES-256-GCM encrypt/decrypt, Argon2 key derivation, secure random bytes, HMAC-SHA256, constant-time comparison, and secure memory zeroing.", true),
                 FileTemplate::source("src/utils/parallel.rs", "Parallel processing: rayon-based parallel iteration, work stealing queue, progress tracking for parallel operations, and concurrent file processing with controlled parallelism.", true),
                 FileTemplate::source("src/utils/progress.rs", "Progress reporting: indicatif progress bars, spinner for indeterminate operations, multi-progress for parallel tasks, and quiet mode support.", false),
-                
+
                 // Additional command modules (each 200-350 lines)
                 FileTemplate::source("src/commands/version.rs", "Version information command: display version, build info, git commit hash, build timestamp, feature flags enabled, dependency versions, system info (OS, arch), and update check with HTTP request to releases API.", false),
                 FileTemplate::source("src/commands/init.rs", "Project initialization command: create config file with defaults, setup directory structure, create .gitignore with appropriate patterns, generate sample input files, validate existing setup, and interactive prompts for configuration.", true),
                 FileTemplate::source("src/commands/clean.rs", "Cleanup operations command: remove temporary files, clear cache directories, cleanup orphaned lock files, prune old backups with age threshold, disk usage report, dry-run mode, and confirmation prompts.", true),
                 FileTemplate::source("src/commands/watch.rs", "File watch mode: use notify crate for filesystem events, debouncing for rapid changes, glob pattern filtering, recursive directory watching, event callbacks for file operations, graceful shutdown on signal, and integration with process command.", true),
-                
+
                 // Output formatters (each 150-250 lines)
                 FileTemplate::source("src/formatters/mod.rs", "Formatter trait definition, OutputFormat enum (Plain, Json, Table, Csv, Yaml), factory function to create formatters, and common formatting utilities.", false),
                 FileTemplate::source("src/formatters/json.rs", "JSON output formatter: pretty printing with configurable indentation, streaming JSON output for large results, JSON Lines format support, partial output on error, and schema-aware formatting.", true),
                 FileTemplate::source("src/formatters/table.rs", "Table output formatter: ASCII table rendering with borders, column alignment (left, right, center), automatic column width calculation, header styling, row striping, truncation with ellipsis, and unicode box drawing characters.", true),
-                
+
                 // Configuration files
                 FileTemplate::config("Cargo.toml", "Cargo manifest with dependencies: clap, serde, serde_json, serde_yaml, csv, toml, rayon, indicatif, tracing, thiserror, anyhow, aes-gcm, argon2, sha2, md5, blake3, flate2, zstd, brotli, regex, walkdir, tempfile, notify", false),
-                
+
                 // Tests (each 150-300 lines)
                 FileTemplate::test("tests/integration.rs", "Integration tests for all commands with temp file fixtures", false),
                 FileTemplate::test("tests/processors_test.rs", "Unit tests for all file processors", false),

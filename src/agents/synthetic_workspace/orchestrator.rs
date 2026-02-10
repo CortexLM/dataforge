@@ -309,7 +309,9 @@ impl SyntheticWorkspace {
 
             // Additional check: ensure the final path is within workspace_dir
             let file_path = workspace_dir.join(&normalized_path);
-            let canonical_workspace = workspace_dir.canonicalize().unwrap_or(workspace_dir.clone());
+            let canonical_workspace = workspace_dir
+                .canonicalize()
+                .unwrap_or(workspace_dir.clone());
 
             // Security: Ensure file_path starts with workspace_dir
             if !file_path.starts_with(&canonical_workspace)
@@ -373,7 +375,7 @@ impl SyntheticWorkspace {
         let workspace_dir = temp_dir.path().join(&self.id);
 
         // Create tar.gz
-        let file = std::fs::File::create(output_path).map_err(|e| GeneratorError::Io(e))?;
+        let file = std::fs::File::create(output_path).map_err(GeneratorError::Io)?;
         let enc = GzEncoder::new(file, Compression::default());
         let mut tar = TarBuilder::new(enc);
 
@@ -381,9 +383,9 @@ impl SyntheticWorkspace {
         let exclude_patterns = self.spec.language.artifact_patterns();
 
         // Add files to archive
-        self.add_directory_to_tar(&mut tar, &workspace_dir, &workspace_dir, &exclude_patterns)?;
+        self.add_directory_to_tar(&mut tar, &workspace_dir, &workspace_dir, exclude_patterns)?;
 
-        tar.finish().map_err(|e| GeneratorError::Io(e))?;
+        tar.finish().map_err(GeneratorError::Io)?;
 
         // temp_dir will be automatically cleaned up when dropped
 
@@ -650,7 +652,7 @@ impl SyntheticWorkspaceOrchestrator {
     async fn plan_project(&self) -> Result<ProjectSpec, GeneratorError> {
         // Get template for this language/category
         let template = WorkspaceTemplate::get_template(self.config.language, self.config.category)
-            .unwrap_or_else(|| WorkspaceTemplate::python_flask_api());
+            .unwrap_or_else(WorkspaceTemplate::python_flask_api);
 
         let spec = ProjectSpec::new(
             format!(
@@ -813,7 +815,7 @@ impl SyntheticWorkspaceOrchestrator {
         event_tx: &mpsc::Sender<GenerationEvent>,
     ) -> Result<Vec<GeneratedFile>, GeneratorError> {
         let template = WorkspaceTemplate::get_template(spec.language, spec.category)
-            .unwrap_or_else(|| WorkspaceTemplate::python_flask_api());
+            .unwrap_or_else(WorkspaceTemplate::python_flask_api);
 
         let mut files = Vec::new();
 
@@ -877,7 +879,7 @@ impl SyntheticWorkspaceOrchestrator {
         let language_name = spec.language.display_name();
         let framework = template.framework.as_deref().unwrap_or("none");
         let difficulty = format!("{}", spec.difficulty);
-        
+
         let system_prompt = format!(
             r#"You are an expert {language_name} developer creating REALISTIC, production-quality enterprise code.
 
@@ -1046,7 +1048,7 @@ edition = "2021"
                             "{} = \"{}\"",
                             d.name,
                             d.version
-                                .trim_start_matches(|c| c == '>' || c == '=' || c == '^')
+                                .trim_start_matches(['>', '=', '^'])
                         ))
                         .collect::<Vec<_>>()
                         .join("\n")
@@ -1069,7 +1071,7 @@ edition = "2021"
     ) -> Result<Vec<InjectedVulnerability>, GeneratorError> {
         let template =
             WorkspaceTemplate::get_template(workspace.spec.language, workspace.spec.category)
-                .unwrap_or_else(|| WorkspaceTemplate::python_flask_api());
+                .unwrap_or_else(WorkspaceTemplate::python_flask_api);
 
         let mut vulnerabilities = Vec::new();
         let vuln_count = self
@@ -1301,18 +1303,10 @@ Good luck!
     /// Generates build instructions.
     fn generate_build_instructions(&self, spec: &ProjectSpec) -> String {
         match spec.language {
-            LanguageTarget::Python => format!(
-                "# Build Instructions\n\n1. Create virtual environment: `python -m venv venv`\n2. Activate: `source venv/bin/activate`\n3. Install dependencies: `pip install -r requirements.txt`\n4. Run: `python -m app`"
-            ),
-            LanguageTarget::JavaScript | LanguageTarget::TypeScript => format!(
-                "# Build Instructions\n\n1. Install dependencies: `npm install`\n2. Run: `npm start`"
-            ),
-            LanguageTarget::Rust => format!(
-                "# Build Instructions\n\n1. Build: `cargo build`\n2. Run: `cargo run`"
-            ),
-            LanguageTarget::Go => format!(
-                "# Build Instructions\n\n1. Build: `go build ./...`\n2. Run: `go run cmd/server/main.go`"
-            ),
+            LanguageTarget::Python => "# Build Instructions\n\n1. Create virtual environment: `python -m venv venv`\n2. Activate: `source venv/bin/activate`\n3. Install dependencies: `pip install -r requirements.txt`\n4. Run: `python -m app`".to_string(),
+            LanguageTarget::JavaScript | LanguageTarget::TypeScript => "# Build Instructions\n\n1. Install dependencies: `npm install`\n2. Run: `npm start`".to_string(),
+            LanguageTarget::Rust => "# Build Instructions\n\n1. Build: `cargo build`\n2. Run: `cargo run`".to_string(),
+            LanguageTarget::Go => "# Build Instructions\n\n1. Build: `go build ./...`\n2. Run: `go run cmd/server/main.go`".to_string(),
             _ => String::new(),
         }
     }
@@ -1333,14 +1327,14 @@ Good luck!
         if let Some(start_idx) = trimmed.find("```") {
             // Find the start of the code block
             let after_fence = &trimmed[start_idx + 3..];
-            
+
             // Skip the language identifier if present (e.g., ```python)
             let code_start = if let Some(newline_idx) = after_fence.find('\n') {
                 start_idx + 3 + newline_idx + 1
             } else {
                 return trimmed.to_string();
             };
-            
+
             // Find the closing fence
             let remaining = &trimmed[code_start..];
             if let Some(end_idx) = remaining.find("```") {

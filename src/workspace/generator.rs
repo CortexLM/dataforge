@@ -561,8 +561,7 @@ Good luck!"#,
         fs::write(workspace_dir.join("prompt.md"), &workspace.task_prompt).await?;
 
         // Write task.yaml
-        let task_yaml =
-            serde_yaml::to_string(&workspace.spec).map_err(GeneratorError::Yaml)?;
+        let task_yaml = serde_yaml::to_string(&workspace.spec).map_err(GeneratorError::Yaml)?;
         fs::write(workspace_dir.join("task.yaml"), task_yaml).await?;
 
         // Write canary
