@@ -279,15 +279,13 @@ impl WorkspaceExporter {
                 }
 
                 // Glob pattern match (simple)
-                if pattern.starts_with('*') {
-                    let suffix = &pattern[1..];
+                if let Some(suffix) = pattern.strip_prefix('*') {
                     if file_name_str.ends_with(suffix) {
                         return true;
                     }
                 }
 
-                if pattern.ends_with('*') {
-                    let prefix = &pattern[..pattern.len() - 1];
+                if let Some(prefix) = pattern.strip_suffix('*') {
                     if file_name_str.starts_with(prefix) {
                         return true;
                     }

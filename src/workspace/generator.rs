@@ -418,11 +418,7 @@ Good luck!"#,
                 .or(trimmed[start..].rfind("```"))
             {
                 let json_start = start + 7; // Skip "```json"
-                let actual_end = if trimmed[start..].find("```\n").is_some() {
-                    start + end
-                } else {
-                    start + end
-                };
+                let actual_end = start + end;
                 let json_content = trimmed[json_start..actual_end].trim();
                 if json_content.starts_with('[') {
                     return Ok(json_content.to_string());
@@ -566,7 +562,7 @@ Good luck!"#,
 
         // Write task.yaml
         let task_yaml =
-            serde_yaml::to_string(&workspace.spec).map_err(|e| GeneratorError::Yaml(e))?;
+            serde_yaml::to_string(&workspace.spec).map_err(GeneratorError::Yaml)?;
         fs::write(workspace_dir.join("task.yaml"), task_yaml).await?;
 
         // Write canary

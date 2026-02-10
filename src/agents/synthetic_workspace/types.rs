@@ -363,10 +363,11 @@ pub enum FileContent {
 }
 
 /// File type classification.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FileType {
     /// Source code file.
+    #[default]
     Source,
     /// Test file.
     Test,
@@ -380,12 +381,6 @@ pub enum FileType {
     BuildScript,
     /// Other file type.
     Other,
-}
-
-impl Default for FileType {
-    fn default() -> Self {
-        Self::Source
-    }
 }
 
 /// An injected vulnerability in the workspace.

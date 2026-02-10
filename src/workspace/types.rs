@@ -35,10 +35,11 @@ use std::path::PathBuf;
 // ============================================================================
 
 /// Supported programming languages for workspace generation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum WorkspaceLanguage {
     /// Python projects (Flask, Django, FastAPI, etc.)
+    #[default]
     Python,
     /// JavaScript projects (Node.js, Express, etc.)
     JavaScript,
@@ -155,12 +156,6 @@ impl WorkspaceLanguage {
 impl std::fmt::Display for WorkspaceLanguage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.display_name())
-    }
-}
-
-impl Default for WorkspaceLanguage {
-    fn default() -> Self {
-        Self::Python
     }
 }
 
