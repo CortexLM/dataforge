@@ -12,6 +12,7 @@ use flate2::write::GzEncoder;
 use flate2::Compression;
 use serde::{Deserialize, Serialize};
 use tar::Builder as TarBuilder;
+use tempfile;
 use tokio::fs;
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
@@ -299,7 +300,27 @@ impl SyntheticWorkspace {
 
         // Write all files
         for file in &self.files {
-            let file_path = workspace_dir.join(&file.path);
+            // Validate that file path doesn't escape workspace via ../
+            let normalized_path = file
+                .path
+                .components()
+                .filter(|c| !matches!(c, std::path::Component::ParentDir))
+                .collect::<PathBuf>();
+
+            // Additional check: ensure the final path is within workspace_dir
+            let file_path = workspace_dir.join(&normalized_path);
+            let canonical_workspace = workspace_dir.canonicalize().unwrap_or(workspace_dir.clone());
+
+            // Security: Ensure file_path starts with workspace_dir
+            if !file_path.starts_with(&canonical_workspace)
+                && !file_path.starts_with(&workspace_dir)
+            {
+                return Err(GeneratorError::InvalidParameter(format!(
+                    "Path traversal attempt detected in file: {}",
+                    file.path.display()
+                )));
+            }
+
             if let Some(parent) = file_path.parent() {
                 fs::create_dir_all(parent).await?;
             }
@@ -341,11 +362,15 @@ impl SyntheticWorkspace {
 
     /// Exports the workspace to a tar.gz archive.
     pub async fn export_to_zip(&self, output_path: &Path) -> Result<PathBuf, GeneratorError> {
-        // Create a temporary directory
-        let temp_dir = std::env::temp_dir().join(format!("workspace-{}", self.id));
-        self.export_to_directory(&temp_dir).await?;
+        // Use secure temp directory creation instead of predictable path
+        let temp_dir = tempfile::Builder::new()
+            .prefix("workspace-export-")
+            .tempdir()
+            .map_err(GeneratorError::Io)?;
 
-        let workspace_dir = temp_dir.join(&self.id);
+        self.export_to_directory(temp_dir.path()).await?;
+
+        let workspace_dir = temp_dir.path().join(&self.id);
 
         // Create tar.gz
         let file = std::fs::File::create(output_path).map_err(|e| GeneratorError::Io(e))?;
@@ -360,8 +385,7 @@ impl SyntheticWorkspace {
 
         tar.finish().map_err(|e| GeneratorError::Io(e))?;
 
-        // Clean up temp directory
-        let _ = std::fs::remove_dir_all(&temp_dir);
+        // temp_dir will be automatically cleaned up when dropped
 
         Ok(output_path.to_path_buf())
     }
@@ -636,7 +660,11 @@ impl SyntheticWorkspaceOrchestrator {
                     .to_string()
                     .to_lowercase()
                     .replace(' ', "-"),
-                Uuid::new_v4().to_string().split('-').next().unwrap()
+                Uuid::new_v4()
+                    .to_string()
+                    .split('-')
+                    .next()
+                    .unwrap_or("default")
             ),
             self.config.language,
         )
@@ -838,36 +866,62 @@ impl SyntheticWorkspaceOrchestrator {
         template: &WorkspaceTemplate,
         debate_context: &str,
     ) -> Result<GeneratedFile, GeneratorError> {
+        // Calculate target lines based on difficulty level
+        let (min_lines, max_lines) = spec.difficulty.loc_range();
+        let total_files = template.files.len();
+        let target_total_lines = (min_lines + max_lines) / 2;
+        let target_lines_per_file = target_total_lines / total_files.max(1);
+        // For 5000+ LOC, each file should be 200-500 lines
+        let target_lines = target_lines_per_file.clamp(150, 600);
+
+        let language_name = spec.language.display_name();
+        let framework = template.framework.as_deref().unwrap_or("none");
+        let difficulty = format!("{}", spec.difficulty);
+        
         let system_prompt = format!(
-            r#"You are an expert {} developer creating REALISTIC, production-quality code.
+            r#"You are an expert {language_name} developer creating REALISTIC, production-quality enterprise code.
 
 Your code must:
 1. Look like actual production code - no placeholders, no TODO comments
-2. Follow {} best practices and conventions
-3. Be complete and functional
-4. Include proper error handling
-5. Have realistic variable names and logic
-6. NOT contain any comments about vulnerabilities, security issues, or TODOs
+2. Follow {language_name} best practices and conventions
+3. Be complete, functional, and COMPREHENSIVE
+4. Include proper error handling with custom error types
+5. Have realistic variable names and business logic
+6. Include detailed inline documentation and module-level docs
+7. NOT contain any comments about vulnerabilities, security issues, or TODOs
+8. Target approximately {target_lines} lines of code for this file
 
-You are creating code for: {}
-Framework: {}
+You are creating code for: {template_desc}
+Framework: {framework}
+Target complexity: {difficulty} difficulty (requires substantial, production-ready implementation)
 
-CRITICAL: Output ONLY the code. No explanations, no markdown fences, just the raw code."#,
-            spec.language.display_name(),
-            spec.language.display_name(),
-            template.description,
-            template.framework.as_deref().unwrap_or("none")
+CRITICAL: Output ONLY the code. No explanations, no markdown fences, just the raw code.
+IMPORTANT: Generate comprehensive, enterprise-grade code - this should be substantial production code, not minimal examples."#,
+            language_name = language_name,
+            target_lines = target_lines,
+            template_desc = template.description,
+            framework = framework,
+            difficulty = difficulty
         );
 
         let user_prompt = format!(
-            r#"Generate the complete code for: {path}
+            r#"Generate the complete, production-ready code for: {path}
 
 Purpose: {description}
+
+REQUIREMENTS:
+- Generate approximately {target_lines} lines of code
+- Include comprehensive implementation with all edge cases
+- Add proper logging/tracing statements
+- Include input validation and sanitization
+- Implement proper error handling with Result types
+- Add documentation comments for public items
+- Include type definitions, constants, and helper functions as needed
 
 Project context:
 - Name: {name}
 - Language: {language}
-- Difficulty: {difficulty}
+- Difficulty: {difficulty} (requires substantial implementation)
 - Dependencies available: {deps}
 
 Design decisions from team discussion:
@@ -876,10 +930,12 @@ Design decisions from team discussion:
 Generate realistic, production-quality code. Remember:
 - No TODO/FIXME comments
 - No placeholder implementations
-- Complete, working code
-- Proper imports and structure"#,
+- Complete, working code with FULL functionality
+- Proper imports, types, and module structure
+- Include comprehensive test cases or validation logic where appropriate"#,
             path = path,
             description = description,
+            target_lines = target_lines,
             name = spec.name,
             language = spec.language.display_name(),
             difficulty = spec.difficulty,
@@ -1273,16 +1329,44 @@ Good luck!
     fn clean_code_output(&self, content: &str) -> String {
         let trimmed = content.trim();
 
-        // Remove markdown code fences
-        if trimmed.starts_with("```") {
-            let lines: Vec<&str> = trimmed.lines().collect();
-            if lines.len() > 2 {
-                let end = if lines.last() == Some(&"```") {
-                    lines.len() - 1
-                } else {
-                    lines.len()
-                };
-                return lines[1..end].join("\n");
+        // Try to find markdown code fences anywhere in the content
+        if let Some(start_idx) = trimmed.find("```") {
+            // Find the start of the code block
+            let after_fence = &trimmed[start_idx + 3..];
+            
+            // Skip the language identifier if present (e.g., ```python)
+            let code_start = if let Some(newline_idx) = after_fence.find('\n') {
+                start_idx + 3 + newline_idx + 1
+            } else {
+                return trimmed.to_string();
+            };
+            
+            // Find the closing fence
+            let remaining = &trimmed[code_start..];
+            if let Some(end_idx) = remaining.find("```") {
+                return remaining[..end_idx].trim().to_string();
+            } else {
+                // No closing fence, just return from code_start to end
+                return remaining.trim().to_string();
+            }
+        }
+
+        // If no code fences, check for common prefix patterns that should be removed
+        let lines: Vec<&str> = trimmed.lines().collect();
+        if !lines.is_empty() {
+            // Check if first line looks like intro text (not code)
+            let first_line = lines[0].to_lowercase();
+            if first_line.starts_with("here is")
+                || first_line.starts_with("here's")
+                || first_line.starts_with("the modified")
+                || first_line.starts_with("below is")
+            {
+                // Skip first line and any empty lines after it
+                let mut start = 1;
+                while start < lines.len() && lines[start].trim().is_empty() {
+                    start += 1;
+                }
+                return lines[start..].join("\n");
             }
         }
 
