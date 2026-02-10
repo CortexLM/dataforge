@@ -446,8 +446,9 @@ impl WorkspaceExporter {
         }
 
         // Create a temporary directory for export
-        let temp_dir = tempfile::TempDir::new()
-            .map_err(|e| ExportError::FilesystemError(format!("Failed to create temp dir: {}", e)))?;
+        let temp_dir = tempfile::TempDir::new().map_err(|e| {
+            ExportError::FilesystemError(format!("Failed to create temp dir: {}", e))
+        })?;
 
         // Export to the temp directory
         let export_result = self.export_to_directory(workspace, temp_dir.path()).await?;
@@ -460,11 +461,7 @@ impl WorkspaceExporter {
         // Use tar to create the archive
         let status = tokio::process::Command::new("tar")
             .current_dir(temp_dir.path())
-            .args([
-                "-czf",
-                &output_path_str,
-                &workspace_id,
-            ])
+            .args(["-czf", &output_path_str, &workspace_id])
             .status()
             .await
             .map_err(|e| ExportError::FilesystemError(format!("Failed to run tar: {}", e)))?;
@@ -543,8 +540,8 @@ impl WorkspaceExporter {
             total_size: results.iter().map(|r| r.total_size).sum(),
         };
 
-        let manifest_yaml =
-            serde_yaml::to_string(&manifest).map_err(|e| ExportError::Serialization(e.to_string()))?;
+        let manifest_yaml = serde_yaml::to_string(&manifest)
+            .map_err(|e| ExportError::Serialization(e.to_string()))?;
         fs::write(output_dir.join("manifest.yaml"), manifest_yaml).await?;
 
         info!(
@@ -616,7 +613,8 @@ impl WorkspaceExporterBuilder {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        self.config.exclude_patterns
+        self.config
+            .exclude_patterns
             .extend(patterns.into_iter().map(Into::into));
         self
     }
@@ -692,7 +690,10 @@ mod tests {
             "src/__pycache__/main.cpython-311.pyc",
             "binary data",
         ));
-        workspace.add_file(WorkspaceFile::test("tests/test_main.py", "def test(): pass"));
+        workspace.add_file(WorkspaceFile::test(
+            "tests/test_main.py",
+            "def test(): pass",
+        ));
         workspace.task_prompt = "Fix the SQL injection vulnerability.".to_string();
         workspace.solution_description = "Use parameterized queries.".to_string();
         workspace
@@ -819,7 +820,10 @@ mod tests {
 
         assert!(exporter.config.include_solution);
         assert!(!exporter.config.compress);
-        assert!(exporter.config.exclude_patterns.contains(&"*.tmp".to_string()));
+        assert!(exporter
+            .config
+            .exclude_patterns
+            .contains(&"*.tmp".to_string()));
     }
 
     #[test]
@@ -827,7 +831,9 @@ mod tests {
         let workspace = create_test_workspace();
         let exporter = WorkspaceExporter::new();
 
-        let yaml = exporter.generate_task_yaml(&workspace).expect("should generate yaml");
+        let yaml = exporter
+            .generate_task_yaml(&workspace)
+            .expect("should generate yaml");
 
         assert!(yaml.contains("test-workspace"));
         assert!(yaml.contains("Python"));

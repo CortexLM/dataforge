@@ -218,16 +218,16 @@ impl VulnerabilityType {
     /// Returns a human-readable description of the vulnerability.
     pub fn description(&self) -> &'static str {
         match self {
-            Self::SqlInjection => {
-                "SQL injection allows attackers to manipulate database queries"
-            }
+            Self::SqlInjection => "SQL injection allows attackers to manipulate database queries",
             Self::Xss => "Cross-site scripting allows attackers to inject malicious scripts",
             Self::AuthenticationBypass => {
                 "Authentication bypass allows unauthorized access to protected resources"
             }
             Self::RaceCondition => "Race condition allows exploitation of timing vulnerabilities",
             Self::MemoryLeak => "Memory leak causes resource exhaustion over time",
-            Self::PathTraversal => "Path traversal allows access to files outside intended directory",
+            Self::PathTraversal => {
+                "Path traversal allows access to files outside intended directory"
+            }
             Self::InsecureDeserialization => {
                 "Insecure deserialization can lead to remote code execution"
             }
@@ -235,7 +235,9 @@ impl VulnerabilityType {
                 "Command injection allows execution of arbitrary system commands"
             }
             Self::Ssrf => "Server-side request forgery allows making requests from the server",
-            Self::Idor => "Insecure direct object reference allows access to unauthorized resources",
+            Self::Idor => {
+                "Insecure direct object reference allows access to unauthorized resources"
+            }
             Self::HardcodedCredentials => {
                 "Hardcoded credentials expose sensitive authentication data"
             }
@@ -327,9 +329,9 @@ impl VulnerabilityType {
             Self::CommandInjection => &[Python, JavaScript, TypeScript, Php, Ruby, Go],
             Self::Ssrf => &[Python, JavaScript, TypeScript, Java, Php, Ruby, Go],
             Self::Idor => &[Python, JavaScript, TypeScript, Java, Php, Ruby, Go],
-            Self::HardcodedCredentials => {
-                &[Python, JavaScript, TypeScript, Java, Php, Ruby, Go, Rust, Cpp]
-            }
+            Self::HardcodedCredentials => &[
+                Python, JavaScript, TypeScript, Java, Php, Ruby, Go, Rust, Cpp,
+            ],
             Self::MissingInputValidation => {
                 &[Python, JavaScript, TypeScript, Java, Php, Ruby, Go, Rust]
             }
@@ -452,16 +454,13 @@ impl InjectedVulnerability {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        self.hints_to_remove.extend(hints.into_iter().map(Into::into));
+        self.hints_to_remove
+            .extend(hints.into_iter().map(Into::into));
         self
     }
 
     /// Adds metadata.
-    pub fn with_metadata(
-        mut self,
-        key: impl Into<String>,
-        value: impl Serialize,
-    ) -> Self {
+    pub fn with_metadata(mut self, key: impl Into<String>, value: impl Serialize) -> Self {
         if let Ok(json_value) = serde_json::to_value(value) {
             self.metadata.insert(key.into(), json_value);
         }
@@ -827,10 +826,7 @@ impl WorkspaceSpec {
 
         // Check that all vulnerability types are applicable to the language
         for vuln_type in &self.vulnerability_types {
-            if !vuln_type
-                .applicable_languages()
-                .contains(&self.language)
-            {
+            if !vuln_type.applicable_languages().contains(&self.language) {
                 return Err(format!(
                     "Vulnerability type {} is not applicable to language {}",
                     vuln_type, self.language
@@ -968,7 +964,10 @@ impl GeneratedWorkspace {
     }
 
     /// Returns a mutable reference to the file at the given path.
-    pub fn get_file_mut(&mut self, path: impl AsRef<std::path::Path>) -> Option<&mut WorkspaceFile> {
+    pub fn get_file_mut(
+        &mut self,
+        path: impl AsRef<std::path::Path>,
+    ) -> Option<&mut WorkspaceFile> {
         let path = path.as_ref();
         self.files.iter_mut().find(|f| f.path == path)
     }
@@ -1063,14 +1062,11 @@ mod tests {
 
     #[test]
     fn test_injected_vulnerability_builder() {
-        let vuln = InjectedVulnerability::new(
-            VulnerabilityType::SqlInjection,
-            "src/db.py",
-            (10, 15),
-        )
-        .with_description("SQL injection in user query")
-        .with_vulnerable_code("cursor.execute(f\"SELECT * FROM users WHERE id={id}\")")
-        .with_fixed_code("cursor.execute(\"SELECT * FROM users WHERE id=?\", (id,))");
+        let vuln =
+            InjectedVulnerability::new(VulnerabilityType::SqlInjection, "src/db.py", (10, 15))
+                .with_description("SQL injection in user query")
+                .with_vulnerable_code("cursor.execute(f\"SELECT * FROM users WHERE id={id}\")")
+                .with_fixed_code("cursor.execute(\"SELECT * FROM users WHERE id=?\", (id,))");
 
         assert_eq!(vuln.vulnerability_type, VulnerabilityType::SqlInjection);
         assert_eq!(vuln.line_range, (10, 15));

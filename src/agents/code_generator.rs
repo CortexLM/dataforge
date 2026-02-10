@@ -424,15 +424,10 @@ impl CodeGeneratorAgent {
 
         let metadata = WorkspaceMetadata::new("unknown");
 
-        let workspace = GeneratedWorkspace::new(
-            &idea.id,
-            &idea.project_name,
-            idea.language,
-            files,
-        )
-        .with_build_instructions(parsed.build_instructions)
-        .with_test_instructions(parsed.test_instructions)
-        .with_metadata(metadata);
+        let workspace = GeneratedWorkspace::new(&idea.id, &idea.project_name, idea.language, files)
+            .with_build_instructions(parsed.build_instructions)
+            .with_test_instructions(parsed.test_instructions)
+            .with_metadata(metadata);
 
         Ok(workspace)
     }
@@ -556,11 +551,7 @@ mod tests {
 
     #[test]
     fn test_generated_file() {
-        let file = GeneratedFile::new(
-            "src/main.py",
-            "print('hello')",
-            "Main file",
-        );
+        let file = GeneratedFile::new("src/main.py", "print('hello')", "Main file");
 
         assert_eq!(file.path, "src/main.py");
         assert_eq!(file.extension(), Some("py"));
@@ -613,7 +604,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_generate_workspace() {
-        use super::super::workspace_ideator::{ProjectStructure, ProjectType, WorkspaceComplexity, WorkspaceIdea};
+        use super::super::workspace_ideator::{
+            ProjectStructure, ProjectType, WorkspaceComplexity, WorkspaceIdea,
+        };
 
         let mock_llm = Arc::new(MockLlmProvider::new(&mock_response()));
         let agent = CodeGeneratorAgent::with_defaults(mock_llm);

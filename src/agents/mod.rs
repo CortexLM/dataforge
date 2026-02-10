@@ -87,6 +87,9 @@ pub mod workspace_ideator;
 pub mod workspace_orchestrator;
 pub mod workspace_validator;
 
+// Advanced synthetic workspace generation
+pub mod synthetic_workspace;
+
 // Re-export main types
 pub use analyzer_agent::{
     AnalyzedTask as PipelineAnalyzedTask, AnalyzerAgent, AnalyzerConfig,
@@ -180,4 +183,11 @@ pub use workspace_orchestrator::{
     DebateOutcome, GeneratedWorkspaceResult, InjectedVulnerability, WorkspaceFile,
     WorkspaceOrchestrator, WorkspaceOrchestratorBuilder, WorkspaceOrchestratorConfig,
     WorkspacePipelineEvent, WorkspacePipelineStage,
+};
+
+// Advanced synthetic workspace re-exports
+pub use synthetic_workspace::{
+    DifficultyLevel as SyntheticDifficultyLevel, GenerationEvent, GenerationStage, LanguageTarget,
+    ProjectCategory as SyntheticProjectCategory, SyntheticWorkspace, SyntheticWorkspaceConfig,
+    SyntheticWorkspaceOrchestrator, VulnerabilityConfig, WorkspaceTemplate,
 };

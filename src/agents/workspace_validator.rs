@@ -12,7 +12,9 @@ use uuid::Uuid;
 
 use super::code_cleaner::CleaningResult;
 use super::error::{AgentError, AgentResult};
-use super::vulnerability_injector::{InjectedVulnerability, InjectionResult, VulnerabilitySeverity};
+use super::vulnerability_injector::{
+    InjectedVulnerability, InjectionResult, VulnerabilitySeverity,
+};
 use super::workspace_ideator::ProgrammingLanguage;
 use crate::llm::{GenerationRequest, LlmProvider, Message};
 
@@ -106,12 +108,7 @@ pub struct ValidationScores {
 
 impl ValidationScores {
     /// Creates new validation scores.
-    pub fn new(
-        subtlety: f64,
-        completeness: f64,
-        solvability: f64,
-        quality: f64,
-    ) -> Self {
+    pub fn new(subtlety: f64, completeness: f64, solvability: f64, quality: f64) -> Self {
         let overall = (subtlety + completeness + solvability + quality) / 4.0;
 
         Self {
@@ -333,7 +330,10 @@ impl ValidatedWorkspace {
 
     /// Returns the benchmark prompt if available.
     pub fn benchmark_prompt(&self) -> Option<&str> {
-        self.validation.artifacts.as_ref().map(|a| a.benchmark_prompt.as_str())
+        self.validation
+            .artifacts
+            .as_ref()
+            .map(|a| a.benchmark_prompt.as_str())
     }
 
     /// Returns total lines of code.
@@ -347,7 +347,10 @@ impl ValidatedWorkspace {
     }
 
     /// Returns vulnerabilities by severity.
-    pub fn vulnerabilities_by_severity(&self, severity: VulnerabilitySeverity) -> Vec<&InjectedVulnerability> {
+    pub fn vulnerabilities_by_severity(
+        &self,
+        severity: VulnerabilitySeverity,
+    ) -> Vec<&InjectedVulnerability> {
         self.vulnerabilities
             .iter()
             .filter(|v| v.severity == severity)
@@ -527,14 +530,21 @@ impl WorkspaceValidatorAgent {
         WORKSPACE_VALIDATION_USER_TEMPLATE
             .replace("{language}", language.display_name())
             .replace("{project_name}", project_name)
-            .replace("{file_count}", &cleaning_result.cleaned_files.len().to_string())
+            .replace(
+                "{file_count}",
+                &cleaning_result.cleaned_files.len().to_string(),
+            )
             .replace("{total_loc}", &total_loc.to_string())
             .replace("{files_content}", &files_content)
             .replace("{vulnerability_summary}", &vulnerability_summary)
     }
 
     /// Parses the LLM response.
-    fn parse_response(&self, content: &str, source_id: &str) -> AgentResult<WorkspaceValidationResult> {
+    fn parse_response(
+        &self,
+        content: &str,
+        source_id: &str,
+    ) -> AgentResult<WorkspaceValidationResult> {
         let json_content = self.extract_json(content)?;
 
         let parsed: ValidationResponse = serde_json::from_str(&json_content)
@@ -557,8 +567,8 @@ impl WorkspaceValidatorAgent {
             parsed.estimated_time_minutes,
         );
 
-        let approved = parsed.validation.approved
-            && scores.meets_thresholds(self.config.approval_threshold);
+        let approved =
+            parsed.validation.approved && scores.meets_thresholds(self.config.approval_threshold);
 
         let result = WorkspaceValidationResult::new(
             source_id,
@@ -752,7 +762,10 @@ mod tests {
 
     #[test]
     fn test_benchmark_difficulty() {
-        assert_eq!(BenchmarkDifficulty::Easy.expected_success_rate(), (0.70, 1.0));
+        assert_eq!(
+            BenchmarkDifficulty::Easy.expected_success_rate(),
+            (0.70, 1.0)
+        );
         assert_eq!(BenchmarkDifficulty::Medium.expected_time_range(), (30, 60));
         assert_eq!(format!("{}", BenchmarkDifficulty::Hard), "hard");
     }
@@ -790,20 +803,14 @@ mod tests {
     #[test]
     fn test_validated_workspace() {
         let scores = ValidationScores::new(0.8, 0.9, 0.8, 0.85);
-        let validation = WorkspaceValidationResult::new(
-            "cleaning-1",
-            scores,
-            vec![],
-            vec![],
-            true,
-        )
-        .with_artifacts(BenchmarkArtifacts::new(
-            "Find bugs",
-            vec![],
-            "verify.sh",
-            BenchmarkDifficulty::Medium,
-            30,
-        ));
+        let validation = WorkspaceValidationResult::new("cleaning-1", scores, vec![], vec![], true)
+            .with_artifacts(BenchmarkArtifacts::new(
+                "Find bugs",
+                vec![],
+                "verify.sh",
+                BenchmarkDifficulty::Medium,
+                30,
+            ));
 
         let workspace = ValidatedWorkspace::new(
             "test-project",

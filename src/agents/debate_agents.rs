@@ -551,8 +551,7 @@ mod tests {
     #[test]
     fn test_expertise_scores() {
         // Innovator should excel at project type
-        let innovator_score =
-            DebateAgentRole::Innovator.expertise_score(&DebateTopic::ProjectType);
+        let innovator_score = DebateAgentRole::Innovator.expertise_score(&DebateTopic::ProjectType);
         assert!(innovator_score > 0.8);
 
         // Pragmatist should excel at feasibility

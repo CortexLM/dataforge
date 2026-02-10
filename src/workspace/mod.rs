@@ -105,6 +105,6 @@ pub use exporter::{
 
 // Re-export cleaner types
 pub use cleaner::{
-    default_hint_patterns, default_security_terms, CleanerConfig, CleaningResult,
-    FileModification, WorkspaceCleaner, WorkspaceCleanerBuilder,
+    default_hint_patterns, default_security_terms, CleanerConfig, CleaningResult, FileModification,
+    WorkspaceCleaner, WorkspaceCleanerBuilder,
 };

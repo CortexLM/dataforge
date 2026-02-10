@@ -22,8 +22,7 @@ use uuid::Uuid;
 
 use super::debate_agents::DebateTopic;
 use super::debate_orchestrator::{
-    ConsensusResult, DebateContext, DebateEvent, DebateOrchestrator,
-    DebateOrchestratorConfig,
+    ConsensusResult, DebateContext, DebateEvent, DebateOrchestrator, DebateOrchestratorConfig,
 };
 use super::error::{AgentError, AgentResult};
 use super::workspace_ideator::ProgrammingLanguage;
@@ -679,9 +678,8 @@ impl WorkspaceOrchestrator {
         )
         .await;
 
-        let (files, build_instructions, test_instructions) = self
-            .generate_code(&project_params, &event_tx)
-            .await?;
+        let (files, build_instructions, test_instructions) =
+            self.generate_code(&project_params, &event_tx).await?;
 
         self.send_event(
             &event_tx,
@@ -1310,10 +1308,7 @@ impl ProjectParameters {
     /// Creates default parameters for a language.
     fn default_for(language: ProgrammingLanguage, category_hint: Option<&str>) -> Self {
         Self {
-            project_name: format!(
-                "{}-sample",
-                language.display_name().to_lowercase()
-            ),
+            project_name: format!("{}-sample", language.display_name().to_lowercase()),
             language,
             category: category_hint.unwrap_or("general").to_string(),
             project_type: "cli".to_string(),
@@ -1418,8 +1413,8 @@ impl Default for WorkspaceOrchestratorBuilder {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::debate_orchestrator::ConsensusMechanism;
+    use super::*;
     use crate::llm::{Choice, GenerationResponse, Usage};
     use async_trait::async_trait;
     use std::sync::atomic::{AtomicUsize, Ordering};
@@ -1560,9 +1555,7 @@ mod tests {
 
     #[test]
     fn test_orchestrator_builder_missing_llm() {
-        let result = WorkspaceOrchestratorBuilder::new()
-            .debate_rounds(3)
-            .build();
+        let result = WorkspaceOrchestratorBuilder::new().debate_rounds(3).build();
 
         assert!(result.is_err());
         match result {
@@ -1679,9 +1672,9 @@ mod tests {
         assert!(!events.is_empty());
 
         // Check for completion event
-        let has_completed = events.iter().any(|e| {
-            matches!(e, WorkspacePipelineEvent::PipelineCompleted { .. })
-        });
+        let has_completed = events
+            .iter()
+            .any(|e| matches!(e, WorkspacePipelineEvent::PipelineCompleted { .. }));
         assert!(has_completed, "Should have PipelineCompleted event");
     }
 

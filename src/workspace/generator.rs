@@ -312,8 +312,9 @@ Good luck!"#,
         // Try to extract JSON from the response
         let json_str = self.extract_json_array(response)?;
 
-        let parsed: Vec<serde_json::Value> = serde_json::from_str(&json_str)
-            .map_err(|e| GeneratorError::InvalidParameter(format!("Failed to parse JSON: {}", e)))?;
+        let parsed: Vec<serde_json::Value> = serde_json::from_str(&json_str).map_err(|e| {
+            GeneratorError::InvalidParameter(format!("Failed to parse JSON: {}", e))
+        })?;
 
         let mut files = Vec::new();
         for item in parsed {
@@ -341,10 +342,7 @@ Good luck!"#,
                 _ => WorkspaceFileType::Source,
             };
 
-            files.push(
-                WorkspaceFile::new(path, content)
-                    .with_type(file_type)
-            );
+            files.push(WorkspaceFile::new(path, content).with_type(file_type));
         }
 
         if files.is_empty() {
@@ -363,8 +361,9 @@ Good luck!"#,
     ) -> Result<Vec<VerificationScript>, GeneratorError> {
         let json_str = self.extract_json_array(response)?;
 
-        let parsed: Vec<serde_json::Value> = serde_json::from_str(&json_str)
-            .map_err(|e| GeneratorError::InvalidParameter(format!("Failed to parse JSON: {}", e)))?;
+        let parsed: Vec<serde_json::Value> = serde_json::from_str(&json_str).map_err(|e| {
+            GeneratorError::InvalidParameter(format!("Failed to parse JSON: {}", e))
+        })?;
 
         let mut scripts = Vec::new();
         for item in parsed {
@@ -414,7 +413,10 @@ Good luck!"#,
 
         // Try to find JSON array in markdown code blocks
         if let Some(start) = trimmed.find("```json") {
-            if let Some(end) = trimmed[start..].find("```\n").or(trimmed[start..].rfind("```")) {
+            if let Some(end) = trimmed[start..]
+                .find("```\n")
+                .or(trimmed[start..].rfind("```"))
+            {
                 let json_start = start + 7; // Skip "```json"
                 let actual_end = if trimmed[start..].find("```\n").is_some() {
                     start + end
@@ -489,7 +491,11 @@ Good luck!"#,
                         _ => true, // Default to first source file
                     }
                 })
-                .or_else(|| files.iter().find(|f| f.file_type == WorkspaceFileType::Source));
+                .or_else(|| {
+                    files
+                        .iter()
+                        .find(|f| f.file_type == WorkspaceFileType::Source)
+                });
 
             if let Some(file) = relevant_file {
                 vulnerabilities.push(
@@ -559,8 +565,8 @@ Good luck!"#,
         fs::write(workspace_dir.join("prompt.md"), &workspace.task_prompt).await?;
 
         // Write task.yaml
-        let task_yaml = serde_yaml::to_string(&workspace.spec)
-            .map_err(|e| GeneratorError::Yaml(e))?;
+        let task_yaml =
+            serde_yaml::to_string(&workspace.spec).map_err(|e| GeneratorError::Yaml(e))?;
         fs::write(workspace_dir.join("task.yaml"), task_yaml).await?;
 
         // Write canary
@@ -603,7 +609,10 @@ impl<L: LlmProvider + 'static> WorkspaceGen for WorkspaceGenerator<L> {
         .with_temperature(self.config.temperature)
         .with_max_tokens(self.config.max_tokens);
 
-        let structure_response = self.llm.generate(structure_request).await
+        let structure_response = self
+            .llm
+            .generate(structure_request)
+            .await
             .map_err(|e| GeneratorError::Template(format!("LLM generation failed: {}", e)))?;
 
         let response_content = structure_response
@@ -628,8 +637,9 @@ impl<L: LlmProvider + 'static> WorkspaceGen for WorkspaceGenerator<L> {
         .with_temperature(self.config.temperature)
         .with_max_tokens(self.config.max_tokens / 2);
 
-        let verification_response = self.llm.generate(verification_request).await
-            .map_err(|e| GeneratorError::Template(format!("Verification generation failed: {}", e)))?;
+        let verification_response = self.llm.generate(verification_request).await.map_err(|e| {
+            GeneratorError::Template(format!("Verification generation failed: {}", e))
+        })?;
 
         let verification_scripts = verification_response
             .first_content()
@@ -637,7 +647,10 @@ impl<L: LlmProvider + 'static> WorkspaceGen for WorkspaceGenerator<L> {
             .transpose()?
             .unwrap_or_default();
 
-        info!("Generated {} verification scripts", verification_scripts.len());
+        info!(
+            "Generated {} verification scripts",
+            verification_scripts.len()
+        );
 
         // Create vulnerability records
         let vulnerabilities = self.create_vulnerability_records(spec, &files);
@@ -817,7 +830,8 @@ mod tests {
         assert!(json.is_ok());
 
         // Test finding array in text
-        let json = generator.extract_json_array(r#"Here is the output: [{"path": "test.py"}] done"#);
+        let json =
+            generator.extract_json_array(r#"Here is the output: [{"path": "test.py"}] done"#);
         assert!(json.is_ok());
 
         // Test invalid input

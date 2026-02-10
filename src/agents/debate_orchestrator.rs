@@ -14,9 +14,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
-use super::debate_agents::{
-    AgentPosition, DebateAgentRole, DebateResponse, DebateTopic,
-};
+use super::debate_agents::{AgentPosition, DebateAgentRole, DebateResponse, DebateTopic};
 use super::error::{AgentError, AgentResult};
 use crate::llm::{GenerationRequest, LlmProvider, Message};
 
@@ -662,10 +660,7 @@ impl DebateOrchestrator {
 
         let request = GenerationRequest::new(
             "default",
-            vec![
-                Message::system(system_prompt),
-                Message::user(user_prompt),
-            ],
+            vec![Message::system(system_prompt), Message::user(user_prompt)],
         )
         .with_temperature(self.config.temperature)
         .with_max_tokens(self.config.max_tokens);
@@ -692,14 +687,13 @@ impl DebateOrchestrator {
         // Try to extract JSON from the response
         let json_content = Self::extract_json(content);
 
-        let debate_response: DebateResponse =
-            serde_json::from_str(&json_content).map_err(|e| {
-                AgentError::ResponseParseError(format!(
-                    "Failed to parse debate response: {}. Content: {}",
-                    e,
-                    &json_content[..json_content.len().min(200)]
-                ))
-            })?;
+        let debate_response: DebateResponse = serde_json::from_str(&json_content).map_err(|e| {
+            AgentError::ResponseParseError(format!(
+                "Failed to parse debate response: {}. Content: {}",
+                e,
+                &json_content[..json_content.len().min(200)]
+            ))
+        })?;
 
         Ok(AgentPosition::new(
             role,
@@ -821,7 +815,11 @@ impl DebateOrchestrator {
         // Find winning position
         let (winning_key, (winning_weight, winning_conclusion)) = position_votes
             .iter()
-            .max_by(|a, b| a.1 .0.partial_cmp(&b.1 .0).unwrap_or(std::cmp::Ordering::Equal))
+            .max_by(|a, b| {
+                a.1 .0
+                    .partial_cmp(&b.1 .0)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
             .map(|(k, v)| (k.clone(), (v.0, v.1.clone())))
             .unwrap_or_default();
 
@@ -1046,7 +1044,10 @@ mod tests {
 
         assert_eq!(config.debate_rounds, 5);
         assert!((config.consensus_threshold - 0.8).abs() < 0.01);
-        assert_eq!(config.consensus_mechanism, ConsensusMechanism::Supermajority);
+        assert_eq!(
+            config.consensus_mechanism,
+            ConsensusMechanism::Supermajority
+        );
     }
 
     #[test]
@@ -1082,9 +1083,7 @@ mod tests {
 
     #[test]
     fn test_orchestrator_builder_missing_llm() {
-        let result = DebateOrchestratorBuilder::new()
-            .debate_rounds(3)
-            .build();
+        let result = DebateOrchestratorBuilder::new().debate_rounds(3).build();
 
         assert!(result.is_err());
         match result {
@@ -1099,7 +1098,10 @@ mod tests {
     fn test_extract_json() {
         // Raw JSON
         let raw = r#"{"claim": "test"}"#;
-        assert_eq!(DebateOrchestrator::extract_json(raw), r#"{"claim": "test"}"#);
+        assert_eq!(
+            DebateOrchestrator::extract_json(raw),
+            r#"{"claim": "test"}"#
+        );
 
         // Markdown wrapped
         let markdown = "```json\n{\"claim\": \"test\"}\n```";

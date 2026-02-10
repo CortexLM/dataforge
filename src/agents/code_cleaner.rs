@@ -163,7 +163,10 @@ impl CleaningResult {
 
     /// Returns files that were modified.
     pub fn modified_files(&self) -> Vec<&CleanedFile> {
-        self.cleaned_files.iter().filter(|f| f.was_modified()).collect()
+        self.cleaned_files
+            .iter()
+            .filter(|f| f.was_modified())
+            .collect()
     }
 
     /// Gets a file by path.
@@ -263,7 +266,10 @@ impl CodeCleanerAgent {
     }
 
     /// Cleans code from an injection result.
-    pub async fn clean_code(&self, injection_result: &InjectionResult) -> AgentResult<CleaningResult> {
+    pub async fn clean_code(
+        &self,
+        injection_result: &InjectionResult,
+    ) -> AgentResult<CleaningResult> {
         let mut last_error = None;
         for attempt in 0..3 {
             match self.attempt_clean(injection_result).await {
@@ -282,7 +288,11 @@ impl CodeCleanerAgent {
     }
 
     /// Cleans individual files.
-    pub async fn clean_files(&self, files: &[VulnerableFile], vulnerability_summary: &str) -> AgentResult<CleaningResult> {
+    pub async fn clean_files(
+        &self,
+        files: &[VulnerableFile],
+        vulnerability_summary: &str,
+    ) -> AgentResult<CleaningResult> {
         let prompt = self.build_prompt_from_files(files, vulnerability_summary);
 
         let request = GenerationRequest::new(
@@ -305,7 +315,10 @@ impl CodeCleanerAgent {
     }
 
     /// Attempts a single cleaning.
-    async fn attempt_clean(&self, injection_result: &InjectionResult) -> AgentResult<CleaningResult> {
+    async fn attempt_clean(
+        &self,
+        injection_result: &InjectionResult,
+    ) -> AgentResult<CleaningResult> {
         let prompt = self.build_prompt(injection_result);
 
         let request = GenerationRequest::new(
@@ -339,7 +352,12 @@ impl CodeCleanerAgent {
         let vulnerability_summary = injection_result
             .vulnerabilities
             .iter()
-            .map(|v| format!("- {} in {} (lines {}-{})", v.vulnerability_type, v.file_path, v.line_range.0, v.line_range.1))
+            .map(|v| {
+                format!(
+                    "- {} in {} (lines {}-{})",
+                    v.vulnerability_type, v.file_path, v.line_range.0, v.line_range.1
+                )
+            })
             .collect::<Vec<_>>()
             .join("\n");
 
@@ -349,7 +367,11 @@ impl CodeCleanerAgent {
     }
 
     /// Builds prompt from individual files.
-    fn build_prompt_from_files(&self, files: &[VulnerableFile], vulnerability_summary: &str) -> String {
+    fn build_prompt_from_files(
+        &self,
+        files: &[VulnerableFile],
+        vulnerability_summary: &str,
+    ) -> String {
         let files_content = files
             .iter()
             .map(|f| format!("--- {} ---\n{}\n", f.path, f.content))
@@ -432,7 +454,11 @@ impl CodeCleanerAgent {
             .filter(|line| {
                 let trimmed = line.trim();
                 // Keep the line if it's not a comment containing the pattern
-                if trimmed.starts_with("//") || trimmed.starts_with('#') || trimmed.starts_with("/*") || trimmed.starts_with('*') {
+                if trimmed.starts_with("//")
+                    || trimmed.starts_with('#')
+                    || trimmed.starts_with("/*")
+                    || trimmed.starts_with('*')
+                {
                     !trimmed.to_uppercase().contains(&pattern.to_uppercase())
                 } else {
                     true

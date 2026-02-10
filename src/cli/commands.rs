@@ -4,14 +4,33 @@
 //! synthetic benchmark datasets in one shot.
 
 use crate::agents::{
-    FactoryOrchestrator, FactoryOrchestratorConfig, FactoryPipelineEvent, FactoryPipelineStage,
-    FullPipelineConfig, FullPipelineEvent, FullPipelineOrchestrator, ProgrammingLanguage,
-    SyntheticOrchestrator, SyntheticOrchestratorConfig, SyntheticPipelineEvent,
-    SyntheticPipelineStage, SyntheticTask, TaskCategory as AgentTaskCategory,
-    WorkspaceOrchestrator, WorkspaceOrchestratorBuilder, WorkspacePipelineEvent,
+    FactoryOrchestrator,
+    FactoryOrchestratorConfig,
+    FactoryPipelineEvent,
+    FactoryPipelineStage,
+    FullPipelineConfig,
+    FullPipelineEvent,
+    FullPipelineOrchestrator,
+    // Advanced synthetic workspace generation
+    GenerationEvent,
+    LanguageTarget,
+    ProgrammingLanguage,
+    SyntheticDifficultyLevel,
+    SyntheticOrchestrator,
+    SyntheticOrchestratorConfig,
+    SyntheticPipelineEvent,
+    SyntheticPipelineStage,
+    SyntheticProjectCategory,
+    SyntheticTask,
+    SyntheticWorkspaceConfig,
+    SyntheticWorkspaceOrchestrator,
+    TaskCategory as AgentTaskCategory,
+    WorkspaceOrchestrator,
+    WorkspaceOrchestratorBuilder,
+    WorkspacePipelineEvent,
 };
-use crate::workspace::{WorkspaceExporter, WorkspaceLanguage};
 use crate::llm::{create_shared_cache, LiteLlmClient, OpenRouterProvider};
+use crate::workspace::{WorkspaceExporter, WorkspaceLanguage};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -69,6 +88,20 @@ pub enum Commands {
     /// debate system to design realistic, challenging benchmarks.
     #[command(alias = "ws")]
     Workspace(WorkspaceArgs),
+
+    /// Generate synthetic workspaces with multi-agent debate system (advanced).
+    ///
+    /// This command creates high-quality synthetic benchmark workspaces using
+    /// a sophisticated multi-agent debate pipeline. Agents debate on:
+    /// - Project architecture and design
+    /// - Vulnerability selection and placement
+    /// - Difficulty calibration
+    /// - Code quality validation
+    ///
+    /// The generated code contains subtle, realistic vulnerabilities without
+    /// any hints or comments that reveal their location.
+    #[command(alias = "synth")]
+    Synthetic(SyntheticArgs),
 }
 
 /// Arguments for the generate command.
@@ -240,6 +273,82 @@ pub struct WorkspaceArgs {
     pub zip: bool,
 }
 
+/// Arguments for the synthetic workspace command (advanced).
+#[derive(Parser, Debug)]
+pub struct SyntheticArgs {
+    /// Number of workspaces to generate.
+    #[arg(short = 'n', long, default_value = "1")]
+    pub count: u32,
+
+    /// Programming language for the workspace.
+    /// Available: python, javascript, typescript, rust, go, java, ruby, php, cpp, csharp
+    #[arg(short = 'L', long, default_value = "python")]
+    pub language: String,
+
+    /// Project category.
+    /// Available: web-api, cli-tool, web-app, data-pipeline, microservice, library,
+    /// backend-service, file-processor, auth-service, database-tool
+    #[arg(short = 'c', long, default_value = "web-api")]
+    pub category: String,
+
+    /// Difficulty level for the task.
+    /// Available: easy, medium, hard, expert
+    #[arg(short = 'd', long, default_value = "medium")]
+    pub difficulty: String,
+
+    /// LLM model to use for code generation (OpenRouter format).
+    #[arg(short = 'm', long, default_value = DEFAULT_MODEL)]
+    pub model: String,
+
+    /// Output directory for generated workspaces.
+    #[arg(short = 'o', long, default_value = DEFAULT_OUTPUT_DIR)]
+    pub output: String,
+
+    /// Output JSON to stdout instead of interactive progress.
+    #[arg(short = 'j', long)]
+    pub json: bool,
+
+    /// Number of debate rounds for multi-agent consensus.
+    #[arg(long, default_value = "3")]
+    pub debate_rounds: u32,
+
+    /// Consensus threshold (0.0 to 1.0) for debate decisions.
+    #[arg(long, default_value = "0.6")]
+    pub consensus_threshold: f64,
+
+    /// Minimum number of vulnerabilities to inject.
+    #[arg(long, default_value = "3")]
+    pub min_vulnerabilities: usize,
+
+    /// Maximum number of vulnerabilities to inject.
+    #[arg(long, default_value = "7")]
+    pub max_vulnerabilities: usize,
+
+    /// Temperature for code generation (0.0-2.0).
+    #[arg(long, default_value = "0.4")]
+    pub generation_temperature: f64,
+
+    /// Temperature for debate (0.0-2.0).
+    #[arg(long, default_value = "0.7")]
+    pub debate_temperature: f64,
+
+    /// Random seed for reproducibility.
+    #[arg(short = 's', long)]
+    pub seed: Option<u64>,
+
+    /// OpenRouter API key.
+    #[arg(long, env = "OPENROUTER_API_KEY")]
+    pub api_key: Option<String>,
+
+    /// Export workspaces as .tar.gz files (excludes build artifacts).
+    #[arg(long)]
+    pub zip: bool,
+
+    /// Skip code cleaning (keep TODOs and hints - for debugging).
+    #[arg(long)]
+    pub no_clean: bool,
+}
+
 /// Parse CLI arguments and return the Cli struct.
 ///
 /// This allows main.rs to access CLI arguments (like log_level) before running commands.
@@ -268,6 +377,9 @@ pub async fn run_with_cli(cli: Cli) -> anyhow::Result<()> {
         }
         Commands::Workspace(args) => {
             run_workspace_command(args).await?;
+        }
+        Commands::Synthetic(args) => {
+            run_synthetic_command(args).await?;
         }
     }
     Ok(())
@@ -563,9 +675,7 @@ async fn run_interactive_workspace(
                             } else {
                                 "no consensus"
                             };
-                            let decision = winning_position
-                                .as_deref()
-                                .unwrap_or("undecided");
+                            let decision = winning_position.as_deref().unwrap_or("undecided");
                             println!(
                                 "   💬 Debate {}: {} (score: {:.2})",
                                 status, decision, consensus_score
@@ -577,7 +687,10 @@ async fn run_interactive_workspace(
                         loc_generated,
                         ..
                     } => {
-                        println!("   📄 Generated {} files ({} LOC)", files_generated, loc_generated);
+                        println!(
+                            "   📄 Generated {} files ({} LOC)",
+                            files_generated, loc_generated
+                        );
                     }
                     WorkspacePipelineEvent::InjectionProgress {
                         vulnerability_type,
@@ -588,12 +701,18 @@ async fn run_interactive_workspace(
                     }
                     WorkspacePipelineEvent::ValidationResult { passed, issues, .. } => {
                         let symbol = if passed { "✓" } else { "✗" };
-                        println!("   {} Validation: {}", symbol, if passed { "passed" } else { "failed" });
+                        println!(
+                            "   {} Validation: {}",
+                            symbol,
+                            if passed { "passed" } else { "failed" }
+                        );
                         for issue in issues {
                             println!("      - {}", issue);
                         }
                     }
-                    WorkspacePipelineEvent::ReviewResult { score, comments, .. } => {
+                    WorkspacePipelineEvent::ReviewResult {
+                        score, comments, ..
+                    } => {
                         println!("   📊 Review score: {:.2}", score);
                         for comment in comments.iter().take(2) {
                             println!("      - {}", comment);
@@ -631,7 +750,11 @@ async fn run_interactive_workspace(
                 let workspace_dir = output_path.join(&workspace.id);
                 match save_workspace(&workspace, &workspace_dir).await {
                     Ok(()) => {
-                        println!("   💾 Saved: {} → {}", workspace.id, workspace_dir.display());
+                        println!(
+                            "   💾 Saved: {} → {}",
+                            workspace.id,
+                            workspace_dir.display()
+                        );
                     }
                     Err(e) => {
                         warn!(error = %e, workspace_id = %workspace.id, "Failed to save workspace to disk");
@@ -754,9 +877,7 @@ async fn export_workspace_to_zip(
     language: ProgrammingLanguage,
     output_path: &Path,
 ) -> anyhow::Result<String> {
-    use crate::workspace::{
-        GeneratedWorkspace, WorkspaceFile as WsFile, WorkspaceSpec,
-    };
+    use crate::workspace::{GeneratedWorkspace, WorkspaceFile as WsFile, WorkspaceSpec};
 
     // Convert to the workspace types expected by the exporter
     let workspace_language = parse_workspace_language(language);
@@ -2302,6 +2423,460 @@ async fn run_interactive_evaluation(
             .map_err(|e| anyhow::anyhow!("Failed to write output file: {}", e))?;
 
         println!("\n📁 Results saved to: {}", output_path);
+    }
+
+    Ok(())
+}
+
+// ============================================================================
+// Synthetic Workspace Command Implementation (Advanced)
+// ============================================================================
+
+/// Parses a language string to LanguageTarget enum.
+fn parse_language_target(language_str: &str) -> anyhow::Result<LanguageTarget> {
+    match language_str.to_lowercase().as_str() {
+        "python" | "py" => Ok(LanguageTarget::Python),
+        "javascript" | "js" => Ok(LanguageTarget::JavaScript),
+        "typescript" | "ts" => Ok(LanguageTarget::TypeScript),
+        "rust" | "rs" => Ok(LanguageTarget::Rust),
+        "go" | "golang" => Ok(LanguageTarget::Go),
+        "java" => Ok(LanguageTarget::Java),
+        "ruby" | "rb" => Ok(LanguageTarget::Ruby),
+        "php" => Ok(LanguageTarget::Php),
+        "cpp" | "c++" => Ok(LanguageTarget::Cpp),
+        "csharp" | "c#" => Ok(LanguageTarget::Csharp),
+        other => Err(anyhow::anyhow!(
+            "Unknown language: '{}'. Available: python, javascript, typescript, rust, go, java, ruby, php, cpp, csharp",
+            other
+        )),
+    }
+}
+
+/// Parses a category string to SyntheticProjectCategory enum.
+fn parse_project_category(category_str: &str) -> anyhow::Result<SyntheticProjectCategory> {
+    match category_str.to_lowercase().replace('-', "_").as_str() {
+        "web_api" | "webapi" | "api" => Ok(SyntheticProjectCategory::WebApi),
+        "cli_tool" | "clitool" | "cli" => Ok(SyntheticProjectCategory::CliTool),
+        "web_app" | "webapp" | "web" => Ok(SyntheticProjectCategory::WebApp),
+        "data_pipeline" | "datapipeline" | "pipeline" => Ok(SyntheticProjectCategory::DataPipeline),
+        "microservice" | "micro" => Ok(SyntheticProjectCategory::Microservice),
+        "library" | "lib" => Ok(SyntheticProjectCategory::Library),
+        "backend_service" | "backendservice" | "backend" => Ok(SyntheticProjectCategory::BackendService),
+        "file_processor" | "fileprocessor" | "file" => Ok(SyntheticProjectCategory::FileProcessor),
+        "auth_service" | "authservice" | "auth" => Ok(SyntheticProjectCategory::AuthService),
+        "database_tool" | "databasetool" | "db" => Ok(SyntheticProjectCategory::DatabaseTool),
+        other => Err(anyhow::anyhow!(
+            "Unknown category: '{}'. Available: web-api, cli-tool, web-app, data-pipeline, microservice, library, backend-service, file-processor, auth-service, database-tool",
+            other
+        )),
+    }
+}
+
+/// Parses a difficulty string to SyntheticDifficultyLevel enum.
+fn parse_difficulty_level(difficulty_str: &str) -> anyhow::Result<SyntheticDifficultyLevel> {
+    match difficulty_str.to_lowercase().as_str() {
+        "easy" | "e" => Ok(SyntheticDifficultyLevel::Easy),
+        "medium" | "m" | "med" => Ok(SyntheticDifficultyLevel::Medium),
+        "hard" | "h" => Ok(SyntheticDifficultyLevel::Hard),
+        "expert" | "x" | "extreme" => Ok(SyntheticDifficultyLevel::Expert),
+        other => Err(anyhow::anyhow!(
+            "Unknown difficulty: '{}'. Available: easy, medium, hard, expert",
+            other
+        )),
+    }
+}
+
+/// Runs the synthetic workspace generation command.
+async fn run_synthetic_command(args: SyntheticArgs) -> anyhow::Result<()> {
+    // Parse configuration
+    let language = parse_language_target(&args.language)?;
+    let category = parse_project_category(&args.category)?;
+    let difficulty = parse_difficulty_level(&args.difficulty)?;
+
+    // Get API key from argument or environment
+    let api_key = args
+        .api_key
+        .clone()
+        .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
+        .or_else(|| std::env::var("LITELLM_API_KEY").ok());
+
+    // Initialize LLM client
+    let llm_client: Arc<dyn crate::llm::LlmProvider> = if let Some(key) = api_key {
+        info!(model = %args.model, "Using OpenRouter with specified API key");
+        Arc::new(OpenRouterProvider::with_model(key, args.model.clone()))
+    } else {
+        info!("Using LiteLLM client from environment");
+        Arc::new(LiteLlmClient::from_env().map_err(|e| {
+            anyhow::anyhow!(
+                "Failed to initialize LLM client: {}. \
+                 Please provide --api-key or set OPENROUTER_API_KEY/LITELLM_API_KEY env var.",
+                e
+            )
+        })?)
+    };
+
+    // Create output directory
+    let output_dir = args.output.clone();
+    let output_path = Path::new(&output_dir);
+    fs::create_dir_all(output_path)?;
+    info!(output = %output_dir, "Output directory ready");
+
+    // Build configuration
+    let mut config = SyntheticWorkspaceConfig::new()
+        .with_language(language)
+        .with_category(category)
+        .with_difficulty(difficulty)
+        .with_generation_model(&args.model)
+        .with_debate_model(&args.model)
+        .with_debate_rounds(args.debate_rounds)
+        .with_consensus_threshold(args.consensus_threshold)
+        .with_min_vulnerabilities(args.min_vulnerabilities)
+        .with_max_vulnerabilities(args.max_vulnerabilities)
+        .with_generation_temperature(args.generation_temperature)
+        .with_debate_temperature(args.debate_temperature)
+        .with_auto_clean(!args.no_clean)
+        .with_output_dir(&args.output);
+
+    if let Some(seed) = args.seed {
+        config = config.with_seed(seed);
+    }
+
+    // Create orchestrator
+    let orchestrator = SyntheticWorkspaceOrchestrator::new(llm_client, config);
+
+    if args.json {
+        run_json_synthetic(&orchestrator, &args, output_path).await
+    } else {
+        run_interactive_synthetic(&orchestrator, &args, output_path).await
+    }
+}
+
+/// JSON output structure for synthetic workspace generation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyntheticOutput {
+    pub status: String,
+    pub model: String,
+    pub language: String,
+    pub category: String,
+    pub difficulty: String,
+    pub workspaces: Vec<SyntheticWorkspaceOutput>,
+    pub total_duration_ms: u64,
+    pub output_directory: String,
+}
+
+/// JSON output for a single synthetic workspace.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyntheticWorkspaceOutput {
+    pub workspace_id: String,
+    pub project_name: String,
+    pub file_count: usize,
+    pub vulnerability_count: usize,
+    pub total_loc: usize,
+    pub saved_path: Option<String>,
+    pub zip_path: Option<String>,
+    pub debates_conducted: usize,
+}
+
+/// Runs synthetic generation with JSON output.
+async fn run_json_synthetic(
+    orchestrator: &SyntheticWorkspaceOrchestrator,
+    args: &SyntheticArgs,
+    output_path: &Path,
+) -> anyhow::Result<()> {
+    let start_time = std::time::Instant::now();
+    let mut workspaces = Vec::new();
+
+    for i in 0..args.count {
+        let (event_tx, _event_rx) = tokio::sync::mpsc::channel::<GenerationEvent>(100);
+
+        match orchestrator.generate(event_tx).await {
+            Ok(workspace) => {
+                // Save workspace to directory
+                let saved_path = match workspace.export_to_directory(output_path).await {
+                    Ok(path) => Some(path.to_string_lossy().to_string()),
+                    Err(e) => {
+                        warn!(error = %e, workspace_id = %workspace.id, "Failed to save workspace");
+                        None
+                    }
+                };
+
+                // Export to zip if requested
+                let zip_path = if args.zip && saved_path.is_some() {
+                    let zip_file = output_path.join(format!("{}.tar.gz", workspace.id));
+                    match workspace.export_to_zip(&zip_file).await {
+                        Ok(path) => Some(path.to_string_lossy().to_string()),
+                        Err(e) => {
+                            warn!(error = %e, workspace_id = %workspace.id, "Failed to export zip");
+                            None
+                        }
+                    }
+                } else {
+                    None
+                };
+
+                workspaces.push(SyntheticWorkspaceOutput {
+                    workspace_id: workspace.id.clone(),
+                    project_name: workspace.spec.name.clone(),
+                    file_count: workspace.files.len(),
+                    vulnerability_count: workspace.vulnerabilities.len(),
+                    total_loc: workspace.total_loc,
+                    saved_path,
+                    zip_path,
+                    debates_conducted: workspace.debates.len(),
+                });
+            }
+            Err(e) => {
+                error!(workspace_index = i, error = %e, "Failed to generate workspace");
+            }
+        }
+    }
+
+    let duration_ms = start_time.elapsed().as_millis() as u64;
+
+    let output = SyntheticOutput {
+        status: if workspaces.is_empty() && args.count > 0 {
+            "failed".to_string()
+        } else {
+            "success".to_string()
+        },
+        model: args.model.clone(),
+        language: args.language.clone(),
+        category: args.category.clone(),
+        difficulty: args.difficulty.clone(),
+        workspaces,
+        total_duration_ms: duration_ms,
+        output_directory: output_path.to_string_lossy().to_string(),
+    };
+
+    let json_output = serde_json::to_string_pretty(&output)
+        .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
+    println!("{}", json_output);
+
+    Ok(())
+}
+
+/// Runs interactive synthetic generation with progress output.
+async fn run_interactive_synthetic(
+    orchestrator: &SyntheticWorkspaceOrchestrator,
+    args: &SyntheticArgs,
+    output_path: &Path,
+) -> anyhow::Result<()> {
+    println!("\n🧪 Advanced Synthetic Workspace Generation");
+    println!("==========================================");
+    println!("Model: {}", args.model);
+    println!("Language: {}", args.language);
+    println!("Category: {}", args.category);
+    println!("Difficulty: {}", args.difficulty);
+    println!("Count: {}", args.count);
+    println!("Output: {}", output_path.display());
+    println!(
+        "Vulnerabilities: {}-{}",
+        args.min_vulnerabilities, args.max_vulnerabilities
+    );
+    println!();
+
+    println!("Pipeline stages:");
+    println!("├─ ○ Planning (Project specification)");
+    println!("├─ ○ Debate (Multi-agent consensus)");
+    println!("│   ├─ Vulnerability Selection");
+    println!("│   └─ Difficulty Calibration");
+    println!("├─ ○ Code Generation (LLM-powered)");
+    println!("├─ ○ Vulnerability Injection (Subtle)");
+    println!("├─ ○ Cleaning (Remove hints)");
+    println!("└─ ○ Export (Save artifacts)\n");
+
+    let mut generated_workspaces = Vec::new();
+    let mut failed_count = 0u32;
+
+    for i in 0..args.count {
+        println!("📝 Generating workspace {}/{}...", i + 1, args.count);
+
+        let (event_tx, mut event_rx) = tokio::sync::mpsc::channel::<GenerationEvent>(100);
+
+        // Spawn event handler
+        let event_handle = tokio::spawn(async move {
+            while let Some(event) = event_rx.recv().await {
+                match event {
+                    GenerationEvent::Started {
+                        workspace_id,
+                        language,
+                        category,
+                        difficulty,
+                        ..
+                    } => {
+                        println!(
+                            "   🚀 Started {} ({} {} {})",
+                            workspace_id, language, category, difficulty
+                        );
+                    }
+                    GenerationEvent::StageStarted { stage, .. } => {
+                        println!("   ⟳ {} started...", stage);
+                    }
+                    GenerationEvent::StageCompleted {
+                        stage, duration_ms, ..
+                    } => {
+                        println!("   ✓ {} completed ({}ms)", stage, duration_ms);
+                    }
+                    GenerationEvent::DebateRound {
+                        topic,
+                        round,
+                        agreement_score,
+                        ..
+                    } => {
+                        println!(
+                            "   💬 {} round {}: {:.0}% agreement",
+                            topic,
+                            round,
+                            agreement_score * 100.0
+                        );
+                    }
+                    GenerationEvent::DebateCompleted {
+                        topic,
+                        consensus_reached,
+                        decision,
+                        ..
+                    } => {
+                        let status = if consensus_reached {
+                            "✓ consensus"
+                        } else {
+                            "⚠ no consensus"
+                        };
+                        println!(
+                            "   💬 {} {}: {}",
+                            topic,
+                            status,
+                            decision.unwrap_or_default()
+                        );
+                    }
+                    GenerationEvent::FileGenerated {
+                        path,
+                        file_type,
+                        lines,
+                        ..
+                    } => {
+                        println!("   📄 {} ({:?}, {} lines)", path, file_type, lines);
+                    }
+                    GenerationEvent::VulnerabilityInjected {
+                        vulnerability_type,
+                        file,
+                        severity,
+                        ..
+                    } => {
+                        println!(
+                            "   💉 {} in {} (severity: {})",
+                            vulnerability_type, file, severity
+                        );
+                    }
+                    GenerationEvent::CleaningCompleted {
+                        files_cleaned,
+                        patterns_removed,
+                        ..
+                    } => {
+                        println!(
+                            "   🧹 Cleaned {} files, removed {} patterns",
+                            files_cleaned, patterns_removed
+                        );
+                    }
+                    GenerationEvent::Completed {
+                        workspace_id,
+                        file_count,
+                        vulnerability_count,
+                        total_loc,
+                        duration_ms,
+                        ..
+                    } => {
+                        println!(
+                            "   ✓ Complete: {} ({} files, {} vulns, {} LOC, {}ms)",
+                            workspace_id, file_count, vulnerability_count, total_loc, duration_ms
+                        );
+                    }
+                    GenerationEvent::Failed { stage, error, .. } => {
+                        println!("   ✗ Failed at {}: {}", stage, error);
+                    }
+                }
+            }
+        });
+
+        let result = orchestrator.generate(event_tx).await;
+
+        // Wait for event handler to finish
+        let _ = event_handle.await;
+
+        match result {
+            Ok(workspace) => {
+                // Save workspace to directory
+                match workspace.export_to_directory(output_path).await {
+                    Ok(path) => {
+                        println!("   💾 Saved: {} → {}", workspace.id, path.display());
+                    }
+                    Err(e) => {
+                        warn!(error = %e, workspace_id = %workspace.id, "Failed to save workspace");
+                    }
+                }
+
+                // Export to zip if requested
+                if args.zip {
+                    let zip_file = output_path.join(format!("{}.tar.gz", workspace.id));
+                    match workspace.export_to_zip(&zip_file).await {
+                        Ok(path) => {
+                            println!("   📦 Exported: {}", path.display());
+                        }
+                        Err(e) => {
+                            warn!(error = %e, workspace_id = %workspace.id, "Failed to export zip");
+                        }
+                    }
+                }
+
+                println!("\n✓ Workspace {} generated successfully!", i + 1);
+                println!("  ID: {}", workspace.id);
+                println!("  Project: {}", workspace.spec.name);
+                println!("  Files: {}", workspace.files.len());
+                println!("  LOC: {}", workspace.total_loc);
+                println!("  Vulnerabilities: {}", workspace.vulnerabilities.len());
+                println!("  Debates: {}", workspace.debates.len());
+                generated_workspaces.push(workspace);
+            }
+            Err(e) => {
+                eprintln!("\n✗ Workspace {} failed: {}", i + 1, e);
+                failed_count += 1;
+            }
+        }
+
+        if i < args.count - 1 {
+            println!();
+        }
+    }
+
+    // Print summary
+    println!("\n{}", "=".repeat(50));
+    println!("🧪 Synthetic Workspace Generation Summary");
+    println!("{}", "=".repeat(50));
+    println!(
+        "✓ Successfully generated: {}/{}",
+        generated_workspaces.len(),
+        args.count
+    );
+    if failed_count > 0 {
+        println!("✗ Failed: {}", failed_count);
+    }
+    println!("📁 Output directory: {}", output_path.display());
+
+    if !generated_workspaces.is_empty() {
+        println!("\n📋 Generated Workspaces:");
+        for (idx, workspace) in generated_workspaces.iter().enumerate() {
+            println!(
+                "  {}. {} ({} files, {} vulns, {} LOC)",
+                idx + 1,
+                workspace.spec.name,
+                workspace.files.len(),
+                workspace.vulnerabilities.len(),
+                workspace.total_loc
+            );
+        }
+    }
+
+    if generated_workspaces.is_empty() && args.count > 0 {
+        return Err(anyhow::anyhow!("Failed to generate any workspaces"));
     }
 
     Ok(())

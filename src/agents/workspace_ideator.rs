@@ -372,7 +372,10 @@ impl WorkspaceIdea {
     }
 
     /// Sets the vulnerability opportunities.
-    pub fn with_vulnerability_opportunities(mut self, opportunities: Vec<VulnerabilityOpportunity>) -> Self {
+    pub fn with_vulnerability_opportunities(
+        mut self,
+        opportunities: Vec<VulnerabilityOpportunity>,
+    ) -> Self {
         self.vulnerability_opportunities = opportunities;
         self
     }
@@ -482,7 +485,11 @@ impl WorkspaceIdeatorAgent {
         let mut last_error = None;
         for attempt in 0..3 {
             match self
-                .attempt_generate(selected_language, selected_project_type, selected_complexity)
+                .attempt_generate(
+                    selected_language,
+                    selected_project_type,
+                    selected_complexity,
+                )
                 .await
             {
                 Ok(result) => return Ok(result),
@@ -729,7 +736,10 @@ mod tests {
 
     #[async_trait]
     impl LlmProvider for MockLlmProvider {
-        async fn generate(&self, _request: GenerationRequest) -> Result<GenerationResponse, LlmError> {
+        async fn generate(
+            &self,
+            _request: GenerationRequest,
+        ) -> Result<GenerationResponse, LlmError> {
             let content = self.response.lock().expect("lock poisoned").clone();
             Ok(GenerationResponse {
                 id: "test-id".to_string(),
@@ -819,9 +829,15 @@ mod tests {
 
     #[test]
     fn test_parse_language() {
-        assert_eq!(parse_language("Python").unwrap(), ProgrammingLanguage::Python);
+        assert_eq!(
+            parse_language("Python").unwrap(),
+            ProgrammingLanguage::Python
+        );
         assert_eq!(parse_language("rust").unwrap(), ProgrammingLanguage::Rust);
-        assert_eq!(parse_language("JS").unwrap(), ProgrammingLanguage::JavaScript);
+        assert_eq!(
+            parse_language("JS").unwrap(),
+            ProgrammingLanguage::JavaScript
+        );
         assert!(parse_language("invalid").is_err());
     }
 
