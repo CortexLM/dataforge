@@ -421,7 +421,9 @@ impl Default for IdeatorConfig {
         Self {
             temperature: 1.0,
             top_p: 0.95,
-            max_tokens: 4000,
+            // Increased from 4000 to 8000 to accommodate reasoning models
+            // that may output thinking content before the JSON response.
+            max_tokens: 8000,
         }
     }
 }
@@ -963,7 +965,8 @@ mod tests {
         let config = IdeatorConfig::default();
         assert!((config.temperature - 1.0).abs() < 0.01);
         assert!((config.top_p - 0.95).abs() < 0.01);
-        assert_eq!(config.max_tokens, 4000);
+        // Increased to 8000 to accommodate reasoning models
+        assert_eq!(config.max_tokens, 8000);
     }
 
     #[test]
