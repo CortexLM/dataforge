@@ -1,0 +1,265 @@
+id: javascript-express-api-security-audit
+version: "1.0"
+language: javascript
+runtime: node
+project_type: express-api
+difficulty: medium
+estimated_time: 45-60 minutes
+
+metadata:
+  name: "Express.js REST API Security Audit"
+  description: "A user management API service built with Express.js and MongoDB"
+  tags:
+    - security
+    - express
+    - nodejs
+    - mongodb
+    - authentication
+    - api
+  prerequisites:
+    - Node.js 18+
+    - MongoDB
+    - Basic understanding of Express.js
+    - Familiarity with JWT authentication
+
+problem_statement: |
+  You are tasked with performing a security audit on an Express.js REST API service.
+  
+  This API provides user management functionality including:
+  - User registration and authentication
+  - Profile management
+  - User search functionality
+  - Data export features
+  - Settings management
+  
+  The development team has requested a thorough security review before
+  deploying to production. Your task is to:
+  
+  1. Identify all security vulnerabilities in the codebase
+  2. Assess the severity of each vulnerability
+  3. Implement fixes for all identified issues
+  4. Ensure fixes don't break existing functionality
+  
+  The codebase follows standard Express.js patterns with:
+  - JWT-based authentication
+  - MongoDB with Mongoose ODM
+  - Standard middleware patterns
+  - RESTful API design
+  
+  Focus areas for the audit:
+  - Authentication and authorization mechanisms
+  - Input validation and sanitization
+  - Data exposure risks
+  - Injection vulnerabilities
+  - Session and token management
+  - File handling operations
+
+files:
+  - src/index.js
+  - src/app.js
+  - src/config/database.js
+  - src/middleware/auth.js
+  - src/middleware/validation.js
+  - src/routes/index.js
+  - src/routes/auth.routes.js
+  - src/routes/users.routes.js
+  - src/controllers/auth.controller.js
+  - src/controllers/users.controller.js
+  - src/models/user.model.js
+  - src/utils/crypto.js
+  - src/utils/helpers.js
+  - package.json
+
+hidden_solution:
+  vulnerabilities:
+    - id: xss-reflected
+      severity: high
+      location: src/controllers/users.controller.js
+      function: getPublicProfile
+      line_range: [68, 78]
+      description: |
+        Reflected XSS vulnerability in the public profile endpoint.
+        User-controlled data (name, bio) is directly interpolated into HTML
+        response without sanitization, allowing script injection.
+      pattern: "\\$\\{user\\.name\\}|\\$\\{user\\.bio"
+      fix: |
+        Escape HTML entities in user-supplied data before rendering.
+        Use a library like 'he' or 'escape-html' to sanitize output.
+        Alternatively, return JSON and let the frontend handle rendering.
+      cwe: CWE-79
+
+    - id: nosql-injection
+      severity: critical
+      location: src/controllers/users.controller.js
+      function: searchUsers
+      line_range: [32, 45]
+      description: |
+        NoSQL injection via $where operator. User input is directly
+        concatenated into a JavaScript expression used in MongoDB's
+        $where clause, allowing arbitrary JavaScript execution.
+      pattern: "\\$where.*includes\\('\\$\\{q\\}'"
+      fix: |
+        Never use $where with user input. Use MongoDB's built-in text
+        search or $regex with escaped input instead:
+        query.$or = [
+          { name: { $regex: escapeRegex(q), $options: 'i' } },
+          { email: { $regex: escapeRegex(q), $options: 'i' } }
+        ];
+      cwe: CWE-943
+
+    - id: weak-jwt-secret
+      severity: critical
+      location: src/middleware/auth.js
+      line_range: [4, 4]
+      description: |
+        JWT secret is hardcoded as 'secret123', which is trivially
+        guessable. Additionally, tokens have no expiration time set,
+        making them valid indefinitely if compromised.
+      pattern: "JWT_SECRET = 'secret123'"
+      fix: |
+        Use environment variable for JWT secret with a strong random value.
+        Add expiration to all tokens:
+        const JWT_SECRET = process.env.JWT_SECRET;
+        jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+      cwe: CWE-798
+
+    - id: path-traversal
+      severity: high
+      location: src/app.js
+      line_range: [17, 25]
+      description: |
+        Path traversal vulnerability in file serving endpoint.
+        The filename parameter is used directly without sanitization,
+        allowing access to files outside the uploads directory via
+        ../ sequences.
+      pattern: "path\\.join\\(__dirname.*filename\\)"
+      fix: |
+        Validate and sanitize the filename. Use path.basename() to
+        extract only the filename component:
+        const safeName = path.basename(filename);
+        const filePath = path.join(__dirname, '../uploads', safeName);
+      cwe: CWE-22
+
+    - id: missing-rate-limiting
+      severity: medium
+      location: src/routes/auth.routes.js
+      line_range: [8, 10]
+      description: |
+        Authentication endpoints lack rate limiting, making them
+        vulnerable to brute force attacks and credential stuffing.
+      pattern: "router\\.post\\('/login'"
+      fix: |
+        Add rate limiting middleware using express-rate-limit:
+        const rateLimit = require('express-rate-limit');
+        const authLimiter = rateLimit({
+          windowMs: 15 * 60 * 1000,
+          max: 5,
+          message: { error: 'Too many attempts, try again later' }
+        });
+        router.post('/login', authLimiter, validateLogin, authController.login);
+      cwe: CWE-307
+
+    - id: prototype-pollution
+      severity: high
+      location: src/utils/helpers.js
+      function: mergeDeep
+      line_range: [6, 24]
+      description: |
+        Prototype pollution vulnerability in the deep merge function.
+        While there's a check for __proto__ and constructor, the check
+        comes AFTER Object.assign is already called in the recursive
+        part, allowing pollution via nested objects.
+      pattern: "Object\\.assign\\(output, \\{ \\[key\\]"
+      fix: |
+        Check for dangerous keys before any assignment:
+        if (key === '__proto__' || key === 'constructor' || key === 'prototype') {
+          continue;
+        }
+        Place this check at the beginning of the forEach loop.
+      cwe: CWE-1321
+
+    - id: command-injection
+      severity: critical
+      location: src/controllers/users.controller.js
+      function: exportUserData
+      line_range: [167, 180]
+      description: |
+        Command injection vulnerability in the export function.
+        User data is interpolated into a shell command without
+        sanitization, allowing arbitrary command execution.
+      pattern: "exec\\(command"
+      fix: |
+        Never use shell commands for file operations. Use Node.js
+        fs module instead:
+        const fs = require('fs').promises;
+        await fs.mkdir(exportDir, { recursive: true });
+        await fs.writeFile(filePath, userData);
+      cwe: CWE-78
+
+    - id: command-injection-helper
+      severity: high
+      location: src/utils/helpers.js
+      function: getSystemInfo
+      line_range: [62, 72]
+      description: |
+        Command injection in helper function. The infoType parameter
+        is directly concatenated into a shell command.
+      pattern: "exec\\(`cat /etc/\\$\\{infoType\\}`"
+      fix: |
+        Validate infoType against a whitelist of allowed values,
+        or use fs.readFile() instead:
+        const allowedFiles = ['os-release', 'hostname'];
+        if (!allowedFiles.includes(infoType)) {
+          reject(new Error('Invalid info type'));
+        }
+      cwe: CWE-78
+
+  verification_script: verification/verify_fixes.js
+  
+  expected_fixes:
+    - Sanitize HTML output in getPublicProfile or return JSON
+    - Replace $where with safe MongoDB query operators
+    - Move JWT_SECRET to environment variable
+    - Add token expiration to JWT signing
+    - Sanitize filename in file serving endpoint
+    - Add rate limiting to authentication routes
+    - Fix prototype pollution in mergeDeep
+    - Replace exec() with fs operations or sanitize inputs
+
+evaluation:
+  automated_checks:
+    - name: no_hardcoded_jwt_secret
+      command: "grep -r \"JWT_SECRET = '\" src/ || true"
+      expected_output: ""
+      
+    - name: jwt_has_expiration
+      command: "grep -r 'expiresIn' src/"
+      expected_pattern: "expiresIn"
+      
+    - name: no_dangerous_where_clause
+      command: "grep -r '\\$where' src/ || true"
+      expected_output: ""
+      
+    - name: no_unsafe_exec_with_user_input
+      command: "node verification/verify_fixes.js"
+      expected_exit_code: 0
+
+scoring:
+  total_points: 100
+  breakdown:
+    - category: Critical vulnerabilities fixed
+      points: 50
+      items:
+        - NoSQL injection (15)
+        - Weak JWT (15)
+        - Command injection (20)
+    - category: High severity fixed
+      points: 35
+      items:
+        - XSS (10)
+        - Path traversal (10)
+        - Prototype pollution (15)
+    - category: Medium severity fixed
+      points: 15
+      items:
+        - Rate limiting (15)
