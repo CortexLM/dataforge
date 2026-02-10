@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::llm::{GenerationRequest, LlmProvider, Message};
-use crate::utils::json_extraction::extract_json_from_response;
+use crate::utils::json_extraction::{try_extract_json_from_response, JsonExtractionError};
 
 use super::error::{AgentError, AgentResult};
 
@@ -699,7 +699,23 @@ impl TaskEvaluator {
 
     /// Parse the agent's JSON response.
     fn parse_agent_response(&self, response: &str) -> AgentResult<AgentResponse> {
-        let json_content = extract_json_from_response(response);
+        let result = try_extract_json_from_response(response);
+        let json_content = result.into_result_with_context(response).map_err(|e| {
+            match &e {
+                JsonExtractionError::Truncated { partial_preview, unclosed_braces, unclosed_brackets } => {
+                    AgentError::ResponseParseError(format!(
+                        "JSON appears truncated in agent response: {} unclosed braces, {} unclosed brackets. Partial: {}...",
+                        unclosed_braces, unclosed_brackets, partial_preview
+                    ))
+                }
+                JsonExtractionError::NotFound { content_preview } => {
+                    AgentError::ResponseParseError(format!(
+                        "Could not extract JSON from agent response. Content starts with: '{}'",
+                        content_preview
+                    ))
+                }
+            }
+        })?;
 
         serde_json::from_str(&json_content).map_err(|e| {
             AgentError::ResponseParseError(format!(
@@ -765,6 +781,7 @@ mod tests {
     use super::*;
     use crate::error::LlmError;
     use crate::llm::{Choice, GenerationResponse, Usage};
+    use crate::utils::json_extraction::extract_json_from_response;
     use async_trait::async_trait;
     use std::sync::atomic::{AtomicUsize, Ordering};
     use std::sync::Mutex;

@@ -592,45 +592,44 @@ impl SyntheticGeneratorAgent {
 
     /// Extract JSON from the response, handling potential markdown code blocks.
     fn extract_json(&self, content: &str) -> AgentResult<String> {
-        let trimmed = content.trim();
+        use crate::utils::json_extraction::try_extract_json_from_response;
 
-        // If it already starts with '{', use as-is
-        if trimmed.starts_with('{') {
-            return Ok(trimmed.to_string());
-        }
+        let result = try_extract_json_from_response(content);
 
-        // Try to extract from markdown code block
-        if let Some(start) = trimmed.find("```json") {
-            let json_start = start + 7;
-            if let Some(end) = trimmed[json_start..].find("```") {
-                return Ok(trimmed[json_start..json_start + end].trim().to_string());
+        match result {
+            crate::utils::json_extraction::JsonExtractionResult::Success(json) => Ok(json),
+            crate::utils::json_extraction::JsonExtractionResult::Truncated {
+                partial_json,
+                unclosed_braces,
+                unclosed_brackets,
+            } => {
+                let preview_len = partial_json.len().min(200);
+                let preview = &partial_json[..preview_len];
+                tracing::warn!(
+                    unclosed_braces = unclosed_braces,
+                    unclosed_brackets = unclosed_brackets,
+                    partial_preview = %preview,
+                    "JSON appears truncated in LLM response"
+                );
+                Err(AgentError::ResponseParseError(format!(
+                    "JSON appears truncated: {} unclosed braces, {} unclosed brackets. Partial: {}...",
+                    unclosed_braces, unclosed_brackets, preview
+                )))
+            }
+            crate::utils::json_extraction::JsonExtractionResult::NotFound => {
+                let trimmed = content.trim();
+                let preview_len = trimmed.len().min(100);
+                let preview = &trimmed[..preview_len];
+                tracing::warn!(
+                    content_preview = %preview,
+                    "Could not find JSON in LLM response"
+                );
+                Err(AgentError::ResponseParseError(format!(
+                    "No JSON content found in response. Content starts with: '{}'",
+                    preview
+                )))
             }
         }
-
-        // Try to extract from generic code block
-        if let Some(start) = trimmed.find("```") {
-            let content_start = start + 3;
-            let line_end = trimmed[content_start..]
-                .find('\n')
-                .map(|i| content_start + i + 1)
-                .unwrap_or(content_start);
-            if let Some(end) = trimmed[line_end..].find("```") {
-                return Ok(trimmed[line_end..line_end + end].trim().to_string());
-            }
-        }
-
-        // Try to find JSON object anywhere in the content
-        if let Some(start) = trimmed.find('{') {
-            if let Some(end) = trimmed.rfind('}') {
-                if end > start {
-                    return Ok(trimmed[start..=end].to_string());
-                }
-            }
-        }
-
-        Err(AgentError::ResponseParseError(
-            "Could not extract JSON from response".to_string(),
-        ))
     }
 
     /// Generate problems for a specific category.
