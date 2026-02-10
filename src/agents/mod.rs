@@ -55,7 +55,11 @@
 //! ```
 
 pub mod analyzer_agent;
+pub mod code_cleaner;
+pub mod code_generator;
 pub mod collector_agent;
+pub mod debate_agents;
+pub mod debate_orchestrator;
 pub mod difficulty_amplifier;
 pub mod difficulty_validator;
 pub mod docker_validator;
@@ -78,6 +82,13 @@ pub mod task_validator;
 pub mod test_designer;
 pub mod types;
 pub mod validator_agent;
+pub mod vulnerability_injector;
+pub mod workspace_ideator;
+pub mod workspace_orchestrator;
+pub mod workspace_validator;
+
+// Advanced synthetic workspace generation
+pub mod synthetic_workspace;
 
 // Re-export main types
 pub use analyzer_agent::{
@@ -138,4 +149,45 @@ pub use types::{
 };
 pub use validator_agent::{
     ExpectedOutcome, TestSpec, ValidationOutcome, ValidatorAgent, ValidatorConfig,
+};
+
+// Workspace generation pipeline re-exports
+pub use code_cleaner::{CleanedFile, CleaningResult, CodeCleanerAgent, CodeCleanerConfig};
+pub use code_generator::{
+    CodeGeneratorAgent, CodeGeneratorConfig, GeneratedFile, GeneratedWorkspace, WorkspaceMetadata,
+};
+pub use vulnerability_injector::{
+    InjectedVulnerability as WorkspaceInjectedVulnerability, InjectionResult,
+    VulnerabilityInjectorAgent, VulnerabilityInjectorConfig, VulnerabilitySeverity,
+    VulnerabilityType, VulnerableFile,
+};
+pub use workspace_ideator::{
+    ProgrammingLanguage, ProjectStructure, ProjectType, VulnerabilityOpportunity,
+    WorkspaceComplexity, WorkspaceIdea, WorkspaceIdeatorAgent, WorkspaceIdeatorConfig,
+};
+pub use workspace_validator::{
+    BenchmarkArtifacts, BenchmarkDifficulty, ValidatedWorkspace, ValidationScores,
+    WorkspaceFile as ValidatedWorkspaceFile, WorkspaceValidationResult, WorkspaceValidatorAgent,
+    WorkspaceValidatorConfig,
+};
+
+// Debate system re-exports
+pub use debate_agents::{
+    AgentPosition, DebateAgentRole, DebateResponse, DebateTopic, ResponseToOther,
+};
+pub use debate_orchestrator::{
+    ConsensusMechanism, ConsensusResult, DebateContext, DebateEvent, DebateOrchestrator,
+    DebateOrchestratorBuilder, DebateOrchestratorConfig, DebateRound, DissentingOpinion,
+};
+pub use workspace_orchestrator::{
+    DebateOutcome, GeneratedWorkspaceResult, InjectedVulnerability, WorkspaceFile,
+    WorkspaceOrchestrator, WorkspaceOrchestratorBuilder, WorkspaceOrchestratorConfig,
+    WorkspacePipelineEvent, WorkspacePipelineStage,
+};
+
+// Advanced synthetic workspace re-exports
+pub use synthetic_workspace::{
+    DifficultyLevel as SyntheticDifficultyLevel, GenerationEvent, GenerationStage, LanguageTarget,
+    ProjectCategory as SyntheticProjectCategory, SyntheticWorkspace, SyntheticWorkspaceConfig,
+    SyntheticWorkspaceOrchestrator, VulnerabilityConfig, WorkspaceTemplate,
 };

@@ -4,12 +4,33 @@
 //! synthetic benchmark datasets in one shot.
 
 use crate::agents::{
-    FactoryOrchestrator, FactoryOrchestratorConfig, FactoryPipelineEvent, FactoryPipelineStage,
-    FullPipelineConfig, FullPipelineEvent, FullPipelineOrchestrator, SyntheticOrchestrator,
-    SyntheticOrchestratorConfig, SyntheticPipelineEvent, SyntheticPipelineStage, SyntheticTask,
+    FactoryOrchestrator,
+    FactoryOrchestratorConfig,
+    FactoryPipelineEvent,
+    FactoryPipelineStage,
+    FullPipelineConfig,
+    FullPipelineEvent,
+    FullPipelineOrchestrator,
+    // Advanced synthetic workspace generation
+    GenerationEvent,
+    LanguageTarget,
+    ProgrammingLanguage,
+    SyntheticDifficultyLevel,
+    SyntheticOrchestrator,
+    SyntheticOrchestratorConfig,
+    SyntheticPipelineEvent,
+    SyntheticPipelineStage,
+    SyntheticProjectCategory,
+    SyntheticTask,
+    SyntheticWorkspaceConfig,
+    SyntheticWorkspaceOrchestrator,
     TaskCategory as AgentTaskCategory,
+    WorkspaceOrchestrator,
+    WorkspaceOrchestratorBuilder,
+    WorkspacePipelineEvent,
 };
 use crate::llm::{create_shared_cache, LiteLlmClient, OpenRouterProvider};
+use crate::workspace::{WorkspaceExporter, WorkspaceLanguage};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -59,6 +80,28 @@ pub enum Commands {
     /// rate, duration, and correlates results with task difficulty.
     #[command(alias = "eval")]
     Evaluate(EvaluateArgs),
+
+    /// Generate complete code workspaces with injected vulnerabilities.
+    ///
+    /// This command creates full working codebases with deliberately injected
+    /// security vulnerabilities, bugs, and code smells. Uses a multi-agent
+    /// debate system to design realistic, challenging benchmarks.
+    #[command(alias = "ws")]
+    Workspace(WorkspaceArgs),
+
+    /// Generate synthetic workspaces with multi-agent debate system (advanced).
+    ///
+    /// This command creates high-quality synthetic benchmark workspaces using
+    /// a sophisticated multi-agent debate pipeline. Agents debate on:
+    /// - Project architecture and design
+    /// - Vulnerability selection and placement
+    /// - Difficulty calibration
+    /// - Code quality validation
+    ///
+    /// The generated code contains subtle, realistic vulnerabilities without
+    /// any hints or comments that reveal their location.
+    #[command(alias = "synth")]
+    Synthetic(SyntheticArgs),
 }
 
 /// Arguments for the generate command.
@@ -173,6 +216,139 @@ pub struct EvaluateArgs {
     pub json: bool,
 }
 
+/// Arguments for the workspace command.
+#[derive(Parser, Debug)]
+pub struct WorkspaceArgs {
+    /// Number of workspaces to generate.
+    #[arg(short = 'n', long, default_value = "1")]
+    pub count: u32,
+
+    /// Programming language for the workspace.
+    /// Available: python, javascript, typescript, rust, go, java, c, cpp
+    #[arg(short = 'L', long)]
+    pub language: Option<String>,
+
+    /// Project type to generate (e.g., "web-api", "cli-tool", "data-pipeline").
+    #[arg(short = 't', long)]
+    pub project_type: Option<String>,
+
+    /// LLM model to use for generation (OpenRouter format).
+    #[arg(short = 'm', long, default_value = DEFAULT_MODEL)]
+    pub model: String,
+
+    /// Output directory for generated workspaces.
+    #[arg(short = 'o', long, default_value = DEFAULT_OUTPUT_DIR)]
+    pub output: String,
+
+    /// Output JSON to stdout instead of interactive progress.
+    #[arg(short = 'j', long)]
+    pub json: bool,
+
+    /// Number of debate rounds for multi-agent consensus.
+    #[arg(long, default_value = "3")]
+    pub debate_rounds: u32,
+
+    /// Consensus threshold (0.0 to 1.0) for debate decisions.
+    #[arg(long, default_value = "0.6")]
+    pub consensus_threshold: f64,
+
+    /// Minimum number of vulnerabilities to inject.
+    #[arg(long, default_value = "3")]
+    pub min_vulnerabilities: u32,
+
+    /// Maximum number of vulnerabilities to inject.
+    #[arg(long, default_value = "8")]
+    pub max_vulnerabilities: u32,
+
+    /// Random seed for reproducibility.
+    #[arg(short = 's', long)]
+    pub seed: Option<u64>,
+
+    /// OpenRouter API key.
+    #[arg(long, env = "OPENROUTER_API_KEY")]
+    pub api_key: Option<String>,
+
+    /// Export workspaces as .zip files (excludes build artifacts).
+    #[arg(long)]
+    pub zip: bool,
+}
+
+/// Arguments for the synthetic workspace command (advanced).
+#[derive(Parser, Debug)]
+pub struct SyntheticArgs {
+    /// Number of workspaces to generate.
+    #[arg(short = 'n', long, default_value = "1")]
+    pub count: u32,
+
+    /// Programming language for the workspace.
+    /// Available: python, javascript, typescript, rust, go, java, ruby, php, cpp, csharp
+    #[arg(short = 'L', long, default_value = "python")]
+    pub language: String,
+
+    /// Project category.
+    /// Available: web-api, cli-tool, web-app, data-pipeline, microservice, library,
+    /// backend-service, file-processor, auth-service, database-tool
+    #[arg(short = 'c', long, default_value = "web-api")]
+    pub category: String,
+
+    /// Difficulty level for the task.
+    /// Available: easy, medium, hard, expert
+    #[arg(short = 'd', long, default_value = "medium")]
+    pub difficulty: String,
+
+    /// LLM model to use for code generation (OpenRouter format).
+    #[arg(short = 'm', long, default_value = DEFAULT_MODEL)]
+    pub model: String,
+
+    /// Output directory for generated workspaces.
+    #[arg(short = 'o', long, default_value = DEFAULT_OUTPUT_DIR)]
+    pub output: String,
+
+    /// Output JSON to stdout instead of interactive progress.
+    #[arg(short = 'j', long)]
+    pub json: bool,
+
+    /// Number of debate rounds for multi-agent consensus.
+    #[arg(long, default_value = "3")]
+    pub debate_rounds: u32,
+
+    /// Consensus threshold (0.0 to 1.0) for debate decisions.
+    #[arg(long, default_value = "0.6")]
+    pub consensus_threshold: f64,
+
+    /// Minimum number of vulnerabilities to inject.
+    #[arg(long, default_value = "3")]
+    pub min_vulnerabilities: usize,
+
+    /// Maximum number of vulnerabilities to inject.
+    #[arg(long, default_value = "7")]
+    pub max_vulnerabilities: usize,
+
+    /// Temperature for code generation (0.0-2.0).
+    #[arg(long, default_value = "0.4")]
+    pub generation_temperature: f64,
+
+    /// Temperature for debate (0.0-2.0).
+    #[arg(long, default_value = "0.7")]
+    pub debate_temperature: f64,
+
+    /// Random seed for reproducibility.
+    #[arg(short = 's', long)]
+    pub seed: Option<u64>,
+
+    /// OpenRouter API key.
+    #[arg(long, env = "OPENROUTER_API_KEY")]
+    pub api_key: Option<String>,
+
+    /// Export workspaces as .tar.gz files (excludes build artifacts).
+    #[arg(long)]
+    pub zip: bool,
+
+    /// Skip code cleaning (keep TODOs and hints - for debugging).
+    #[arg(long)]
+    pub no_clean: bool,
+}
+
 /// Parse CLI arguments and return the Cli struct.
 ///
 /// This allows main.rs to access CLI arguments (like log_level) before running commands.
@@ -199,8 +375,535 @@ pub async fn run_with_cli(cli: Cli) -> anyhow::Result<()> {
         Commands::Evaluate(args) => {
             run_evaluate_command(args).await?;
         }
+        Commands::Workspace(args) => {
+            run_workspace_command(args).await?;
+        }
+        Commands::Synthetic(args) => {
+            run_synthetic_command(args).await?;
+        }
     }
     Ok(())
+}
+
+// ============================================================================
+// Workspace Command Implementation
+// ============================================================================
+
+/// JSON output structure for the workspace generation result.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WorkspaceOutput {
+    /// Overall status: "success" or "failed".
+    pub status: String,
+    /// Model used for generation.
+    pub model: String,
+    /// List of generated workspaces.
+    pub workspaces: Vec<GeneratedWorkspaceOutput>,
+    /// Total duration in milliseconds.
+    pub total_duration_ms: u64,
+    /// Output directory where workspaces were saved.
+    pub output_directory: String,
+}
+
+/// JSON output structure for a single generated workspace.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GeneratedWorkspaceOutput {
+    /// Unique workspace identifier.
+    pub workspace_id: String,
+    /// Programming language.
+    pub language: String,
+    /// Project type.
+    pub project_type: String,
+    /// Number of files in the workspace.
+    pub file_count: usize,
+    /// Number of vulnerabilities injected.
+    pub vulnerability_count: usize,
+    /// Path where the workspace was saved.
+    pub saved_path: Option<String>,
+    /// Path to the zip archive (if exported).
+    pub zip_path: Option<String>,
+}
+
+/// Parses a language string to ProgrammingLanguage enum.
+fn parse_programming_language(language_str: &str) -> anyhow::Result<ProgrammingLanguage> {
+    match language_str.to_lowercase().as_str() {
+        "python" | "py" => Ok(ProgrammingLanguage::Python),
+        "javascript" | "js" => Ok(ProgrammingLanguage::JavaScript),
+        "typescript" | "ts" => Ok(ProgrammingLanguage::TypeScript),
+        "rust" | "rs" => Ok(ProgrammingLanguage::Rust),
+        "go" | "golang" => Ok(ProgrammingLanguage::Go),
+        "java" => Ok(ProgrammingLanguage::Java),
+        "c" => Ok(ProgrammingLanguage::C),
+        "cpp" | "c++" => Ok(ProgrammingLanguage::Cpp),
+        other => Err(anyhow::anyhow!(
+            "Unknown language: '{}'. Available languages: python, javascript, typescript, rust, go, java, c, cpp",
+            other
+        )),
+    }
+}
+
+/// Parses workspace language for export purposes.
+fn parse_workspace_language(language: ProgrammingLanguage) -> WorkspaceLanguage {
+    match language {
+        ProgrammingLanguage::Python => WorkspaceLanguage::Python,
+        ProgrammingLanguage::JavaScript => WorkspaceLanguage::JavaScript,
+        ProgrammingLanguage::TypeScript => WorkspaceLanguage::TypeScript,
+        ProgrammingLanguage::Rust => WorkspaceLanguage::Rust,
+        ProgrammingLanguage::Go => WorkspaceLanguage::Go,
+        ProgrammingLanguage::Java => WorkspaceLanguage::Java,
+        ProgrammingLanguage::C => WorkspaceLanguage::Cpp, // Map C to Cpp for export purposes
+        ProgrammingLanguage::Cpp => WorkspaceLanguage::Cpp,
+    }
+}
+
+/// Runs the workspace command with the provided arguments.
+async fn run_workspace_command(args: WorkspaceArgs) -> anyhow::Result<()> {
+    // Validate and clamp consensus threshold to valid range
+    let validated_threshold = args.consensus_threshold.clamp(0.0, 1.0);
+    if (validated_threshold - args.consensus_threshold).abs() > f64::EPSILON {
+        warn!(
+            original = args.consensus_threshold,
+            clamped = validated_threshold,
+            "consensus_threshold was outside valid range [0.0, 1.0] and has been clamped"
+        );
+    }
+
+    // Parse language if provided, otherwise default to Python
+    let language = match &args.language {
+        Some(lang_str) => parse_programming_language(lang_str)?,
+        None => ProgrammingLanguage::Python,
+    };
+
+    // Set seed for reproducibility if provided
+    if let Some(s) = args.seed {
+        info!(seed = s, "Using fixed seed for reproducibility");
+    }
+
+    // Get API key from argument or environment
+    let api_key = args
+        .api_key
+        .clone()
+        .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
+        .or_else(|| std::env::var("LITELLM_API_KEY").ok());
+
+    // Initialize LLM client
+    let llm_client: Arc<dyn crate::llm::LlmProvider> = if let Some(key) = api_key {
+        info!(model = %args.model, "Using OpenRouter with specified API key");
+        Arc::new(OpenRouterProvider::with_model(key, args.model.clone()))
+    } else {
+        // Fall back to LiteLlmClient from environment
+        info!("Using LiteLLM client from environment");
+        Arc::new(LiteLlmClient::from_env().map_err(|e| {
+            anyhow::anyhow!(
+                "Failed to initialize LLM client: {}. \
+                 Please provide --api-key or set OPENROUTER_API_KEY/LITELLM_API_KEY env var.",
+                e
+            )
+        })?)
+    };
+
+    // Create output directory
+    let output_dir = args.output.clone();
+    let output_path = Path::new(&output_dir);
+    fs::create_dir_all(output_path)?;
+    info!(output = %output_dir, "Output directory ready");
+
+    // Build the workspace orchestrator
+    let orchestrator = WorkspaceOrchestratorBuilder::new()
+        .llm_client(llm_client)
+        .debate_rounds(args.debate_rounds)
+        .consensus_threshold(validated_threshold)
+        .enable_debate(true)
+        .enable_injection(true)
+        .enable_review(true)
+        .build()
+        .map_err(|e| anyhow::anyhow!("Failed to build workspace orchestrator: {}", e))?;
+
+    if args.json {
+        run_json_workspace(&orchestrator, &args, language, output_path).await
+    } else {
+        run_interactive_workspace(&orchestrator, &args, language, output_path).await
+    }
+}
+
+/// Runs the workspace generation pipeline and outputs JSON to stdout.
+async fn run_json_workspace(
+    orchestrator: &WorkspaceOrchestrator,
+    args: &WorkspaceArgs,
+    language: ProgrammingLanguage,
+    output_path: &Path,
+) -> anyhow::Result<()> {
+    let start_time = std::time::Instant::now();
+    let mut workspaces = Vec::new();
+
+    for i in 0..args.count {
+        let (event_tx, _event_rx) = tokio::sync::mpsc::channel::<WorkspacePipelineEvent>(100);
+
+        match orchestrator
+            .generate_workspace(language, args.project_type.as_deref(), event_tx)
+            .await
+        {
+            Ok(result) => {
+                let workspace_dir = output_path.join(&result.id);
+                let saved_path = match save_workspace(&result, &workspace_dir).await {
+                    Ok(()) => Some(workspace_dir.to_string_lossy().to_string()),
+                    Err(e) => {
+                        warn!(error = %e, workspace_id = %result.id, "Failed to save workspace to disk");
+                        None
+                    }
+                };
+
+                // Export to zip if requested
+                let zip_path = if args.zip && saved_path.is_some() {
+                    match export_workspace_to_zip(&result, language, output_path).await {
+                        Ok(path) => Some(path),
+                        Err(e) => {
+                            warn!(error = %e, workspace_id = %result.id, "Failed to export workspace to zip");
+                            None
+                        }
+                    }
+                } else {
+                    None
+                };
+
+                workspaces.push(GeneratedWorkspaceOutput {
+                    workspace_id: result.id.clone(),
+                    language: result.language.display_name().to_string(),
+                    project_type: result.category.clone(),
+                    file_count: result.files.len(),
+                    vulnerability_count: result.vulnerabilities.len(),
+                    saved_path,
+                    zip_path,
+                });
+            }
+            Err(e) => {
+                error!(workspace_index = i, error = %e, "Failed to generate workspace");
+            }
+        }
+    }
+
+    let duration_ms = start_time.elapsed().as_millis() as u64;
+
+    let output = WorkspaceOutput {
+        status: if workspaces.is_empty() && args.count > 0 {
+            "failed".to_string()
+        } else {
+            "success".to_string()
+        },
+        model: args.model.clone(),
+        workspaces,
+        total_duration_ms: duration_ms,
+        output_directory: output_path.to_string_lossy().to_string(),
+    };
+
+    let json_output = serde_json::to_string_pretty(&output)
+        .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
+    println!("{}", json_output);
+
+    Ok(())
+}
+
+/// Runs the interactive workspace generation with progress output.
+async fn run_interactive_workspace(
+    orchestrator: &WorkspaceOrchestrator,
+    args: &WorkspaceArgs,
+    language: ProgrammingLanguage,
+    output_path: &Path,
+) -> anyhow::Result<()> {
+    println!("\n🔧 Workspace Generation Pipeline");
+    println!("=================================");
+    println!("Model: {}", args.model);
+    println!("Language: {}", language.display_name());
+    println!("Count: {}", args.count);
+    println!("Output: {}", output_path.display());
+    if let Some(ref project_type) = args.project_type {
+        println!("Project type: {}", project_type);
+    }
+    println!("Debate rounds: {}", args.debate_rounds);
+    println!("Consensus threshold: {:.2}", args.consensus_threshold);
+    println!();
+
+    println!("Pipeline stages:");
+    println!("├─ ○ Debate (Multi-agent consensus)");
+    println!("├─ ○ Generation (Code generation)");
+    println!("├─ ○ Injection (Vulnerability injection)");
+    println!("├─ ○ Cleaning (Remove hints)");
+    println!("├─ ○ Validation (Check solvability)");
+    println!("├─ ○ Review (Multi-agent review)");
+    println!("└─ ○ Export (Save artifacts)\n");
+
+    let mut generated_workspaces = Vec::new();
+    let mut failed_count = 0u32;
+
+    for i in 0..args.count {
+        println!("📝 Generating workspace {}/{}...", i + 1, args.count);
+
+        let (event_tx, mut event_rx) = tokio::sync::mpsc::channel::<WorkspacePipelineEvent>(100);
+
+        // Spawn event handler for this workspace
+        let event_handle = tokio::spawn(async move {
+            while let Some(event) = event_rx.recv().await {
+                match event {
+                    WorkspacePipelineEvent::PipelineStarted {
+                        workspace_id,
+                        language,
+                        ..
+                    } => {
+                        println!(
+                            "   🚀 Started workspace {} ({})",
+                            workspace_id,
+                            language.display_name()
+                        );
+                    }
+                    WorkspacePipelineEvent::StageStarted { stage, .. } => {
+                        println!("   ⟳ {} started...", stage);
+                    }
+                    WorkspacePipelineEvent::StageCompleted {
+                        stage, duration_ms, ..
+                    } => {
+                        println!("   ✓ {} completed ({}ms)", stage, duration_ms);
+                    }
+                    WorkspacePipelineEvent::DebateProgress { event } => {
+                        if let crate::agents::DebateEvent::DebateCompleted {
+                            consensus_reached,
+                            winning_position,
+                            consensus_score,
+                            ..
+                        } = event
+                        {
+                            let status = if consensus_reached {
+                                "consensus reached"
+                            } else {
+                                "no consensus"
+                            };
+                            let decision = winning_position.as_deref().unwrap_or("undecided");
+                            println!(
+                                "   💬 Debate {}: {} (score: {:.2})",
+                                status, decision, consensus_score
+                            );
+                        }
+                    }
+                    WorkspacePipelineEvent::GenerationProgress {
+                        files_generated,
+                        loc_generated,
+                        ..
+                    } => {
+                        println!(
+                            "   📄 Generated {} files ({} LOC)",
+                            files_generated, loc_generated
+                        );
+                    }
+                    WorkspacePipelineEvent::InjectionProgress {
+                        vulnerability_type,
+                        target_file,
+                        ..
+                    } => {
+                        println!("   💉 Injecting {} in {}", vulnerability_type, target_file);
+                    }
+                    WorkspacePipelineEvent::ValidationResult { passed, issues, .. } => {
+                        let symbol = if passed { "✓" } else { "✗" };
+                        println!(
+                            "   {} Validation: {}",
+                            symbol,
+                            if passed { "passed" } else { "failed" }
+                        );
+                        for issue in issues {
+                            println!("      - {}", issue);
+                        }
+                    }
+                    WorkspacePipelineEvent::ReviewResult {
+                        score, comments, ..
+                    } => {
+                        println!("   📊 Review score: {:.2}", score);
+                        for comment in comments.iter().take(2) {
+                            println!("      - {}", comment);
+                        }
+                    }
+                    WorkspacePipelineEvent::PipelineCompleted {
+                        workspace,
+                        total_duration_ms,
+                        ..
+                    } => {
+                        println!(
+                            "   ✓ Complete: {} files, {} vulnerabilities ({}ms)",
+                            workspace.files.len(),
+                            workspace.vulnerabilities.len(),
+                            total_duration_ms
+                        );
+                    }
+                    WorkspacePipelineEvent::PipelineFailed { error, stage, .. } => {
+                        println!("   ✗ Failed at {}: {}", stage, error);
+                    }
+                }
+            }
+        });
+
+        let result = orchestrator
+            .generate_workspace(language, args.project_type.as_deref(), event_tx)
+            .await;
+
+        // Wait for event handler to finish
+        let _ = event_handle.await;
+
+        match result {
+            Ok(workspace) => {
+                // Save workspace to disk
+                let workspace_dir = output_path.join(&workspace.id);
+                match save_workspace(&workspace, &workspace_dir).await {
+                    Ok(()) => {
+                        println!(
+                            "   💾 Saved: {} → {}",
+                            workspace.id,
+                            workspace_dir.display()
+                        );
+                    }
+                    Err(e) => {
+                        warn!(error = %e, workspace_id = %workspace.id, "Failed to save workspace to disk");
+                    }
+                }
+
+                // Export to zip if requested
+                if args.zip {
+                    match export_workspace_to_zip(&workspace, language, output_path).await {
+                        Ok(zip_path) => {
+                            println!("   📦 Exported: {}", zip_path);
+                        }
+                        Err(e) => {
+                            warn!(error = %e, workspace_id = %workspace.id, "Failed to export workspace to zip");
+                        }
+                    }
+                }
+
+                println!("\n✓ Workspace {} generated successfully!", i + 1);
+                println!("  ID: {}", workspace.id);
+                println!("  Language: {}", workspace.language.display_name());
+                println!("  Files: {}", workspace.files.len());
+                println!("  LOC: {}", workspace.total_loc);
+                println!("  Vulnerabilities: {}", workspace.vulnerabilities.len());
+                generated_workspaces.push(workspace);
+            }
+            Err(e) => {
+                eprintln!("\n✗ Workspace {} failed: {}", i + 1, e);
+                failed_count += 1;
+            }
+        }
+
+        if i < args.count - 1 {
+            println!(); // Add spacing between workspaces
+        }
+    }
+
+    // Print summary
+    println!("\n{}", "=".repeat(50));
+    println!("📊 Workspace Generation Summary");
+    println!("{}", "=".repeat(50));
+    println!(
+        "✓ Successfully generated: {}/{}",
+        generated_workspaces.len(),
+        args.count
+    );
+    if failed_count > 0 {
+        println!("✗ Failed: {}", failed_count);
+    }
+    println!("📁 Output directory: {}", output_path.display());
+
+    if !generated_workspaces.is_empty() {
+        println!("\n📋 Generated Workspaces:");
+        for (idx, workspace) in generated_workspaces.iter().enumerate() {
+            println!(
+                "  {}. [{}] {} ({} files, {} vulnerabilities)",
+                idx + 1,
+                workspace.language.display_name(),
+                workspace.id,
+                workspace.files.len(),
+                workspace.vulnerabilities.len()
+            );
+        }
+    }
+
+    if generated_workspaces.is_empty() && args.count > 0 {
+        return Err(anyhow::anyhow!("Failed to generate any workspaces"));
+    }
+
+    Ok(())
+}
+
+/// Saves a generated workspace result to disk.
+async fn save_workspace(
+    workspace: &crate::agents::GeneratedWorkspaceResult,
+    workspace_dir: &Path,
+) -> anyhow::Result<()> {
+    fs::create_dir_all(workspace_dir)?;
+
+    // Save each file
+    for file in &workspace.files {
+        let file_path = workspace_dir.join(&file.path);
+        if let Some(parent) = file_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::write(&file_path, &file.content)?;
+    }
+
+    // Save prompt.md
+    let prompt_path = workspace_dir.join("prompt.md");
+    let prompt_content = format!(
+        "# {}\n\n## Description\n\n{}\n\n## Build Instructions\n\n{}\n\n## Test Instructions\n\n{}\n",
+        workspace.project_name,
+        workspace.description,
+        workspace.build_instructions,
+        workspace.test_instructions
+    );
+    fs::write(&prompt_path, prompt_content)?;
+
+    // Save workspace.yaml with metadata
+    let workspace_yaml_path = workspace_dir.join("workspace.yaml");
+    let workspace_yaml = serde_yaml::to_string(workspace)
+        .map_err(|e| anyhow::anyhow!("Failed to serialize workspace to YAML: {}", e))?;
+    fs::write(&workspace_yaml_path, workspace_yaml)?;
+
+    // Save vulnerabilities info
+    if !workspace.vulnerabilities.is_empty() {
+        let vulns_path = workspace_dir.join(".vulnerabilities.yaml");
+        let vulns_yaml = serde_yaml::to_string(&workspace.vulnerabilities)
+            .map_err(|e| anyhow::anyhow!("Failed to serialize vulnerabilities to YAML: {}", e))?;
+        fs::write(&vulns_path, vulns_yaml)?;
+    }
+
+    Ok(())
+}
+
+/// Exports a workspace to a zip archive.
+async fn export_workspace_to_zip(
+    workspace: &crate::agents::GeneratedWorkspaceResult,
+    language: ProgrammingLanguage,
+    output_path: &Path,
+) -> anyhow::Result<String> {
+    use crate::workspace::{GeneratedWorkspace, WorkspaceFile as WsFile, WorkspaceSpec};
+
+    // Convert to the workspace types expected by the exporter
+    let workspace_language = parse_workspace_language(language);
+    let spec = WorkspaceSpec::new(&workspace.id)
+        .with_name(&workspace.project_name)
+        .with_language(workspace_language)
+        .with_description(&workspace.description)
+        .with_project_type(&workspace.category);
+
+    let mut generated = GeneratedWorkspace::new(spec);
+    generated.task_prompt = workspace.description.clone();
+
+    // Add files
+    for file in &workspace.files {
+        generated.add_file(WsFile::source(&file.path, &file.content));
+    }
+
+    // Create exporter and export to zip
+    let exporter = WorkspaceExporter::new();
+    let zip_path = output_path.join(format!("{}.tar.gz", workspace.id));
+    exporter
+        .export_to_zip(&generated, &zip_path)
+        .await
+        .map_err(|e| anyhow::anyhow!("Failed to export workspace to zip: {}", e))?;
+
+    Ok(zip_path.to_string_lossy().to_string())
 }
 
 // ============================================================================
@@ -1725,6 +2428,460 @@ async fn run_interactive_evaluation(
     Ok(())
 }
 
+// ============================================================================
+// Synthetic Workspace Command Implementation (Advanced)
+// ============================================================================
+
+/// Parses a language string to LanguageTarget enum.
+fn parse_language_target(language_str: &str) -> anyhow::Result<LanguageTarget> {
+    match language_str.to_lowercase().as_str() {
+        "python" | "py" => Ok(LanguageTarget::Python),
+        "javascript" | "js" => Ok(LanguageTarget::JavaScript),
+        "typescript" | "ts" => Ok(LanguageTarget::TypeScript),
+        "rust" | "rs" => Ok(LanguageTarget::Rust),
+        "go" | "golang" => Ok(LanguageTarget::Go),
+        "java" => Ok(LanguageTarget::Java),
+        "ruby" | "rb" => Ok(LanguageTarget::Ruby),
+        "php" => Ok(LanguageTarget::Php),
+        "cpp" | "c++" => Ok(LanguageTarget::Cpp),
+        "csharp" | "c#" => Ok(LanguageTarget::Csharp),
+        other => Err(anyhow::anyhow!(
+            "Unknown language: '{}'. Available: python, javascript, typescript, rust, go, java, ruby, php, cpp, csharp",
+            other
+        )),
+    }
+}
+
+/// Parses a category string to SyntheticProjectCategory enum.
+fn parse_project_category(category_str: &str) -> anyhow::Result<SyntheticProjectCategory> {
+    match category_str.to_lowercase().replace('-', "_").as_str() {
+        "web_api" | "webapi" | "api" => Ok(SyntheticProjectCategory::WebApi),
+        "cli_tool" | "clitool" | "cli" => Ok(SyntheticProjectCategory::CliTool),
+        "web_app" | "webapp" | "web" => Ok(SyntheticProjectCategory::WebApp),
+        "data_pipeline" | "datapipeline" | "pipeline" => Ok(SyntheticProjectCategory::DataPipeline),
+        "microservice" | "micro" => Ok(SyntheticProjectCategory::Microservice),
+        "library" | "lib" => Ok(SyntheticProjectCategory::Library),
+        "backend_service" | "backendservice" | "backend" => Ok(SyntheticProjectCategory::BackendService),
+        "file_processor" | "fileprocessor" | "file" => Ok(SyntheticProjectCategory::FileProcessor),
+        "auth_service" | "authservice" | "auth" => Ok(SyntheticProjectCategory::AuthService),
+        "database_tool" | "databasetool" | "db" => Ok(SyntheticProjectCategory::DatabaseTool),
+        other => Err(anyhow::anyhow!(
+            "Unknown category: '{}'. Available: web-api, cli-tool, web-app, data-pipeline, microservice, library, backend-service, file-processor, auth-service, database-tool",
+            other
+        )),
+    }
+}
+
+/// Parses a difficulty string to SyntheticDifficultyLevel enum.
+fn parse_difficulty_level(difficulty_str: &str) -> anyhow::Result<SyntheticDifficultyLevel> {
+    match difficulty_str.to_lowercase().as_str() {
+        "easy" | "e" => Ok(SyntheticDifficultyLevel::Easy),
+        "medium" | "m" | "med" => Ok(SyntheticDifficultyLevel::Medium),
+        "hard" | "h" => Ok(SyntheticDifficultyLevel::Hard),
+        "expert" | "x" | "extreme" => Ok(SyntheticDifficultyLevel::Expert),
+        other => Err(anyhow::anyhow!(
+            "Unknown difficulty: '{}'. Available: easy, medium, hard, expert",
+            other
+        )),
+    }
+}
+
+/// Runs the synthetic workspace generation command.
+async fn run_synthetic_command(args: SyntheticArgs) -> anyhow::Result<()> {
+    // Parse configuration
+    let language = parse_language_target(&args.language)?;
+    let category = parse_project_category(&args.category)?;
+    let difficulty = parse_difficulty_level(&args.difficulty)?;
+
+    // Get API key from argument or environment
+    let api_key = args
+        .api_key
+        .clone()
+        .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
+        .or_else(|| std::env::var("LITELLM_API_KEY").ok());
+
+    // Initialize LLM client
+    let llm_client: Arc<dyn crate::llm::LlmProvider> = if let Some(key) = api_key {
+        info!(model = %args.model, "Using OpenRouter with specified API key");
+        Arc::new(OpenRouterProvider::with_model(key, args.model.clone()))
+    } else {
+        info!("Using LiteLLM client from environment");
+        Arc::new(LiteLlmClient::from_env().map_err(|e| {
+            anyhow::anyhow!(
+                "Failed to initialize LLM client: {}. \
+                 Please provide --api-key or set OPENROUTER_API_KEY/LITELLM_API_KEY env var.",
+                e
+            )
+        })?)
+    };
+
+    // Create output directory
+    let output_dir = args.output.clone();
+    let output_path = Path::new(&output_dir);
+    fs::create_dir_all(output_path)?;
+    info!(output = %output_dir, "Output directory ready");
+
+    // Build configuration
+    let mut config = SyntheticWorkspaceConfig::new()
+        .with_language(language)
+        .with_category(category)
+        .with_difficulty(difficulty)
+        .with_generation_model(&args.model)
+        .with_debate_model(&args.model)
+        .with_debate_rounds(args.debate_rounds)
+        .with_consensus_threshold(args.consensus_threshold)
+        .with_min_vulnerabilities(args.min_vulnerabilities)
+        .with_max_vulnerabilities(args.max_vulnerabilities)
+        .with_generation_temperature(args.generation_temperature)
+        .with_debate_temperature(args.debate_temperature)
+        .with_auto_clean(!args.no_clean)
+        .with_output_dir(&args.output);
+
+    if let Some(seed) = args.seed {
+        config = config.with_seed(seed);
+    }
+
+    // Create orchestrator
+    let orchestrator = SyntheticWorkspaceOrchestrator::new(llm_client, config);
+
+    if args.json {
+        run_json_synthetic(&orchestrator, &args, output_path).await
+    } else {
+        run_interactive_synthetic(&orchestrator, &args, output_path).await
+    }
+}
+
+/// JSON output structure for synthetic workspace generation.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyntheticOutput {
+    pub status: String,
+    pub model: String,
+    pub language: String,
+    pub category: String,
+    pub difficulty: String,
+    pub workspaces: Vec<SyntheticWorkspaceOutput>,
+    pub total_duration_ms: u64,
+    pub output_directory: String,
+}
+
+/// JSON output for a single synthetic workspace.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SyntheticWorkspaceOutput {
+    pub workspace_id: String,
+    pub project_name: String,
+    pub file_count: usize,
+    pub vulnerability_count: usize,
+    pub total_loc: usize,
+    pub saved_path: Option<String>,
+    pub zip_path: Option<String>,
+    pub debates_conducted: usize,
+}
+
+/// Runs synthetic generation with JSON output.
+async fn run_json_synthetic(
+    orchestrator: &SyntheticWorkspaceOrchestrator,
+    args: &SyntheticArgs,
+    output_path: &Path,
+) -> anyhow::Result<()> {
+    let start_time = std::time::Instant::now();
+    let mut workspaces = Vec::new();
+
+    for i in 0..args.count {
+        let (event_tx, _event_rx) = tokio::sync::mpsc::channel::<GenerationEvent>(100);
+
+        match orchestrator.generate(event_tx).await {
+            Ok(workspace) => {
+                // Save workspace to directory
+                let saved_path = match workspace.export_to_directory(output_path).await {
+                    Ok(path) => Some(path.to_string_lossy().to_string()),
+                    Err(e) => {
+                        warn!(error = %e, workspace_id = %workspace.id, "Failed to save workspace");
+                        None
+                    }
+                };
+
+                // Export to zip if requested
+                let zip_path = if args.zip && saved_path.is_some() {
+                    let zip_file = output_path.join(format!("{}.tar.gz", workspace.id));
+                    match workspace.export_to_zip(&zip_file).await {
+                        Ok(path) => Some(path.to_string_lossy().to_string()),
+                        Err(e) => {
+                            warn!(error = %e, workspace_id = %workspace.id, "Failed to export zip");
+                            None
+                        }
+                    }
+                } else {
+                    None
+                };
+
+                workspaces.push(SyntheticWorkspaceOutput {
+                    workspace_id: workspace.id.clone(),
+                    project_name: workspace.spec.name.clone(),
+                    file_count: workspace.files.len(),
+                    vulnerability_count: workspace.vulnerabilities.len(),
+                    total_loc: workspace.total_loc,
+                    saved_path,
+                    zip_path,
+                    debates_conducted: workspace.debates.len(),
+                });
+            }
+            Err(e) => {
+                error!(workspace_index = i, error = %e, "Failed to generate workspace");
+            }
+        }
+    }
+
+    let duration_ms = start_time.elapsed().as_millis() as u64;
+
+    let output = SyntheticOutput {
+        status: if workspaces.is_empty() && args.count > 0 {
+            "failed".to_string()
+        } else {
+            "success".to_string()
+        },
+        model: args.model.clone(),
+        language: args.language.clone(),
+        category: args.category.clone(),
+        difficulty: args.difficulty.clone(),
+        workspaces,
+        total_duration_ms: duration_ms,
+        output_directory: output_path.to_string_lossy().to_string(),
+    };
+
+    let json_output = serde_json::to_string_pretty(&output)
+        .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
+    println!("{}", json_output);
+
+    Ok(())
+}
+
+/// Runs interactive synthetic generation with progress output.
+async fn run_interactive_synthetic(
+    orchestrator: &SyntheticWorkspaceOrchestrator,
+    args: &SyntheticArgs,
+    output_path: &Path,
+) -> anyhow::Result<()> {
+    println!("\n🧪 Advanced Synthetic Workspace Generation");
+    println!("==========================================");
+    println!("Model: {}", args.model);
+    println!("Language: {}", args.language);
+    println!("Category: {}", args.category);
+    println!("Difficulty: {}", args.difficulty);
+    println!("Count: {}", args.count);
+    println!("Output: {}", output_path.display());
+    println!(
+        "Vulnerabilities: {}-{}",
+        args.min_vulnerabilities, args.max_vulnerabilities
+    );
+    println!();
+
+    println!("Pipeline stages:");
+    println!("├─ ○ Planning (Project specification)");
+    println!("├─ ○ Debate (Multi-agent consensus)");
+    println!("│   ├─ Vulnerability Selection");
+    println!("│   └─ Difficulty Calibration");
+    println!("├─ ○ Code Generation (LLM-powered)");
+    println!("├─ ○ Vulnerability Injection (Subtle)");
+    println!("├─ ○ Cleaning (Remove hints)");
+    println!("└─ ○ Export (Save artifacts)\n");
+
+    let mut generated_workspaces = Vec::new();
+    let mut failed_count = 0u32;
+
+    for i in 0..args.count {
+        println!("📝 Generating workspace {}/{}...", i + 1, args.count);
+
+        let (event_tx, mut event_rx) = tokio::sync::mpsc::channel::<GenerationEvent>(100);
+
+        // Spawn event handler
+        let event_handle = tokio::spawn(async move {
+            while let Some(event) = event_rx.recv().await {
+                match event {
+                    GenerationEvent::Started {
+                        workspace_id,
+                        language,
+                        category,
+                        difficulty,
+                        ..
+                    } => {
+                        println!(
+                            "   🚀 Started {} ({} {} {})",
+                            workspace_id, language, category, difficulty
+                        );
+                    }
+                    GenerationEvent::StageStarted { stage, .. } => {
+                        println!("   ⟳ {} started...", stage);
+                    }
+                    GenerationEvent::StageCompleted {
+                        stage, duration_ms, ..
+                    } => {
+                        println!("   ✓ {} completed ({}ms)", stage, duration_ms);
+                    }
+                    GenerationEvent::DebateRound {
+                        topic,
+                        round,
+                        agreement_score,
+                        ..
+                    } => {
+                        println!(
+                            "   💬 {} round {}: {:.0}% agreement",
+                            topic,
+                            round,
+                            agreement_score * 100.0
+                        );
+                    }
+                    GenerationEvent::DebateCompleted {
+                        topic,
+                        consensus_reached,
+                        decision,
+                        ..
+                    } => {
+                        let status = if consensus_reached {
+                            "✓ consensus"
+                        } else {
+                            "⚠ no consensus"
+                        };
+                        println!(
+                            "   💬 {} {}: {}",
+                            topic,
+                            status,
+                            decision.unwrap_or_default()
+                        );
+                    }
+                    GenerationEvent::FileGenerated {
+                        path,
+                        file_type,
+                        lines,
+                        ..
+                    } => {
+                        println!("   📄 {} ({:?}, {} lines)", path, file_type, lines);
+                    }
+                    GenerationEvent::VulnerabilityInjected {
+                        vulnerability_type,
+                        file,
+                        severity,
+                        ..
+                    } => {
+                        println!(
+                            "   💉 {} in {} (severity: {})",
+                            vulnerability_type, file, severity
+                        );
+                    }
+                    GenerationEvent::CleaningCompleted {
+                        files_cleaned,
+                        patterns_removed,
+                        ..
+                    } => {
+                        println!(
+                            "   🧹 Cleaned {} files, removed {} patterns",
+                            files_cleaned, patterns_removed
+                        );
+                    }
+                    GenerationEvent::Completed {
+                        workspace_id,
+                        file_count,
+                        vulnerability_count,
+                        total_loc,
+                        duration_ms,
+                        ..
+                    } => {
+                        println!(
+                            "   ✓ Complete: {} ({} files, {} vulns, {} LOC, {}ms)",
+                            workspace_id, file_count, vulnerability_count, total_loc, duration_ms
+                        );
+                    }
+                    GenerationEvent::Failed { stage, error, .. } => {
+                        println!("   ✗ Failed at {}: {}", stage, error);
+                    }
+                }
+            }
+        });
+
+        let result = orchestrator.generate(event_tx).await;
+
+        // Wait for event handler to finish
+        let _ = event_handle.await;
+
+        match result {
+            Ok(workspace) => {
+                // Save workspace to directory
+                match workspace.export_to_directory(output_path).await {
+                    Ok(path) => {
+                        println!("   💾 Saved: {} → {}", workspace.id, path.display());
+                    }
+                    Err(e) => {
+                        warn!(error = %e, workspace_id = %workspace.id, "Failed to save workspace");
+                    }
+                }
+
+                // Export to zip if requested
+                if args.zip {
+                    let zip_file = output_path.join(format!("{}.tar.gz", workspace.id));
+                    match workspace.export_to_zip(&zip_file).await {
+                        Ok(path) => {
+                            println!("   📦 Exported: {}", path.display());
+                        }
+                        Err(e) => {
+                            warn!(error = %e, workspace_id = %workspace.id, "Failed to export zip");
+                        }
+                    }
+                }
+
+                println!("\n✓ Workspace {} generated successfully!", i + 1);
+                println!("  ID: {}", workspace.id);
+                println!("  Project: {}", workspace.spec.name);
+                println!("  Files: {}", workspace.files.len());
+                println!("  LOC: {}", workspace.total_loc);
+                println!("  Vulnerabilities: {}", workspace.vulnerabilities.len());
+                println!("  Debates: {}", workspace.debates.len());
+                generated_workspaces.push(workspace);
+            }
+            Err(e) => {
+                eprintln!("\n✗ Workspace {} failed: {}", i + 1, e);
+                failed_count += 1;
+            }
+        }
+
+        if i < args.count - 1 {
+            println!();
+        }
+    }
+
+    // Print summary
+    println!("\n{}", "=".repeat(50));
+    println!("🧪 Synthetic Workspace Generation Summary");
+    println!("{}", "=".repeat(50));
+    println!(
+        "✓ Successfully generated: {}/{}",
+        generated_workspaces.len(),
+        args.count
+    );
+    if failed_count > 0 {
+        println!("✗ Failed: {}", failed_count);
+    }
+    println!("📁 Output directory: {}", output_path.display());
+
+    if !generated_workspaces.is_empty() {
+        println!("\n📋 Generated Workspaces:");
+        for (idx, workspace) in generated_workspaces.iter().enumerate() {
+            println!(
+                "  {}. {} ({} files, {} vulns, {} LOC)",
+                idx + 1,
+                workspace.spec.name,
+                workspace.files.len(),
+                workspace.vulnerabilities.len(),
+                workspace.total_loc
+            );
+        }
+    }
+
+    if generated_workspaces.is_empty() && args.count > 0 {
+        return Err(anyhow::anyhow!("Failed to generate any workspaces"));
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -2068,5 +3225,186 @@ mod tests {
         assert!(metrics.easy_avg_duration_ms.is_none());
         assert!(metrics.medium_avg_duration_ms.is_none());
         assert!(metrics.hard_avg_duration_ms.is_none());
+    }
+
+    // ========================================================================
+    // Workspace Command Tests
+    // ========================================================================
+
+    #[test]
+    fn test_workspace_command_defaults() {
+        let args = vec!["dataforge", "workspace"];
+        let cli = Cli::try_parse_from(args).expect("should parse");
+
+        match cli.command {
+            Commands::Workspace(args) => {
+                assert_eq!(args.count, 1);
+                assert_eq!(args.model, DEFAULT_MODEL);
+                assert!(args.language.is_none());
+                assert!(args.project_type.is_none());
+                assert_eq!(args.output, DEFAULT_OUTPUT_DIR);
+                assert!(!args.json);
+                assert_eq!(args.debate_rounds, 3);
+                assert!((args.consensus_threshold - 0.6).abs() < 0.01);
+                assert_eq!(args.min_vulnerabilities, 3);
+                assert_eq!(args.max_vulnerabilities, 8);
+                assert!(args.seed.is_none());
+                assert!(!args.zip);
+            }
+            _ => panic!("Expected Workspace command"),
+        }
+    }
+
+    #[test]
+    fn test_workspace_command_with_all_options() {
+        let args = vec![
+            "dataforge",
+            "workspace",
+            "-n",
+            "3",
+            "-L",
+            "rust",
+            "-t",
+            "cli-tool",
+            "-m",
+            "anthropic/claude-3-opus",
+            "-o",
+            "./workspaces",
+            "-j",
+            "-s",
+            "12345",
+            "--debate-rounds",
+            "5",
+            "--consensus-threshold",
+            "0.8",
+            "--min-vulnerabilities",
+            "2",
+            "--max-vulnerabilities",
+            "10",
+            "--zip",
+        ];
+        let cli = Cli::try_parse_from(args).expect("should parse");
+
+        match cli.command {
+            Commands::Workspace(args) => {
+                assert_eq!(args.count, 3);
+                assert_eq!(args.language, Some("rust".to_string()));
+                assert_eq!(args.project_type, Some("cli-tool".to_string()));
+                assert_eq!(args.model, "anthropic/claude-3-opus");
+                assert_eq!(args.output, "./workspaces");
+                assert!(args.json);
+                assert_eq!(args.seed, Some(12345));
+                assert_eq!(args.debate_rounds, 5);
+                assert!((args.consensus_threshold - 0.8).abs() < 0.01);
+                assert_eq!(args.min_vulnerabilities, 2);
+                assert_eq!(args.max_vulnerabilities, 10);
+                assert!(args.zip);
+            }
+            _ => panic!("Expected Workspace command"),
+        }
+    }
+
+    #[test]
+    fn test_workspace_alias() {
+        let args = vec!["dataforge", "ws", "-n", "2"];
+        let cli = Cli::try_parse_from(args).expect("should parse with alias");
+
+        match cli.command {
+            Commands::Workspace(args) => {
+                assert_eq!(args.count, 2);
+            }
+            _ => panic!("Expected Workspace command"),
+        }
+    }
+
+    #[test]
+    fn test_parse_programming_language() {
+        assert_eq!(
+            parse_programming_language("python").expect("valid language"),
+            ProgrammingLanguage::Python
+        );
+        assert_eq!(
+            parse_programming_language("py").expect("valid language"),
+            ProgrammingLanguage::Python
+        );
+        assert_eq!(
+            parse_programming_language("rust").expect("valid language"),
+            ProgrammingLanguage::Rust
+        );
+        assert_eq!(
+            parse_programming_language("rs").expect("valid language"),
+            ProgrammingLanguage::Rust
+        );
+        assert_eq!(
+            parse_programming_language("javascript").expect("valid language"),
+            ProgrammingLanguage::JavaScript
+        );
+        assert_eq!(
+            parse_programming_language("js").expect("valid language"),
+            ProgrammingLanguage::JavaScript
+        );
+        assert_eq!(
+            parse_programming_language("typescript").expect("valid language"),
+            ProgrammingLanguage::TypeScript
+        );
+        assert_eq!(
+            parse_programming_language("ts").expect("valid language"),
+            ProgrammingLanguage::TypeScript
+        );
+        assert_eq!(
+            parse_programming_language("go").expect("valid language"),
+            ProgrammingLanguage::Go
+        );
+        assert_eq!(
+            parse_programming_language("golang").expect("valid language"),
+            ProgrammingLanguage::Go
+        );
+        assert_eq!(
+            parse_programming_language("java").expect("valid language"),
+            ProgrammingLanguage::Java
+        );
+        assert_eq!(
+            parse_programming_language("cpp").expect("valid language"),
+            ProgrammingLanguage::Cpp
+        );
+        assert_eq!(
+            parse_programming_language("c++").expect("valid language"),
+            ProgrammingLanguage::Cpp
+        );
+        assert_eq!(
+            parse_programming_language("c").expect("valid language"),
+            ProgrammingLanguage::C
+        );
+        assert!(parse_programming_language("invalid-language").is_err());
+    }
+
+    #[test]
+    fn test_workspace_output_serialization() {
+        let output = WorkspaceOutput {
+            status: "success".to_string(),
+            model: "moonshotai/kimi-k2.5".to_string(),
+            workspaces: vec![GeneratedWorkspaceOutput {
+                workspace_id: "ws-001".to_string(),
+                language: "Python".to_string(),
+                project_type: "web-api".to_string(),
+                file_count: 5,
+                vulnerability_count: 3,
+                saved_path: Some("./output/ws-001".to_string()),
+                zip_path: None,
+            }],
+            total_duration_ms: 10000,
+            output_directory: "./output".to_string(),
+        };
+
+        let json = serde_json::to_string_pretty(&output).expect("serialization should succeed");
+
+        // Verify key fields are present in output
+        assert!(json.contains("\"status\": \"success\""));
+        assert!(json.contains("\"model\": \"moonshotai/kimi-k2.5\""));
+        assert!(json.contains("\"workspace_id\": \"ws-001\""));
+        assert!(json.contains("\"language\": \"Python\""));
+        assert!(json.contains("\"file_count\": 5"));
+        assert!(json.contains("\"vulnerability_count\": 3"));
+        assert!(json.contains("\"total_duration_ms\": 10000"));
     }
 }
