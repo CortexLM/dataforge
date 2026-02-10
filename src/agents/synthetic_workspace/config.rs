@@ -3,9 +3,10 @@
 use serde::{Deserialize, Serialize};
 
 /// Target programming language for workspace generation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum LanguageTarget {
+    #[default]
     Python,
     JavaScript,
     TypeScript,
@@ -117,11 +118,7 @@ impl LanguageTarget {
     }
 }
 
-impl Default for LanguageTarget {
-    fn default() -> Self {
-        Self::Python
-    }
-}
+
 
 impl std::fmt::Display for LanguageTarget {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -130,10 +127,11 @@ impl std::fmt::Display for LanguageTarget {
 }
 
 /// Project category for workspace generation.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum ProjectCategory {
     /// REST API or web service
+    #[default]
     WebApi,
     /// Command-line interface tool
     CliTool,
@@ -218,11 +216,7 @@ impl ProjectCategory {
     }
 }
 
-impl Default for ProjectCategory {
-    fn default() -> Self {
-        Self::WebApi
-    }
-}
+
 
 impl std::fmt::Display for ProjectCategory {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -243,12 +237,13 @@ impl std::fmt::Display for ProjectCategory {
 }
 
 /// Difficulty level for the generated task.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum DifficultyLevel {
     /// Easy: 1-2 obvious vulnerabilities
     Easy,
     /// Medium: 3-4 moderate vulnerabilities
+    #[default]
     Medium,
     /// Hard: 5-7 subtle, interconnected vulnerabilities
     Hard,
@@ -280,10 +275,10 @@ impl DifficultyLevel {
     /// Returns the expected lines of code range.
     pub fn loc_range(&self) -> (usize, usize) {
         match self {
-            Self::Easy => (200, 500),
-            Self::Medium => (500, 1200),
-            Self::Hard => (1200, 3000),
-            Self::Expert => (3000, 8000),
+            Self::Easy => (500, 1000),
+            Self::Medium => (1500, 3000),
+            Self::Hard => (3500, 6000),
+            Self::Expert => (6000, 15000),
         }
     }
 
@@ -298,11 +293,7 @@ impl DifficultyLevel {
     }
 }
 
-impl Default for DifficultyLevel {
-    fn default() -> Self {
-        Self::Medium
-    }
-}
+
 
 impl std::fmt::Display for DifficultyLevel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
