@@ -11,13 +11,8 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use crate::llm::{GenerationRequest, LlmProvider, Message};
-use crate::utils::json_extraction::{
-    extract_from_generic_code_block, extract_from_json_code_block, extract_json_with_regex,
-    find_matching_brace,
-};
-
 use super::error::{AgentError, AgentResult};
+use crate::llm::{GenerationRequest, LlmProvider, Message};
 
 /// System prompt for task validation.
 const TASK_VALIDATION_SYSTEM_PROMPT: &str = r#"You are a terminal benchmark task validator. Your job is to assess if a task is PRACTICAL, EXECUTABLE, and SUFFICIENTLY CHALLENGING for testing AI coding agents.
@@ -432,76 +427,45 @@ impl TaskValidatorAgent {
     }
 
     /// Extracts JSON from the response, handling potential markdown code blocks and mixed content.
-    ///
-    /// This function attempts multiple strategies to extract valid JSON:
-    /// 1. Direct JSON (starts with '{')
-    /// 2. JSON in markdown code blocks (```json ... ```)
-    /// 3. JSON in generic code blocks (``` ... ```)
-    /// 4. Raw JSON object anywhere in the content (first '{' to matching '}')
-    /// 5. Regex-based extraction for complex cases
     fn extract_json(&self, content: &str) -> AgentResult<String> {
-        let trimmed = content.trim();
+        use crate::utils::json_extraction::try_extract_json_from_response;
 
-        tracing::debug!(
-            "Attempting to extract JSON from response (length: {} chars)",
-            trimmed.len()
-        );
+        let result = try_extract_json_from_response(content);
 
-        // Strategy 1: If it already starts with '{', find the matching closing brace
-        if trimmed.starts_with('{') {
-            if let Some(end) = find_matching_brace(trimmed) {
-                let json = trimmed[..=end].to_string();
-                tracing::debug!("Extracted JSON using direct match (strategy 1)");
-                return Ok(json);
+        match result {
+            crate::utils::json_extraction::JsonExtractionResult::Success(json) => Ok(json),
+            crate::utils::json_extraction::JsonExtractionResult::Truncated {
+                partial_json,
+                unclosed_braces,
+                unclosed_brackets,
+            } => {
+                let preview_len = partial_json.len().min(200);
+                let preview = &partial_json[..preview_len];
+                tracing::warn!(
+                    unclosed_braces = unclosed_braces,
+                    unclosed_brackets = unclosed_brackets,
+                    partial_preview = %preview,
+                    "JSON appears truncated in LLM response"
+                );
+                Err(AgentError::ResponseParseError(format!(
+                    "JSON appears truncated: {} unclosed braces, {} unclosed brackets. Partial: {}...",
+                    unclosed_braces, unclosed_brackets, preview
+                )))
             }
-            // If no matching brace found, try other strategies
-            tracing::debug!(
-                "Direct JSON detected but no matching brace found, trying other strategies"
-            );
-        }
-
-        // Strategy 2: Try to extract from markdown ```json code block
-        if let Some(json) = extract_from_json_code_block(trimmed) {
-            tracing::debug!("Extracted JSON from ```json code block (strategy 2)");
-            return Ok(json);
-        }
-
-        // Strategy 3: Try to extract from generic ``` code block
-        if let Some(json) = extract_from_generic_code_block(trimmed) {
-            tracing::debug!("Extracted JSON from generic code block (strategy 3)");
-            return Ok(json);
-        }
-
-        // Strategy 4: Try to find JSON object anywhere in the content using brace matching
-        if let Some(start) = trimmed.find('{') {
-            if let Some(end) = find_matching_brace(&trimmed[start..]) {
-                let json = trimmed[start..=start + end].to_string();
-                tracing::debug!("Extracted JSON using brace matching (strategy 4)");
-                return Ok(json);
+            crate::utils::json_extraction::JsonExtractionResult::NotFound => {
+                let trimmed = content.trim();
+                let preview_len = trimmed.len().min(100);
+                let preview = &trimmed[..preview_len];
+                tracing::warn!(
+                    content_preview = %preview,
+                    "Could not find JSON in LLM response"
+                );
+                Err(AgentError::ResponseParseError(format!(
+                    "No JSON content found in response. Content starts with: '{}'",
+                    preview
+                )))
             }
         }
-
-        // Strategy 5: Last resort - use regex to find JSON-like content
-        if let Some(json) = extract_json_with_regex(trimmed) {
-            tracing::debug!("Extracted JSON using regex fallback (strategy 5)");
-            return Ok(json);
-        }
-
-        // Log the problematic content for debugging
-        let preview = if trimmed.len() > 200 {
-            format!("{}...[truncated]", &trimmed[..200])
-        } else {
-            trimmed.to_string()
-        };
-        tracing::warn!(
-            "Could not extract JSON from response. Content preview: {}",
-            preview
-        );
-
-        Err(AgentError::ResponseParseError(format!(
-            "Could not extract JSON from response. Content starts with: '{}'",
-            &trimmed[..trimmed.len().min(100)]
-        )))
     }
 }
 

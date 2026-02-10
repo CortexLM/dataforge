@@ -30,7 +30,7 @@ use serde::Deserialize;
 
 use crate::llm::{GenerationRequest, LlmProvider, Message};
 use crate::prompts::{build_research_prompt, RESEARCH_AGENT_SYSTEM};
-use crate::utils::json_extraction::extract_json_from_response;
+use crate::utils::json_extraction::{try_extract_json_from_response, JsonExtractionError};
 
 use super::error::{AgentError, AgentResult};
 use super::factory_types::{
@@ -332,7 +332,23 @@ Output ONLY the JSON array."#,
         content: &str,
         category: &str,
     ) -> AgentResult<ResearchFindings> {
-        let json_content = extract_json_from_response(content);
+        let result = try_extract_json_from_response(content);
+        let json_content = result.into_result_with_context(content).map_err(|e| {
+            match &e {
+                JsonExtractionError::Truncated { partial_preview, unclosed_braces, unclosed_brackets } => {
+                    AgentError::ResponseParseError(format!(
+                        "JSON appears truncated in research response: {} unclosed braces, {} unclosed brackets. Partial: {}...",
+                        unclosed_braces, unclosed_brackets, partial_preview
+                    ))
+                }
+                JsonExtractionError::NotFound { content_preview } => {
+                    AgentError::ResponseParseError(format!(
+                        "Could not extract JSON from research response. Content starts with: '{}'",
+                        content_preview
+                    ))
+                }
+            }
+        })?;
 
         let llm_response: LlmResearchResponse =
             serde_json::from_str(&json_content).map_err(|e| {
@@ -386,7 +402,23 @@ Output ONLY the JSON array."#,
 
     /// Parses a weaknesses-only response from the LLM.
     fn parse_weaknesses_response(&self, content: &str) -> AgentResult<Vec<LlmWeakness>> {
-        let json_content = extract_json_from_response(content);
+        let result = try_extract_json_from_response(content);
+        let json_content = result.into_result_with_context(content).map_err(|e| {
+            match &e {
+                JsonExtractionError::Truncated { partial_preview, unclosed_braces, unclosed_brackets } => {
+                    AgentError::ResponseParseError(format!(
+                        "JSON appears truncated in weaknesses response: {} unclosed braces, {} unclosed brackets. Partial: {}...",
+                        unclosed_braces, unclosed_brackets, partial_preview
+                    ))
+                }
+                JsonExtractionError::NotFound { content_preview } => {
+                    AgentError::ResponseParseError(format!(
+                        "Could not extract JSON from weaknesses response. Content starts with: '{}'",
+                        content_preview
+                    ))
+                }
+            }
+        })?;
 
         let llm_weaknesses: Vec<LlmWeaknessResponse> = serde_json::from_str(&json_content)
             .map_err(|e| {
@@ -411,7 +443,23 @@ Output ONLY the JSON array."#,
 
     /// Parses a traps-only response from the LLM.
     fn parse_traps_response(&self, content: &str) -> AgentResult<Vec<DifficultyTrap>> {
-        let json_content = extract_json_from_response(content);
+        let result = try_extract_json_from_response(content);
+        let json_content = result.into_result_with_context(content).map_err(|e| {
+            match &e {
+                JsonExtractionError::Truncated { partial_preview, unclosed_braces, unclosed_brackets } => {
+                    AgentError::ResponseParseError(format!(
+                        "JSON appears truncated in traps response: {} unclosed braces, {} unclosed brackets. Partial: {}...",
+                        unclosed_braces, unclosed_brackets, partial_preview
+                    ))
+                }
+                JsonExtractionError::NotFound { content_preview } => {
+                    AgentError::ResponseParseError(format!(
+                        "Could not extract JSON from traps response. Content starts with: '{}'",
+                        content_preview
+                    ))
+                }
+            }
+        })?;
 
         let llm_traps: Vec<LlmTrapResponse> = serde_json::from_str(&json_content).map_err(|e| {
             AgentError::ResponseParseError(format!("Failed to parse traps response: {}", e))
@@ -504,6 +552,7 @@ fn parse_trap_type(s: &str) -> DifficultyTrapType {
 mod tests {
     use super::*;
     use crate::llm::{Choice, GenerationResponse, Usage};
+    use crate::utils::json_extraction::extract_json_from_response;
     use async_trait::async_trait;
     use std::sync::Mutex;
 

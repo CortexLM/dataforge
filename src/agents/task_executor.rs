@@ -46,7 +46,7 @@ use uuid::Uuid;
 use crate::anti_hardcoding::CanaryConfig;
 use crate::difficulty::DifficultyLevel;
 use crate::llm::{GenerationRequest, LlmProvider, Message};
-use crate::utils::json_extraction::extract_json_from_response;
+use crate::utils::json_extraction::{try_extract_json_from_response, JsonExtractionError};
 
 use super::error::{AgentError, AgentResult};
 use super::task_validator::{TaskIdea, ValidationAssessment};
@@ -827,7 +827,23 @@ impl TaskExecutorAgent {
         canary: &str,
     ) -> AgentResult<SyntheticTask> {
         // Try to extract JSON from the response (handle markdown code blocks)
-        let json_content = extract_json_from_response(content);
+        let result = try_extract_json_from_response(content);
+        let json_content = result.into_result_with_context(content).map_err(|e| {
+            match &e {
+                JsonExtractionError::Truncated { partial_preview, unclosed_braces, unclosed_brackets } => {
+                    AgentError::ResponseParseError(format!(
+                        "JSON appears truncated: {} unclosed braces, {} unclosed brackets. Partial: {}...",
+                        unclosed_braces, unclosed_brackets, partial_preview
+                    ))
+                }
+                JsonExtractionError::NotFound { content_preview } => {
+                    AgentError::ResponseParseError(format!(
+                        "Could not extract JSON from response. Content starts with: '{}'",
+                        content_preview
+                    ))
+                }
+            }
+        })?;
 
         let llm_response: LlmTaskResponse = serde_json::from_str(&json_content).map_err(|e| {
             // Safely truncate to avoid char boundary issues
@@ -925,6 +941,7 @@ mod tests {
     use super::*;
     use crate::error::LlmError;
     use crate::llm::{Choice, GenerationResponse, Usage};
+    use crate::utils::json_extraction::extract_json_from_response;
     use async_trait::async_trait;
     use std::sync::Mutex;
 

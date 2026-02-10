@@ -37,7 +37,7 @@ use serde::Deserialize;
 
 use crate::llm::{GenerationRequest, LlmProvider, Message};
 use crate::prompts::{build_amplifier_prompt, AMPLIFIER_AGENT_SYSTEM};
-use crate::utils::json_extraction::extract_json_from_response;
+use crate::utils::json_extraction::{try_extract_json_from_response, JsonExtractionError};
 
 use super::error::{AgentError, AgentResult};
 use super::factory_types::{
@@ -499,7 +499,23 @@ Output ONLY the JSON object."#,
         content: &str,
         task: &FactoryTaskSpec,
     ) -> AgentResult<AmplifiedTask> {
-        let json_content = extract_json_from_response(content);
+        let result = try_extract_json_from_response(content);
+        let json_content = result.into_result_with_context(content).map_err(|e| {
+            match &e {
+                JsonExtractionError::Truncated { partial_preview, unclosed_braces, unclosed_brackets } => {
+                    AgentError::ResponseParseError(format!(
+                        "JSON appears truncated in amplification response: {} unclosed braces, {} unclosed brackets. Partial: {}...",
+                        unclosed_braces, unclosed_brackets, partial_preview
+                    ))
+                }
+                JsonExtractionError::NotFound { content_preview } => {
+                    AgentError::ResponseParseError(format!(
+                        "Could not extract JSON from amplification response. Content starts with: '{}'",
+                        content_preview
+                    ))
+                }
+            }
+        })?;
 
         let llm_response: LlmAmplificationResponse =
             serde_json::from_str(&json_content).map_err(|e| {
@@ -542,7 +558,23 @@ Output ONLY the JSON object."#,
 
     /// Parses a single trap response from the LLM.
     fn parse_single_trap_response(&self, content: &str) -> AgentResult<DifficultyTrap> {
-        let json_content = extract_json_from_response(content);
+        let result = try_extract_json_from_response(content);
+        let json_content = result.into_result_with_context(content).map_err(|e| {
+            match &e {
+                JsonExtractionError::Truncated { partial_preview, unclosed_braces, unclosed_brackets } => {
+                    AgentError::ResponseParseError(format!(
+                        "JSON appears truncated in trap response: {} unclosed braces, {} unclosed brackets. Partial: {}...",
+                        unclosed_braces, unclosed_brackets, partial_preview
+                    ))
+                }
+                JsonExtractionError::NotFound { content_preview } => {
+                    AgentError::ResponseParseError(format!(
+                        "Could not extract JSON from trap response. Content starts with: '{}'",
+                        content_preview
+                    ))
+                }
+            }
+        })?;
 
         let llm_trap: LlmTrapResponse = serde_json::from_str(&json_content).map_err(|e| {
             AgentError::ResponseParseError(format!("Failed to parse trap response: {}", e))
@@ -632,6 +664,7 @@ mod tests {
     use super::*;
     use crate::difficulty::DifficultyLevel;
     use crate::llm::{Choice, GenerationResponse, Usage};
+    use crate::utils::json_extraction::extract_json_from_response;
     use async_trait::async_trait;
     use std::sync::Mutex;
 

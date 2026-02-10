@@ -10,14 +10,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use super::error::{AgentError, AgentResult};
 use crate::difficulty::DifficultyLevel;
 use crate::llm::{GenerationRequest, LlmProvider, Message};
-use crate::utils::json_extraction::{
-    extract_from_generic_code_block, extract_from_json_code_block, extract_json_with_regex,
-    find_matching_brace,
-};
-
-use super::error::{AgentError, AgentResult};
 
 /// System prompt for creative task ideation.
 const IDEATION_SYSTEM_PROMPT: &str = r#"You are a benchmark task designer generating EXTREMELY CHALLENGING TERMINAL TASKS for testing AI coding agents. Your goal is to create tasks where ONLY 30-40% of AI agents succeed.
@@ -627,76 +622,45 @@ impl IdeatorAgent {
     }
 
     /// Extracts JSON from the response, handling potential markdown code blocks and mixed content.
-    ///
-    /// This function attempts multiple strategies to extract valid JSON:
-    /// 1. Direct JSON (starts with '{')
-    /// 2. JSON in markdown code blocks (```json ... ```)
-    /// 3. JSON in generic code blocks (``` ... ```)
-    /// 4. Raw JSON object anywhere in the content (first '{' to matching '}')
-    /// 5. Regex-based extraction for complex cases
     fn extract_json(&self, content: &str) -> AgentResult<String> {
-        let trimmed = content.trim();
+        use crate::utils::json_extraction::try_extract_json_from_response;
 
-        tracing::debug!(
-            "Attempting to extract JSON from response (length: {} chars)",
-            trimmed.len()
-        );
+        let result = try_extract_json_from_response(content);
 
-        // Strategy 1: If it already starts with '{', find the matching closing brace
-        if trimmed.starts_with('{') {
-            if let Some(end) = find_matching_brace(trimmed) {
-                let json = trimmed[..=end].to_string();
-                tracing::debug!("Extracted JSON using direct match (strategy 1)");
-                return Ok(json);
+        match result {
+            crate::utils::json_extraction::JsonExtractionResult::Success(json) => Ok(json),
+            crate::utils::json_extraction::JsonExtractionResult::Truncated {
+                partial_json,
+                unclosed_braces,
+                unclosed_brackets,
+            } => {
+                let preview_len = partial_json.len().min(200);
+                let preview = &partial_json[..preview_len];
+                tracing::warn!(
+                    unclosed_braces = unclosed_braces,
+                    unclosed_brackets = unclosed_brackets,
+                    partial_preview = %preview,
+                    "JSON appears truncated in LLM response"
+                );
+                Err(AgentError::ResponseParseError(format!(
+                    "JSON appears truncated: {} unclosed braces, {} unclosed brackets. Partial: {}...",
+                    unclosed_braces, unclosed_brackets, preview
+                )))
             }
-            // If no matching brace found, try other strategies
-            tracing::debug!(
-                "Direct JSON detected but no matching brace found, trying other strategies"
-            );
-        }
-
-        // Strategy 2: Try to extract from markdown ```json code block
-        if let Some(json) = extract_from_json_code_block(trimmed) {
-            tracing::debug!("Extracted JSON from ```json code block (strategy 2)");
-            return Ok(json);
-        }
-
-        // Strategy 3: Try to extract from generic ``` code block
-        if let Some(json) = extract_from_generic_code_block(trimmed) {
-            tracing::debug!("Extracted JSON from generic code block (strategy 3)");
-            return Ok(json);
-        }
-
-        // Strategy 4: Try to find JSON object anywhere in the content using brace matching
-        if let Some(start) = trimmed.find('{') {
-            if let Some(end) = find_matching_brace(&trimmed[start..]) {
-                let json = trimmed[start..=start + end].to_string();
-                tracing::debug!("Extracted JSON using brace matching (strategy 4)");
-                return Ok(json);
+            crate::utils::json_extraction::JsonExtractionResult::NotFound => {
+                let trimmed = content.trim();
+                let preview_len = trimmed.len().min(100);
+                let preview = &trimmed[..preview_len];
+                tracing::warn!(
+                    content_preview = %preview,
+                    "Could not find JSON in LLM response"
+                );
+                Err(AgentError::ResponseParseError(format!(
+                    "No JSON content found in response. Content starts with: '{}'",
+                    preview
+                )))
             }
         }
-
-        // Strategy 5: Last resort - use regex to find JSON-like content
-        if let Some(json) = extract_json_with_regex(trimmed) {
-            tracing::debug!("Extracted JSON using regex fallback (strategy 5)");
-            return Ok(json);
-        }
-
-        // Log the problematic content for debugging
-        let preview = if trimmed.len() > 200 {
-            format!("{}...[truncated]", &trimmed[..200])
-        } else {
-            trimmed.to_string()
-        };
-        tracing::warn!(
-            "Could not extract JSON from response. Content preview: {}",
-            preview
-        );
-
-        Err(AgentError::ResponseParseError(format!(
-            "Could not extract JSON from response. Content starts with: '{}'",
-            &trimmed[..trimmed.len().min(100)]
-        )))
     }
 
     /// Parses a difficulty string into a DifficultyLevel.
@@ -1132,16 +1096,6 @@ This task tests memory debugging skills."#;
     }
 
     #[test]
-    fn test_find_matching_brace() {
-        assert_eq!(find_matching_brace(r#"{}"#), Some(1));
-        assert_eq!(find_matching_brace(r#"{"a": 1}"#), Some(7));
-        assert_eq!(find_matching_brace(r#"{"a": {"b": 2}}"#), Some(14));
-        assert_eq!(find_matching_brace(r#"{"a": "}"}"#), Some(9));
-        assert_eq!(find_matching_brace(r#"{"a": "\"}"}"#), Some(11));
-        assert_eq!(find_matching_brace(r#"{"#), None);
-    }
-
-    #[test]
     fn test_parse_difficulty() {
         assert_eq!(
             IdeatorAgent::parse_difficulty("easy").expect("valid"),
@@ -1274,48 +1228,5 @@ Done."#;
             .expect("should extract JSON even with comments in code block");
 
         assert_eq!(idea.title, "Task With Comments");
-    }
-
-    #[test]
-    fn test_extract_from_json_code_block_helper() {
-        let content = r#"Some text
-```json
-{"key": "value", "nested": {"a": 1}}
-```
-More text"#;
-        let result = extract_from_json_code_block(content);
-        assert!(result.is_some());
-        let json = result.expect("json found");
-        assert!(json.contains("key"));
-        assert!(json.contains("nested"));
-    }
-
-    #[test]
-    fn test_extract_from_generic_code_block_helper() {
-        let content = r#"```
-{"simple": "json"}
-```"#;
-        let result = extract_from_generic_code_block(content);
-        assert!(result.is_some());
-        assert!(result.expect("json found").contains("simple"));
-    }
-
-    #[test]
-    fn test_extract_json_with_regex_helper() {
-        let content = r#"Before text {"valid": "json", "number": 42} after text"#;
-        let result = extract_json_with_regex(content);
-        assert!(result.is_some());
-        let json = result.expect("json found");
-        // Verify it's valid JSON
-        assert!(serde_json::from_str::<serde_json::Value>(&json).is_ok());
-    }
-
-    #[test]
-    fn test_extract_json_with_nested_braces() {
-        let content = r#"Response: {"outer": {"inner": {"deep": "value"}}}"#;
-        let result = extract_json_with_regex(content);
-        assert!(result.is_some());
-        let json = result.expect("json found");
-        assert!(serde_json::from_str::<serde_json::Value>(&json).is_ok());
     }
 }

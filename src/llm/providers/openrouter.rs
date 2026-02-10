@@ -307,25 +307,40 @@ impl LlmProvider for OpenRouterProvider {
             request.model.clone()
         };
 
-        // Enable reasoning for models that support it (Kimi K2, etc.)
-        // Note: For reasoning models, we set reasoning.max_tokens independently
-        // of the main max_tokens to allow for both thinking and response.
-        // The reasoning budget should be additional to the main response budget.
-        let reasoning = if is_reasoning_model(&model) {
-            // Use a reasonable default for reasoning tokens (8000)
-            // This is separate from max_tokens which controls the final response
-            Some(ReasoningConfig {
-                max_tokens: Some(8000),
-            })
+        // Configure reasoning and token limits for reasoning models
+        let (reasoning, adjusted_max_tokens) = if is_reasoning_model(&model) {
+            // For reasoning models like Kimi K2.5:
+            // 1. The reasoning_content and content share the same max_tokens budget
+            // 2. We need to ensure enough tokens for both thinking AND the final JSON response
+            // 3. Use reasoning.effort instead of reasoning.max_tokens for better compatibility
+            //
+            // Adjust max_tokens to accommodate both reasoning and content:
+            // - If user requested N tokens for content, we need N + reasoning_budget
+            // - Default reasoning budget is ~8000 tokens for thinking
+            // - Ensure minimum of 16000 tokens total for reasoning models
+            let user_max_tokens = request.max_tokens.unwrap_or(4000);
+            let reasoning_budget = 8000u32;
+            let min_total_tokens = 16000u32;
+            let adjusted = (user_max_tokens + reasoning_budget).max(min_total_tokens);
+
+            // Use effort-based reasoning which is more broadly compatible across providers
+            // "medium" effort provides a good balance between reasoning depth and token usage
+            (
+                Some(ReasoningConfig {
+                    effort: Some("medium".to_string()),
+                    max_tokens: None,
+                }),
+                Some(adjusted),
+            )
         } else {
-            None
+            (None, request.max_tokens)
         };
 
         let api_request = ApiRequest {
             model,
             messages: request.messages,
             temperature: request.temperature,
-            max_tokens: request.max_tokens,
+            max_tokens: adjusted_max_tokens,
             top_p: request.top_p,
             reasoning,
         };
@@ -419,9 +434,15 @@ struct ApiRequest {
 }
 
 /// Configuration for reasoning-enabled models.
+/// Supports both effort-based (OpenAI-style) and max_tokens-based (Anthropic-style) configuration.
 #[derive(Debug, Clone, Serialize)]
 struct ReasoningConfig {
-    /// Maximum tokens for reasoning output.
+    /// Reasoning effort level (OpenAI-style): "xhigh", "high", "medium", "low", "minimal", "none"
+    /// This is more broadly compatible across providers via OpenRouter.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    effort: Option<String>,
+    /// Maximum tokens for reasoning output (Anthropic-style).
+    /// Note: Not all providers support this directly.
     #[serde(skip_serializing_if = "Option::is_none")]
     max_tokens: Option<u32>,
 }
@@ -604,14 +625,34 @@ mod tests {
     }
 
     #[test]
-    fn test_api_request_serialization_with_reasoning() {
+    fn test_api_request_serialization_with_reasoning_effort() {
         let request = ApiRequest {
             model: "moonshotai/kimi-k2.5".to_string(),
             messages: vec![Message::user("Hello")],
             temperature: Some(0.7),
-            max_tokens: Some(1000),
+            max_tokens: Some(16000),
             top_p: None,
             reasoning: Some(ReasoningConfig {
+                effort: Some("medium".to_string()),
+                max_tokens: None,
+            }),
+        };
+
+        let json = serde_json::to_string(&request).expect("serialization should succeed");
+        assert!(json.contains("\"reasoning\""));
+        assert!(json.contains("\"effort\":\"medium\""));
+    }
+
+    #[test]
+    fn test_api_request_serialization_with_reasoning_max_tokens() {
+        let request = ApiRequest {
+            model: "anthropic/claude-3.5-sonnet".to_string(),
+            messages: vec![Message::user("Hello")],
+            temperature: Some(0.7),
+            max_tokens: Some(10000),
+            top_p: None,
+            reasoning: Some(ReasoningConfig {
+                effort: None,
                 max_tokens: Some(8000),
             }),
         };
