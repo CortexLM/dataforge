@@ -30,6 +30,7 @@ pub mod test_framework;
 pub mod trajectory;
 pub mod utils;
 pub mod validation;
+pub mod workspace;
 
 // Re-export commonly used error types
 pub use error::{
