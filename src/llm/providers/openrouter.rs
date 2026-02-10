@@ -83,12 +83,30 @@ impl OpenRouterProvider {
     ///
     /// Useful for testing or using OpenRouter-compatible proxies.
     ///
+    /// # Security Warning
+    ///
+    /// This method allows non-HTTPS URLs for testing purposes. Using plain HTTP
+    /// in production can expose API keys and request data. Always use HTTPS
+    /// for production deployments.
+    ///
     /// # Arguments
     ///
     /// * `api_key` - API key for authentication
-    /// * `base_url` - Custom base URL for the API
+    /// * `base_url` - Custom base URL for the API (should use HTTPS in production)
     /// * `model` - Default model identifier
     pub fn with_custom_url(api_key: String, base_url: String, model: String) -> Self {
+        // Log warning for insecure configurations (non-HTTPS in non-localhost URLs)
+        if !base_url.starts_with("https://")
+            && !base_url.contains("localhost")
+            && !base_url.contains("127.0.0.1")
+        {
+            tracing::warn!(
+                "OpenRouter provider configured with non-HTTPS URL: {}. \
+                 This may expose API keys and request data. Use HTTPS for production.",
+                base_url
+            );
+        }
+
         Self {
             client: Client::builder()
                 .timeout(Duration::from_secs(REQUEST_TIMEOUT_SECS))
@@ -218,16 +236,33 @@ impl OpenRouterProvider {
             .map_err(|e| LlmError::ParseError(format!("Failed to parse API response: {}", e)))?;
 
         // Convert to GenerationResponse
+        // For reasoning models like Kimi K2.5, the main content might be in reasoning/reasoning_content
         let choices = api_response
             .choices
             .into_iter()
-            .map(|choice| Choice {
-                index: choice.index,
-                message: Message {
-                    role: choice.message.role,
-                    content: choice.message.content,
-                },
-                finish_reason: choice.finish_reason.unwrap_or_else(|| "stop".to_string()),
+            .map(|choice| {
+                // Priority: content > reasoning_content > reasoning
+                // If content is empty, check reasoning fields
+                let content = if !choice.message.content.trim().is_empty() {
+                    choice.message.content
+                } else if let Some(rc) = choice.message.reasoning_content {
+                    if !rc.trim().is_empty() {
+                        rc
+                    } else {
+                        choice.message.reasoning.unwrap_or_default()
+                    }
+                } else {
+                    choice.message.reasoning.unwrap_or_default()
+                };
+
+                Choice {
+                    index: choice.index,
+                    message: Message {
+                        role: choice.message.role,
+                        content,
+                    },
+                    finish_reason: choice.finish_reason.unwrap_or_else(|| "stop".to_string()),
+                }
             })
             .collect();
 
@@ -272,16 +307,98 @@ impl LlmProvider for OpenRouterProvider {
             request.model.clone()
         };
 
+        // Enable reasoning for models that support it (Kimi K2, etc.)
+        // Note: For reasoning models, we set reasoning.max_tokens independently
+        // of the main max_tokens to allow for both thinking and response.
+        // The reasoning budget should be additional to the main response budget.
+        let reasoning = if is_reasoning_model(&model) {
+            // Use a reasonable default for reasoning tokens (8000)
+            // This is separate from max_tokens which controls the final response
+            Some(ReasoningConfig {
+                max_tokens: Some(8000),
+            })
+        } else {
+            None
+        };
+
         let api_request = ApiRequest {
             model,
             messages: request.messages,
             temperature: request.temperature,
             max_tokens: request.max_tokens,
             top_p: request.top_p,
+            reasoning,
         };
 
         self.execute_with_retry(&api_request).await
     }
+}
+
+/// Known reasoning model identifiers that should have reasoning enabled.
+/// These are exact model prefixes/names to avoid false positives.
+const REASONING_MODEL_PATTERNS: &[&str] = &[
+    // Kimi models (Moonshot AI)
+    "moonshotai/kimi",
+    "kimi-k2",
+    "kimi-k1",
+    // OpenAI reasoning models (must be exact to avoid matching 'pro1', 'collection-o1', etc.)
+    "openai/o1",
+    "openai/o3",
+    "o1-preview",
+    "o1-mini",
+    "o3-mini",
+    // DeepSeek reasoning models
+    "deepseek/deepseek-r1",
+    "deepseek-r1",
+    "deepseek-reasoner",
+    // Generic reasoning indicators (full word boundaries)
+    "-thinking",
+    "-reasoning",
+];
+
+/// Check if a model is a reasoning model that needs special handling.
+///
+/// Uses explicit model patterns to avoid false positives (e.g., 'pro1-turbo'
+/// should not match 'o1', 'model-collection-o1' should not match 'o1').
+fn is_reasoning_model(model: &str) -> bool {
+    let model_lower = model.to_lowercase();
+
+    REASONING_MODEL_PATTERNS.iter().any(|pattern| {
+        let pattern_lower = pattern.to_lowercase();
+        // Check if the model name contains this pattern
+        // For patterns starting with specific providers (e.g., 'openai/'), match from start
+        if pattern_lower.contains('/') {
+            model_lower.starts_with(&pattern_lower)
+        } else if pattern_lower.starts_with('-') {
+            // For suffix patterns (e.g., '-thinking'), check if it's at the end or followed by delimiter
+            model_lower.ends_with(&pattern_lower)
+                || model_lower.contains(&format!("{}-", pattern_lower))
+        } else {
+            // For standalone patterns, ensure they're at word boundaries
+            // Match: "kimi-k2", "kimi-k2.5", "kimi-k2-preview"
+            // Don't match: "akimi", "kimix", etc.
+            let idx = model_lower.find(&pattern_lower);
+            if let Some(start) = idx {
+                let end = start + pattern_lower.len();
+                // Check if pattern is at a word boundary
+                let at_start = start == 0
+                    || !model_lower
+                        .chars()
+                        .nth(start - 1)
+                        .map(|c| c.is_alphanumeric())
+                        .unwrap_or(false);
+                let at_end = end == model_lower.len()
+                    || !model_lower
+                        .chars()
+                        .nth(end)
+                        .map(|c| c.is_alphanumeric())
+                        .unwrap_or(false);
+                at_start && at_end
+            } else {
+                false
+            }
+        }
+    })
 }
 
 /// Internal request structure for the OpenRouter API.
@@ -295,6 +412,18 @@ struct ApiRequest {
     max_tokens: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     top_p: Option<f64>,
+    /// Enable reasoning for models that support it (e.g., Kimi K2.5).
+    /// When enabled, the model will include its reasoning process.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    reasoning: Option<ReasoningConfig>,
+}
+
+/// Configuration for reasoning-enabled models.
+#[derive(Debug, Clone, Serialize)]
+struct ReasoningConfig {
+    /// Maximum tokens for reasoning output.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    max_tokens: Option<u32>,
 }
 
 /// Internal response structure from the OpenRouter API.
@@ -315,10 +444,20 @@ struct ApiChoice {
 }
 
 /// Internal message structure from the API response.
+/// Supports reasoning models that may include reasoning_content/reasoning.
 #[derive(Debug, Deserialize)]
 struct ApiMessage {
     role: String,
+    /// The main content - may be empty for reasoning models.
+    #[serde(default)]
     content: String,
+    /// Reasoning text from reasoning models (e.g., Kimi K2.5, DeepSeek R1).
+    /// This is an alias for reasoning_content.
+    #[serde(default)]
+    reasoning: Option<String>,
+    /// Reasoning content from reasoning models (e.g., Kimi K2.5).
+    #[serde(default)]
+    reasoning_content: Option<String>,
 }
 
 /// Internal usage structure from the API response.
@@ -454,6 +593,7 @@ mod tests {
             temperature: Some(0.7),
             max_tokens: Some(1000),
             top_p: None,
+            reasoning: None,
         };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");
@@ -461,5 +601,173 @@ mod tests {
         assert!(json.contains("\"temperature\":0.7"));
         assert!(json.contains("\"max_tokens\":1000"));
         assert!(!json.contains("top_p"));
+    }
+
+    #[test]
+    fn test_api_request_serialization_with_reasoning() {
+        let request = ApiRequest {
+            model: "moonshotai/kimi-k2.5".to_string(),
+            messages: vec![Message::user("Hello")],
+            temperature: Some(0.7),
+            max_tokens: Some(1000),
+            top_p: None,
+            reasoning: Some(ReasoningConfig {
+                max_tokens: Some(8000),
+            }),
+        };
+
+        let json = serde_json::to_string(&request).expect("serialization should succeed");
+        assert!(json.contains("\"reasoning\""));
+        assert!(json.contains("\"max_tokens\":8000"));
+    }
+
+    // Tests for is_reasoning_model() function
+    #[test]
+    fn test_is_reasoning_model_kimi_models() {
+        // Should match Kimi models
+        assert!(is_reasoning_model("moonshotai/kimi-k2.5"));
+        assert!(is_reasoning_model("moonshotai/kimi-k2"));
+        assert!(is_reasoning_model("moonshotai/kimi-k1.5"));
+        assert!(is_reasoning_model("kimi-k2.5"));
+        assert!(is_reasoning_model("kimi-k2-preview"));
+        // Case insensitive
+        assert!(is_reasoning_model("MOONSHOTAI/KIMI-K2.5"));
+    }
+
+    #[test]
+    fn test_is_reasoning_model_openai_o1_o3() {
+        // Should match OpenAI reasoning models
+        assert!(is_reasoning_model("openai/o1"));
+        assert!(is_reasoning_model("openai/o1-preview"));
+        assert!(is_reasoning_model("openai/o1-mini"));
+        assert!(is_reasoning_model("openai/o3"));
+        assert!(is_reasoning_model("openai/o3-mini"));
+        assert!(is_reasoning_model("o1-preview"));
+        assert!(is_reasoning_model("o1-mini"));
+        assert!(is_reasoning_model("o3-mini"));
+    }
+
+    #[test]
+    fn test_is_reasoning_model_deepseek() {
+        // Should match DeepSeek reasoning models
+        assert!(is_reasoning_model("deepseek/deepseek-r1"));
+        assert!(is_reasoning_model("deepseek-r1"));
+        assert!(is_reasoning_model("deepseek-r1-distill"));
+        assert!(is_reasoning_model("deepseek-reasoner"));
+    }
+
+    #[test]
+    fn test_is_reasoning_model_suffix_patterns() {
+        // Should match models with thinking/reasoning suffix
+        assert!(is_reasoning_model("model-thinking"));
+        assert!(is_reasoning_model("claude-thinking"));
+        assert!(is_reasoning_model("model-reasoning"));
+    }
+
+    #[test]
+    fn test_is_reasoning_model_false_positives() {
+        // Should NOT match these (false positive prevention)
+        assert!(!is_reasoning_model("pro1-turbo")); // 'o1' is part of 'pro1'
+        assert!(!is_reasoning_model("model-collection-o1")); // 'o1' is not a standalone prefix
+        assert!(!is_reasoning_model("gpt-4o")); // 'o' is not 'o1'
+        assert!(!is_reasoning_model("gpt-4")); // No reasoning pattern
+        assert!(!is_reasoning_model("anthropic/claude-3-opus")); // No reasoning pattern
+        assert!(!is_reasoning_model("llama-3.1-70b")); // No reasoning pattern
+        assert!(!is_reasoning_model("akimi-model")); // 'kimi' is not at word boundary
+        assert!(!is_reasoning_model("kimiex-model")); // 'kimi' is not at word boundary
+    }
+
+    #[test]
+    fn test_is_reasoning_model_standard_models() {
+        // Standard models should not be reasoning models
+        assert!(!is_reasoning_model("gpt-4-turbo"));
+        assert!(!is_reasoning_model("gpt-3.5-turbo"));
+        assert!(!is_reasoning_model("anthropic/claude-3-sonnet"));
+        assert!(!is_reasoning_model("meta-llama/llama-3.1-8b"));
+        assert!(!is_reasoning_model("google/gemini-pro"));
+        assert!(!is_reasoning_model("mistral/mistral-large"));
+    }
+
+    // Tests for reasoning content extraction logic
+    #[test]
+    fn test_api_message_deserialization_content_only() {
+        let json = r#"{"role": "assistant", "content": "Hello there!"}"#;
+        let message: ApiMessage = serde_json::from_str(json).expect("should parse");
+        assert_eq!(message.content, "Hello there!");
+        assert!(message.reasoning.is_none());
+        assert!(message.reasoning_content.is_none());
+    }
+
+    #[test]
+    fn test_api_message_deserialization_with_reasoning_content() {
+        let json =
+            r#"{"role": "assistant", "content": "", "reasoning_content": "Let me think..."}"#;
+        let message: ApiMessage = serde_json::from_str(json).expect("should parse");
+        assert_eq!(message.content, "");
+        assert_eq!(
+            message.reasoning_content.as_deref(),
+            Some("Let me think...")
+        );
+    }
+
+    #[test]
+    fn test_api_message_deserialization_with_reasoning() {
+        let json = r#"{"role": "assistant", "content": "", "reasoning": "Step by step..."}"#;
+        let message: ApiMessage = serde_json::from_str(json).expect("should parse");
+        assert_eq!(message.content, "");
+        assert_eq!(message.reasoning.as_deref(), Some("Step by step..."));
+    }
+
+    #[test]
+    fn test_api_message_deserialization_all_fields() {
+        let json = r#"{"role": "assistant", "content": "Final answer", "reasoning": "Step 1", "reasoning_content": "Step 2"}"#;
+        let message: ApiMessage = serde_json::from_str(json).expect("should parse");
+        assert_eq!(message.content, "Final answer");
+        assert_eq!(message.reasoning.as_deref(), Some("Step 1"));
+        assert_eq!(message.reasoning_content.as_deref(), Some("Step 2"));
+    }
+
+    #[test]
+    fn test_reasoning_content_extraction_priority() {
+        // Test the extraction priority: content > reasoning_content > reasoning
+        // This simulates what execute_request does when processing ApiChoice
+
+        // Case 1: Content has value - use content
+        let content_result =
+            extract_reasoning_content("Main content", Some("reasoning_content"), Some("reasoning"));
+        assert_eq!(content_result, "Main content");
+
+        // Case 2: Content empty, reasoning_content has value - use reasoning_content
+        let rc_result =
+            extract_reasoning_content("", Some("reasoning_content value"), Some("reasoning"));
+        assert_eq!(rc_result, "reasoning_content value");
+
+        // Case 3: Content empty, reasoning_content empty, reasoning has value - use reasoning
+        let r_result = extract_reasoning_content("", Some(""), Some("reasoning value"));
+        assert_eq!(r_result, "reasoning value");
+
+        // Case 4: All empty
+        let empty_result = extract_reasoning_content("", None, None);
+        assert_eq!(empty_result, "");
+    }
+
+    /// Helper function to test reasoning content extraction logic
+    /// (mirrors the logic in execute_request)
+    fn extract_reasoning_content(
+        content: &str,
+        reasoning_content: Option<&str>,
+        reasoning: Option<&str>,
+    ) -> String {
+        if !content.trim().is_empty() {
+            content.to_string()
+        } else if let Some(rc) = reasoning_content {
+            if !rc.trim().is_empty() {
+                rc.to_string()
+            } else {
+                reasoning.unwrap_or_default().to_string()
+            }
+        } else {
+            reasoning.unwrap_or_default().to_string()
+        }
     }
 }
