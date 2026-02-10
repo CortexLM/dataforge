@@ -750,6 +750,7 @@ impl<L: LlmProvider> WorkspaceGeneratorBuilder<L> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::workspace::WorkspaceLanguage;
 
     #[test]
     fn test_generator_config_defaults() {
