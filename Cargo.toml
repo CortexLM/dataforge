@@ -19,20 +19,20 @@ async-trait = "0.1"
 base64 = "0.22"
 bollard = { version = "0.16", features = ["ssl"] }
 chrono = { version = "0.4", features = ["serde"] }
-flate2 = "1.0"
+flate2 = "1.1"
 clap = { version = "4", features = ["derive", "env"] }
 futures = "0.3"
 hex = "0.4"
-ndarray = "0.15"
-ordered-float = "4.2"
+ndarray = "0.17"
+ordered-float = "5.1"
 pin-project-lite = "0.2"
-prometheus = "0.13"
-rand = "0.8"
-rand_chacha = "0.3"
-rand_distr = "0.4"
+prometheus = "0.14"
+rand = "0.10"
+rand_chacha = "0.10"
+rand_distr = "0.6"
 redis = { version = "0.24", features = ["tokio-comp", "connection-manager"] }
-regex = "1.10"
-reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
+regex = "1.12"
+reqwest = { version = "0.13", features = ["json", "rustls"] }
 semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
@@ -41,16 +41,16 @@ tar = "0.4"
 sha2 = "0.10"
 sqlx = { version = "0.7", features = ["runtime-tokio", "postgres", "sqlite", "migrate", "chrono", "uuid", "json"] }
 urlencoding = "2.1"
-tempfile = "3.0"
-tera = "1.19"
-thiserror = "1.0"
+tempfile = "3.25"
+tera = "1.20"
+thiserror = "2.0"
 time = { version = "0.3", features = ["serde"] }
 tokio = { version = "1", features = ["full", "sync"] }
 tokio-stream = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4", "v5", "serde"] }
-walkdir = "2.0"
+walkdir = "2.5"
 
 [dev-dependencies]
-tempfile = "3.0"
+tempfile = "3.25"

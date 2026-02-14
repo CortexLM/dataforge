@@ -235,15 +235,15 @@ impl GeneratorConfig {
 
     /// Select a difficulty level based on the distribution.
     pub fn select_difficulty(&self) -> DifficultyLevel {
-        use rand::Rng;
+        use rand::RngExt;
 
         let total: f64 = self.difficulty_distribution.values().sum();
         if total == 0.0 {
             return DifficultyLevel::Medium;
         }
 
-        let mut rng = rand::thread_rng();
-        let roll: f64 = rng.gen_range(0.0..total);
+        let mut rng = rand::rng();
+        let roll: f64 = rng.random_range(0.0..total);
 
         let mut cumulative = 0.0;
         for (level, weight) in &self.difficulty_distribution {
@@ -258,10 +258,10 @@ impl GeneratorConfig {
 
     /// Select a random category from the configured list.
     pub fn select_category(&self) -> SyntheticCategory {
-        use rand::seq::SliceRandom;
+        use rand::seq::IndexedRandom;
 
         self.categories
-            .choose(&mut rand::thread_rng())
+            .choose(&mut rand::rng())
             .copied()
             .unwrap_or(SyntheticCategory::DockerConfiguration)
     }

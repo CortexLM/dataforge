@@ -6,7 +6,7 @@
 use std::collections::HashMap;
 
 use ndarray::Array2;
-use rand::prelude::SliceRandom;
+use rand::seq::{IndexedRandom, SliceRandom};
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 
@@ -402,7 +402,7 @@ impl DiverseSampler {
     fn create_rng(&self) -> ChaCha8Rng {
         match self.seed {
             Some(seed) => ChaCha8Rng::seed_from_u64(seed),
-            None => ChaCha8Rng::from_entropy(),
+            None => ChaCha8Rng::from_rng(&mut rand::rng()),
         }
     }
 }

@@ -76,7 +76,7 @@ impl LogFileGenerator {
         service_name: &str,
     ) -> String {
         let levels = ["DEBUG", "INFO", "INFO", "INFO", "WARN"]; // Weighted toward INFO
-        let level = levels[rng.gen_range(0..levels.len())];
+        let level = levels[rng.random_range(0..levels.len())];
 
         let messages = [
             "Processing request",
@@ -95,10 +95,10 @@ impl LogFileGenerator {
             "Rate limit check passed",
             "Token validated",
         ];
-        let message = messages[rng.gen_range(0..messages.len())];
+        let message = messages[rng.random_range(0..messages.len())];
 
-        let request_id = format!("req-{:08x}", rng.gen::<u32>());
-        let duration_ms = rng.gen_range(1..500);
+        let request_id = format!("req-{:08x}", rng.random::<u32>());
+        let duration_ms = rng.random_range(1..500);
 
         format!(
             "{} {} [{}] {} request_id={} duration_ms={}",
@@ -523,19 +523,19 @@ impl DataFileGenerator {
         let statuses = ["active", "inactive", "pending", "suspended"];
 
         for i in 1..=rows {
-            let first = first_names[rng.gen_range(0..first_names.len())];
-            let last = last_names[rng.gen_range(0..last_names.len())];
+            let first = first_names[rng.random_range(0..first_names.len())];
+            let last = last_names[rng.random_range(0..last_names.len())];
             let name = format!("{} {}", first, last);
             let email = format!(
                 "{}.{}@example.com",
                 first.to_lowercase(),
                 last.to_lowercase()
             );
-            let age = rng.gen_range(18..80);
-            let score = rng.gen_range(0.0..100.0);
-            let status = statuses[rng.gen_range(0..statuses.len())];
+            let age = rng.random_range(18..80);
+            let score = rng.random_range(0.0..100.0);
+            let status = statuses[rng.random_range(0..statuses.len())];
 
-            let days_ago = rng.gen_range(0..365);
+            let days_ago = rng.random_range(0..365);
             let created_at = Utc::now() - Duration::days(days_ago);
             let created_str = created_at.format("%Y-%m-%d").to_string();
 
@@ -570,19 +570,19 @@ impl DataFileGenerator {
         let statuses = ["active", "inactive", "pending", "suspended"];
 
         for i in 1..=rows {
-            let first = first_names[rng.gen_range(0..first_names.len())];
-            let last = last_names[rng.gen_range(0..last_names.len())];
+            let first = first_names[rng.random_range(0..first_names.len())];
+            let last = last_names[rng.random_range(0..last_names.len())];
             let name = format!("{} {}", first, last);
             let email = format!(
                 "{}.{}@example.com",
                 first.to_lowercase(),
                 last.to_lowercase()
             );
-            let age = rng.gen_range(18..80);
-            let score = rng.gen_range(0.0..100.0);
-            let status = statuses[rng.gen_range(0..statuses.len())];
+            let age = rng.random_range(18..80);
+            let score = rng.random_range(0.0..100.0);
+            let status = statuses[rng.random_range(0..statuses.len())];
 
-            let days_ago = rng.gen_range(0..365);
+            let days_ago = rng.random_range(0..365);
             let created_at = Utc::now() - Duration::days(days_ago);
             let created_str = created_at.format("%Y-%m-%d").to_string();
 
@@ -625,19 +625,19 @@ impl DataFileGenerator {
         let statuses = ["active", "inactive", "pending", "suspended"];
 
         for i in 1..=rows {
-            let first = first_names[rng.gen_range(0..first_names.len())];
-            let last = last_names[rng.gen_range(0..last_names.len())];
+            let first = first_names[rng.random_range(0..first_names.len())];
+            let last = last_names[rng.random_range(0..last_names.len())];
             let name = format!("{} {}", first, last);
             let email = format!(
                 "{}.{}@example.com",
                 first.to_lowercase(),
                 last.to_lowercase()
             );
-            let age = rng.gen_range(18..80);
-            let score = rng.gen_range(0.0..100.0);
-            let status = statuses[rng.gen_range(0..statuses.len())];
+            let age = rng.random_range(18..80);
+            let score = rng.random_range(0.0..100.0);
+            let status = statuses[rng.random_range(0..statuses.len())];
 
-            let days_ago = rng.gen_range(0..365);
+            let days_ago = rng.random_range(0..365);
             let created_at = Utc::now() - Duration::days(days_ago);
             let created_str = created_at.format("%Y-%m-%d").to_string();
 

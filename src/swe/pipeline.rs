@@ -144,8 +144,7 @@ impl SwePipeline {
 
         // Shuffle events for diversity, then truncate to candidates limit
         use rand::seq::SliceRandom;
-        use rand::thread_rng;
-        let mut rng = thread_rng();
+        let mut rng = rand::rng();
         events.shuffle(&mut rng);
 
         if config.max_candidates > 0 && events.len() > config.max_candidates {

@@ -161,14 +161,14 @@ impl ParameterSampler {
             "lambda", "mu", "nu", "xi", "omicron", "pi", "rho", "sigma", "tau", "upsilon", "phi",
             "chi", "psi", "omega",
         ];
-        let word = words[self.ctx.rng.gen_range(0..words.len())];
+        let word = words[self.ctx.rng.random_range(0..words.len())];
         Ok(Value::String(word.to_string()))
     }
 
     /// Samples an integer value with range and distribution.
     fn sample_int(&mut self, min: i64, max: i64, distribution: &Distribution) -> Result<Value> {
         let value = match distribution {
-            Distribution::Uniform => self.ctx.rng.gen_range(min..=max),
+            Distribution::Uniform => self.ctx.rng.random_range(min..=max),
             Distribution::Normal => {
                 // Use normal distribution centered at midpoint
                 let mean = (min + max) as f64 / 2.0;
@@ -182,7 +182,7 @@ impl ParameterSampler {
                 // Log-uniform distribution
                 let log_min = (min.max(1) as f64).ln();
                 let log_max = (max.max(1) as f64).ln();
-                let log_val = self.ctx.rng.gen_range(log_min..=log_max);
+                let log_val = self.ctx.rng.random_range(log_min..=log_max);
                 log_val.exp().round().clamp(min as f64, max as f64) as i64
             }
         };
@@ -192,7 +192,7 @@ impl ParameterSampler {
     /// Samples a floating-point value with range and distribution.
     fn sample_float(&mut self, min: f64, max: f64, distribution: &Distribution) -> Result<Value> {
         let value = match distribution {
-            Distribution::Uniform => self.ctx.rng.gen_range(min..=max),
+            Distribution::Uniform => self.ctx.rng.random_range(min..=max),
             Distribution::Normal => {
                 let mean = (min + max) / 2.0;
                 let std_dev = (max - min) / 6.0;
@@ -204,7 +204,7 @@ impl ParameterSampler {
             Distribution::LogUniform => {
                 let log_min = min.max(f64::MIN_POSITIVE).ln();
                 let log_max = max.max(f64::MIN_POSITIVE).ln();
-                let log_val = self.ctx.rng.gen_range(log_min..=log_max);
+                let log_val = self.ctx.rng.random_range(log_min..=log_max);
                 log_val.exp().clamp(min, max)
             }
         };
@@ -239,7 +239,7 @@ impl ParameterSampler {
         let selected = if let Some(weights) = weights {
             self.weighted_choice(choices, weights)?
         } else {
-            choices[self.ctx.rng.gen_range(0..choices.len())].clone()
+            choices[self.ctx.rng.random_range(0..choices.len())].clone()
         };
 
         Ok(Value::String(selected))
@@ -262,7 +262,7 @@ impl ParameterSampler {
             ));
         }
 
-        let random_value = self.ctx.rng.gen::<f64>() * total_weight;
+        let random_value = self.ctx.rng.random::<f64>() * total_weight;
         let mut cumulative = 0.0;
 
         for (choice, &weight) in choices.iter().zip(weights.iter()) {
@@ -308,16 +308,16 @@ impl ParameterSampler {
         let ip = match network {
             NetworkType::Private => {
                 // Generate private IP in 192.168.x.x range
-                let octet3 = self.ctx.rng.gen_range(1..255);
-                let octet4 = self.ctx.rng.gen_range(1..255);
+                let octet3 = self.ctx.rng.random_range(1..255);
+                let octet4 = self.ctx.rng.random_range(1..255);
                 format!("192.168.{}.{}", octet3, octet4)
             }
             NetworkType::Public => {
                 // Generate public-looking IP (avoiding reserved ranges)
-                let octet1 = self.ctx.rng.gen_range(11..223);
-                let octet2 = self.ctx.rng.gen_range(0..256);
-                let octet3 = self.ctx.rng.gen_range(0..256);
-                let octet4 = self.ctx.rng.gen_range(1..255);
+                let octet1 = self.ctx.rng.random_range(11..223);
+                let octet2 = self.ctx.rng.random_range(0..256);
+                let octet3 = self.ctx.rng.random_range(0..256);
+                let octet4 = self.ctx.rng.random_range(1..255);
                 format!("{}.{}.{}.{}", octet1, octet2, octet3, octet4)
             }
         };
@@ -338,7 +338,7 @@ impl ParameterSampler {
         // Generate port avoiding excluded ones
         let mut attempts = 0;
         let port = loop {
-            let candidate = self.ctx.rng.gen_range(min..=max);
+            let candidate = self.ctx.rng.random_range(min..=max);
             if !excluded_ports.contains(&candidate) || attempts > 10 {
                 break candidate;
             }
@@ -380,20 +380,20 @@ impl ParameterSampler {
             "state.db",
         ];
 
-        let depth = self.ctx.rng.gen_range(1..=3);
+        let depth = self.ctx.rng.random_range(1..=3);
         let mut path_parts = vec![base.to_string()];
 
         for _ in 0..depth {
-            let component = dir_components[self.ctx.rng.gen_range(0..dir_components.len())];
+            let component = dir_components[self.ctx.rng.random_range(0..dir_components.len())];
             path_parts.push(component.to_string());
         }
 
         // Add app name
-        let app_name = app_names[self.ctx.rng.gen_range(0..app_names.len())];
+        let app_name = app_names[self.ctx.rng.random_range(0..app_names.len())];
         path_parts.push(app_name.to_string());
 
         // Add filename
-        let filename = filenames[self.ctx.rng.gen_range(0..filenames.len())];
+        let filename = filenames[self.ctx.rng.random_range(0..filenames.len())];
         path_parts.push(filename.to_string());
 
         let path = path_parts.join("/");
@@ -448,9 +448,9 @@ impl ParameterSampler {
             "martin",
         ];
 
-        let first = first_names[self.ctx.rng.gen_range(0..first_names.len())];
-        let last = last_names[self.ctx.rng.gen_range(0..last_names.len())];
-        let number = self.ctx.rng.gen_range(1..1000);
+        let first = first_names[self.ctx.rng.random_range(0..first_names.len())];
+        let last = last_names[self.ctx.rng.random_range(0..last_names.len())];
+        let number = self.ctx.rng.random_range(1..1000);
 
         // Various username patterns
         let patterns = [
@@ -461,7 +461,7 @@ impl ParameterSampler {
             format!("{}_{}", last, number),
         ];
 
-        let username = patterns[self.ctx.rng.gen_range(0..patterns.len())].clone();
+        let username = patterns[self.ctx.rng.random_range(0..patterns.len())].clone();
 
         // Truncate to reasonable length
         let truncated = if username.len() > 16 {
@@ -476,10 +476,10 @@ impl ParameterSampler {
     /// Samples a timestamp.
     fn sample_timestamp(&mut self, format: &str) -> Result<Value> {
         // Generate a timestamp within the last 30 days
-        let days_back = self.ctx.rng.gen_range(0..30);
-        let hours_back = self.ctx.rng.gen_range(0..24);
-        let minutes_back = self.ctx.rng.gen_range(0..60);
-        let seconds_back = self.ctx.rng.gen_range(0..60);
+        let days_back = self.ctx.rng.random_range(0..30);
+        let hours_back = self.ctx.rng.random_range(0..24);
+        let minutes_back = self.ctx.rng.random_range(0..60);
+        let seconds_back = self.ctx.rng.random_range(0..60);
 
         let timestamp = Utc::now()
             - Duration::days(days_back)
@@ -543,8 +543,8 @@ impl ParameterSampler {
             "server",
         ];
 
-        let prefix = prefixes[self.ctx.rng.gen_range(0..prefixes.len())];
-        let suffix = suffixes[self.ctx.rng.gen_range(0..suffixes.len())];
+        let prefix = prefixes[self.ctx.rng.random_range(0..prefixes.len())];
+        let suffix = suffixes[self.ctx.rng.random_range(0..suffixes.len())];
 
         Ok(Value::String(format!("{}-{}", prefix, suffix)))
     }
@@ -566,12 +566,12 @@ impl ParameterSampler {
             let generated = match c {
                 '?' => {
                     // Safe array indexing - gen_range is bounded to valid indices
-                    let idx = self.ctx.rng.gen_range(0..LETTERS.len());
+                    let idx = self.ctx.rng.random_range(0..LETTERS.len());
                     LETTERS[idx]
                 }
                 '#' => {
                     // Safe array indexing - gen_range is bounded to valid indices
-                    let idx = self.ctx.rng.gen_range(0..DIGITS.len());
+                    let idx = self.ctx.rng.random_range(0..DIGITS.len());
                     DIGITS[idx]
                 }
                 _ => c,
