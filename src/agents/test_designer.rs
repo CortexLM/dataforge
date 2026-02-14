@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use super::analyzer_agent::AnalyzedTask;
 use super::error::{AgentError, AgentResult};
-use crate::llm::{GenerationRequest, LlmProvider, Message, ResponseFormat};
+use crate::llm::{GenerationRequest, LlmProvider, Message, ToolDefinition};
 
 /// System prompt for test design.
 const TEST_DESIGN_SYSTEM_PROMPT: &str = r#"You are an expert test engineer designing automated validation tests for benchmark tasks.
@@ -354,7 +354,60 @@ impl TestDesignerAgent {
         )
         .with_temperature(config.temperature)
         .with_max_tokens(config.max_tokens)
-        .with_response_format(Self::response_schema());
+        .with_tool(ToolDefinition::function(
+            "design_tests",
+            "Design test specifications for a benchmark task",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "fail_to_pass": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "command": {"type": "string"},
+                                "expected_exit_code": {"type": "integer"},
+                                "timeout_seconds": {"type": "integer"},
+                                "description": {"type": "string"}
+                            },
+                            "required": ["name", "command"]
+                        },
+                        "description": "Tests that should initially fail and pass after the task is solved"
+                    },
+                    "pass_to_pass": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": {"type": "string"},
+                                "command": {"type": "string"},
+                                "expected_exit_code": {"type": "integer"},
+                                "timeout_seconds": {"type": "integer"},
+                                "description": {"type": "string"}
+                            },
+                            "required": ["name", "command"]
+                        },
+                        "description": "Regression tests that should pass both before and after"
+                    },
+                    "setup_commands": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Commands to prepare the test environment"
+                    },
+                    "cleanup_commands": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "Commands to clean up after testing"
+                    },
+                    "test_script": {
+                        "type": "string",
+                        "description": "Complete test.sh script content"
+                    }
+                },
+                "required": ["fail_to_pass", "pass_to_pass"]
+            }),
+        ));
 
         let response = self.llm.generate(request).await?;
 
@@ -363,10 +416,6 @@ impl TestDesignerAgent {
             .ok_or_else(|| AgentError::ResponseParseError("Empty LLM response".to_string()))?;
 
         self.parse_test_design_response(content, config)
-    }
-
-    fn response_schema() -> ResponseFormat {
-        ResponseFormat::JsonObject
     }
 
     /// Designs tests for multiple tasks in batch.

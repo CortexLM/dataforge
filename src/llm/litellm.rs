@@ -15,10 +15,32 @@ use crate::error::LlmError;
 /// A message in a conversation with an LLM.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Message {
-    /// Role of the message sender (e.g., "system", "user", "assistant").
+    /// Role of the message sender (e.g., "system", "user", "assistant", "tool").
     pub role: String,
     /// Content of the message.
     pub content: String,
+    /// Tool calls made by the assistant (only present in assistant messages).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_calls: Option<Vec<ToolCallInfo>>,
+    /// Tool call ID this message is responding to (only for role="tool").
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_call_id: Option<String>,
+}
+
+/// Information about a tool call made by the model.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolCallInfo {
+    pub id: String,
+    #[serde(rename = "type")]
+    pub call_type: String,
+    pub function: ToolCallFunction,
+}
+
+/// Function name and arguments within a tool call.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolCallFunction {
+    pub name: String,
+    pub arguments: String,
 }
 
 impl Message {
@@ -27,6 +49,8 @@ impl Message {
         Self {
             role: "system".to_string(),
             content: content.into(),
+            tool_calls: None,
+            tool_call_id: None,
         }
     }
 
@@ -35,6 +59,8 @@ impl Message {
         Self {
             role: "user".to_string(),
             content: content.into(),
+            tool_calls: None,
+            tool_call_id: None,
         }
     }
 
@@ -43,6 +69,28 @@ impl Message {
         Self {
             role: "assistant".to_string(),
             content: content.into(),
+            tool_calls: None,
+            tool_call_id: None,
+        }
+    }
+
+    /// Create an assistant message with tool calls (for multi-turn agentic loops).
+    pub fn assistant_with_tool_calls(content: impl Into<String>, tool_calls: Vec<ToolCallInfo>) -> Self {
+        Self {
+            role: "assistant".to_string(),
+            content: content.into(),
+            tool_calls: Some(tool_calls),
+            tool_call_id: None,
+        }
+    }
+
+    /// Create a tool result message (role="tool") responding to a specific tool call.
+    pub fn tool_result(call_id: impl Into<String>, content: impl Into<String>) -> Self {
+        Self {
+            role: "tool".to_string(),
+            content: content.into(),
+            tool_calls: None,
+            tool_call_id: Some(call_id.into()),
         }
     }
 }
@@ -66,6 +114,66 @@ pub struct JsonSchemaSpec {
     pub schema: serde_json::Value,
 }
 
+/// A tool definition for function calling.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolDefinition {
+    #[serde(rename = "type")]
+    pub tool_type: String,
+    pub function: FunctionDefinition,
+}
+
+/// Function definition within a tool.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FunctionDefinition {
+    pub name: String,
+    pub description: String,
+    pub parameters: serde_json::Value,
+}
+
+/// Tool choice configuration.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum ToolChoice {
+    /// "auto" or "none"
+    Mode(String),
+    /// Force a specific function
+    Function {
+        #[serde(rename = "type")]
+        tool_type: String,
+        function: ToolChoiceFunction,
+    },
+}
+
+/// Specifies which function to force.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ToolChoiceFunction {
+    pub name: String,
+}
+
+impl ToolDefinition {
+    /// Create a function tool from a name, description, and JSON Schema for parameters.
+    pub fn function(name: impl Into<String>, description: impl Into<String>, parameters: serde_json::Value) -> Self {
+        Self {
+            tool_type: "function".to_string(),
+            function: FunctionDefinition {
+                name: name.into(),
+                description: description.into(),
+                parameters,
+            },
+        }
+    }
+}
+
+impl ToolChoice {
+    /// Force the model to call a specific function.
+    pub fn force(name: impl Into<String>) -> Self {
+        Self::Function {
+            tool_type: "function".to_string(),
+            function: ToolChoiceFunction { name: name.into() },
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenerationRequest {
     /// Model identifier to use for generation.
@@ -81,9 +189,15 @@ pub struct GenerationRequest {
     /// Nucleus sampling parameter (0.0 - 1.0).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub top_p: Option<f64>,
-    /// Structured output format (JSON Schema).
+    /// Structured output format (JSON Schema). Deprecated: prefer tools.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub response_format: Option<ResponseFormat>,
+    /// Tools (function calling) for structured output.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<Vec<ToolDefinition>>,
+    /// Which tool to use.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_choice: Option<ToolChoice>,
 }
 
 impl GenerationRequest {
@@ -96,6 +210,8 @@ impl GenerationRequest {
             max_tokens: None,
             top_p: None,
             response_format: None,
+            tools: None,
+            tool_choice: None,
         }
     }
 
@@ -120,6 +236,14 @@ impl GenerationRequest {
     /// Set the response format for structured output.
     pub fn with_response_format(mut self, response_format: ResponseFormat) -> Self {
         self.response_format = Some(response_format);
+        self
+    }
+
+    /// Set a single tool with forced function call for structured output.
+    pub fn with_tool(mut self, tool: ToolDefinition) -> Self {
+        let fn_name = tool.function.name.clone();
+        self.tools = Some(vec![tool]);
+        self.tool_choice = Some(ToolChoice::force(fn_name));
         self
     }
 }
@@ -337,6 +461,8 @@ impl LiteLlmClient {
             max_tokens: request.max_tokens,
             top_p: request.top_p,
             response_format: request.response_format,
+            tools: request.tools,
+            tool_choice: request.tool_choice,
         };
 
         // Delegate to the standard generate method
@@ -489,6 +615,8 @@ impl LlmProvider for LiteLlmClient {
                 message: Message {
                     role: choice.message.role,
                     content: choice.message.content,
+                    tool_calls: None,
+                    tool_call_id: None,
                 },
                 finish_reason: choice.finish_reason,
             })

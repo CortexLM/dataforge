@@ -514,6 +514,8 @@ impl MultiModelRouter {
                     max_tokens: request.max_tokens,
                     top_p: request.top_p,
                     response_format: request.response_format.clone(),
+                    tools: request.tools.clone(),
+                    tool_choice: request.tool_choice.clone(),
                 };
 
                 match provider.generate(model_request).await {

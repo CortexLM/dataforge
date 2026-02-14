@@ -16,6 +16,7 @@ pub mod enricher;
 pub mod extractor;
 pub mod filters;
 pub mod gharchive;
+pub mod harness;
 pub mod orchestrator;
 pub mod pipeline;
 pub mod quality;
@@ -25,6 +26,7 @@ pub use enricher::EnrichedPullRequest;
 pub use extractor::{ExtractedPatch, PatchExtractor, PatchExtractorConfig};
 pub use filters::{FilterConfig, FilterResult, SweepFilter};
 pub use gharchive::{GhArchiveClient, GhArchiveEvent, GhArchiveEventId};
+pub use harness::{HarnessConfig, HarnessResult, HarnessSummary, run_harness};
 pub use orchestrator::{SweOrchestrator, SweOrchestratorConfig, SweRunResult};
 pub use pipeline::{SwePipeline, SwePipelineEvent, SwePipelineRunResult};
 pub use quality::{QualityAssessment, QualityConfig, QualityScorer};
@@ -121,6 +123,36 @@ impl SweTask {
     /// Returns true if the task contains at least one test.
     pub fn has_tests(&self) -> bool {
         !self.fail_to_pass.is_empty() || !self.pass_to_pass.is_empty()
+    }
+
+    /// Returns the standard build + test commands for a language.
+    /// Used to inject real validation commands into generated tasks.
+    pub fn test_commands_for_language(language: &str) -> (Vec<String>, Vec<String>) {
+        let (build, test) = match language.to_lowercase().as_str() {
+            "python" => (
+                vec!["pip install -e .".to_string()],
+                vec!["pytest".to_string()],
+            ),
+            "rust" => (
+                vec!["cargo build".to_string()],
+                vec!["cargo test".to_string()],
+            ),
+            "go" | "golang" => (
+                vec!["go build ./...".to_string()],
+                vec!["go test ./...".to_string()],
+            ),
+            "javascript" | "typescript" | "js" | "ts" => (
+                vec!["npm install".to_string()],
+                vec!["npm test".to_string()],
+            ),
+            "java" | "kotlin" => (
+                vec!["./mvnw -q -DskipTests package".to_string()],
+                vec!["./mvnw test".to_string()],
+            ),
+            _ => (vec![], vec![]),
+        };
+        // pass_to_pass = build commands, fail_to_pass = test commands
+        (build, test)
     }
 
     /// Build a simple install command map based on language.

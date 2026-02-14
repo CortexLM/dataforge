@@ -3,7 +3,7 @@
 use anyhow::Result;
 use std::sync::Arc;
 
-use crate::llm::{GenerationRequest, JsonSchemaSpec, LlmProvider, Message, ResponseFormat};
+use crate::llm::{GenerationRequest, LlmProvider, Message, ToolDefinition};
 use crate::swe::SweTask;
 
 #[derive(Debug, Clone)]
@@ -62,37 +62,34 @@ HARD (score 0.7-1.0):
 
 Also assess quality: is this PR a good benchmark task? Good tasks have clear intent, testable outcomes, and non-trivial logic. Bad tasks are pure formatting, bot-generated, or have no clear acceptance criteria."#;
 
-fn response_schema() -> ResponseFormat {
-    ResponseFormat::JsonSchema {
-        json_schema: JsonSchemaSpec {
-            name: "difficulty_classification".to_string(),
-            strict: true,
-            schema: serde_json::json!({
-                "type": "object",
-                "properties": {
-                    "difficulty": {
-                        "type": "string",
-                        "enum": ["easy", "medium", "hard"],
-                        "description": "Difficulty level for a top-tier LLM agent"
-                    },
-                    "score": {
-                        "type": "number",
-                        "description": "Numeric score 0.0-1.0 reflecting difficulty"
-                    },
-                    "quality_good": {
-                        "type": "boolean",
-                        "description": "Is this PR a good benchmark task?"
-                    },
-                    "reasoning": {
-                        "type": "string",
-                        "description": "Brief explanation of difficulty and quality assessment"
-                    }
+fn classify_tool() -> ToolDefinition {
+    ToolDefinition::function(
+        "classify_pr",
+        "Classify difficulty and quality of a GitHub PR for SWE benchmarking",
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "difficulty": {
+                    "type": "string",
+                    "enum": ["easy", "medium", "hard"],
+                    "description": "Difficulty level for a top-tier LLM agent"
                 },
-                "required": ["difficulty", "score", "quality_good", "reasoning"],
-                "additionalProperties": false
-            }),
-        },
-    }
+                "score": {
+                    "type": "number",
+                    "description": "Numeric score 0.0-1.0 reflecting difficulty"
+                },
+                "quality_good": {
+                    "type": "boolean",
+                    "description": "Is this PR a good benchmark task?"
+                },
+                "reasoning": {
+                    "type": "string",
+                    "description": "Brief explanation of difficulty and quality assessment"
+                }
+            },
+            "required": ["difficulty", "score", "quality_good", "reasoning"]
+        }),
+    )
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -118,21 +115,18 @@ HARD: cross-cutting refactor, performance/security fix, architectural change
 
 Be conservative: if unclear, say medium."#;
 
-fn triage_schema() -> ResponseFormat {
-    ResponseFormat::JsonSchema {
-        json_schema: JsonSchemaSpec {
-            name: "triage".to_string(),
-            strict: true,
-            schema: serde_json::json!({
-                "type": "object",
-                "properties": {
-                    "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] }
-                },
-                "required": ["difficulty"],
-                "additionalProperties": false
-            }),
-        },
-    }
+fn triage_tool() -> ToolDefinition {
+    ToolDefinition::function(
+        "triage",
+        "Classify the difficulty of a GitHub PR",
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] }
+            },
+            "required": ["difficulty"]
+        }),
+    )
 }
 
 #[derive(Debug, serde::Deserialize)]
@@ -178,8 +172,8 @@ impl QualityScorer {
             ],
         )
         .with_temperature(0.1)
-        .with_max_tokens(100)
-        .with_response_format(triage_schema());
+        .with_max_tokens(200)
+        .with_tool(triage_tool());
 
         let response = self.llm.generate(request).await?;
         let content = response.first_content().unwrap_or("{}");
@@ -254,7 +248,7 @@ impl QualityScorer {
         )
         .with_temperature(0.3)
         .with_max_tokens(1000)
-        .with_response_format(response_schema());
+        .with_tool(classify_tool());
 
         let response = self.llm.generate(request).await?;
 

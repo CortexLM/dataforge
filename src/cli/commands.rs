@@ -82,6 +82,9 @@ pub enum SweSubcommand {
 
     /// Re-export existing SWE workspaces.
     Export(SweExportArgs),
+
+    /// Run evaluation harness: execute an agent on tasks, then verify with tests.
+    Harness(SweHarnessArgs),
 }
 
 /// Arguments for `dataforge swe mine`.
@@ -169,6 +172,46 @@ pub struct SweExportArgs {
     pub output: String,
 
     /// Return export summary as JSON.
+    #[arg(short = 'j', long)]
+    pub json: bool,
+}
+
+/// Arguments for `dataforge swe harness`.
+#[derive(Parser, Debug)]
+pub struct SweHarnessArgs {
+    /// Directory containing SWE workspaces (from `swe mine`).
+    #[arg(short = 'i', long, default_value = DEFAULT_SWE_OUTPUT_DIR)]
+    pub input: String,
+
+    /// Path to the agent directory (must contain requirements.txt).
+    #[arg(long)]
+    pub agent_dir: String,
+
+    /// Command to run the agent inside the container.
+    #[arg(long, default_value = "python -m baseagent")]
+    pub agent_cmd: String,
+
+    /// Agent timeout in seconds.
+    #[arg(long, default_value = "600")]
+    pub agent_timeout: u64,
+
+    /// Per-test command timeout in seconds.
+    #[arg(long, default_value = "120")]
+    pub test_timeout: u64,
+
+    /// Base Docker image for the container.
+    #[arg(long, default_value = "python:3.12-slim")]
+    pub docker_image: String,
+
+    /// Number of concurrent evaluations.
+    #[arg(long, default_value = "1")]
+    pub parallel: usize,
+
+    /// Keep containers after evaluation (for debugging).
+    #[arg(long)]
+    pub keep_containers: bool,
+
+    /// Output results as JSON.
     #[arg(short = 'j', long)]
     pub json: bool,
 }
@@ -304,9 +347,8 @@ async fn run_swe_command(args: SweArgs) -> anyhow::Result<()> {
     match args.command {
         SweSubcommand::Mine(args) => run_swe_mine_command(args).await,
         SweSubcommand::Validate(args) => run_swe_validate_command(args).await,
-        SweSubcommand::Export(args) => {
-            run_swe_export_command(args).await
-        }
+        SweSubcommand::Export(args) => run_swe_export_command(args).await,
+        SweSubcommand::Harness(args) => run_swe_harness_command(args).await,
     }
 }
 
@@ -442,6 +484,66 @@ struct SweExportOutput {
     destination: String,
     copied: usize,
     skipped: usize,
+}
+
+async fn run_swe_harness_command(args: SweHarnessArgs) -> anyhow::Result<()> {
+    use crate::swe::harness;
+
+    let input_dir = Path::new(&args.input);
+    if !input_dir.exists() {
+        return Err(anyhow::anyhow!("Input directory does not exist: {}", args.input));
+    }
+
+    let agent_dir = Path::new(&args.agent_dir);
+    if !agent_dir.exists() {
+        return Err(anyhow::anyhow!("Agent directory does not exist: {}", args.agent_dir));
+    }
+
+    let config = harness::HarnessConfig {
+        agent_dir: agent_dir.to_path_buf(),
+        agent_cmd: args.agent_cmd,
+        agent_timeout_secs: args.agent_timeout,
+        test_timeout_secs: args.test_timeout,
+        docker_image: args.docker_image,
+        keep_containers: args.keep_containers,
+        parallel: args.parallel,
+    };
+
+    info!("Running SWE harness on {} with agent from {}", args.input, args.agent_dir);
+    let summary = harness::run_harness(input_dir, &config).await?;
+
+    if args.json {
+        let json = serde_json::to_string_pretty(&summary)?;
+        println!("{json}");
+    } else {
+        println!("\n=== SWE Harness Results ===");
+        println!("Total tasks:    {}", summary.total);
+        println!("Resolved:       {}", summary.resolved);
+        println!("Unresolved:     {}", summary.unresolved);
+        println!("Agent errors:   {}", summary.agent_error);
+        println!("Test errors:    {}", summary.test_error);
+        println!("Setup errors:   {}", summary.setup_error);
+        println!("Sanity failures:{}", summary.sanity_fail);
+        println!("Avg agent time: {:.1}s", summary.avg_agent_time_secs);
+        println!();
+
+        for r in &summary.results {
+            let f2p_ok = r.fail_to_pass.iter().filter(|t| t.passed).count();
+            let p2p_ok = r.pass_to_pass.iter().filter(|t| t.passed).count();
+            println!(
+                "  {} [{}] f2p={}/{} p2p={}/{} agent={:.1}s",
+                r.task_id, r.status,
+                f2p_ok, r.fail_to_pass.len(),
+                p2p_ok, r.pass_to_pass.len(),
+                r.agent_duration_secs,
+            );
+            if let Some(err) = &r.error {
+                println!("    error: {err}");
+            }
+        }
+    }
+
+    Ok(())
 }
 
 async fn run_swe_export_command(args: SweExportArgs) -> anyhow::Result<()> {

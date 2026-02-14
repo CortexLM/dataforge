@@ -70,7 +70,8 @@ pub use cache::{
 };
 pub use litellm::{
     Choice, GenerationRequest, GenerationResponse, JsonSchemaSpec, LiteLlmClient, LlmProvider,
-    Message, ResponseFormat, TemplateAssistant, Usage, TEMPLATE_GENERATION_PROMPT,
+    Message, ResponseFormat, TemplateAssistant, ToolCallFunction, ToolCallInfo, ToolChoice,
+    ToolDefinition, Usage, TEMPLATE_GENERATION_PROMPT,
 };
 
 // Re-export key types from submodules for convenience

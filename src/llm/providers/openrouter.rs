@@ -11,7 +11,7 @@ use std::time::Duration;
 use crate::error::LlmError;
 #[cfg(test)]
 use crate::llm::ResponseFormat;
-use crate::llm::{Choice, GenerationRequest, GenerationResponse, LlmProvider, Message, Usage};
+use crate::llm::{Choice, GenerationRequest, GenerationResponse, LlmProvider, Message, ToolCallFunction, ToolCallInfo, Usage};
 
 /// Default OpenRouter API endpoint.
 const OPENROUTER_BASE_URL: &str = "https://openrouter.ai/api/v1";
@@ -238,14 +238,35 @@ impl OpenRouterProvider {
             .map_err(|e| LlmError::ParseError(format!("Failed to parse API response: {}", e)))?;
 
         // Convert to GenerationResponse
-        // For reasoning models like Kimi K2.5, the main content might be in reasoning/reasoning_content
         let choices = api_response
             .choices
             .into_iter()
             .map(|choice| {
-                // Priority: content > reasoning_content > reasoning
-                // If content is empty, check reasoning fields
-                let content = if !choice.message.content.trim().is_empty() {
+                // Convert API tool_calls to our ToolCallInfo format
+                let tool_calls_info = choice.message.tool_calls.as_ref().map(|tcs| {
+                    tcs.iter().map(|tc| ToolCallInfo {
+                        id: tc.id.clone(),
+                        call_type: "function".to_string(),
+                        function: ToolCallFunction {
+                            name: tc.function.name.clone(),
+                            arguments: tc.function.arguments.clone(),
+                        },
+                    }).collect::<Vec<_>>()
+                });
+
+                // For backwards compat: if tool_calls exist, put first arguments as content
+                // so single-shot callers (quality scorer, etc.) still work via first_content()
+                let content = if let Some(ref tool_calls) = choice.message.tool_calls {
+                    if let Some(first_call) = tool_calls.first() {
+                        if !first_call.function.arguments.is_empty() {
+                            first_call.function.arguments.clone()
+                        } else {
+                            choice.message.content.clone()
+                        }
+                    } else {
+                        choice.message.content.clone()
+                    }
+                } else if !choice.message.content.trim().is_empty() {
                     choice.message.content
                 } else if let Some(rc) = choice.message.reasoning_content {
                     if !rc.trim().is_empty() {
@@ -262,6 +283,8 @@ impl OpenRouterProvider {
                     message: Message {
                         role: choice.message.role,
                         content,
+                        tool_calls: tool_calls_info,
+                        tool_call_id: None,
                     },
                     finish_reason: choice.finish_reason.unwrap_or_else(|| "stop".to_string()),
                 }
@@ -334,6 +357,13 @@ impl LlmProvider for OpenRouterProvider {
             serde_json::to_value(&rf).unwrap_or(serde_json::Value::Null)
         });
 
+        let tools = request.tools.map(|t| {
+            serde_json::to_value(&t).unwrap_or(serde_json::Value::Null)
+        });
+        let tool_choice = request.tool_choice.map(|tc| {
+            serde_json::to_value(&tc).unwrap_or(serde_json::Value::Null)
+        });
+
         let api_request = ApiRequest {
             model,
             messages: request.messages,
@@ -342,6 +372,8 @@ impl LlmProvider for OpenRouterProvider {
             top_p: request.top_p,
             reasoning,
             response_format,
+            tools,
+            tool_choice,
         };
 
         self.execute_with_retry(&api_request).await
@@ -430,6 +462,10 @@ struct ApiRequest {
     reasoning: Option<ReasoningConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     response_format: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tools: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tool_choice: Option<serde_json::Value>,
 }
 
 /// Configuration for reasoning-enabled models.
@@ -468,16 +504,40 @@ struct ApiChoice {
 #[derive(Debug, Deserialize)]
 struct ApiMessage {
     role: String,
-    /// The main content - may be empty for reasoning models.
+    /// The main content - may be empty for reasoning models or tool calls.
     #[serde(default)]
     content: String,
     /// Reasoning text from reasoning models (e.g., Kimi K2.5, DeepSeek R1).
-    /// This is an alias for reasoning_content.
     #[serde(default)]
     reasoning: Option<String>,
     /// Reasoning content from reasoning models (e.g., Kimi K2.5).
     #[serde(default)]
     reasoning_content: Option<String>,
+    /// Tool calls returned by the model (function calling).
+    #[serde(default)]
+    tool_calls: Option<Vec<ApiToolCall>>,
+}
+
+/// A tool call returned by the model.
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct ApiToolCall {
+    #[serde(default)]
+    id: String,
+    #[serde(rename = "type", default)]
+    _tool_type: String,
+    function: ApiToolCallFunction,
+}
+
+/// Function details within a tool call response.
+#[derive(Debug, Deserialize)]
+#[allow(dead_code)]
+struct ApiToolCallFunction {
+    #[serde(default)]
+    name: String,
+    /// JSON string of function arguments - this is our structured output.
+    #[serde(default)]
+    arguments: String,
 }
 
 /// Internal usage structure from the API response.
@@ -615,7 +675,7 @@ mod tests {
             top_p: None,
             reasoning: None,
             response_format: None,
-        };
+        tools: None, tool_choice: None, };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");
         assert!(json.contains("\"model\":\"test-model\""));
@@ -637,7 +697,7 @@ mod tests {
                 max_tokens: None,
             }),
             response_format: None,
-        };
+        tools: None, tool_choice: None, };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");
         assert!(json.contains("\"reasoning\""));
@@ -657,7 +717,7 @@ mod tests {
                 max_tokens: Some(8000),
             }),
             response_format: None,
-        };
+        tools: None, tool_choice: None, };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");
         assert!(json.contains("\"reasoning\""));
@@ -686,7 +746,7 @@ mod tests {
             top_p: None,
             reasoning: None,
             response_format: Some(serde_json::to_value(&rf).unwrap()),
-        };
+        tools: None, tool_choice: None, };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");
         assert!(json.contains("\"response_format\""));

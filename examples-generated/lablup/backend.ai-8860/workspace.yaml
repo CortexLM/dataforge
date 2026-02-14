@@ -1,0 +1,805 @@
+id: lablup/backend.ai-8860
+repo: lablup/backend.ai
+base_commit: c2100ec3ba085a6609627b0e14e74c0b1e07a3b0
+merge_commit: 65a9845bc04c16aa0cc9eac715b75618217c162a
+language: python
+difficulty_score: 3
+created_at: 2026-02-14T12:38:04.610081176Z
+patch: |
+  diff --git a/changes/8860.enhance.md b/changes/8860.enhance.md
+  new file mode 100644
+  index 00000000000..a7b632d9cfa
+  --- /dev/null
+  +++ b/changes/8860.enhance.md
+  @@ -0,0 +1 @@
+  +Add SystemComposer for system service dependency injection (cors_options, metrics, gql_adapter, jwt_validator, prometheus_client, service_discovery, background_task_manager, health_probe)
+  diff --git a/src/ai/backend/manager/dependencies/system/__init__.py b/src/ai/backend/manager/dependencies/system/__init__.py
+  new file mode 100644
+  index 00000000000..7116f37faa7
+  --- /dev/null
+  +++ b/src/ai/backend/manager/dependencies/system/__init__.py
+  @@ -0,0 +1,7 @@
+  +from .composer import SystemComposer, SystemInput, SystemResources
+  +
+  +__all__ = [
+  +    "SystemComposer",
+  +    "SystemInput",
+  +    "SystemResources",
+  +]
+  diff --git a/src/ai/backend/manager/dependencies/system/background_task_manager.py b/src/ai/backend/manager/dependencies/system/background_task_manager.py
+  new file mode 100644
+  index 00000000000..0934e7e6218
+  --- /dev/null
+  +++ b/src/ai/backend/manager/dependencies/system/background_task_manager.py
+  @@ -0,0 +1,46 @@
+  +from __future__ import annotations
+  +
+  +from collections.abc import AsyncIterator
+  +from contextlib import asynccontextmanager
+  +from dataclasses import dataclass
+  +
+  +from ai.backend.common.bgtask.bgtask import BackgroundTaskManager
+  +from ai.backend.common.bgtask.hooks.metric_hook import BackgroundTaskObserver
+  +from ai.backend.common.clients.valkey_client.valkey_bgtask.client import ValkeyBgtaskClient
+  +from ai.backend.common.dependencies import NonMonitorableDependencyProvider
+  +from ai.backend.common.events.dispatcher import EventProducer
+  +
+  +
+  +@dataclass
+  +class BackgroundTaskManagerInput:
+  +    """Input required for background task manager setup."""
+  +
+  +    event_producer: EventProducer
+  +    valkey_bgtask: ValkeyBgtaskClient
+  +    server_id: str
+  +    bgtask_observer: BackgroundTaskObserver | None
+  +
+  +
+  +class BackgroundTaskManagerDependency(
+  +    NonMonitorableDependencyProvider[BackgroundTaskManagerInput, BackgroundTaskManager],
+  +):
+  +    """Provides BackgroundTaskManager with managed lifecycle."""
+  +
+  +    @property
+  +    def stage_name(self) -> str:
+  +        return "background-task-manager"
+  +
+  +    @asynccontextmanager
+  +    async def provide(
+  +        self, setup_input: BackgroundTaskManagerInput
+  +    ) -> AsyncIterator[BackgroundTaskManager]:
+  +        manager = BackgroundTaskManager(
+  +            setup_input.event_producer,
+  +            valkey_client=setup_input.valkey_bgtask,
+  +            server_id=setup_input.server_id,
+  +            bgtask_observer=setup_input.bgtask_observer,
+  +        )
+  +        try:
+  +            yield manager
+  +        finally:
+  +            await manager.shutdown()
+  diff --git a/src/ai/backend/manager/dependencies/system/base.py b/src/ai/backend/manager/dependencies/system/base.py
+  new file mode 100644
+  index 00000000000..01d5b840d9d
+  --- /dev/null
+  +++ b/src/ai/backend/manager/dependencies/system/base.py
+  @@ -0,0 +1,9 @@
+  +from __future__ import annotations
+  +
+  +from ai.backend.common.dependencies import NonMonitorableDependencyProvider, ResourceT
+  +
+  +
+  +class SystemDependency(NonMonitorableDependencyProvider[object, ResourceT]):
+  +    """Base class for system dependencies that do not require health monitoring."""
+  +
+  +    pass
+  diff --git a/src/ai/backend/manager/dependencies/system/composer.py b/src/ai/backend/manager/dependencies/system/composer.py
+  new file mode 100644
+  index 00000000000..963688f404c
+  --- /dev/null
+  +++ b/src/ai/backend/manager/dependencies/system/composer.py
+  @@ -0,0 +1,136 @@
+  +from __future__ import annotations
+  +
+  +from collections.abc import AsyncIterator
+  +from contextlib import asynccontextmanager
+  +from dataclasses import dataclass
+  +
+  +from ai.backend.common.bgtask.bgtask import BackgroundTaskManager
+  +from ai.backend.common.clients.prometheus.client import PrometheusClient
+  +from ai.backend.common.dependencies import DependencyComposer, DependencyStack
+  +from ai.backend.common.etcd import AsyncEtcd
+  +from ai.backend.common.events.dispatcher import EventProducer
+  +from ai.backend.common.health_checker import HealthProbe
+  +from ai.backend.common.jwt.validator import JWTValidator
+  +from ai.backend.common.metrics.metric import CommonMetricRegistry
+  +from ai.backend.common.service_discovery.service_discovery import (
+  +    ServiceDiscovery,
+  +    ServiceDiscoveryLoop,
+  +)
+  +from ai.backend.common.types import ValkeyProfileTarget
+  +from ai.backend.manager.api.gql.adapter import BaseGQLAdapter
+  +from ai.backend.manager.api.types import CORSOptions
+  +from ai.backend.manager.config.unified import ManagerUnifiedConfig
+  +from ai.backend.manager.dependencies.infrastructure.redis import ValkeyClients
+  +from ai.backend.manager.models.utils import ExtendedAsyncSAEngine
+  +
+  +from .background_task_manager import BackgroundTaskManagerDependency, BackgroundTaskManagerInput
+  +from .cors_options import CORSOptionsDependency
+  +from .gql_adapter import GQLAdapterDependency
+  +from .health_probe import HealthProbeDependency, HealthProbeInput
+  +from .jwt_validator import JWTValidatorDependency
+  +from .metrics import MetricsDependency
+  +from .prometheus_client import PrometheusClientDependency
+  +from .service_discovery import ServiceDiscoveryDependency, ServiceDiscoveryInput
+  +
+  +
+  +@dataclass
+  +class SystemInput:
+  +    """Input required for system services setup.
+  +
+  +    Contains configuration and infrastructure resources from earlier stages.
+  +    """
+  +
+  +    config: ManagerUnifiedConfig
+  +    etcd: AsyncEtcd
+  +    valkey: ValkeyClients
+  +    db: ExtendedAsyncSAEngine
+  +    event_producer: EventProducer
+  +    valkey_profile_target: ValkeyProfileTarget
+  +
+  +
+  +@dataclass
+  +class SystemResources:
+  +    """Container for all system service resources."""
+  +
+  +    cors_options: CORSOptions
+  +    metrics: CommonMetricRegistry
+  +    gql_adapter: BaseGQLAdapter
+  +    jwt_validator: JWTValidator
+  +    prometheus_client: PrometheusClient
+  +    service_discovery: ServiceDiscovery
+  +    sd_loop: ServiceDiscoveryLoop
+  +    background_task_manager: BackgroundTaskManager
+  +    health_probe: HealthProbe
+  +
+  +
+  +class SystemComposer(DependencyComposer[SystemInput, SystemResources]):
+  +    """Composes all system service dependencies.
+  +
+  +    Orchestrates initialization across 4 layers:
+  +    - Layer 0: CORS options, metrics, GQL adapter (no dependencies)
+  +    - Layer 1: JWT validator, Prometheus client, service discovery (config-dependent)
+  +    - Layer 3: Background task manager (event_producer-dependent)
+  +    - Layer 4: Health probe (depends on all infrastructure)
+  +    """
+  +
+  +    @property
+  +    def stage_name(self) -> str:
+  +        return "system"
+  +
+  +    @asynccontextmanager
+  +    async def compose(
+  +        self,
+  +        stack: DependencyStack,
+  +        setup_input: SystemInput,
+  +    ) -> AsyncIterator[SystemResources]:
+  +        # Layer 0: No external dependencies
+  +        cors_options = await stack.enter_dependency(CORSOptionsDependency(), None)
+  +        metrics = await stack.enter_dependency(MetricsDependency(), None)
+  +        gql_adapter = await stack.enter_dependency(GQLAdapterDependency(), None)
+  +
+  +        # Layer 1: Config-dependent services
+  +        jwt_validator = await stack.enter_dependency(JWTValidatorDependency(), setup_input.config)
+  +        prometheus_client = await stack.enter_dependency(
+  +            PrometheusClientDependency(), setup_input.config
+  +        )
+  +        sd_resources = await stack.enter_dependency(
+  +            ServiceDiscoveryDependency(),
+  +            ServiceDiscoveryInput(
+  +                config=setup_input.config,
+  +                etcd=setup_input.etcd,
+  +                valkey_profile_target=setup_input.valkey_profile_target,
+  +            ),
+  +        )
+  +
+  +        # Layer 3: Event-producer-dependent services
+  +        background_task_manager = await stack.enter_dependency(
+  +            BackgroundTaskManagerDependency(),
+  +            BackgroundTaskManagerInput(
+  +                event_producer=setup_input.event_producer,
+  +                valkey_bgtask=setup_input.valkey.bgtask,
+  +                server_id=setup_input.config.manager.id,
+  +                bgtask_observer=metrics.bgtask,
+  +            ),
+  +        )
+  +
+  +        # Layer 4: Infrastructure-dependent services
+  +        health_probe = await stack.enter_dependency(
+  +            HealthProbeDependency(),
+  +            HealthProbeInput(
+  +                db=setup_input.db,
+  +                etcd=setup_input.etcd,
+  +                valkey=setup_input.valkey,
+  +            ),
+  +        )
+  +
+  +        yield SystemResources(
+  +            cors_options=cors_options,
+  +            metrics=metrics,
+  +            gql_adapter=gql_adapter,
+  +            jwt_validator=jwt_validator,
+  +            prometheus_client=prometheus_client,
+  +            service_discovery=sd_resources.service_discovery,
+  +            sd_loop=sd_resources.sd_loop,
+  +            background_task_manager=background_task_manager,
+  +            health_probe=health_probe,
+  +        )
+  diff --git a/src/ai/backend/manager/dependencies/system/cors_options.py b/src/ai/backend/manager/dependencies/system/cors_options.py
+  new file mode 100644
+  index 00000000000..30894364e47
+  --- /dev/null
+  +++ b/src/ai/backend/manager/dependencies/system/cors_options.py
+  @@ -0,0 +1,26 @@
+  +from __future__ import annotations
+  +
+  +from collections.abc import AsyncIterator
+  +from contextlib import asynccontextmanager
+  +
+  +import aiohttp_cors
+  +
+  +from ai.backend.manager.api.types import CORSOptions
+  +
+  +from .base import SystemDependency
+  +
+  +
+  +class CORSOptionsDependency(SystemDependency[CORSOptions]):
+  +    """Provides CORS options configuration."""
+  +
+  +    @property
+  +    def stage_name(self) -> str:
+  +        return "cors-options"
+  +
+  +    @asynccontextmanager
+  +    async def provide(self, setup_input: object) -> AsyncIterator[CORSOptions]:
+  +        yield {
+  +            "*": aiohttp_cors.ResourceOptions(  # type: ignore[no-untyped-call]
+  +                allow_credentials=False, expose_headers="*", allow_headers="*"
+  +            ),
+  +        }
+  diff --git a/src/ai/backend/manager/dependencies/system/gql_adapter.py b/src/ai/backend/manager/dependencies/system/gql_adapter.py
+  new file mode 100644
+  index 00000000000..b2a55a7fe35
+  --- /dev/null
+  +++ b/src/ai/backend/manager/dependencies/system/gql_adapter.py
+  @@ -0,0 +1,20 @@
+  +from __future__ import annotations
+  +
+  +from collections.abc import AsyncIterator
+  +from contextlib import asynccontextmanager
+  +
+  +from ai.backend.manager.api.gql.adapter import BaseGQLAdapter
+  +
+  +from .base import SystemDependency
+  +
+  +
+  +class GQLAdapterDependency(SystemDependency[BaseGQLAdapter]):
+  +    """Provides BaseGQLAdapter instance."""
+  +
+  +    @property
+  +    def stage_name(self) -> str:
+  +        return "gql-adapter"
+  +
+  +    @asynccontextmanager
+  +    async def provide(self, setup_input: object) -> AsyncIterator[BaseGQLAdapter]:
+  +        yield BaseGQLAdapter()
+  diff --git a/src/ai/backend/manager/dependencies/system/health_probe.py b/src/ai/backend/manager/dependencies/system/health_probe.py
+  new file mode 100644
+  index 00000000000..37c296a4307
+  --- /dev/null
+  +++ b/src/ai/backend/manager/dependencies/system/health_probe.py
+  @@ -0,0 +1,73 @@
+  +from __future__ import annotations
+  +
+  +from collections.abc import AsyncIterator
+  +from contextlib import asynccontextmanager
+  +from dataclasses import dataclass
+  +
+  +from ai.backend.common.dependencies import DependencyProvider
+  +from ai.backend.common.etcd import AsyncEtcd
+  +from ai.backend.common.health_checker import (
+  +    CID_REDIS_ARTIFACT,
+  +    CID_REDIS_BGTASK,
+  +    CID_REDIS_CONTAINER_LOG,
+  +    CID_REDIS_IMAGE,
+  +    CID_REDIS_LIVE,
+  +    CID_REDIS_SCHEDULE,
+  +    CID_REDIS_STAT,
+  +    CID_REDIS_STREAM,
+  +    EtcdHealthChecker,
+  +    HealthProbe,
+  +    HealthProbeOptions,
+  +    ServiceHealthChecker,
+  +    ValkeyHealthChecker,
+  +)
+  +from ai.backend.manager.dependencies.infrastructure.redis import ValkeyClients
+  +from ai.backend.manager.health.database import DatabaseHealthChecker
+  +from ai.backend.manager.models.utils import ExtendedAsyncSAEngine
+  +
+  +
+  +@dataclass
+  +class HealthProbeInput:
+  +    """Input required for health probe setup."""
+  +
+  +    db: ExtendedAsyncSAEngine
+  +    etcd: AsyncEtcd
+  +    valkey: ValkeyClients
+  +
+  +
+  +class HealthProbeDependency(DependencyProvider[HealthProbeInput, HealthProbe]):
+  +    """Provides HealthProbe with health checker registration and lifecycle management."""
+  +
+  +    @property
+  +    def stage_name(self) -> str:
+  +        return "health-probe"
+  +
+  +    @asynccontextmanager
+  +    async def provide(self, setup_input: HealthProbeInput) -> AsyncIterator[HealthProbe]:
+  +        probe = HealthProbe(options=HealthProbeOptions(check_interval=60))
+  +
+  +        await probe.register(DatabaseHealthChecker(db=setup_input.db))
+  +        await probe.register(EtcdHealthChecker(etcd=setup_input.etcd))
+  +        await probe.register(
+  +            ValkeyHealthChecker(
+  +                clients={
+  +                    CID_REDIS_ARTIFACT: setup_input.valkey.artifact,
+  +                    CID_REDIS_CONTAINER_LOG: setup_input.valkey.container_log,
+  +                    CID_REDIS_LIVE: setup_input.valkey.live,
+  +                    CID_REDIS_STAT: setup_input.valkey.stat,
+  +                    CID_REDIS_IMAGE: setup_input.valkey.image,
+  +                    CID_REDIS_STREAM: setup_input.valkey.stream,
+  +                    CID_REDIS_SCHEDULE: setup_input.valkey.schedule,
+  +                    CID_REDIS_BGTASK: setup_input.valkey.bgtask,
+  +                }
+  +            )
+  +        )
+  +
+  +        await probe.start()
+  +        try:
+  +            yield probe
+  +        finally:
+  +            await probe.stop()
+  +
+  +    def gen_health_checkers(self, resource: HealthProbe) -> ServiceHealthChecker | None:
+  +        return None
+  diff --git a/src/ai/backend/manager/dependencies/system/jwt_validator.py b/src/ai/backend/manager/dependencies/system/jwt_validator.py
+  new file mode 100644
+  index 00000000000..ffefca6cc69
+  --- /dev/null
+  +++ b/src/ai/backend/manager/dependencies/system/jwt_validator.py
+  @@ -0,0 +1,21 @@
+  +from __future__ import annotations
+  +
+  +from collections.abc import AsyncIterator
+  +from contextlib import asynccontextmanager
+  +
+  +from ai.backend.common.dependencies import NonMonitorableDependencyProvider
+  +from ai.backend.common.jwt.validator import JWTValidator
+  +from ai.backend.manager.config.unified import ManagerUnifiedConfig
+  +
+  +
+  +class JWTValidatorDependency(NonMonitorableDependencyProvider[ManagerUnifiedConfig, JWTValidator]):
+  +    """Provides JWTValidator instance from manager configuration."""
+  +
+  +    @property
+  +    def stage_name(self) -> str:
+  +        return "jwt-validator"
+  +
+  +    @asynccontextmanager
+  +    async def provide(self, setup_input: ManagerUnifiedConfig) -> AsyncIterator[JWTValidator]:
+  +        jwt_config = setup_input.jwt.to_jwt_config()
+  +        yield JWTValidator(jwt_config)
+  diff --git a/src/ai/backend/manager/dependencies/system/metrics.py b/src/ai/backend/manager/dependencies/system/metrics.py
+  new file mode 100644
+  index 00000000000..e0eb4d097ec
+  --- /dev/null
+  +++ b/src/ai/backend/manager/dependencies/system/metrics.py
+  @@ -0,0 +1,20 @@
+  +from __future__ import annotations
+  +
+  +from collections.abc import AsyncIterator
+  +from contextlib import asynccontextmanager
+  +
+  +from ai.backend.common.metrics.metric import CommonMetricRegistry
+  +
+  +from .base import SystemDependency
+  +
+  +
+  +class MetricsDependency(SystemDependency[CommonMetricRegistry]):
+  +    """Provides CommonMetricRegistry singleton."""
+  +
+  +    @property
+  +    def stage_name(self) -> str:
+  +        return "metrics"
+  +
+  +    @asynccontextmanager
+  +    async def provide(self, setup_input: object) -> AsyncIterator[CommonMetricRegistry]:
+  +        yield CommonMetricRegistry.instance()
+  diff --git a/src/ai/backend/manager/dependencies/system/prometheus_client.py b/src/ai/backend/manager/dependencies/system/prometheus_client.py
+  new file mode 100644
+  index 00000000000..16c4192904d
+  --- /dev/null
+  +++ b/src/ai/backend/manager/dependencies/system/prometheus_client.py
+  @@ -0,0 +1,31 @@
+  +from __future__ import annotations
+  +
+  +from collections.abc import AsyncIterator
+  +from contextlib import asynccontextmanager
+  +
+  +from ai.backend.common.clients.http_client import ClientPool, tcp_client_session_factory
+  +from ai.backend.common.clients.prometheus.client import PrometheusClient
+  +from ai.backend.common.dependencies import NonMonitorableDependencyProvider
+  +from ai.backend.manager.config.unified import ManagerUnifiedConfig
+  +
+  +
+  +class PrometheusClientDependency(
+  +    NonMonitorableDependencyProvider[ManagerUnifiedConfig, PrometheusClient],
+  +):
+  +    """Provides PrometheusClient with managed ClientPool lifecycle."""
+  +
+  +    @property
+  +    def stage_name(self) -> str:
+  +        return "prometheus-client"
+  +
+  +    @asynccontextmanager
+  +    async def provide(self, setup_input: ManagerUnifiedConfig) -> AsyncIterator[PrometheusClient]:
+  +        client_pool = ClientPool(tcp_client_session_factory)
+  +        client = PrometheusClient(
+  +            endpoint=f"http://{setup_input.metric.address.to_legacy()}/api/v1/",
+  +            client_pool=client_pool,
+  +        )
+  +        try:
+  +            yield client
+  +        finally:
+  +            await client_pool.close()
+  diff --git a/src/ai/backend/manager/dependencies/system/service_discovery.py b/src/ai/backend/manager/dependencies/system/service_discovery.py
+  new file mode 100644
+  index 00000000000..c189de0c063
+  --- /dev/null
+  +++ b/src/ai/backend/manager/dependencies/system/service_discovery.py
+  @@ -0,0 +1,96 @@
+  +from __future__ import annotations
+  +
+  +from collections.abc import AsyncIterator
+  +from contextlib import asynccontextmanager
+  +from dataclasses import dataclass
+  +
+  +from ai.backend.common.defs import RedisRole
+  +from ai.backend.common.dependencies import NonMonitorableDependencyProvider
+  +from ai.backend.common.etcd import AsyncEtcd
+  +from ai.backend.common.service_discovery.etcd_discovery.service_discovery import (
+  +    ETCDServiceDiscovery,
+  +    ETCDServiceDiscoveryArgs,
+  +)
+  +from ai.backend.common.service_discovery.redis_discovery.service_discovery import (
+  +    RedisServiceDiscovery,
+  +    RedisServiceDiscoveryArgs,
+  +)
+  +from ai.backend.common.service_discovery.service_discovery import (
+  +    ServiceDiscovery,
+  +    ServiceDiscoveryLoop,
+  +    ServiceEndpoint,
+  +    ServiceMetadata,
+  +)
+  +from ai.backend.common.types import ServiceDiscoveryType, ValkeyProfileTarget
+  +from ai.backend.manager import __version__
+  +from ai.backend.manager.config.unified import ManagerUnifiedConfig
+  +
+  +
+  +@dataclass
+  +class ServiceDiscoveryInput:
+  +    """Input required for service discovery setup."""
+  +
+  +    config: ManagerUnifiedConfig
+  +    etcd: AsyncEtcd
+  +    valkey_profile_target: ValkeyProfileTarget
+  +
+  +
+  +@dataclass
+  +class ServiceDiscoveryResources:
+  +    """Container for service discovery resources."""
+  +
+  +    service_discovery: ServiceDiscovery
+  +    sd_loop: ServiceDiscoveryLoop
+  +
+  +
+  +class ServiceDiscoveryDependency(
+  +    NonMonitorableDependencyProvider[ServiceDiscoveryInput, ServiceDiscoveryResources],
+  +):
+  +    """Provides ServiceDiscovery and ServiceDiscoveryLoop."""
+  +
+  +    @property
+  +    def stage_name(self) -> str:
+  +        return "service-discovery"
+  +
+  +    @asynccontextmanager
+  +    async def provide(
+  +        self, setup_input: ServiceDiscoveryInput
+  +    ) -> AsyncIterator[ServiceDiscoveryResources]:
+  +        config = setup_input.config
+  +        sd_type = config.service_discovery.type
+  +
+  +        sd: ServiceDiscovery
+  +        match sd_type:
+  +            case ServiceDiscoveryType.ETCD:
+  +                sd = ETCDServiceDiscovery(ETCDServiceDiscoveryArgs(setup_input.etcd))
+  +            case ServiceDiscoveryType.REDIS:
+  +                live_valkey_target = setup_input.valkey_profile_target.profile_target(
+  +                    RedisRole.LIVE
+  +                )
+  +                sd = await RedisServiceDiscovery.create(
+  +                    RedisServiceDiscoveryArgs(valkey_target=live_valkey_target)
+  +                )
+  +
+  +        sd_loop = ServiceDiscoveryLoop(
+  +            sd_type,
+  +            sd,
+  +            ServiceMetadata(
+  +                display_name=f"manager-{config.manager.id}",
+  +                service_group="manager",
+  +                version=__version__,
+  +                endpoint=ServiceEndpoint(
+  +                    address=config.manager.announce_addr.address,
+  +                    port=config.manager.announce_addr.port,
+  +                    protocol="http",
+  +                    prometheus_address=config.manager.announce_internal_addr.address,
+  +                ),
+  +            ),
+  +        )
+  +
+  +        try:
+  +            yield ServiceDiscoveryResources(
+  +                service_discovery=sd,
+  +                sd_loop=sd_loop,
+  +            )
+  +        finally:
+  +            sd_loop.close()
+  diff --git a/tests/unit/manager/dependencies/system/BUILD b/tests/unit/manager/dependencies/system/BUILD
+  new file mode 100644
+  index 00000000000..57341b1358b
+  --- /dev/null
+  +++ b/tests/unit/manager/dependencies/system/BUILD
+  @@ -0,0 +1,3 @@
+  +python_tests(
+  +    name="tests",
+  +)
+  diff --git a/tests/unit/manager/dependencies/system/test_composer.py b/tests/unit/manager/dependencies/system/test_composer.py
+  new file mode 100644
+  index 00000000000..ef10aded969
+  --- /dev/null
+  +++ b/tests/unit/manager/dependencies/system/test_composer.py
+  @@ -0,0 +1,183 @@
+  +from __future__ import annotations
+  +
+  +from unittest.mock import AsyncMock, MagicMock, patch
+  +
+  +import pytest
+  +
+  +from ai.backend.common.dependencies.stacks.builder import DependencyBuilderStack
+  +from ai.backend.manager.dependencies.system.background_task_manager import (
+  +    BackgroundTaskManagerDependency,
+  +)
+  +from ai.backend.manager.dependencies.system.composer import (
+  +    SystemComposer,
+  +    SystemInput,
+  +    SystemResources,
+  +)
+  +from ai.backend.manager.dependencies.system.cors_options import CORSOptionsDependency
+  +from ai.backend.manager.dependencies.system.gql_adapter import GQLAdapterDependency
+  +from ai.backend.manager.dependencies.system.health_probe import HealthProbeDependency
+  +from ai.backend.manager.dependencies.system.jwt_validator import JWTValidatorDependency
+  +from ai.backend.manager.dependencies.system.metrics import MetricsDependency
+  +from ai.backend.manager.dependencies.system.prometheus_client import PrometheusClientDependency
+  +from ai.backend.manager.dependencies.system.service_discovery import ServiceDiscoveryDependency
+  +
+  +
+  +class TestProviderStageNames:
+  +    """Verify stage_name for all providers and the composer."""
+  +
+  +    def test_cors_options_stage_name(self) -> None:
+  +        assert CORSOptionsDependency().stage_name == "cors-options"
+  +
+  +    def test_metrics_stage_name(self) -> None:
+  +        assert MetricsDependency().stage_name == "metrics"
+  +
+  +    def test_gql_adapter_stage_name(self) -> None:
+  +        assert GQLAdapterDependency().stage_name == "gql-adapter"
+  +
+  +    def test_jwt_validator_stage_name(self) -> None:
+  +        assert JWTValidatorDependency().stage_name == "jwt-validator"
+  +
+  +    def test_prometheus_client_stage_name(self) -> None:
+  +        assert PrometheusClientDependency().stage_name == "prometheus-client"
+  +
+  +    def test_service_discovery_stage_name(self) -> None:
+  +        assert ServiceDiscoveryDependency().stage_name == "service-discovery"
+  +
+  +    def test_background_task_manager_stage_name(self) -> None:
+  +        assert BackgroundTaskManagerDependency().stage_name == "background-task-manager"
+  +
+  +    def test_health_probe_stage_name(self) -> None:
+  +        assert HealthProbeDependency().stage_name == "health-probe"
+  +
+  +    def test_system_composer_stage_name(self) -> None:
+  +        assert SystemComposer().stage_name == "system"
+  +
+  +
+  +class TestSystemComposer:
+  +    """Test SystemComposer lifecycle."""
+  +
+  +    @pytest.mark.asyncio
+  +    @patch(
+  +        "ai.backend.manager.dependencies.system.service_discovery.ETCDServiceDiscovery",
+  +    )
+  +    @patch(
+  +        "ai.backend.manager.dependencies.system.service_discovery.ServiceDiscoveryLoop",
+  +    )
+  +    @patch(
+  +        "ai.backend.manager.dependencies.system.prometheus_client.ClientPool",
+  +    )
+  +    @patch(
+  +        "ai.backend.manager.dependencies.system.health_probe.HealthProbe",
+  +    )
+  +    @patch(
+  +        "ai.backend.manager.dependencies.system.health_probe.DatabaseHealthChecker",
+  +    )
+  +    @patch(
+  +        "ai.backend.manager.dependencies.system.health_probe.EtcdHealthChecker",
+  +    )
+  +    @patch(
+  +        "ai.backend.manager.dependencies.system.health_probe.ValkeyHealthChecker",
+  +    )
+  +    async def test_compose_lifecycle(
+  +        self,
+  +        mock_valkey_checker_class: MagicMock,
+  +        mock_etcd_checker_class: MagicMock,
+  +        mock_db_checker_class: MagicMock,
+  +        mock_health_probe_class: MagicMock,
+  +        mock_client_pool_class: MagicMock,
+  +        mock_sd_loop_class: MagicMock,
+  +        mock_etcd_sd_class: MagicMock,
+  +    ) -> None:
+  +        """SystemComposer should initialize all system services and clean up properly."""
+  +        # Setup mock config
+  +        mock_config = MagicMock()
+  +        mock_config.jwt.to_jwt_config.return_value = MagicMock()
+  +        mock_config.metric.address.to_legacy.return_value = "localhost:9090"
+  +        mock_config.service_discovery.type = "etcd"
+  +        mock_config.manager.id = "test-manager"
+  +        mock_config.manager.announce_addr.address = "127.0.0.1"
+  +        mock_config.manager.announce_addr.port = 8080
+  +        mock_config.manager.announce_internal_addr.address = "127.0.0.1"
+  +
+  +        # Setup mock infrastructure
+  +        mock_etcd = MagicMock()
+  +        mock_valkey = MagicMock()
+  +        mock_valkey.bgtask = MagicMock()
+  +        mock_valkey.artifact = MagicMock()
+  +        mock_valkey.container_log = MagicMock()
+  +        mock_valkey.live = MagicMock()
+  +        mock_valkey.stat = MagicMock()
+  +        mock_valkey.image = MagicMock()
+  +        mock_valkey.stream = MagicMock()
+  +        mock_valkey.schedule = MagicMock()
+  +        mock_db = MagicMock()
+  +        mock_event_producer = MagicMock()
+  +        mock_valkey_profile_target = MagicMock()
+  +
+  +        # Setup mock client pool
+  +        mock_client_pool = MagicMock()
+  +        mock_client_pool.close = AsyncMock()
+  +        mock_client_pool_class.return_value = mock_client_pool
+  +
+  +        # Setup mock SD
+  +        mock_etcd_sd = MagicMock()
+  +        mock_etcd_sd_class.return_value = mock_etcd_sd
+  +        mock_sd_loop = MagicMock()
+  +        mock_sd_loop.close = MagicMock()
+  +        mock_sd_loop.metadata = MagicMock()
+  +        mock_sd_loop_class.return_value = mock_sd_loop
+  +
+  +        # Setup mock health probe
+  +        mock_probe = MagicMock()
+  +        mock_probe.register = AsyncMock()
+  +        mock_probe.start = AsyncMock()
+  +        mock_probe.stop = AsyncMock()
+  +        mock_health_probe_class.return_value = mock_probe
+  +
+  +        # Setup mock BackgroundTaskManager
+  +        with patch(
+  +            "ai.backend.manager.dependencies.system.background_task_manager.BackgroundTaskManager"
+  +        ) as mock_bgtask_class:
+  +            mock_bgtask_manager = MagicMock()
+  +            mock_bgtask_manager.shutdown = AsyncMock()
+  +            mock_bgtask_class.return_value = mock_bgtask_manager
+  +
+  +            setup_input = SystemInput(
+  +                config=mock_config,
+  +                etcd=mock_etcd,
+  +                valkey=mock_valkey,
+  +                db=mock_db,
+  +                event_producer=mock_event_producer,
+  +                valkey_profile_target=mock_valkey_profile_target,
+  +            )
+  +
+  +            composer = SystemComposer()
+  +            stack = DependencyBuilderStack()
+  +
+  +            async with stack:
+  +                async with composer.compose(stack, setup_input) as resources:
+  +                    assert isinstance(resources, SystemResources)
+  +
+  +                    # Layer 0
+  +                    assert isinstance(resources.cors_options, dict)
+  +                    assert "*" in resources.cors_options
+  +                    assert resources.metrics is not None
+  +                    assert resources.gql_adapter is not None
+  +
+  +                    # Layer 1
+  +                    assert resources.jwt_validator is not None
+  +                    assert resources.prometheus_client is not None
+  +                    assert resources.service_discovery is mock_etcd_sd
+  +                    assert resources.sd_loop is mock_sd_loop
+  +
+  +                    # Layer 3
+  +                    assert resources.background_task_manager is mock_bgtask_manager
+  +
+  +                    # Layer 4
+  +                    assert resources.health_probe is mock_probe
+  +
+  +            # Verify cleanup was called
+  +            mock_client_pool.close.assert_awaited_once()
+  +            mock_sd_loop.close.assert_called_once()
+  +            mock_bgtask_manager.shutdown.assert_awaited_once()
+  +            mock_probe.stop.assert_awaited_once()
+test_patch: ''
+fail_to_pass:
+- PYTHONPATH=src /tmp/venv/bin/pytest -q tests/unit/manager/dependencies/system/test_composer.py --confcutdir=tests/unit/manager/dependencies
+- PYTHONPATH=src /tmp/venv/bin/pytest -q tests/unit/manager/dependencies/system/test_providers.py --confcutdir=tests/unit/manager/dependencies
+pass_to_pass:
+- PYTHONPATH=src /tmp/venv/bin/pytest -q tests/unit/common/dependencies/test_base.py --confcutdir=tests/unit/common/dependencies
+- PYTHONPATH=src /tmp/venv/bin/pytest -q tests/unit/common/dependencies/stacks/test_visualizing.py --confcutdir=tests/unit/common/dependencies
+install_config:
+  install: pip install -e .
+  python: '3.11'
+  test_cmd: pytest
+meta:
+  added_lines: '672'
+  difficulty: hard
+  files_changed: '14'
+  pr_title: 'refactor(BA-4402): Create SystemComposer for system services'
+  removed_lines: '0'
+  source: gh-archive-pr
+  test_generation: agentic
+prompt: |-
+  lablup/backend.ai (#8860): refactor(BA-4402): Create SystemComposer for system services
+
+  ## Summary
+  - Add `dependencies/system/` package with 8 `DependencyProvider` implementations covering system services across Layer 0-4: `CORSOptionsDependency`, `MetricsDependency`, `GQLAdapterDependency`, `JWTValidatorDependency`, `PrometheusClientDependency`, `ServiceDiscoveryDependency`, `BackgroundTaskManagerDependency`, `HealthProbeDependency`
+  - Add `SystemComposer` that orchestrates initialization order across 4 dependency layers with proper cleanup on teardown
+  - Add unit tests for composer lifecycle and all provider stage names
+
+  ## Test plan
+  - [x] All provider `stage_name` properties verified
+  - [x] `SystemComposer.compose()` lifecycle tested with mock dependencies (init + cleanup)
+  - [x] `pants fmt/fix/lint/check` pass
+  - [x] `pants test --changed-dependents=transitive` pass
+
+  Resolves BA-4402
+
+  🤖 Generated with [Claude Code](https://claude.com/claude-code)
+quality_score: 0.72
+quality_passed: true
+docker_passed: false
+workspace_path: null
+status: ready

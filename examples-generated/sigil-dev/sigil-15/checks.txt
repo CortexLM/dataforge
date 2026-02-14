@@ -1,0 +1,3 @@
+/usr/local/go/bin/go test ./cmd/sigil -v -run TestChat_StreamsTextDelta | grep -q "TestChat_StreamsTextDelta"
+/usr/local/go/bin/go test ./cmd/sigil
+/usr/local/go/bin/go test ./internal/provider -run TestRegistry

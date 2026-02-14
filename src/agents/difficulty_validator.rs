@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use crate::difficulty::DifficultyLevel;
-use crate::llm::{GenerationRequest, JsonSchemaSpec, LlmProvider, Message, ResponseFormat};
+use crate::llm::{GenerationRequest, LlmProvider, Message, ToolDefinition};
 
 use super::error::{AgentError, AgentResult};
 use super::types::{GeneratedTask, ValidationResult};
@@ -136,7 +136,21 @@ impl DifficultyValidatorAgent {
         )
         .with_temperature(self.config.temperature)
         .with_max_tokens(self.config.max_tokens)
-        .with_response_format(Self::response_schema());
+        .with_tool(ToolDefinition::function(
+            "validate_difficulty",
+            "Validate whether a task matches the expected difficulty level",
+            serde_json::json!({
+                "type": "object",
+                "properties": {
+                    "score": { "type": "number", "description": "Score 0.0-1.0 for difficulty match" },
+                    "matches_difficulty": { "type": "boolean" },
+                    "reasoning": { "type": "string" },
+                    "estimated_steps": { "type": "integer" },
+                    "issues": { "type": "array", "items": { "type": "string" } }
+                },
+                "required": ["score", "matches_difficulty", "reasoning", "estimated_steps", "issues"]
+            }),
+        ));
 
         let response = self.llm_client.generate(request).await?;
 
@@ -145,27 +159,6 @@ impl DifficultyValidatorAgent {
             .ok_or_else(|| AgentError::ResponseParseError("Empty LLM response".to_string()))?;
 
         self.parse_response(content)
-    }
-
-    fn response_schema() -> ResponseFormat {
-        ResponseFormat::JsonSchema {
-            json_schema: JsonSchemaSpec {
-                name: "difficulty_validation".to_string(),
-                strict: true,
-                schema: serde_json::json!({
-                    "type": "object",
-                    "properties": {
-                        "score": { "type": "number", "description": "Score 0.0-1.0 for difficulty match" },
-                        "matches_difficulty": { "type": "boolean" },
-                        "reasoning": { "type": "string" },
-                        "estimated_steps": { "type": "integer" },
-                        "issues": { "type": "array", "items": { "type": "string" } }
-                    },
-                    "required": ["score", "matches_difficulty", "reasoning", "estimated_steps", "issues"],
-                    "additionalProperties": false
-                }),
-            },
-        }
     }
 
     /// Builds the user prompt for difficulty validation.

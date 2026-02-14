@@ -29,5 +29,6 @@ test-outputs/
 outputs/
 generated-datasets/
 /swe-datasets/
+/test-run-hard/
 *.jsonl
 
