@@ -32,7 +32,7 @@ pub use prompt_rewriter::PromptRewriter;
 pub use orchestrator::{SweOrchestrator, SweOrchestratorConfig, SweRunResult};
 pub use pipeline::{SwePipeline, SwePipelineEvent, SwePipelineRunResult};
 pub use quality::{QualityAssessment, QualityConfig, QualityScorer};
-pub use test_generator::TestGenerator;
+pub use test_generator::{TestFile, TestGenerator};
 
 /// Default output directory for generated SWE workspaces.
 pub const DEFAULT_SWE_OUTPUT_DIR: &str = "./generated-swe";

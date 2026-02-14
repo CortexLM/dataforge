@@ -15,27 +15,35 @@ use crate::swe::SweTask;
 
 const MAX_AGENT_TURNS: usize = 200;
 
-const SYSTEM_PROMPT: &str = r#"You are a test engineer validating GitHub pull requests for SWE-bench.
+const SYSTEM_PROMPT: &str = r#"You are a test engineer writing real test code for GitHub pull requests for SWE-bench.
 
-You have two tools:
+You have three tools:
 - `shell`: execute a command in the cloned repository (at the BASE commit, before the PR).
-- `submit_tests`: return your final validated test commands.
+- `write_file`: create or overwrite a file in the repository (for writing test files).
+- `submit_tests`: return your final validated test commands AND the test files you wrote.
 
 Your goal:
-1. Use `shell` to explore the repo (ls, find, cat) and understand the project structure.
-2. Figure out the correct build and test commands for this project.
-3. Run the test suite via `shell` to confirm it passes on the base commit.
-4. Design fail_to_pass tests: commands that FAIL on the base commit but PASS after the PR.
-5. Design pass_to_pass tests: commands that PASS both before and after (regression tests).
-6. Validate ALL commands via `shell` before submitting.
+1. Use `shell` to explore the repo structure: find existing tests, understand the framework, read source code.
+2. Read the PR diff carefully to understand what changed.
+3. WRITE actual test files using `write_file`:
+   - Write test code that exercises the behavior introduced by the PR.
+   - Use the project's real test framework (pytest, jest, go test, cargo test, etc.).
+   - Follow the project's existing test patterns and directory structure.
+4. Run your test files via `shell` to verify:
+   - fail_to_pass tests MUST fail (exit != 0) on the base commit (the PR code is not there yet).
+   - pass_to_pass tests MUST pass (exit == 0) on the base commit.
+5. Call `submit_tests` with the commands AND the test file contents.
 
 RULES:
-- Every command you submit MUST be tested via `shell` first.
-- fail_to_pass tests MUST fail (exit != 0) when you run them on the base commit.
-- pass_to_pass tests MUST pass (exit == 0) when you run them on the base commit.
-- Use the project's real test framework (pytest, cargo test, go test, npm test, etc.).
-- You can target specific test files/functions, not just the whole suite.
-- Call `submit_tests` when you have validated commands ready."#;
+- You MUST write real test files with actual assertions, not just shell commands.
+- Every test file must be written with `write_file` before running it.
+- Every command you submit MUST be validated via `shell` first.
+- fail_to_pass commands MUST exit non-zero when you run them (on the base commit).
+- pass_to_pass commands MUST exit zero when you run them (on the base commit).
+- For fail_to_pass: write tests that check for behavior/functions/features added by the PR. They fail because the code doesn't exist yet.
+- For pass_to_pass: run existing tests or write tests for existing functionality that must not break.
+- Test files should be in the standard test directory for the project (tests/, test/, __tests__/, etc.).
+- Use targeted test commands (e.g. `pytest tests/test_new_feature.py`, not just `pytest`)."#;
 
 fn shell_tool() -> ToolDefinition {
     ToolDefinition::function(
@@ -58,10 +66,31 @@ fn shell_tool() -> ToolDefinition {
     )
 }
 
+fn write_file_tool() -> ToolDefinition {
+    ToolDefinition::function(
+        "write_file",
+        "Create or overwrite a file in the repository. Use this to write test files.",
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string",
+                    "description": "Relative path in the repo (e.g. 'tests/test_new_feature.py')"
+                },
+                "content": {
+                    "type": "string",
+                    "description": "Full file content to write"
+                }
+            },
+            "required": ["path", "content"]
+        }),
+    )
+}
+
 fn submit_tool() -> ToolDefinition {
     ToolDefinition::function(
         "submit_tests",
-        "Submit the final validated test commands.",
+        "Submit the final validated test commands and the test files you wrote.",
         serde_json::json!({
             "type": "object",
             "properties": {
@@ -74,9 +103,21 @@ fn submit_tool() -> ToolDefinition {
                     "type": "array",
                     "items": {"type": "string"},
                     "description": "Commands that PASS on both base and PR commit"
+                },
+                "test_files": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "path": {"type": "string", "description": "Relative file path"},
+                            "content": {"type": "string", "description": "Full file content"}
+                        },
+                        "required": ["path", "content"]
+                    },
+                    "description": "Test files written during this session"
                 }
             },
-            "required": ["fail_to_pass", "pass_to_pass"]
+            "required": ["fail_to_pass", "pass_to_pass", "test_files"]
         }),
     )
 }
@@ -92,11 +133,25 @@ fn default_timeout() -> u64 {
 }
 
 #[derive(Debug, serde::Deserialize)]
+struct WriteFileArgs {
+    path: String,
+    content: String,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TestFile {
+    pub path: String,
+    pub content: String,
+}
+
+#[derive(Debug, serde::Deserialize)]
 struct SubmitArgs {
     #[serde(default)]
     fail_to_pass: Vec<String>,
     #[serde(default)]
     pass_to_pass: Vec<String>,
+    #[serde(default)]
+    test_files: Vec<TestFile>,
 }
 
 pub struct TestGenerator {
@@ -136,8 +191,9 @@ impl TestGenerator {
             path = repo_path.display(),
         );
 
-        let tools = vec![shell_tool(), submit_tool()];
+        let tools = vec![shell_tool(), write_file_tool(), submit_tool()];
         let mut messages = vec![Message::system(SYSTEM_PROMPT), Message::user(user_msg)];
+        let mut written_files: Vec<TestFile> = Vec::new();
 
         for turn in 0..MAX_AGENT_TURNS {
             let request = GenerationRequest {
@@ -168,7 +224,7 @@ impl TestGenerator {
                 // Process each tool call
                 for tc in tool_calls {
                     let result = self
-                        .handle_tool_call(tc, &repo_path, &task.id, turn)
+                        .handle_tool_call(tc, &repo_path, &task.id, turn, &mut written_files)
                         .await;
 
                     match result {
@@ -176,14 +232,29 @@ impl TestGenerator {
                             messages.push(Message::tool_result(&tc.id, output));
                         }
                         ToolResult::Submit(submit) => {
+                            // Merge written_files from the session with any from submit
+                            let mut all_files = written_files.clone();
+                            for f in &submit.test_files {
+                                if !all_files.iter().any(|wf| wf.path == f.path) {
+                                    all_files.push(f.clone());
+                                }
+                            }
+
                             tracing::info!(
                                 task_id = %task.id, turn = turn,
                                 f2p = submit.fail_to_pass.len(),
                                 p2p = submit.pass_to_pass.len(),
+                                files = all_files.len(),
                                 "Agent submitted validated tests"
                             );
                             task.fail_to_pass = submit.fail_to_pass;
                             task.pass_to_pass = submit.pass_to_pass;
+                            // Store test files as JSON in meta
+                            if !all_files.is_empty() {
+                                if let Ok(json) = serde_json::to_string(&all_files) {
+                                    task.meta.insert("test_files".to_string(), json);
+                                }
+                            }
                             task.meta
                                 .insert("test_generation".to_string(), "agentic".to_string());
                             return Ok(());
@@ -220,6 +291,7 @@ impl TestGenerator {
         repo_path: &std::path::Path,
         task_id: &str,
         turn: usize,
+        written_files: &mut Vec<TestFile>,
     ) -> ToolResult {
         match tc.function.name.as_str() {
             "shell" => {
@@ -240,6 +312,36 @@ impl TestGenerator {
                     truncate_utf8(&result.stdout, 3000),
                     truncate_utf8(&result.stderr, 1500),
                 ))
+            }
+            "write_file" => {
+                let args: WriteFileArgs = match serde_json::from_str(&tc.function.arguments) {
+                    Ok(a) => a,
+                    Err(e) => return ToolResult::Error(format!("Invalid write_file args: {}", e)),
+                };
+                let full_path = repo_path.join(&args.path);
+                if let Some(parent) = full_path.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                match std::fs::write(&full_path, &args.content) {
+                    Ok(_) => {
+                        tracing::debug!(
+                            task_id = task_id, turn = turn,
+                            path = %args.path, bytes = args.content.len(),
+                            "Agent wrote file"
+                        );
+                        // Track the file
+                        if let Some(existing) = written_files.iter_mut().find(|f| f.path == args.path) {
+                            existing.content = args.content;
+                        } else {
+                            written_files.push(TestFile {
+                                path: args.path.clone(),
+                                content: args.content,
+                            });
+                        }
+                        ToolResult::ShellOutput(format!("File written: {}", args.path))
+                    }
+                    Err(e) => ToolResult::Error(format!("Failed to write {}: {}", args.path, e)),
+                }
             }
             "submit_tests" => match serde_json::from_str::<SubmitArgs>(&tc.function.arguments) {
                 Ok(s) => ToolResult::Submit(s),
