@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+
+echo "=== pre-commit: checking fmt ==="
+cargo fmt --all -- --check
+echo "=== pre-commit: checking clippy ==="
+cargo clippy --all-targets -- -D warnings
+echo "=== pre-commit: all checks passed ==="

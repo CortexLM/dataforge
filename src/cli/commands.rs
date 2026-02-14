@@ -131,7 +131,6 @@ pub struct SweMineArgs {
     #[arg(long, env = "OPENROUTER_API_KEY")]
     pub api_key: Option<String>,
 
-
     /// Output JSON summary.
     #[arg(short = 'j', long)]
     pub json: bool,
@@ -645,7 +644,9 @@ async fn run_swe_export_command(args: SweExportArgs) -> anyhow::Result<()> {
 
 async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
     // --- Validate required env upfront ---
-    if std::env::var("GITHUB_TOKEN").is_err() && std::env::var("GITHUB_PERSONAL_ACCESS_TOKEN").is_err() {
+    if std::env::var("GITHUB_TOKEN").is_err()
+        && std::env::var("GITHUB_PERSONAL_ACCESS_TOKEN").is_err()
+    {
         anyhow::bail!(
             "GITHUB_TOKEN is required but not set.\n\
              Set the GITHUB_TOKEN environment variable before running this command."
