@@ -1,0 +1,121 @@
+name: Nightly Build
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # 3 AM UTC daily
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  RUST_BACKTRACE: short
+
+jobs:
+  # ──────────────────────────────────────────────
+  # Full nightly build + test matrix
+  # ──────────────────────────────────────────────
+  nightly-build:
+    name: Nightly (${{ matrix.toolchain }})
+    runs-on: blacksmith-32vcpu-ubuntu-2404
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain: [stable, nightly]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust ${{ matrix.toolchain }}
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          components: clippy
+
+      - name: Cache cargo registry + target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: nightly-${{ matrix.toolchain }}-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            nightly-${{ matrix.toolchain }}-${{ runner.os }}-
+
+      - name: Build
+        run: cargo build --release -j $(nproc)
+        env:
+          RUSTFLAGS: "-C debuginfo=0 -C target-cpu=native"
+
+      - name: Test
+        run: cargo test --release -j $(nproc) -- --test-threads=$(nproc)
+        env:
+          RUST_LOG: warn
+
+      - name: Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+        if: matrix.toolchain == 'nightly'
+
+  # ──────────────────────────────────────────────
+  # Optimized release binary (nightly + LTO)
+  # ──────────────────────────────────────────────
+  release-binary:
+    name: Release binary (LTO)
+    runs-on: blacksmith-32vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust nightly
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Cache cargo registry + target
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: release-lto-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            release-lto-${{ runner.os }}-
+
+      - name: Build with LTO
+        run: cargo +nightly build --release -j $(nproc)
+        env:
+          CARGO_PROFILE_RELEASE_LTO: "fat"
+          CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "1"
+          CARGO_PROFILE_RELEASE_OPT_LEVEL: "3"
+          CARGO_PROFILE_RELEASE_STRIP: "symbols"
+          RUSTFLAGS: "-C target-cpu=native"
+
+      - name: Binary size
+        run: ls -lh target/release/dataforge
+
+      - name: Upload release binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: dataforge-nightly-linux-x86_64
+          path: target/release/dataforge
+          retention-days: 14
+
+  # ──────────────────────────────────────────────
+  # Dependency check (outdated + audit)
+  # ──────────────────────────────────────────────
+  deps:
+    name: Dependency check
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          cargo install cargo-audit --locked
+          cargo install cargo-outdated --locked
+
+      - name: Audit
+        run: cargo audit
+        continue-on-error: true
+
+      - name: Outdated
+        run: cargo outdated --root-deps-only
+        continue-on-error: true
