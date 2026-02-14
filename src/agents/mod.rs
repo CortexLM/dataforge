@@ -1,22 +1,10 @@
-//! Multi-agent validation system for dataforge.
-//!
-//! This module provides a multi-agent architecture for generating and validating
-//! synthetic benchmark tasks. The system consists of:
-//!
-//! - **Generator Agent**: Creates tasks from templates based on difficulty levels
-//! - **Difficulty Validator Agent**: Uses LLM to verify task difficulty matches expectations
-//! - **Feasibility Validator Agent**: Uses LLM to ensure tasks are solvable but not trivial
-//! - **Task Validator Agent**: Uses LLM to validate tasks are genuinely challenging and not memorizable
-//! - **Orchestrator Agent**: Coordinates the validation pipeline and provides events for TUI
-//! - **Environment Builder Agent**: Builds reproducible Docker environments for tasks
-//! - **Validator Agent**: Validates solution correctness via test execution
-//! - **Synthetic Generator Agent**: Generates DevOps benchmark problems from scratch
+//! DataForge agents for SWE task mining and quality scoring.
 //!
 //! # Example
 //!
 //! ```ignore
 //! use dataforge::agents::{
-//!     OrchestratorAgent, OrchestratorConfig, GeneratorAgentConfig,
+//!     OrchestratorAgent, OrchestratorConfig,
 //!     PipelineEvent, DifficultyLevel,
 //! };
 //! use dataforge::llm::LiteLlmClient;
@@ -26,12 +14,8 @@
 //! // Setup LLM client
 //! let llm_client = Arc::new(LiteLlmClient::from_env()?);
 //!
-//! // Configure generator
-//! let generator_config = GeneratorAgentConfig::new("/output/tasks")
-//!     .with_template(my_template);
-//!
 //! // Create orchestrator
-//! let config = OrchestratorConfig::new(generator_config);
+//! let config = OrchestratorConfig::default();
 //! let orchestrator = OrchestratorAgent::new(llm_client, config);
 //!
 //! // Run validation pipeline
@@ -90,7 +74,7 @@ pub mod workspace_validator;
 // Advanced synthetic workspace generation
 pub mod synthetic_workspace;
 
-// Re-export main types
+// Re-export SWE-relevant and shared validation types
 pub use analyzer_agent::{
     AnalyzedTask as PipelineAnalyzedTask, AnalyzerAgent, AnalyzerConfig,
     TaskCategory as AnalyzerTaskCategory,
@@ -98,39 +82,12 @@ pub use analyzer_agent::{
 pub use collector_agent::{
     CollectedTask, CollectorAgent, CollectorConfig, PrioritizedTask, TaskSource,
 };
-pub use difficulty_amplifier::{AmplifierConfig, DifficultyAmplifierAgent};
 pub use difficulty_validator::{DifficultyValidatorAgent, DifficultyValidatorConfig};
 pub use docker_validator::{DockerValidationResult, DockerValidatorAgent, DockerValidatorConfig};
-pub use environment_builder::{
-    AnalyzedTask, BuiltEnvironment, EnvironmentBuilderAgent, EnvironmentConfig,
-};
 pub use error::{AgentError, AgentResult};
-pub use factory_orchestrator::{
-    FactoryOrchestrator, FactoryOrchestratorBuilder, FactoryOrchestratorConfig,
-};
-pub use factory_types::{
-    AgentConversation, AmplifiedTask, ConversationTurn, DifficultyFactor, DifficultyTrap,
-    DifficultyTrapType, FactoryPipelineEvent, FactoryPipelineStage, FactoryTaskSpec, LlmWeakness,
-    LlmWeaknessType, ResearchFindings,
-};
-pub use feasibility_validator::{FeasibilityValidatorAgent, FeasibilityValidatorConfig};
-pub use full_pipeline_orchestrator::{
-    FullPipelineConfig, FullPipelineEvent, FullPipelineOrchestrator, FullPipelineResult,
-    FullPipelineStage,
-};
-pub use generator::{GeneratorAgent, GeneratorAgentConfig};
-pub use ideator::{IdeatorAgent, IdeatorConfig, TaskCategory, TaskIdea as IdeatorTaskIdea};
+pub use feasibility_validator::FeasibilityValidatorAgent;
 pub use orchestrator::{OrchestratorAgent, OrchestratorBuilder, OrchestratorConfig};
-pub use problem_crafter::{CraftedProblem, CrafterConfig, ProblemCrafterAgent};
 pub use research_agent::{ResearchAgent, ResearchConfig};
-pub use synthetic_generator_agent::{
-    GeneratorConfig as SyntheticGeneratorConfig, SyntheticCategory, SyntheticGeneratorAgent,
-    SyntheticProblem, SyntheticProblemBuilder,
-};
-pub use synthetic_orchestrator::{
-    SyntheticOrchestrator, SyntheticOrchestratorBuilder, SyntheticOrchestratorConfig,
-    SyntheticPipelineEvent, SyntheticPipelineStage,
-};
 pub use task_evaluator::{
     AgentAction, AgentStep, EvaluationConfig, EvaluationResult, TaskEvaluator, TerminationReason,
 };
@@ -151,20 +108,6 @@ pub use validator_agent::{
     ExpectedOutcome, TestSpec, ValidationOutcome, ValidatorAgent, ValidatorConfig,
 };
 
-// Workspace generation pipeline re-exports
-pub use code_cleaner::{CleanedFile, CleaningResult, CodeCleanerAgent, CodeCleanerConfig};
-pub use code_generator::{
-    CodeGeneratorAgent, CodeGeneratorConfig, GeneratedFile, GeneratedWorkspace, WorkspaceMetadata,
-};
-pub use vulnerability_injector::{
-    InjectedVulnerability as WorkspaceInjectedVulnerability, InjectionResult,
-    VulnerabilityInjectorAgent, VulnerabilityInjectorConfig, VulnerabilitySeverity,
-    VulnerabilityType, VulnerableFile,
-};
-pub use workspace_ideator::{
-    ProgrammingLanguage, ProjectStructure, ProjectType, VulnerabilityOpportunity,
-    WorkspaceComplexity, WorkspaceIdea, WorkspaceIdeatorAgent, WorkspaceIdeatorConfig,
-};
 pub use workspace_validator::{
     BenchmarkArtifacts, BenchmarkDifficulty, ValidatedWorkspace, ValidationScores,
     WorkspaceFile as ValidatedWorkspaceFile, WorkspaceValidationResult, WorkspaceValidatorAgent,
@@ -179,15 +122,4 @@ pub use debate_orchestrator::{
     ConsensusMechanism, ConsensusResult, DebateContext, DebateEvent, DebateOrchestrator,
     DebateOrchestratorBuilder, DebateOrchestratorConfig, DebateRound, DissentingOpinion,
 };
-pub use workspace_orchestrator::{
-    DebateOutcome, GeneratedWorkspaceResult, InjectedVulnerability, WorkspaceFile,
-    WorkspaceOrchestrator, WorkspaceOrchestratorBuilder, WorkspaceOrchestratorConfig,
-    WorkspacePipelineEvent, WorkspacePipelineStage,
-};
-
-// Advanced synthetic workspace re-exports
-pub use synthetic_workspace::{
-    DifficultyLevel as SyntheticDifficultyLevel, GenerationEvent, GenerationStage, LanguageTarget,
-    ProjectCategory as SyntheticProjectCategory, SyntheticWorkspace, SyntheticWorkspaceConfig,
-    SyntheticWorkspaceOrchestrator, VulnerabilityConfig, WorkspaceTemplate,
-};
+// Advanced synthetic workspace re-exports are intentionally disabled in SWE mode.

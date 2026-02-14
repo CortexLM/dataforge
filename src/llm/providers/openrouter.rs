@@ -9,13 +9,15 @@ use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
 use crate::error::LlmError;
+#[cfg(test)]
+use crate::llm::ResponseFormat;
 use crate::llm::{Choice, GenerationRequest, GenerationResponse, LlmProvider, Message, Usage};
 
 /// Default OpenRouter API endpoint.
 const OPENROUTER_BASE_URL: &str = "https://openrouter.ai/api/v1";
 
 /// Default model to use if none specified.
-const DEFAULT_MODEL: &str = "moonshotai/kimi-k2.5";
+const DEFAULT_MODEL: &str = "openai/gpt-5.2-codex:nitro";
 
 /// Maximum number of retry attempts for transient failures.
 const MAX_RETRIES: u32 = 3;
@@ -44,7 +46,7 @@ pub struct OpenRouterProvider {
 impl OpenRouterProvider {
     /// Create a new OpenRouter provider with the given API key.
     ///
-    /// Uses the default model (`moonshotai/kimi-k2.5`) and base URL.
+    /// Uses the default model (`openai/gpt-5.2-codex:nitro`) and base URL.
     ///
     /// # Arguments
     ///
@@ -301,30 +303,22 @@ fn is_transient_error(error: &LlmError) -> bool {
 #[async_trait]
 impl LlmProvider for OpenRouterProvider {
     async fn generate(&self, request: GenerationRequest) -> Result<GenerationResponse, LlmError> {
-        let model = if request.model.is_empty() {
+        let model = if request.model.is_empty() || request.model == "default" {
             self.default_model.clone()
         } else {
             request.model.clone()
         };
 
-        // Configure reasoning and token limits for reasoning models
-        let (reasoning, adjusted_max_tokens) = if is_reasoning_model(&model) {
-            // For reasoning models like Kimi K2.5:
-            // 1. The reasoning_content and content share the same max_tokens budget
-            // 2. We need to ensure enough tokens for both thinking AND the final JSON response
-            // 3. Use reasoning.effort instead of reasoning.max_tokens for better compatibility
-            //
-            // Adjust max_tokens to accommodate both reasoning and content:
-            // - If user requested N tokens for content, we need N + reasoning_budget
-            // - Default reasoning budget is ~8000 tokens for thinking
-            // - Ensure minimum of 16000 tokens total for reasoning models
+        let has_structured_output = request.response_format.is_some();
+
+        // Don't use reasoning mode when structured output is requested --
+        // reasoning tokens interfere with strict JSON output.
+        let (reasoning, adjusted_max_tokens) = if is_reasoning_model(&model) && !has_structured_output {
             let user_max_tokens = request.max_tokens.unwrap_or(4000);
             let reasoning_budget = 8000u32;
             let min_total_tokens = 16000u32;
             let adjusted = (user_max_tokens + reasoning_budget).max(min_total_tokens);
 
-            // Use effort-based reasoning which is more broadly compatible across providers
-            // "medium" effort provides a good balance between reasoning depth and token usage
             (
                 Some(ReasoningConfig {
                     effort: Some("medium".to_string()),
@@ -336,6 +330,10 @@ impl LlmProvider for OpenRouterProvider {
             (None, request.max_tokens)
         };
 
+        let response_format = request.response_format.map(|rf| {
+            serde_json::to_value(&rf).unwrap_or(serde_json::Value::Null)
+        });
+
         let api_request = ApiRequest {
             model,
             messages: request.messages,
@@ -343,6 +341,7 @@ impl LlmProvider for OpenRouterProvider {
             max_tokens: adjusted_max_tokens,
             top_p: request.top_p,
             reasoning,
+            response_format,
         };
 
         self.execute_with_retry(&api_request).await
@@ -427,10 +426,10 @@ struct ApiRequest {
     max_tokens: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     top_p: Option<f64>,
-    /// Enable reasoning for models that support it (e.g., Kimi K2.5).
-    /// When enabled, the model will include its reasoning process.
     #[serde(skip_serializing_if = "Option::is_none")]
     reasoning: Option<ReasoningConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    response_format: Option<serde_json::Value>,
 }
 
 /// Configuration for reasoning-enabled models.
@@ -615,6 +614,7 @@ mod tests {
             max_tokens: Some(1000),
             top_p: None,
             reasoning: None,
+            response_format: None,
         };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");
@@ -627,7 +627,7 @@ mod tests {
     #[test]
     fn test_api_request_serialization_with_reasoning_effort() {
         let request = ApiRequest {
-            model: "moonshotai/kimi-k2.5".to_string(),
+            model: "openai/gpt-5.2-codex:nitro".to_string(),
             messages: vec![Message::user("Hello")],
             temperature: Some(0.7),
             max_tokens: Some(16000),
@@ -636,6 +636,7 @@ mod tests {
                 effort: Some("medium".to_string()),
                 max_tokens: None,
             }),
+            response_format: None,
         };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");
@@ -655,11 +656,42 @@ mod tests {
                 effort: None,
                 max_tokens: Some(8000),
             }),
+            response_format: None,
         };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");
         assert!(json.contains("\"reasoning\""));
         assert!(json.contains("\"max_tokens\":8000"));
+    }
+
+    #[test]
+    fn test_api_request_serialization_with_response_format() {
+        let rf = ResponseFormat::JsonSchema {
+            json_schema: crate::llm::JsonSchemaSpec {
+                name: "test".to_string(),
+                strict: true,
+                schema: serde_json::json!({
+                    "type": "object",
+                    "properties": { "score": { "type": "number" } },
+                    "required": ["score"],
+                    "additionalProperties": false
+                }),
+            },
+        };
+        let request = ApiRequest {
+            model: "test-model".to_string(),
+            messages: vec![Message::user("Hello")],
+            temperature: Some(0.3),
+            max_tokens: Some(1000),
+            top_p: None,
+            reasoning: None,
+            response_format: Some(serde_json::to_value(&rf).unwrap()),
+        };
+
+        let json = serde_json::to_string(&request).expect("serialization should succeed");
+        assert!(json.contains("\"response_format\""));
+        assert!(json.contains("\"json_schema\""));
+        assert!(json.contains("\"strict\":true"));
     }
 
     // Tests for is_reasoning_model() function

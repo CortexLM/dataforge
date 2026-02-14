@@ -570,6 +570,7 @@ impl WorkspaceOrchestratorConfig {
 /// 5. Validation that workspace is solvable
 /// 6. Final multi-agent review
 /// 7. Export to artifacts
+#[allow(dead_code)]
 pub struct WorkspaceOrchestrator {
     /// LLM client for all operations.
     llm_client: Arc<dyn LlmProvider>,
@@ -1295,6 +1296,7 @@ module.exports = { main };
 
 /// Internal project parameters from debate results.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct ProjectParameters {
     project_name: String,
     language: ProgrammingLanguage,

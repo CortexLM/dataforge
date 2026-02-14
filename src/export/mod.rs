@@ -1,15 +1,11 @@
-//! Export module for exporting benchmark datasets.
+//! Export module for SWE mining outputs.
 //!
-//! Provides exporters for various formats including HuggingFace datasets.
+//! Provides exporters for SWE workspace artifacts.
 
 pub mod huggingface;
-pub mod synthetic;
 pub mod unified_format;
 
 pub use huggingface::HuggingFaceExporter;
-pub use synthetic::{
-    SyntheticDatasetEntry, SyntheticExportResult, SyntheticExporter, SyntheticSolutionEntry,
-};
 pub use unified_format::{
     ExportResult, TaskOutput, TaskOutputDirectory, TaskSource, UnifiedExporter, VerificationScripts,
 };

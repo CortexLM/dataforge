@@ -48,6 +48,24 @@ impl Message {
 }
 
 /// Request for text generation from an LLM.
+/// Structured output format specification.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum ResponseFormat {
+    #[serde(rename = "json_object")]
+    JsonObject,
+    #[serde(rename = "json_schema")]
+    JsonSchema { json_schema: JsonSchemaSpec },
+}
+
+/// JSON Schema specification for structured outputs.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct JsonSchemaSpec {
+    pub name: String,
+    pub strict: bool,
+    pub schema: serde_json::Value,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GenerationRequest {
     /// Model identifier to use for generation.
@@ -63,6 +81,9 @@ pub struct GenerationRequest {
     /// Nucleus sampling parameter (0.0 - 1.0).
     #[serde(skip_serializing_if = "Option::is_none")]
     pub top_p: Option<f64>,
+    /// Structured output format (JSON Schema).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub response_format: Option<ResponseFormat>,
 }
 
 impl GenerationRequest {
@@ -74,6 +95,7 @@ impl GenerationRequest {
             temperature: None,
             max_tokens: None,
             top_p: None,
+            response_format: None,
         }
     }
 
@@ -92,6 +114,12 @@ impl GenerationRequest {
     /// Set the top_p for this request.
     pub fn with_top_p(mut self, top_p: f64) -> Self {
         self.top_p = Some(top_p);
+        self
+    }
+
+    /// Set the response format for structured output.
+    pub fn with_response_format(mut self, response_format: ResponseFormat) -> Self {
+        self.response_format = Some(response_format);
         self
     }
 }
@@ -308,6 +336,7 @@ impl LiteLlmClient {
             temperature: request.temperature,
             max_tokens: request.max_tokens,
             top_p: request.top_p,
+            response_format: request.response_format,
         };
 
         // Delegate to the standard generate method
@@ -326,6 +355,8 @@ struct ApiRequest {
     max_tokens: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     top_p: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    response_format: Option<ResponseFormat>,
 }
 
 /// Internal response structure from the OpenAI-compatible API.
@@ -379,7 +410,7 @@ struct ApiErrorDetail {
 #[async_trait]
 impl LlmProvider for LiteLlmClient {
     async fn generate(&self, request: GenerationRequest) -> Result<GenerationResponse, LlmError> {
-        let model = if request.model.is_empty() {
+        let model = if request.model.is_empty() || request.model == "default" {
             self.default_model.clone()
         } else {
             request.model.clone()
@@ -391,6 +422,7 @@ impl LlmProvider for LiteLlmClient {
             temperature: request.temperature,
             max_tokens: request.max_tokens,
             top_p: request.top_p,
+            response_format: request.response_format,
         };
 
         let url = format!("{}/chat/completions", self.api_base);
@@ -734,7 +766,8 @@ mod tests {
             messages: vec![Message::user("test")],
             temperature: Some(0.7),
             max_tokens: Some(1000),
-            top_p: None, // Should be skipped in JSON
+            top_p: None,
+            response_format: None,
         };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");

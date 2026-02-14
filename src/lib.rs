@@ -1,7 +1,6 @@
-//! dataforge: Synthetic benchmark task generator for LLM evaluation.
+//! DataForge SWE pipeline for mining GitHub PRs into terminal benchmark tasks.
 //!
-//! This library provides tools for generating, managing, and exporting
-//! synthetic terminal-based benchmark tasks.
+//! This library provides tools for SWE mining, validation, and export.
 
 // Core modules
 pub mod agents;
@@ -30,6 +29,7 @@ pub mod test_framework;
 pub mod trajectory;
 pub mod utils;
 pub mod validation;
+pub mod swe;
 pub mod workspace;
 
 // Re-export commonly used error types

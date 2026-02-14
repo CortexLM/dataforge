@@ -33,7 +33,7 @@
 //!
 //! let llm = Arc::new(OpenRouterProvider::with_model(
 //!     "api-key".to_string(),
-//!     "moonshotai/kimi-k2.5".to_string(),
+//!     "openai/gpt-5.2-codex:nitro".to_string(),
 //! ));
 //!
 //! let config = SyntheticWorkspaceConfig::new()

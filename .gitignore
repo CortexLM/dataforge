@@ -25,3 +25,9 @@ Thumbs.db
 # Test outputs
 test-outputs/
 
+# Generated datasets and outputs
+outputs/
+generated-datasets/
+/swe-datasets/
+*.jsonl
+

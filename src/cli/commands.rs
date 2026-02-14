@@ -1,56 +1,37 @@
 //! Simplified CLI command definitions for dataforge.
 //!
 //! This module provides a streamlined command-line interface for generating
-//! synthetic benchmark datasets in one shot.
+//! SWE-derived benchmark datasets in one shot.
 
 use crate::agents::{
-    FactoryOrchestrator,
-    FactoryOrchestratorConfig,
-    FactoryPipelineEvent,
-    FactoryPipelineStage,
-    FullPipelineConfig,
-    FullPipelineEvent,
-    FullPipelineOrchestrator,
-    // Advanced synthetic workspace generation
-    GenerationEvent,
-    LanguageTarget,
-    ProgrammingLanguage,
-    SyntheticDifficultyLevel,
-    SyntheticOrchestrator,
-    SyntheticOrchestratorConfig,
-    SyntheticPipelineEvent,
-    SyntheticPipelineStage,
-    SyntheticProjectCategory,
-    SyntheticTask,
-    SyntheticWorkspaceConfig,
-    SyntheticWorkspaceOrchestrator,
-    TaskCategory as AgentTaskCategory,
-    WorkspaceOrchestrator,
-    WorkspaceOrchestratorBuilder,
-    WorkspacePipelineEvent,
+    AntiMemorizationConfig, DockerValidatorAgent, DockerValidatorConfig, DifficultyScoring,
+    HiddenSolution, SyntheticTask, TaskMetadata, VerificationSpec,
 };
-use crate::llm::{create_shared_cache, LiteLlmClient, OpenRouterProvider};
-use crate::workspace::{WorkspaceExporter, WorkspaceLanguage};
+use crate::difficulty::DifficultyLevel;
+use crate::swe::{SweOrchestrator, SweOrchestratorConfig};
+use crate::llm::{LiteLlmClient, OpenRouterProvider};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 /// Default model to use for generation.
-const DEFAULT_MODEL: &str = "moonshotai/kimi-k2.5";
+const DEFAULT_MODEL: &str = "openai/gpt-5.2-codex:nitro";
 
 /// Default output directory for generated datasets.
 const DEFAULT_OUTPUT_DIR: &str = "./generated-datasets";
+const DEFAULT_SWE_OUTPUT_DIR: &str = "./generated-swe";
 
-/// Synthetic benchmark dataset generator for LLM evaluation.
+/// SWE-derived benchmark dataset generator for LLM evaluation.
 #[derive(Parser)]
 #[command(name = "dataforge")]
-#[command(about = "Generate synthetic benchmark datasets for LLM evaluation")]
+#[command(about = "Generate SWE-derived benchmark datasets for LLM evaluation")]
 #[command(version)]
 #[command(
-    long_about = "dataforge generates synthetic terminal/CLI benchmark tasks to evaluate AI agent capabilities.\n\nIt uses a multi-agent validation system to ensure generated tasks match the requested \ndifficulty level, are solvable but challenging, and meet quality standards.\n\nExample usage:\n  dataforge generate --count 5 --model moonshotai/kimi-k2.5 --output ./datasets"
+    long_about = "dataforge generates SWE-derived terminal/CLI benchmark tasks from mined GitHub PRs.\n\nTasks are validated and exported as workspace artifacts (workspace.yaml + prompt.md).\n\nExample usage:\n  dataforge generate --count 5 --model openai/gpt-5.2-codex:nitro --output ./generated-datasets"
 )]
 pub struct Cli {
     /// The subcommand to execute.
@@ -65,11 +46,7 @@ pub struct Cli {
 /// Available CLI subcommands.
 #[derive(clap::Subcommand)]
 pub enum Commands {
-    /// Generate synthetic benchmark datasets using the multi-agent pipeline.
-    ///
-    /// This command generates high-quality synthetic benchmark tasks that can be
-    /// used to evaluate AI agent capabilities. Tasks are validated through a
-    /// multi-agent pipeline including ideation, validation, and quality checks.
+    /// Generate SWE DataForge tasks from real GitHub PRs.
     #[command(alias = "gen")]
     Generate(GenerateArgs),
 
@@ -81,27 +58,119 @@ pub enum Commands {
     #[command(alias = "eval")]
     Evaluate(EvaluateArgs),
 
-    /// Generate complete code workspaces with injected vulnerabilities.
-    ///
-    /// This command creates full working codebases with deliberately injected
-    /// security vulnerabilities, bugs, and code smells. Uses a multi-agent
-    /// debate system to design realistic, challenging benchmarks.
-    #[command(alias = "ws")]
-    Workspace(WorkspaceArgs),
+    /// Run SWE mining pipeline against real GitHub history and export SWE datasets.
+    #[command(name = "swe")]
+    Swe(SweArgs),
+}
 
-    /// Generate synthetic workspaces with multi-agent debate system (advanced).
-    ///
-    /// This command creates high-quality synthetic benchmark workspaces using
-    /// a sophisticated multi-agent debate pipeline. Agents debate on:
-    /// - Project architecture and design
-    /// - Vulnerability selection and placement
-    /// - Difficulty calibration
-    /// - Code quality validation
-    ///
-    /// The generated code contains subtle, realistic vulnerabilities without
-    /// any hints or comments that reveal their location.
-    #[command(alias = "synth")]
-    Synthetic(SyntheticArgs),
+/// SWE pipeline entrypoint arguments.
+#[derive(Parser, Debug)]
+pub struct SweArgs {
+    /// SWE subcommand to run.
+    #[command(subcommand)]
+    pub command: SweSubcommand,
+}
+
+/// SWE subcommands.
+#[derive(clap::Subcommand, Debug)]
+pub enum SweSubcommand {
+    /// Mine real PRs and export SWE DataForge-style tasks.
+    Mine(SweMineArgs),
+
+    /// Validate mined SWE tasks with quality scoring and optional Docker probes.
+    Validate(SweValidateArgs),
+
+    /// Re-export existing SWE workspaces.
+    Export(SweExportArgs),
+}
+
+/// Arguments for `dataforge swe mine`.
+#[derive(Parser, Debug)]
+pub struct SweMineArgs {
+    /// Number of SWE tasks to emit.
+    #[arg(short = 'n', long, default_value = "1")]
+    pub max_tasks: usize,
+
+    /// Return after mining the first accepted task.
+    #[arg(long, default_value = "true")]
+    pub once: bool,
+
+    /// Minimum repo stars for a PR to be accepted.
+    #[arg(long, default_value = "20")]
+    pub min_stars: u32,
+
+    /// Comma-separated allowed languages (e.g. python,rust,go).
+    #[arg(long)]
+    pub languages: Option<String>,
+
+    /// JSONL file of already-processed PRs to skip (one {"repo":"...","pr":N} per line).
+    /// New PRs will be appended to this file after export.
+    #[arg(long)]
+    pub pr_file: Option<String>,
+
+    /// Only keep tasks matching this difficulty level (easy, medium, hard).
+    #[arg(long)]
+    pub difficulty: Option<String>,
+
+    /// Output directory for generated SWE workspaces.
+    #[arg(short = 'o', long, default_value = DEFAULT_SWE_OUTPUT_DIR)]
+    pub output: String,
+
+    /// LLM model to use for supplemental test generation and scoring.
+    #[arg(short = 'm', long, default_value = DEFAULT_MODEL)]
+    pub model: String,
+
+    /// Enable Docker validation when exporting SWE tasks.
+    #[arg(long)]
+    pub validate_docker: bool,
+
+    /// OpenRouter API key (can also be set via OPENROUTER_API_KEY or LITELLM_API_KEY env var).
+    #[arg(long, env = "OPENROUTER_API_KEY")]
+    pub api_key: Option<String>,
+
+    /// Output JSON summary.
+    #[arg(short = 'j', long)]
+    pub json: bool,
+}
+
+/// Arguments for `dataforge swe validate`.
+#[derive(Parser, Debug)]
+pub struct SweValidateArgs {
+    /// Directory containing SWE workspaces.
+    #[arg(short = 'd', long, default_value = DEFAULT_SWE_OUTPUT_DIR)]
+    pub input: String,
+
+    /// OpenRouter model to use for optional quality rescoring.
+    #[arg(short = 'm', long, default_value = DEFAULT_MODEL)]
+    pub model: String,
+
+    /// OpenRouter API key (can also be set via OPENROUTER_API_KEY or LITELLM_API_KEY env var).
+    #[arg(long, env = "OPENROUTER_API_KEY")]
+    pub api_key: Option<String>,
+
+    /// Enable Docker environment validation using SWE quality-gated execution.
+    #[arg(long)]
+    pub validate_docker: bool,
+
+    /// Return validation result as JSON.
+    #[arg(short = 'j', long)]
+    pub json: bool,
+}
+
+/// Arguments for `dataforge swe export`.
+#[derive(Parser, Debug)]
+pub struct SweExportArgs {
+    /// Input directory with existing SWE workspace artifacts.
+    #[arg(short = 'i', long, default_value = DEFAULT_SWE_OUTPUT_DIR)]
+    pub input: String,
+
+    /// Output directory for re-exported workspaces.
+    #[arg(short = 'o', long, default_value = "./exported-swe")]
+    pub output: String,
+
+    /// Return export summary as JSON.
+    #[arg(short = 'j', long)]
+    pub json: bool,
 }
 
 /// Arguments for the generate command.
@@ -113,17 +182,23 @@ pub struct GenerateArgs {
 
     /// LLM model to use for generation (OpenRouter format).
     ///
-    /// Examples: moonshotai/kimi-k2.5, anthropic/claude-3-opus, openai/gpt-4
+    /// OpenRouter model identifier.
     #[arg(short = 'm', long, default_value = DEFAULT_MODEL)]
     pub model: String,
 
-    /// Task category to generate.
+    /// Category / language filter for generated tasks.
     ///
-    /// Available categories: debugging, security, algorithm-design, infrastructure,
-    /// data-engineering, performance, reverse-engineering, integration,
-    /// system-administration, software-engineering, file-operations, networking, containers
+    /// Examples: debugging, python, rust, go.
     #[arg(short = 'c', long)]
     pub category: Option<String>,
+
+    /// Filter languages (comma-separated).
+    #[arg(long)]
+    pub languages: Option<String>,
+
+    /// Minimum repo stars for accepted tasks.
+    #[arg(long, default_value = "20")]
+    pub min_stars: u32,
 
     /// Output directory for generated datasets.
     #[arg(short = 'o', long, default_value = DEFAULT_OUTPUT_DIR)]
@@ -133,33 +208,9 @@ pub struct GenerateArgs {
     #[arg(short = 'j', long)]
     pub json: bool,
 
-    /// Minimum validation score threshold (0.0 to 1.0).
-    #[arg(long, default_value = "0.6")]
-    pub min_score: f64,
-
-    /// Maximum retries for ideation if validation fails.
-    #[arg(long, default_value = "3")]
-    pub max_retries: u32,
-
-    /// Random seed for reproducibility.
-    #[arg(short = 's', long)]
-    pub seed: Option<u64>,
-
     /// OpenRouter API key (can also be set via OPENROUTER_API_KEY or LITELLM_API_KEY env var).
     #[arg(long, env = "OPENROUTER_API_KEY")]
     pub api_key: Option<String>,
-
-    /// Use the factory multi-agent pipeline (more sophisticated, includes research and amplification).
-    #[arg(long, conflicts_with = "full")]
-    pub factory: bool,
-
-    /// Use the full 14-agent pipeline for maximum quality (slowest but best quality).
-    #[arg(long, conflicts_with = "factory")]
-    pub full: bool,
-
-    /// Enable prompt caching for efficiency (only with --factory).
-    #[arg(long, default_value = "true")]
-    pub cache: bool,
 
     /// Enable Docker validation to verify tasks are executable in containers.
     #[arg(long)]
@@ -168,10 +219,6 @@ pub struct GenerateArgs {
     /// Disable Docker validation (useful in CI without Docker).
     #[arg(long, conflicts_with = "validate_docker")]
     pub no_docker: bool,
-
-    /// Also validate the reference solution in Docker (requires --validate-docker).
-    #[arg(long, requires = "validate_docker")]
-    pub validate_solution: bool,
 }
 
 /// Default maximum steps for the evaluation agent.
@@ -191,7 +238,7 @@ pub struct EvaluateArgs {
 
     /// LLM model to use for the evaluation agent (OpenRouter format).
     ///
-    /// Examples: moonshotai/kimi-k2.5, anthropic/claude-3-opus, openai/gpt-4
+    /// OpenRouter model identifier.
     #[arg(short = 'm', long, default_value = DEFAULT_MODEL)]
     pub model: String,
 
@@ -214,139 +261,6 @@ pub struct EvaluateArgs {
     /// Output JSON to stdout instead of interactive progress.
     #[arg(short = 'j', long)]
     pub json: bool,
-}
-
-/// Arguments for the workspace command.
-#[derive(Parser, Debug)]
-pub struct WorkspaceArgs {
-    /// Number of workspaces to generate.
-    #[arg(short = 'n', long, default_value = "1")]
-    pub count: u32,
-
-    /// Programming language for the workspace.
-    /// Available: python, javascript, typescript, rust, go, java, c, cpp
-    #[arg(short = 'L', long)]
-    pub language: Option<String>,
-
-    /// Project type to generate (e.g., "web-api", "cli-tool", "data-pipeline").
-    #[arg(short = 't', long)]
-    pub project_type: Option<String>,
-
-    /// LLM model to use for generation (OpenRouter format).
-    #[arg(short = 'm', long, default_value = DEFAULT_MODEL)]
-    pub model: String,
-
-    /// Output directory for generated workspaces.
-    #[arg(short = 'o', long, default_value = DEFAULT_OUTPUT_DIR)]
-    pub output: String,
-
-    /// Output JSON to stdout instead of interactive progress.
-    #[arg(short = 'j', long)]
-    pub json: bool,
-
-    /// Number of debate rounds for multi-agent consensus.
-    #[arg(long, default_value = "3")]
-    pub debate_rounds: u32,
-
-    /// Consensus threshold (0.0 to 1.0) for debate decisions.
-    #[arg(long, default_value = "0.6")]
-    pub consensus_threshold: f64,
-
-    /// Minimum number of vulnerabilities to inject.
-    #[arg(long, default_value = "3")]
-    pub min_vulnerabilities: u32,
-
-    /// Maximum number of vulnerabilities to inject.
-    #[arg(long, default_value = "8")]
-    pub max_vulnerabilities: u32,
-
-    /// Random seed for reproducibility.
-    #[arg(short = 's', long)]
-    pub seed: Option<u64>,
-
-    /// OpenRouter API key.
-    #[arg(long, env = "OPENROUTER_API_KEY")]
-    pub api_key: Option<String>,
-
-    /// Export workspaces as .zip files (excludes build artifacts).
-    #[arg(long)]
-    pub zip: bool,
-}
-
-/// Arguments for the synthetic workspace command (advanced).
-#[derive(Parser, Debug)]
-pub struct SyntheticArgs {
-    /// Number of workspaces to generate.
-    #[arg(short = 'n', long, default_value = "1")]
-    pub count: u32,
-
-    /// Programming language for the workspace.
-    /// Available: python, javascript, typescript, rust, go, java, ruby, php, cpp, csharp
-    #[arg(short = 'L', long, default_value = "python")]
-    pub language: String,
-
-    /// Project category.
-    /// Available: web-api, cli-tool, web-app, data-pipeline, microservice, library,
-    /// backend-service, file-processor, auth-service, database-tool
-    #[arg(short = 'c', long, default_value = "web-api")]
-    pub category: String,
-
-    /// Difficulty level for the task.
-    /// Available: easy, medium, hard, expert
-    #[arg(short = 'd', long, default_value = "medium")]
-    pub difficulty: String,
-
-    /// LLM model to use for code generation (OpenRouter format).
-    #[arg(short = 'm', long, default_value = DEFAULT_MODEL)]
-    pub model: String,
-
-    /// Output directory for generated workspaces.
-    #[arg(short = 'o', long, default_value = DEFAULT_OUTPUT_DIR)]
-    pub output: String,
-
-    /// Output JSON to stdout instead of interactive progress.
-    #[arg(short = 'j', long)]
-    pub json: bool,
-
-    /// Number of debate rounds for multi-agent consensus.
-    #[arg(long, default_value = "3")]
-    pub debate_rounds: u32,
-
-    /// Consensus threshold (0.0 to 1.0) for debate decisions.
-    #[arg(long, default_value = "0.6")]
-    pub consensus_threshold: f64,
-
-    /// Minimum number of vulnerabilities to inject.
-    #[arg(long, default_value = "3")]
-    pub min_vulnerabilities: usize,
-
-    /// Maximum number of vulnerabilities to inject.
-    #[arg(long, default_value = "7")]
-    pub max_vulnerabilities: usize,
-
-    /// Temperature for code generation (0.0-2.0).
-    #[arg(long, default_value = "0.4")]
-    pub generation_temperature: f64,
-
-    /// Temperature for debate (0.0-2.0).
-    #[arg(long, default_value = "0.7")]
-    pub debate_temperature: f64,
-
-    /// Random seed for reproducibility.
-    #[arg(short = 's', long)]
-    pub seed: Option<u64>,
-
-    /// OpenRouter API key.
-    #[arg(long, env = "OPENROUTER_API_KEY")]
-    pub api_key: Option<String>,
-
-    /// Export workspaces as .tar.gz files (excludes build artifacts).
-    #[arg(long)]
-    pub zip: bool,
-
-    /// Skip code cleaning (keep TODOs and hints - for debugging).
-    #[arg(long)]
-    pub no_clean: bool,
 }
 
 /// Parse CLI arguments and return the Cli struct.
@@ -375,1548 +289,549 @@ pub async fn run_with_cli(cli: Cli) -> anyhow::Result<()> {
         Commands::Evaluate(args) => {
             run_evaluate_command(args).await?;
         }
-        Commands::Workspace(args) => {
-            run_workspace_command(args).await?;
-        }
-        Commands::Synthetic(args) => {
-            run_synthetic_command(args).await?;
+        Commands::Swe(args) => {
+            run_swe_command(args).await?;
         }
     }
     Ok(())
 }
 
 // ============================================================================
-// Workspace Command Implementation
+// SWE Command Implementation
 // ============================================================================
 
-/// JSON output structure for the workspace generation result.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WorkspaceOutput {
-    /// Overall status: "success" or "failed".
-    pub status: String,
-    /// Model used for generation.
-    pub model: String,
-    /// List of generated workspaces.
-    pub workspaces: Vec<GeneratedWorkspaceOutput>,
-    /// Total duration in milliseconds.
-    pub total_duration_ms: u64,
-    /// Output directory where workspaces were saved.
-    pub output_directory: String,
-}
-
-/// JSON output structure for a single generated workspace.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GeneratedWorkspaceOutput {
-    /// Unique workspace identifier.
-    pub workspace_id: String,
-    /// Programming language.
-    pub language: String,
-    /// Project type.
-    pub project_type: String,
-    /// Number of files in the workspace.
-    pub file_count: usize,
-    /// Number of vulnerabilities injected.
-    pub vulnerability_count: usize,
-    /// Path where the workspace was saved.
-    pub saved_path: Option<String>,
-    /// Path to the zip archive (if exported).
-    pub zip_path: Option<String>,
-}
-
-/// Parses a language string to ProgrammingLanguage enum.
-fn parse_programming_language(language_str: &str) -> anyhow::Result<ProgrammingLanguage> {
-    match language_str.to_lowercase().as_str() {
-        "python" | "py" => Ok(ProgrammingLanguage::Python),
-        "javascript" | "js" => Ok(ProgrammingLanguage::JavaScript),
-        "typescript" | "ts" => Ok(ProgrammingLanguage::TypeScript),
-        "rust" | "rs" => Ok(ProgrammingLanguage::Rust),
-        "go" | "golang" => Ok(ProgrammingLanguage::Go),
-        "java" => Ok(ProgrammingLanguage::Java),
-        "c" => Ok(ProgrammingLanguage::C),
-        "cpp" | "c++" => Ok(ProgrammingLanguage::Cpp),
-        other => Err(anyhow::anyhow!(
-            "Unknown language: '{}'. Available languages: python, javascript, typescript, rust, go, java, c, cpp",
-            other
-        )),
+async fn run_swe_command(args: SweArgs) -> anyhow::Result<()> {
+    match args.command {
+        SweSubcommand::Mine(args) => run_swe_mine_command(args).await,
+        SweSubcommand::Validate(args) => run_swe_validate_command(args).await,
+        SweSubcommand::Export(args) => {
+            run_swe_export_command(args).await
+        }
     }
 }
 
-/// Parses workspace language for export purposes.
-fn parse_workspace_language(language: ProgrammingLanguage) -> WorkspaceLanguage {
-    match language {
-        ProgrammingLanguage::Python => WorkspaceLanguage::Python,
-        ProgrammingLanguage::JavaScript => WorkspaceLanguage::JavaScript,
-        ProgrammingLanguage::TypeScript => WorkspaceLanguage::TypeScript,
-        ProgrammingLanguage::Rust => WorkspaceLanguage::Rust,
-        ProgrammingLanguage::Go => WorkspaceLanguage::Go,
-        ProgrammingLanguage::Java => WorkspaceLanguage::Java,
-        ProgrammingLanguage::C => WorkspaceLanguage::Cpp, // Map C to Cpp for export purposes
-        ProgrammingLanguage::Cpp => WorkspaceLanguage::Cpp,
-    }
+#[derive(Debug, Clone, Serialize)]
+struct SweValidateEntry {
+    task_id: String,
+    repo: String,
+    quality_score: f64,
+    quality_passed: bool,
+    docker_passed: Option<bool>,
 }
 
-/// Runs the workspace command with the provided arguments.
-async fn run_workspace_command(args: WorkspaceArgs) -> anyhow::Result<()> {
-    // Validate and clamp consensus threshold to valid range
-    let validated_threshold = args.consensus_threshold.clamp(0.0, 1.0);
-    if (validated_threshold - args.consensus_threshold).abs() > f64::EPSILON {
-        warn!(
-            original = args.consensus_threshold,
-            clamped = validated_threshold,
-            "consensus_threshold was outside valid range [0.0, 1.0] and has been clamped"
-        );
+#[derive(Debug, Clone, Serialize)]
+struct SweValidateOutput {
+    status: String,
+    tasks: usize,
+    quality_passed: usize,
+    docker_requested: bool,
+    docker_passed: usize,
+    results: Vec<SweValidateEntry>,
+}
+
+async fn run_swe_validate_command(args: SweValidateArgs) -> anyhow::Result<()> {
+    let input_dir = Path::new(&args.input);
+    if !input_dir.exists() {
+        return Err(anyhow::anyhow!("Input directory does not exist: {}", args.input));
     }
 
-    // Parse language if provided, otherwise default to Python
-    let language = match &args.language {
-        Some(lang_str) => parse_programming_language(lang_str)?,
-        None => ProgrammingLanguage::Python,
-    };
+    let llm_client = build_llm_client(args.api_key, args.model).await?;
+    let quality_scorer = crate::swe::QualityScorer::new(llm_client.clone(), Default::default());
 
-    // Set seed for reproducibility if provided
-    if let Some(s) = args.seed {
-        info!(seed = s, "Using fixed seed for reproducibility");
-    }
-
-    // Get API key from argument or environment
-    let api_key = args
-        .api_key
-        .clone()
-        .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
-        .or_else(|| std::env::var("LITELLM_API_KEY").ok());
-
-    // Initialize LLM client
-    let llm_client: Arc<dyn crate::llm::LlmProvider> = if let Some(key) = api_key {
-        info!(model = %args.model, "Using OpenRouter with specified API key");
-        Arc::new(OpenRouterProvider::with_model(key, args.model.clone()))
-    } else {
-        // Fall back to LiteLlmClient from environment
-        info!("Using LiteLLM client from environment");
-        Arc::new(LiteLlmClient::from_env().map_err(|e| {
+    let docker_validator = if args.validate_docker {
+        Some(DockerValidatorAgent::with_defaults().map_err(|e| {
             anyhow::anyhow!(
-                "Failed to initialize LLM client: {}. \
-                 Please provide --api-key or set OPENROUTER_API_KEY/LITELLM_API_KEY env var.",
+                "Docker validator is unavailable; rerun without `--validate-docker` or install Docker: {}",
                 e
             )
         })?)
-    };
-
-    // Create output directory
-    let output_dir = args.output.clone();
-    let output_path = Path::new(&output_dir);
-    fs::create_dir_all(output_path)?;
-    info!(output = %output_dir, "Output directory ready");
-
-    // Build the workspace orchestrator
-    let orchestrator = WorkspaceOrchestratorBuilder::new()
-        .llm_client(llm_client)
-        .debate_rounds(args.debate_rounds)
-        .consensus_threshold(validated_threshold)
-        .enable_debate(true)
-        .enable_injection(true)
-        .enable_review(true)
-        .build()
-        .map_err(|e| anyhow::anyhow!("Failed to build workspace orchestrator: {}", e))?;
-
-    if args.json {
-        run_json_workspace(&orchestrator, &args, language, output_path).await
-    } else {
-        run_interactive_workspace(&orchestrator, &args, language, output_path).await
-    }
-}
-
-/// Runs the workspace generation pipeline and outputs JSON to stdout.
-async fn run_json_workspace(
-    orchestrator: &WorkspaceOrchestrator,
-    args: &WorkspaceArgs,
-    language: ProgrammingLanguage,
-    output_path: &Path,
-) -> anyhow::Result<()> {
-    let start_time = std::time::Instant::now();
-    let mut workspaces = Vec::new();
-
-    for i in 0..args.count {
-        let (event_tx, _event_rx) = tokio::sync::mpsc::channel::<WorkspacePipelineEvent>(100);
-
-        match orchestrator
-            .generate_workspace(language, args.project_type.as_deref(), event_tx)
-            .await
-        {
-            Ok(result) => {
-                let workspace_dir = output_path.join(&result.id);
-                let saved_path = match save_workspace(&result, &workspace_dir).await {
-                    Ok(()) => Some(workspace_dir.to_string_lossy().to_string()),
-                    Err(e) => {
-                        warn!(error = %e, workspace_id = %result.id, "Failed to save workspace to disk");
-                        None
-                    }
-                };
-
-                // Export to zip if requested
-                let zip_path = if args.zip && saved_path.is_some() {
-                    match export_workspace_to_zip(&result, language, output_path).await {
-                        Ok(path) => Some(path),
-                        Err(e) => {
-                            warn!(error = %e, workspace_id = %result.id, "Failed to export workspace to zip");
-                            None
-                        }
-                    }
-                } else {
-                    None
-                };
-
-                workspaces.push(GeneratedWorkspaceOutput {
-                    workspace_id: result.id.clone(),
-                    language: result.language.display_name().to_string(),
-                    project_type: result.category.clone(),
-                    file_count: result.files.len(),
-                    vulnerability_count: result.vulnerabilities.len(),
-                    saved_path,
-                    zip_path,
-                });
-            }
-            Err(e) => {
-                error!(workspace_index = i, error = %e, "Failed to generate workspace");
-            }
-        }
-    }
-
-    let duration_ms = start_time.elapsed().as_millis() as u64;
-
-    let output = WorkspaceOutput {
-        status: if workspaces.is_empty() && args.count > 0 {
-            "failed".to_string()
-        } else {
-            "success".to_string()
-        },
-        model: args.model.clone(),
-        workspaces,
-        total_duration_ms: duration_ms,
-        output_directory: output_path.to_string_lossy().to_string(),
-    };
-
-    let json_output = serde_json::to_string_pretty(&output)
-        .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
-    println!("{}", json_output);
-
-    Ok(())
-}
-
-/// Runs the interactive workspace generation with progress output.
-async fn run_interactive_workspace(
-    orchestrator: &WorkspaceOrchestrator,
-    args: &WorkspaceArgs,
-    language: ProgrammingLanguage,
-    output_path: &Path,
-) -> anyhow::Result<()> {
-    println!("\n🔧 Workspace Generation Pipeline");
-    println!("=================================");
-    println!("Model: {}", args.model);
-    println!("Language: {}", language.display_name());
-    println!("Count: {}", args.count);
-    println!("Output: {}", output_path.display());
-    if let Some(ref project_type) = args.project_type {
-        println!("Project type: {}", project_type);
-    }
-    println!("Debate rounds: {}", args.debate_rounds);
-    println!("Consensus threshold: {:.2}", args.consensus_threshold);
-    println!();
-
-    println!("Pipeline stages:");
-    println!("├─ ○ Debate (Multi-agent consensus)");
-    println!("├─ ○ Generation (Code generation)");
-    println!("├─ ○ Injection (Vulnerability injection)");
-    println!("├─ ○ Cleaning (Remove hints)");
-    println!("├─ ○ Validation (Check solvability)");
-    println!("├─ ○ Review (Multi-agent review)");
-    println!("└─ ○ Export (Save artifacts)\n");
-
-    let mut generated_workspaces = Vec::new();
-    let mut failed_count = 0u32;
-
-    for i in 0..args.count {
-        println!("📝 Generating workspace {}/{}...", i + 1, args.count);
-
-        let (event_tx, mut event_rx) = tokio::sync::mpsc::channel::<WorkspacePipelineEvent>(100);
-
-        // Spawn event handler for this workspace
-        let event_handle = tokio::spawn(async move {
-            while let Some(event) = event_rx.recv().await {
-                match event {
-                    WorkspacePipelineEvent::PipelineStarted {
-                        workspace_id,
-                        language,
-                        ..
-                    } => {
-                        println!(
-                            "   🚀 Started workspace {} ({})",
-                            workspace_id,
-                            language.display_name()
-                        );
-                    }
-                    WorkspacePipelineEvent::StageStarted { stage, .. } => {
-                        println!("   ⟳ {} started...", stage);
-                    }
-                    WorkspacePipelineEvent::StageCompleted {
-                        stage, duration_ms, ..
-                    } => {
-                        println!("   ✓ {} completed ({}ms)", stage, duration_ms);
-                    }
-                    WorkspacePipelineEvent::DebateProgress { event } => {
-                        if let crate::agents::DebateEvent::DebateCompleted {
-                            consensus_reached,
-                            winning_position,
-                            consensus_score,
-                            ..
-                        } = event
-                        {
-                            let status = if consensus_reached {
-                                "consensus reached"
-                            } else {
-                                "no consensus"
-                            };
-                            let decision = winning_position.as_deref().unwrap_or("undecided");
-                            println!(
-                                "   💬 Debate {}: {} (score: {:.2})",
-                                status, decision, consensus_score
-                            );
-                        }
-                    }
-                    WorkspacePipelineEvent::GenerationProgress {
-                        files_generated,
-                        loc_generated,
-                        ..
-                    } => {
-                        println!(
-                            "   📄 Generated {} files ({} LOC)",
-                            files_generated, loc_generated
-                        );
-                    }
-                    WorkspacePipelineEvent::InjectionProgress {
-                        vulnerability_type,
-                        target_file,
-                        ..
-                    } => {
-                        println!("   💉 Injecting {} in {}", vulnerability_type, target_file);
-                    }
-                    WorkspacePipelineEvent::ValidationResult { passed, issues, .. } => {
-                        let symbol = if passed { "✓" } else { "✗" };
-                        println!(
-                            "   {} Validation: {}",
-                            symbol,
-                            if passed { "passed" } else { "failed" }
-                        );
-                        for issue in issues {
-                            println!("      - {}", issue);
-                        }
-                    }
-                    WorkspacePipelineEvent::ReviewResult {
-                        score, comments, ..
-                    } => {
-                        println!("   📊 Review score: {:.2}", score);
-                        for comment in comments.iter().take(2) {
-                            println!("      - {}", comment);
-                        }
-                    }
-                    WorkspacePipelineEvent::PipelineCompleted {
-                        workspace,
-                        total_duration_ms,
-                        ..
-                    } => {
-                        println!(
-                            "   ✓ Complete: {} files, {} vulnerabilities ({}ms)",
-                            workspace.files.len(),
-                            workspace.vulnerabilities.len(),
-                            total_duration_ms
-                        );
-                    }
-                    WorkspacePipelineEvent::PipelineFailed { error, stage, .. } => {
-                        println!("   ✗ Failed at {}: {}", stage, error);
-                    }
-                }
-            }
-        });
-
-        let result = orchestrator
-            .generate_workspace(language, args.project_type.as_deref(), event_tx)
-            .await;
-
-        // Wait for event handler to finish
-        let _ = event_handle.await;
-
-        match result {
-            Ok(workspace) => {
-                // Save workspace to disk
-                let workspace_dir = output_path.join(&workspace.id);
-                match save_workspace(&workspace, &workspace_dir).await {
-                    Ok(()) => {
-                        println!(
-                            "   💾 Saved: {} → {}",
-                            workspace.id,
-                            workspace_dir.display()
-                        );
-                    }
-                    Err(e) => {
-                        warn!(error = %e, workspace_id = %workspace.id, "Failed to save workspace to disk");
-                    }
-                }
-
-                // Export to zip if requested
-                if args.zip {
-                    match export_workspace_to_zip(&workspace, language, output_path).await {
-                        Ok(zip_path) => {
-                            println!("   📦 Exported: {}", zip_path);
-                        }
-                        Err(e) => {
-                            warn!(error = %e, workspace_id = %workspace.id, "Failed to export workspace to zip");
-                        }
-                    }
-                }
-
-                println!("\n✓ Workspace {} generated successfully!", i + 1);
-                println!("  ID: {}", workspace.id);
-                println!("  Language: {}", workspace.language.display_name());
-                println!("  Files: {}", workspace.files.len());
-                println!("  LOC: {}", workspace.total_loc);
-                println!("  Vulnerabilities: {}", workspace.vulnerabilities.len());
-                generated_workspaces.push(workspace);
-            }
-            Err(e) => {
-                eprintln!("\n✗ Workspace {} failed: {}", i + 1, e);
-                failed_count += 1;
-            }
-        }
-
-        if i < args.count - 1 {
-            println!(); // Add spacing between workspaces
-        }
-    }
-
-    // Print summary
-    println!("\n{}", "=".repeat(50));
-    println!("📊 Workspace Generation Summary");
-    println!("{}", "=".repeat(50));
-    println!(
-        "✓ Successfully generated: {}/{}",
-        generated_workspaces.len(),
-        args.count
-    );
-    if failed_count > 0 {
-        println!("✗ Failed: {}", failed_count);
-    }
-    println!("📁 Output directory: {}", output_path.display());
-
-    if !generated_workspaces.is_empty() {
-        println!("\n📋 Generated Workspaces:");
-        for (idx, workspace) in generated_workspaces.iter().enumerate() {
-            println!(
-                "  {}. [{}] {} ({} files, {} vulnerabilities)",
-                idx + 1,
-                workspace.language.display_name(),
-                workspace.id,
-                workspace.files.len(),
-                workspace.vulnerabilities.len()
-            );
-        }
-    }
-
-    if generated_workspaces.is_empty() && args.count > 0 {
-        return Err(anyhow::anyhow!("Failed to generate any workspaces"));
-    }
-
-    Ok(())
-}
-
-/// Saves a generated workspace result to disk.
-async fn save_workspace(
-    workspace: &crate::agents::GeneratedWorkspaceResult,
-    workspace_dir: &Path,
-) -> anyhow::Result<()> {
-    fs::create_dir_all(workspace_dir)?;
-
-    // Save each file
-    for file in &workspace.files {
-        let file_path = workspace_dir.join(&file.path);
-        if let Some(parent) = file_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-        fs::write(&file_path, &file.content)?;
-    }
-
-    // Save prompt.md
-    let prompt_path = workspace_dir.join("prompt.md");
-    let prompt_content = format!(
-        "# {}\n\n## Description\n\n{}\n\n## Build Instructions\n\n{}\n\n## Test Instructions\n\n{}\n",
-        workspace.project_name,
-        workspace.description,
-        workspace.build_instructions,
-        workspace.test_instructions
-    );
-    fs::write(&prompt_path, prompt_content)?;
-
-    // Save workspace.yaml with metadata
-    let workspace_yaml_path = workspace_dir.join("workspace.yaml");
-    let workspace_yaml = serde_yaml::to_string(workspace)
-        .map_err(|e| anyhow::anyhow!("Failed to serialize workspace to YAML: {}", e))?;
-    fs::write(&workspace_yaml_path, workspace_yaml)?;
-
-    // Save vulnerabilities info
-    if !workspace.vulnerabilities.is_empty() {
-        let vulns_path = workspace_dir.join(".vulnerabilities.yaml");
-        let vulns_yaml = serde_yaml::to_string(&workspace.vulnerabilities)
-            .map_err(|e| anyhow::anyhow!("Failed to serialize vulnerabilities to YAML: {}", e))?;
-        fs::write(&vulns_path, vulns_yaml)?;
-    }
-
-    Ok(())
-}
-
-/// Exports a workspace to a zip archive.
-async fn export_workspace_to_zip(
-    workspace: &crate::agents::GeneratedWorkspaceResult,
-    language: ProgrammingLanguage,
-    output_path: &Path,
-) -> anyhow::Result<String> {
-    use crate::workspace::{GeneratedWorkspace, WorkspaceFile as WsFile, WorkspaceSpec};
-
-    // Convert to the workspace types expected by the exporter
-    let workspace_language = parse_workspace_language(language);
-    let spec = WorkspaceSpec::new(&workspace.id)
-        .with_name(&workspace.project_name)
-        .with_language(workspace_language)
-        .with_description(&workspace.description)
-        .with_project_type(&workspace.category);
-
-    let mut generated = GeneratedWorkspace::new(spec);
-    generated.task_prompt = workspace.description.clone();
-
-    // Add files
-    for file in &workspace.files {
-        generated.add_file(WsFile::source(&file.path, &file.content));
-    }
-
-    // Create exporter and export to zip
-    let exporter = WorkspaceExporter::new();
-    let zip_path = output_path.join(format!("{}.tar.gz", workspace.id));
-    exporter
-        .export_to_zip(&generated, &zip_path)
-        .await
-        .map_err(|e| anyhow::anyhow!("Failed to export workspace to zip: {}", e))?;
-
-    Ok(zip_path.to_string_lossy().to_string())
-}
-
-// ============================================================================
-// Generate Command Implementation
-// ============================================================================
-
-/// JSON output structure for the generation result.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GenerationOutput {
-    /// Overall status: "success" or "failed".
-    pub status: String,
-    /// Model used for generation.
-    pub model: String,
-    /// List of generated tasks.
-    pub tasks: Vec<GeneratedTaskOutput>,
-    /// Total duration in milliseconds.
-    pub total_duration_ms: u64,
-    /// Number of retries that occurred.
-    pub retries: u32,
-    /// Output directory where tasks were saved.
-    pub output_directory: String,
-}
-
-/// JSON output structure for a single generated task.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GeneratedTaskOutput {
-    /// Unique task identifier.
-    pub task_id: String,
-    /// Task category.
-    pub category: String,
-    /// Problem statement for the task.
-    pub problem_statement: String,
-    /// Difficulty level.
-    pub difficulty: String,
-    /// Tags associated with the task.
-    pub tags: Vec<String>,
-    /// Verification criteria for the task.
-    pub verification_criteria: Vec<String>,
-    /// Path where the task was saved.
-    pub saved_path: Option<String>,
-}
-
-impl GeneratedTaskOutput {
-    /// Creates a GeneratedTaskOutput from a SyntheticTask.
-    fn from_synthetic_task(task: &SyntheticTask, saved_path: Option<String>) -> Self {
-        Self {
-            task_id: task.id.clone(),
-            category: task.metadata.category.clone(),
-            problem_statement: task.problem_statement.clone(),
-            difficulty: format!("{:?}", task.difficulty.level),
-            tags: task.metadata.tags.clone(),
-            verification_criteria: task.verification.success_criteria.clone(),
-            saved_path,
-        }
-    }
-}
-
-/// Parses a category string to AgentTaskCategory enum.
-fn parse_task_category(category_str: &str) -> anyhow::Result<AgentTaskCategory> {
-    match category_str.to_lowercase().as_str() {
-        "debugging" | "debug" => Ok(AgentTaskCategory::Debugging),
-        "system-debugging" | "system_debugging" => Ok(AgentTaskCategory::SystemDebugging),
-        "security" => Ok(AgentTaskCategory::Security),
-        "security-analysis" | "security_analysis" => Ok(AgentTaskCategory::SecurityAnalysis),
-        "algorithm" | "algorithm-design" | "algorithm_design" => {
-            Ok(AgentTaskCategory::AlgorithmDesign)
-        }
-        "infrastructure" | "infra" => Ok(AgentTaskCategory::Infrastructure),
-        "data-engineering" | "data_engineering" | "data" => Ok(AgentTaskCategory::DataEngineering),
-        "data-science" | "data_science" => Ok(AgentTaskCategory::DataScience),
-        "performance" | "performance-optimization" | "performance_optimization" => {
-            Ok(AgentTaskCategory::PerformanceOptimization)
-        }
-        "reverse-engineering" | "reverse_engineering" | "reverse" => {
-            Ok(AgentTaskCategory::ReverseEngineering)
-        }
-        "integration" | "integration-tasks" | "integration_tasks" => {
-            Ok(AgentTaskCategory::IntegrationTasks)
-        }
-        "system-administration" | "system_administration" | "sysadmin" => {
-            Ok(AgentTaskCategory::SystemAdministration)
-        }
-        "software-engineering" | "software_engineering" | "software" => {
-            Ok(AgentTaskCategory::SoftwareEngineering)
-        }
-        "file-operations" | "file_operations" | "files" => Ok(AgentTaskCategory::FileOperations),
-        "networking" | "network" => Ok(AgentTaskCategory::Networking),
-        "containers" | "container" | "docker" => Ok(AgentTaskCategory::Containers),
-        other => Err(anyhow::anyhow!(
-            "Unknown category: '{}'. Available categories: debugging, security, algorithm-design, \
-             infrastructure, data-engineering, performance, reverse-engineering, integration, \
-             system-administration, software-engineering, file-operations, data-science, \
-             networking, containers",
-            other
-        )),
-    }
-}
-
-/// Runs the generate command with the provided arguments.
-async fn run_generate_command(args: GenerateArgs) -> anyhow::Result<()> {
-    // Validate and clamp min_score to valid range
-    let validated_min_score = args.min_score.clamp(0.0, 1.0);
-    if (validated_min_score - args.min_score).abs() > f64::EPSILON {
-        warn!(
-            original = args.min_score,
-            clamped = validated_min_score,
-            "min_score was outside valid range [0.0, 1.0] and has been clamped"
-        );
-    }
-
-    // Parse category if provided
-    let parsed_category = match &args.category {
-        Some(cat_str) => Some(parse_task_category(cat_str)?),
-        None => None,
-    };
-
-    // Set seed for reproducibility if provided
-    if let Some(s) = args.seed {
-        info!(seed = s, "Using fixed seed for reproducibility");
-    }
-
-    // Get API key from argument or environment
-    let api_key = args
-        .api_key
-        .clone()
-        .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
-        .or_else(|| std::env::var("LITELLM_API_KEY").ok());
-
-    // Initialize LLM client
-    let llm_client: Arc<dyn crate::llm::LlmProvider> = if let Some(key) = api_key {
-        info!(model = %args.model, "Using OpenRouter with specified API key");
-        Arc::new(OpenRouterProvider::with_model(key, args.model.clone()))
-    } else {
-        // Fall back to LiteLlmClient from environment
-        info!("Using LiteLLM client from environment");
-        Arc::new(LiteLlmClient::from_env().map_err(|e| {
-            anyhow::anyhow!(
-                "Failed to initialize LLM client: {}. \
-                 Please provide --api-key or set OPENROUTER_API_KEY/LITELLM_API_KEY env var.",
-                e
-            )
-        })?)
-    };
-
-    // Create output directory
-    let output_dir = args.output.clone();
-    let output_path = Path::new(&output_dir);
-    fs::create_dir_all(output_path)?;
-    info!(output = %output_dir, "Output directory ready");
-
-    if args.full {
-        run_full_pipeline_generation(
-            llm_client,
-            args,
-            parsed_category,
-            validated_min_score,
-            output_path,
-        )
-        .await
-    } else if args.factory {
-        run_factory_generation(
-            llm_client,
-            args,
-            parsed_category,
-            validated_min_score,
-            output_path,
-        )
-        .await
-    } else {
-        run_synthetic_generation(
-            llm_client,
-            args,
-            parsed_category,
-            validated_min_score,
-            output_path,
-        )
-        .await
-    }
-}
-
-/// Runs the synthetic task generation pipeline.
-async fn run_synthetic_generation(
-    llm_client: Arc<dyn crate::llm::LlmProvider>,
-    args: GenerateArgs,
-    category: Option<AgentTaskCategory>,
-    min_score: f64,
-    output_path: &Path,
-) -> anyhow::Result<()> {
-    // Determine Docker validation settings
-    let docker_enabled = args.validate_docker && !args.no_docker;
-    let docker_solution = args.validate_solution;
-
-    if docker_enabled {
-        info!("Docker validation enabled");
-    }
-
-    // Configure the orchestrator
-    let config = SyntheticOrchestratorConfig::default()
-        .with_min_validation_score(min_score)
-        .with_max_ideation_retries(args.max_retries)
-        .with_docker_validation(docker_enabled)
-        .with_docker_solution_validation(docker_solution);
-
-    let orchestrator = SyntheticOrchestrator::new(llm_client, config);
-
-    if args.json {
-        run_json_generation(&orchestrator, &args, category, output_path).await
-    } else {
-        run_interactive_generation(&orchestrator, &args, category, output_path).await
-    }
-}
-
-/// Runs the factory multi-agent generation pipeline.
-async fn run_factory_generation(
-    llm_client: Arc<dyn crate::llm::LlmProvider>,
-    args: GenerateArgs,
-    _category: Option<AgentTaskCategory>,
-    min_score: f64,
-    output_path: &Path,
-) -> anyhow::Result<()> {
-    // Initialize prompt cache if enabled
-    let _prompt_cache = if args.cache {
-        Some(create_shared_cache(1000))
     } else {
         None
     };
 
-    // Determine Docker validation settings
-    let docker_enabled = args.validate_docker && !args.no_docker;
-    let docker_solution = args.validate_solution;
+    let mut total = 0usize;
+        let mut quality_ok = 0usize;
+        let mut docker_passed = 0usize;
+        let mut results = Vec::new();
 
-    if docker_enabled {
-        info!("Docker validation enabled for factory pipeline");
-    }
+    for entry in fs::read_dir(input_dir)? {
+        let entry = entry?;
+        let task_dir = entry.path();
+        if !task_dir.is_dir() {
+            continue;
+        }
 
-    // Configure the factory orchestrator
-    let config = FactoryOrchestratorConfig::default()
-        .with_min_validation_score(min_score)
-        .with_max_creation_retries(args.max_retries)
-        .with_docker_validation(docker_enabled)
-        .with_docker_solution_validation(docker_solution);
+        let workspace_yaml = task_dir.join("workspace.yaml");
+        if !workspace_yaml.exists() {
+            continue;
+        }
 
-    let orchestrator = FactoryOrchestrator::new(llm_client, config);
+        let mut task = load_swe_workspace_task(&workspace_yaml)?;
+        total = total.saturating_add(1);
 
-    if args.json {
-        run_json_factory(&orchestrator, &args, output_path).await
-    } else {
-        run_interactive_factory(&orchestrator, &args, output_path).await
-    }
-}
+        let assessment = quality_scorer.assess(&task).await?;
+        task.quality_score = Some(assessment.score);
+        task.quality_passed = assessment.passed;
 
-/// Runs the synthetic generation pipeline and outputs JSON to stdout.
-async fn run_json_generation(
-    orchestrator: &SyntheticOrchestrator,
-    args: &GenerateArgs,
-    category: Option<AgentTaskCategory>,
-    output_path: &Path,
-) -> anyhow::Result<()> {
-    let start_time = std::time::Instant::now();
-    let mut tasks = Vec::new();
-    let mut total_retries = 0u32;
-
-    for i in 0..args.count {
-        let (event_tx, mut event_rx) = tokio::sync::mpsc::channel::<SyntheticPipelineEvent>(100);
-
-        // Spawn task to track retries from events
-        let retry_handle = tokio::spawn(async move {
-            let mut retries = 0u32;
-            while let Some(event) = event_rx.recv().await {
-                if let SyntheticPipelineEvent::ValidationRejected { .. } = event {
-                    retries += 1;
+        let mut task_docker_passed = None;
+        if assessment.passed {
+            if args.validate_docker {
+                if let Some(validator) = &docker_validator {
+                    let config = DockerValidatorConfig::new().with_solution_validation(false);
+                    let task = synthetic_task_from_swe_task(&task, &config);
+                    let docker_result = validator.validate_task(&task).await;
+                    match docker_result {
+                        Ok(result) => {
+                            task_docker_passed = Some(result.passed);
+                            if result.passed {
+                                docker_passed = docker_passed.saturating_add(1);
+                            }
+                        }
+                        Err(_) => {
+                            task_docker_passed = Some(false);
+                        }
+                    }
                 }
             }
-            retries
+            quality_ok = quality_ok.saturating_add(1);
+        }
+
+        results.push(SweValidateEntry {
+            task_id: task.id,
+            repo: task.repo,
+            quality_score: task.quality_score.unwrap_or(0.0),
+            quality_passed: task.quality_passed,
+            docker_passed: task_docker_passed,
         });
-
-        match orchestrator.generate_task(category, event_tx).await {
-            Ok(task) => {
-                // Save task to disk
-                let task_dir = output_path.join(&task.id);
-                let saved_path = match save_task(&task, &task_dir) {
-                    Ok(()) => Some(task_dir.to_string_lossy().to_string()),
-                    Err(e) => {
-                        warn!(error = %e, task_id = %task.id, "Failed to save task to disk");
-                        None
-                    }
-                };
-                tasks.push(GeneratedTaskOutput::from_synthetic_task(&task, saved_path));
-            }
-            Err(e) => {
-                error!(task_index = i, error = %e, "Failed to generate task");
-            }
-        }
-
-        if let Ok(retries) = retry_handle.await {
-            total_retries += retries;
-        }
     }
 
-    let duration_ms = start_time.elapsed().as_millis() as u64;
+    let passed = if args.validate_docker {
+        results
+            .iter()
+            .filter(|r| r.quality_passed && r.docker_passed.unwrap_or(false))
+            .count()
+    } else {
+        quality_ok
+    };
 
-    let output = GenerationOutput {
-        status: if tasks.is_empty() && args.count > 0 {
-            "failed".to_string()
-        } else {
-            "success".to_string()
-        },
-        model: args.model.clone(),
-        tasks,
-        total_duration_ms: duration_ms,
-        retries: total_retries,
-        output_directory: output_path.to_string_lossy().to_string(),
+        let output = SweValidateOutput {
+        status: if passed > 0 { "success".to_string() } else { "failed".to_string() },
+        tasks: total,
+        quality_passed: quality_ok,
+        docker_requested: args.validate_docker,
+        docker_passed: docker_passed,
+        results,
     };
 
     let json_output = serde_json::to_string_pretty(&output)
         .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
+
+    if args.json {
+        println!("{}", json_output);
+        return Ok(());
+    }
+
     println!("{}", json_output);
-
     Ok(())
 }
 
-/// Runs the interactive synthetic generation with tree-based progress output.
-async fn run_interactive_generation(
-    orchestrator: &SyntheticOrchestrator,
-    args: &GenerateArgs,
-    category: Option<AgentTaskCategory>,
-    output_path: &Path,
-) -> anyhow::Result<()> {
-    println!("\n🔬 Synthetic Dataset Generation");
-    println!("================================");
-    println!("Model: {}", args.model);
-    println!("Count: {}", args.count);
-    println!("Output: {}", output_path.display());
-    if let Some(cat) = &args.category {
-        println!("Category: {}", cat);
+#[derive(Debug, Clone, Serialize)]
+struct SweExportOutput {
+    status: String,
+    source: String,
+    destination: String,
+    copied: usize,
+    skipped: usize,
+}
+
+async fn run_swe_export_command(args: SweExportArgs) -> anyhow::Result<()> {
+    let source_dir = Path::new(&args.input);
+    let destination_dir = Path::new(&args.output);
+
+    if !source_dir.exists() {
+        return Err(anyhow::anyhow!("Input directory does not exist: {}", args.input));
     }
-    println!();
 
-    println!("Pipeline stages:");
-    println!("├─ ○ Ideation (IdeatorAgent)");
-    println!("├─ ○ Validation (TaskValidatorAgent)");
-    println!("├─ ○ Execution (TaskExecutorAgent)");
-    println!("└─ ○ Quality Check\n");
+    fs::create_dir_all(destination_dir)?;
 
-    let mut generated_tasks: Vec<SyntheticTask> = Vec::new();
-    let mut failed_count = 0u32;
+    let mut copied = 0usize;
+    let mut skipped = 0usize;
 
-    for i in 0..args.count {
-        println!("📝 Generating dataset {}/{}...", i + 1, args.count);
-
-        let (event_tx, mut event_rx) = tokio::sync::mpsc::channel::<SyntheticPipelineEvent>(100);
-
-        // Spawn event handler for this task
-        let event_handle = tokio::spawn(async move {
-            while let Some(event) = event_rx.recv().await {
-                match event {
-                    SyntheticPipelineEvent::StageStarted { stage, .. } => {
-                        let stage_name = match stage {
-                            SyntheticPipelineStage::Ideation => "Ideation",
-                            SyntheticPipelineStage::Validation => "Validation",
-                            SyntheticPipelineStage::Execution => "Execution",
-                            SyntheticPipelineStage::DockerValidation => "Docker Validation",
-                            SyntheticPipelineStage::QualityCheck => "Quality Check",
-                        };
-                        println!("   ⟳ {} started...", stage_name);
-                    }
-                    SyntheticPipelineEvent::IdeationComplete { idea, .. } => {
-                        println!("   ✓ Ideation: \"{}\"", idea.title);
-                    }
-                    SyntheticPipelineEvent::ValidationComplete {
-                        passed, assessment, ..
-                    } => {
-                        let symbol = if passed { "✓" } else { "✗" };
-                        println!(
-                            "   {} Validation: score={:.2}",
-                            symbol, assessment.complexity_score
-                        );
-                    }
-                    SyntheticPipelineEvent::ValidationRejected { retry_count, .. } => {
-                        println!("   ↻ Validation rejected, retry #{}", retry_count);
-                    }
-                    SyntheticPipelineEvent::ExecutionComplete { .. } => {
-                        println!("   ✓ Execution: task created");
-                    }
-                    SyntheticPipelineEvent::DockerValidationStarted { task_id, image, .. } => {
-                        println!("   🐳 Docker: validating {} with {}", task_id, image);
-                    }
-                    SyntheticPipelineEvent::DockerValidationComplete {
-                        passed,
-                        duration_ms,
-                        error,
-                        ..
-                    } => {
-                        if passed {
-                            println!("   ✓ Docker: validated in {}ms", duration_ms);
-                        } else {
-                            println!(
-                                "   ✗ Docker: failed - {}",
-                                error.unwrap_or_else(|| "unknown error".to_string())
-                            );
-                        }
-                    }
-                    SyntheticPipelineEvent::DockerValidationSkipped { reason, .. } => {
-                        println!("   ⏭ Docker: skipped - {}", reason);
-                    }
-                    SyntheticPipelineEvent::PipelineComplete {
-                        total_duration_ms, ..
-                    } => {
-                        println!("   ✓ Complete in {}ms", total_duration_ms);
-                    }
-                    SyntheticPipelineEvent::PipelineFailed { error, stage, .. } => {
-                        println!("   ✗ Failed at {}: {}", stage, error);
-                    }
-                }
-            }
-        });
-
-        let result = orchestrator.generate_task(category, event_tx).await;
-
-        // Wait for event handler to finish
-        let _ = event_handle.await;
-
-        match result {
-            Ok(task) => {
-                // Save task to disk
-                let task_dir = output_path.join(&task.id);
-                match save_task(&task, &task_dir) {
-                    Ok(()) => {
-                        println!("   💾 Saved: {} → {}", task.id, task_dir.display());
-                    }
-                    Err(e) => {
-                        warn!(error = %e, task_id = %task.id, "Failed to save task to disk");
-                    }
-                }
-
-                println!("\n✓ Dataset {} generated successfully!", i + 1);
-                println!("  ID: {}", task.id);
-                println!("  Category: {}", task.metadata.category);
-                println!("  Difficulty: {:?}", task.difficulty.level);
-                generated_tasks.push(task);
-            }
-            Err(e) => {
-                eprintln!("\n✗ Dataset {} failed: {}", i + 1, e);
-                failed_count += 1;
-            }
+    for entry in fs::read_dir(source_dir)? {
+        let entry = entry?;
+        let task_dir = entry.path();
+        if !task_dir.is_dir() {
+            continue;
         }
 
-        if i < args.count - 1 {
-            println!(); // Add spacing between tasks
+        let workspace_yaml = task_dir.join("workspace.yaml");
+        if !workspace_yaml.exists() {
+            skipped = skipped.saturating_add(1);
+            continue;
         }
-    }
 
-    // Print summary
-    println!("\n{}", "=".repeat(50));
-    println!("📊 Generation Summary");
-    println!("{}", "=".repeat(50));
-    println!(
-        "✓ Successfully generated: {}/{}",
-        generated_tasks.len(),
-        args.count
-    );
-    if failed_count > 0 {
-        println!("✗ Failed: {}", failed_count);
-    }
-    println!("📁 Output directory: {}", output_path.display());
+        let task = load_swe_workspace_task(&workspace_yaml)?;
+        let task_output = destination_dir.join(&task.id);
+        fs::create_dir_all(&task_output)?;
 
-    if !generated_tasks.is_empty() {
-        println!("\n📋 Generated Datasets:");
-        for (idx, task) in generated_tasks.iter().enumerate() {
-            println!(
-                "  {}. [{}] {} → {}",
-                idx + 1,
-                task.metadata.category,
-                task.id,
-                output_path.join(&task.id).display()
-            );
+        fs::copy(&workspace_yaml, task_output.join("workspace.yaml"))?;
+        let prompt_md = task_dir.join("prompt.md");
+        if prompt_md.exists() {
+            fs::copy(&prompt_md, task_output.join("prompt.md"))?;
         }
+        let checks = task_dir.join("checks.txt");
+        if checks.exists() {
+            fs::copy(&checks, task_output.join("checks.txt"))?;
+        }
+
+        copied = copied.saturating_add(1);
     }
 
-    if generated_tasks.is_empty() && args.count > 0 {
-        return Err(anyhow::anyhow!("Failed to generate any datasets"));
+    let output = SweExportOutput {
+        status: if copied > 0 { "success".to_string() } else { "failed".to_string() },
+        source: args.input,
+        destination: args.output,
+        copied,
+        skipped,
+    };
+
+    let json_output = serde_json::to_string_pretty(&output)
+        .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
+
+    if args.json {
+        println!("{}", json_output);
+        return Ok(());
     }
 
+    if output.status == "failed" {
+        warn!("No workspace artifacts were exported from {}", output.source);
+    }
+
+    println!("{}", json_output);
     Ok(())
 }
 
-/// Runs the factory generation pipeline and outputs JSON to stdout.
-async fn run_json_factory(
-    orchestrator: &FactoryOrchestrator,
-    args: &GenerateArgs,
-    output_path: &Path,
-) -> anyhow::Result<()> {
-    let start_time = std::time::Instant::now();
+async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
+    let languages = parse_language_filter(args.languages.as_deref().unwrap_or_default());
+    let output_dir = args.output.clone();
+    let api_key = args
+        .api_key
+        .clone()
+        .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
+        .or_else(|| std::env::var("LITELLM_API_KEY").ok());
 
-    let (event_tx, mut event_rx) = tokio::sync::mpsc::channel::<FactoryPipelineEvent>(100);
-
-    // Spawn event consumer (just drain events in JSON mode)
-    let _event_handle = tokio::spawn(async move {
-        while event_rx.recv().await.is_some() {
-            // Silently consume events in JSON mode
-        }
-    });
-
-    let result = orchestrator
-        .run_factory_pipeline(args.category.as_deref(), args.count, event_tx)
-        .await;
-
-    let duration_ms = start_time.elapsed().as_millis() as u64;
-
-    match result {
-        Ok(generated_tasks) => {
-            let mut tasks = Vec::new();
-            for task in &generated_tasks {
-                let task_dir = output_path.join(&task.id);
-                let saved_path = match save_task(task, &task_dir) {
-                    Ok(()) => Some(task_dir.to_string_lossy().to_string()),
-                    Err(e) => {
-                        warn!(error = %e, task_id = %task.id, "Failed to save task to disk");
-                        None
-                    }
-                };
-                tasks.push(GeneratedTaskOutput::from_synthetic_task(task, saved_path));
-            }
-
-            let output = GenerationOutput {
-                status: "success".to_string(),
-                model: args.model.clone(),
-                tasks,
-                total_duration_ms: duration_ms,
-                retries: 0,
-                output_directory: output_path.to_string_lossy().to_string(),
-            };
-
-            let json_output = serde_json::to_string_pretty(&output)
-                .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
-            println!("{}", json_output);
-
-            Ok(())
-        }
-        Err(e) => {
-            let output = GenerationOutput {
-                status: "failed".to_string(),
-                model: args.model.clone(),
-                tasks: vec![],
-                total_duration_ms: duration_ms,
-                retries: 0,
-                output_directory: output_path.to_string_lossy().to_string(),
-            };
-
-            let json_output = serde_json::to_string_pretty(&output)
-                .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
-            println!("{}", json_output);
-
-            Err(anyhow::anyhow!("Factory pipeline failed: {}", e))
-        }
-    }
-}
-
-/// Runs the interactive factory generation with tree-based progress output.
-async fn run_interactive_factory(
-    orchestrator: &FactoryOrchestrator,
-    args: &GenerateArgs,
-    output_path: &Path,
-) -> anyhow::Result<()> {
-    println!("\n🏭 Factory Multi-Agent Dataset Generation");
-    println!("==========================================");
-    println!("Model: {}", args.model);
-    println!("Count: {}", args.count);
-    println!("Output: {}", output_path.display());
-    if let Some(cat) = &args.category {
-        println!("Category: {}", cat);
-    }
-    println!();
-
-    println!("Pipeline stages:");
-    println!("├─ ○ Research (ResearchAgent)");
-    println!("├─ ○ Creation (IdeatorAgent)");
-    println!("├─ ○ Amplification (DifficultyAmplifierAgent)");
-    println!("├─ ○ Validation (TaskValidatorAgent)");
-    println!("└─ ○ Finalization\n");
-
-    let (event_tx, mut event_rx) = tokio::sync::mpsc::channel::<FactoryPipelineEvent>(100);
-
-    // Spawn event handler
-    let event_handle = tokio::spawn(async move {
-        while let Some(event) = event_rx.recv().await {
-            match event {
-                FactoryPipelineEvent::StageStarted { stage, .. } => {
-                    let stage_name = match stage {
-                        FactoryPipelineStage::Research => "Research",
-                        FactoryPipelineStage::Creation => "Creation",
-                        FactoryPipelineStage::Amplification => "Amplification",
-                        FactoryPipelineStage::Validation => "Validation",
-                        FactoryPipelineStage::Finalization => "Finalization",
-                    };
-                    println!("   ⟳ {} started...", stage_name);
-                }
-                FactoryPipelineEvent::ResearchComplete {
-                    weaknesses_found,
-                    traps_proposed,
-                    ..
-                } => {
-                    println!(
-                        "   ✓ Research: found {} weaknesses, proposed {} traps",
-                        weaknesses_found, traps_proposed
-                    );
-                }
-                FactoryPipelineEvent::CreationComplete {
-                    task_title,
-                    category,
-                    ..
-                } => {
-                    println!("   ✓ Creation: \"{}\" [{}]", task_title, category);
-                }
-                FactoryPipelineEvent::AmplificationComplete {
-                    traps_added,
-                    difficulty_score,
-                    ..
-                } => {
-                    println!(
-                        "   ✓ Amplification: added {} traps, difficulty score={:.2}",
-                        traps_added, difficulty_score
-                    );
-                }
-                FactoryPipelineEvent::ValidationComplete { passed, score, .. } => {
-                    let symbol = if passed { "✓" } else { "✗" };
-                    println!("   {} Validation: score={:.2}", symbol, score);
-                }
-                FactoryPipelineEvent::AgentConversation {
-                    agent_name,
-                    message_summary,
-                    ..
-                } => {
-                    println!("   💬 {}: {}", agent_name, message_summary);
-                }
-                FactoryPipelineEvent::PipelineComplete {
-                    tasks_generated,
-                    total_duration_ms,
-                    ..
-                } => {
-                    println!(
-                        "\n   ✓ Pipeline complete: {} datasets in {}ms",
-                        tasks_generated, total_duration_ms
-                    );
-                }
-                FactoryPipelineEvent::PipelineFailed { error, stage, .. } => {
-                    println!("   ✗ Failed at {:?}: {}", stage, error);
-                }
-            }
-        }
-    });
-
-    println!("📝 Starting factory pipeline...\n");
-
-    let result = orchestrator
-        .run_factory_pipeline(args.category.as_deref(), args.count, event_tx)
-        .await;
-
-    // Wait for event handler to finish
-    let _ = event_handle.await;
-
-    match result {
-        Ok(generated_tasks) => {
-            // Save tasks to output directory
-            for task in &generated_tasks {
-                let task_dir = output_path.join(&task.id);
-                if let Err(e) = save_task(task, &task_dir) {
-                    warn!(error = %e, task_id = %task.id, "Failed to save task to disk");
-                } else {
-                    println!("   💾 Saved: {} → {}", task.id, task_dir.display());
-                }
-            }
-
-            // Print summary
-            println!("\n{}", "=".repeat(50));
-            println!("🏭 Factory Generation Summary");
-            println!("{}", "=".repeat(50));
-            println!(
-                "✓ Successfully generated: {}/{}",
-                generated_tasks.len(),
-                args.count
-            );
-            println!("📁 Output directory: {}", output_path.display());
-
-            if !generated_tasks.is_empty() {
-                println!("\n📋 Generated Datasets:");
-                for (idx, task) in generated_tasks.iter().enumerate() {
-                    println!(
-                        "  {}. [{}] {} → {}",
-                        idx + 1,
-                        task.metadata.category,
-                        task.id,
-                        output_path.join(&task.id).display()
-                    );
-                }
-            }
-
-            Ok(())
-        }
-        Err(e) => {
-            eprintln!("\n✗ Factory pipeline failed: {}", e);
-            Err(anyhow::anyhow!(
-                "Failed to generate factory datasets: {}. Check LLM configuration and API access.",
+    let llm_client: Arc<dyn crate::llm::LlmProvider> = if let Some(key) = api_key {
+        info!(model = %args.model, "Using OpenRouter with specified API key");
+        Arc::new(OpenRouterProvider::with_model(key, args.model.clone()))
+    } else {
+        info!("Using LiteLLM client from environment");
+        Arc::new(LiteLlmClient::from_env().map_err(|e| {
+            anyhow::anyhow!(
+                "Failed to initialize LLM client: {}. Please provide --api-key or set \
+                 OPENROUTER_API_KEY/LITELLM_API_KEY env var.",
                 e
-            ))
+            )
+        })?)
+    };
+
+    let output_path = Path::new(&args.output);
+    fs::create_dir_all(output_path)?;
+
+    let skip_prs = load_skip_prs(args.pr_file.as_deref())?;
+
+    let mut config = SweOrchestratorConfig::default();
+    config.output_dir = output_dir.clone();
+    config.min_stars = args.min_stars;
+    config.languages = languages;
+    config.max_tasks = args.max_tasks;
+    config.once = args.once;
+    config.validate_docker = args.validate_docker;
+    config.skip_prs = skip_prs;
+    config.pr_file = args.pr_file.clone();
+    config.difficulty_filter = args.difficulty.clone();
+
+    let orchestrator = SweOrchestrator::new(llm_client, config);
+    let result = orchestrator.mine().await?;
+
+    if args.json {
+        #[derive(Serialize)]
+        struct SweMineOutput {
+            status: String,
+            attempted: usize,
+            passed: usize,
+            skipped: usize,
+            finished_at: String,
+            tasks: usize,
         }
-    }
-}
 
-/// Save a generated task to disk in terminal-bench compatible format.
-fn save_task(task: &SyntheticTask, task_dir: &Path) -> anyhow::Result<()> {
-    fs::create_dir_all(task_dir)?;
-
-    // Save prompt.md
-    let prompt_path = task_dir.join("prompt.md");
-    let prompt_content = format!(
-        "# {}\n\n## Problem Statement\n\n{}\n\n## Success Criteria\n\n{}\n\n## Automated Checks\n\n{}\n",
-        task.id,
-        task.problem_statement,
-        task.verification
-            .success_criteria
-            .iter()
-            .map(|c| format!("- {}", c))
-            .collect::<Vec<_>>()
-            .join("\n"),
-        task.verification
-            .automated_checks
-            .iter()
-            .map(|c| format!("- {:?}: {} → {}", c.check_type, c.target, c.expected))
-            .collect::<Vec<_>>()
-            .join("\n")
-    );
-    fs::write(&prompt_path, prompt_content)?;
-
-    // Save task.yaml with metadata
-    let task_yaml_path = task_dir.join("task.yaml");
-    let task_yaml = serde_yaml::to_string(task)
-        .map_err(|e| anyhow::anyhow!("Failed to serialize task to YAML: {}", e))?;
-    fs::write(&task_yaml_path, task_yaml)?;
-
-    // Save solution.sh if available
-    if !task.hidden_solution.reference_commands.is_empty() {
-        let solution_path = task_dir.join("solution.sh");
-        let solution_content = format!(
-            "#!/bin/bash\n# Solution for {}\n# DO NOT DISTRIBUTE WITH BENCHMARK\n\n# Approach: {}\n\n# Key Insights:\n{}\n\n# Reference Commands:\n{}\n",
-            task.id,
-            task.hidden_solution.approach,
-            task.hidden_solution
-                .key_insights
-                .iter()
-                .map(|i| format!("# - {}", i))
-                .collect::<Vec<_>>()
-                .join("\n"),
-            task.hidden_solution
-                .reference_commands
-                .iter()
-                .enumerate()
-                .map(|(i, cmd)| format!("# Step {}:\n{}", i + 1, cmd))
-                .collect::<Vec<_>>()
-                .join("\n\n")
+        let output = SweMineOutput {
+            status: if result.passed > 0 { "success".to_string() } else { "failed".to_string() },
+            attempted: result.attempted,
+            passed: result.passed,
+            skipped: result.skipped,
+            finished_at: result.finished_at,
+            tasks: result.tasks.len(),
+        };
+        let json_output = serde_json::to_string_pretty(&output)
+            .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
+        println!("{}", json_output);
+    } else {
+        info!(
+            attempted = result.attempted,
+            passed = result.passed,
+            skipped = result.skipped,
+            finished_at = result.finished_at
         );
-        fs::write(&solution_path, solution_content)?;
+        println!("✓ SWE mine completed");
+        println!("  Output dir: {}", output_dir);
+        println!("  Tasks: {} attempted, {} passed, {} skipped", result.attempted, result.passed, result.skipped);
     }
 
     Ok(())
 }
 
-/// Runs the full 14-agent pipeline for maximum quality generation.
-async fn run_full_pipeline_generation(
-    llm_client: Arc<dyn crate::llm::LlmProvider>,
-    args: GenerateArgs,
-    category: Option<AgentTaskCategory>,
-    min_score: f64,
-    output_path: &Path,
-) -> anyhow::Result<()> {
-    // Determine Docker validation settings
-    let docker_enabled = args.validate_docker && !args.no_docker;
-    let docker_solution = args.validate_solution;
+fn load_swe_workspace_task(path: &Path) -> anyhow::Result<crate::swe::SweTask> {
+    let content = fs::read_to_string(path)?;
+    serde_yaml::from_str(&content)
+        .map_err(|e| anyhow::anyhow!("Failed to parse SWE workspace yaml {}: {}", path.display(), e))
+}
 
-    info!("Using full 14-agent pipeline for maximum quality");
-    if docker_enabled {
-        info!("Docker validation enabled for full pipeline");
-    }
+fn synthetic_task_from_swe_task(task: &crate::swe::SweTask, _config: &DockerValidatorConfig) -> SyntheticTask {
+    let mut tags = Vec::<String>::new();
+    tags.push(format!("language:{}", task.language.to_lowercase()));
+    tags.push(format!("repo:{}", task.repo));
 
-    // Configure the full pipeline orchestrator
-    let config = FullPipelineConfig::default()
-        .with_min_validation_score(min_score)
-        .with_max_retries(args.max_retries)
-        .with_docker_validation(docker_enabled)
-        .with_solution_validation(docker_solution)
-        .with_output_dir(output_path.to_string_lossy().to_string());
+    let mut metadata = TaskMetadata::new("swe", task.id.clone()).with_tags(tags);
+    metadata.subcategory = "mined-pr".to_string();
 
-    let orchestrator = FullPipelineOrchestrator::new(llm_client, config);
+    let hidden_solution = HiddenSolution::new(format!("Solve the bug described in issue context for {}", task.id))
+        .with_reference_commands(task.fail_to_pass.clone())
+        .with_expected_time_seconds(900)
+        .with_step_count(5);
 
-    if args.json {
-        run_json_full_pipeline(&orchestrator, &args, category, output_path).await
+    let verification = VerificationSpec::new().with_success_criteria(
+        task.fail_to_pass
+            .iter()
+            .chain(task.pass_to_pass.iter())
+            .cloned()
+            .collect::<Vec<_>>(),
+    );
+
+    let difficulty = match task.difficulty_score {
+        0 => DifficultyScoring::new(DifficultyLevel::Easy),
+        1..=2 => DifficultyScoring::new(DifficultyLevel::Medium),
+        _ => DifficultyScoring::new(DifficultyLevel::Hard),
+    };
+
+    let mut synthetic_task =
+        SyntheticTask::new(task.prompt.clone(), hidden_solution, verification, difficulty, metadata)
+            .with_anti_memorization(AntiMemorizationConfig::default());
+    synthetic_task.id = task.id.clone();
+
+    synthetic_task
+}
+
+async fn build_llm_client(
+    api_key: Option<String>,
+    model: String,
+) -> anyhow::Result<Arc<dyn crate::llm::LlmProvider>> {
+    let resolved_api_key = api_key
+        .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
+        .or_else(|| std::env::var("LITELLM_API_KEY").ok());
+
+    if let Some(key) = resolved_api_key {
+        info!(model = %model, "Using OpenRouter with specified API key");
+        Ok(Arc::new(OpenRouterProvider::with_model(key, model)))
     } else {
-        run_interactive_full_pipeline(&orchestrator, &args, category, output_path).await
+        info!("Using LiteLLM client from environment");
+        Ok(Arc::new(LiteLlmClient::from_env().map_err(|e| {
+            anyhow::anyhow!(
+                "Failed to initialize LLM client: {}. Please provide --api-key or set OPENROUTER_API_KEY/LITELLM_API_KEY env var.",
+                e
+            )
+        })?))
     }
 }
 
-/// Runs the full pipeline and outputs JSON to stdout.
-async fn run_json_full_pipeline(
-    orchestrator: &FullPipelineOrchestrator,
-    args: &GenerateArgs,
-    category: Option<AgentTaskCategory>,
-    output_path: &Path,
-) -> anyhow::Result<()> {
-    let start_time = std::time::Instant::now();
-    let mut tasks = Vec::new();
-
-    for i in 0..args.count {
-        let (event_tx, _event_rx) = tokio::sync::mpsc::channel::<FullPipelineEvent>(100);
-
-        match orchestrator.generate_task(category, event_tx).await {
-            Ok(result) => {
-                let task = &result.task;
-                let task_dir = output_path.join(&task.id);
-                let saved_path = match save_task(task, &task_dir) {
-                    Ok(()) => Some(task_dir.to_string_lossy().to_string()),
-                    Err(e) => {
-                        warn!(error = %e, task_id = %task.id, "Failed to save task to disk");
-                        None
-                    }
-                };
-                tasks.push(GeneratedTaskOutput::from_synthetic_task(task, saved_path));
-            }
-            Err(e) => {
-                error!(task_index = i, error = %e, "Failed to generate task");
+fn load_skip_prs(path: Option<&str>) -> anyhow::Result<HashSet<(String, u64)>> {
+    let Some(path) = path else {
+        return Ok(HashSet::new());
+    };
+    if !Path::new(path).exists() {
+        return Ok(HashSet::new());
+    }
+    let content = fs::read_to_string(path)?;
+    let mut set = HashSet::new();
+    for line in content.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        if let Ok(val) = serde_json::from_str::<serde_json::Value>(line) {
+            if let (Some(repo), Some(pr)) = (
+                val.get("repo").and_then(|v| v.as_str()),
+                val.get("pr").and_then(|v| v.as_u64()),
+            ) {
+                set.insert((repo.to_string(), pr));
             }
         }
     }
+    info!(skip_count = set.len(), path = path, "Loaded PRs to skip from file");
+    Ok(set)
+}
 
-    let duration_ms = start_time.elapsed().as_millis() as u64;
+fn parse_language_filter(raw: &str) -> Vec<String> {
+    raw.split(',')
+        .map(str::trim)
+        .filter(|lang| !lang.is_empty())
+        .map(|lang| lang.to_lowercase())
+        .collect::<Vec<_>>()
+}
+
+fn map_difficulty_label(score: Option<f64>, fallback: usize) -> String {
+    let effective = score.unwrap_or(fallback as f64);
+    if effective >= 0.8 {
+        "Hard".to_string()
+    } else if effective >= 0.5 {
+        "Medium".to_string()
+    } else {
+        "Easy".to_string()
+    }
+}
+
+/// JSON output structure for generation results.
+#[derive(Debug, Clone, Serialize)]
+pub struct GenerationOutput {
+    pub status: String,
+    pub model: String,
+    pub tasks: Vec<GeneratedTaskOutput>,
+    pub total_duration_ms: u64,
+    pub output_directory: String,
+}
+
+/// JSON output structure for a generated task.
+#[derive(Debug, Clone, Serialize)]
+pub struct GeneratedTaskOutput {
+    pub task_id: String,
+    pub category: String,
+    pub problem_statement: String,
+    pub difficulty: String,
+    pub tags: Vec<String>,
+    pub verification_criteria: Vec<String>,
+    pub saved_path: Option<String>,
+}
+
+/// SWE-backed task generation command.
+async fn run_generate_command(args: GenerateArgs) -> anyhow::Result<()> {
+    let api_key = args
+        .api_key
+        .clone()
+        .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
+        .or_else(|| std::env::var("LITELLM_API_KEY").ok());
+
+    let llm_client: Arc<dyn crate::llm::LlmProvider> = if let Some(key) = api_key {
+        info!(model = %args.model, "Using OpenRouter with specified API key");
+        Arc::new(OpenRouterProvider::with_model(key, args.model.clone()))
+    } else {
+        info!("Using LiteLLM client from environment");
+        Arc::new(LiteLlmClient::from_env().map_err(|e| {
+            anyhow::anyhow!(
+                "Failed to initialize LLM client: {}. Please provide --api-key or set \
+                 OPENROUTER_API_KEY/LITELLM_API_KEY env var.",
+                e
+            )
+        })?)
+    };
+
+    let output_path = Path::new(&args.output);
+    fs::create_dir_all(output_path)?;
+
+    let mut config = SweOrchestratorConfig::default();
+    config.output_dir = args.output.clone();
+    config.min_stars = args.min_stars;
+    config.languages = parse_language_filter(&args.languages.unwrap_or_default());
+    config.max_tasks = args.count.max(1) as usize;
+    config.once = args.count <= 1;
+    config.validate_docker = args.validate_docker && !args.no_docker;
+
+    let orchestrator = SweOrchestrator::new(llm_client, config);
+    let start = std::time::Instant::now();
+    let result = orchestrator.mine().await?;
+
+    let requested_category = args.category.clone().map(|c| c.to_lowercase());
+
+    let generated_tasks: Vec<GeneratedTaskOutput> = result
+        .tasks
+        .into_iter()
+        .filter(|task| {
+            requested_category
+                .as_ref()
+                .map(|requested| {
+                    task.meta.values().any(|value| {
+                        value.to_lowercase().contains(requested)
+                    }) || task.language.to_lowercase().contains(requested)
+                        || task.repo.to_lowercase().contains(requested)
+                        || task.prompt.to_lowercase().contains(requested)
+                        || task.id.to_lowercase().contains(requested)
+                })
+                .unwrap_or(true)
+        })
+        .map(|task| {
+            let saved_path = task
+                .workspace_path
+                .clone()
+                .or_else(|| Some(format!("{}/{}", args.output, task.id)));
+
+            GeneratedTaskOutput {
+                task_id: task.id,
+                category: requested_category
+                    .clone()
+                    .unwrap_or_else(|| "swe-mining".to_string()),
+                problem_statement: task.prompt,
+                difficulty: map_difficulty_label(task.quality_score, task.difficulty_score as usize),
+                tags: vec![
+                    "swe".to_string(),
+                    format!("language:{}", task.language.to_lowercase()),
+                    format!("repo:{}", task.repo),
+                ],
+                verification_criteria: task.fail_to_pass.into_iter().chain(task.pass_to_pass).collect(),
+                saved_path,
+            }
+        })
+        .collect();
 
     let output = GenerationOutput {
-        status: if tasks.is_empty() && args.count > 0 {
+        status: if generated_tasks.is_empty() && result.attempted > 0 {
             "failed".to_string()
         } else {
             "success".to_string()
         },
         model: args.model.clone(),
-        tasks,
-        total_duration_ms: duration_ms,
-        retries: 0,
-        output_directory: output_path.to_string_lossy().to_string(),
+        tasks: generated_tasks,
+        total_duration_ms: start.elapsed().as_millis() as u64,
+        output_directory: args.output,
     };
 
     let json_output = serde_json::to_string_pretty(&output)
         .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
-    println!("{}", json_output);
 
-    Ok(())
-}
-
-/// Runs the interactive full pipeline with progress output.
-async fn run_interactive_full_pipeline(
-    orchestrator: &FullPipelineOrchestrator,
-    args: &GenerateArgs,
-    category: Option<AgentTaskCategory>,
-    output_path: &Path,
-) -> anyhow::Result<()> {
-    println!("\n🚀 Full 14-Agent Pipeline Generation");
-    println!("=====================================");
-    println!("Model: {}", args.model);
-    println!("Count: {}", args.count);
-    println!("Output: {}", output_path.display());
-    if let Some(cat) = &args.category {
-        println!("Category: {}", cat);
-    }
-    println!();
-
-    println!("Pipeline stages (14 agents):");
-    println!("├─ ○ Research (ResearchAgent)");
-    println!("├─ ○ Ideation (IdeatorAgent)");
-    println!("├─ ○ Task Validation (TaskValidatorAgent)");
-    println!("├─ ○ Amplification (DifficultyAmplifierAgent)");
-    println!("├─ ○ Execution (TaskExecutorAgent)");
-    println!("├─ ○ Test Design (TestDesignerAgent)");
-    println!("├─ ○ Environment Building (EnvironmentBuilderAgent)");
-    println!("├─ ○ Docker Validation (DockerValidatorAgent)");
-    println!("└─ ○ Quality Check\n");
-
-    let mut generated_tasks: Vec<SyntheticTask> = Vec::new();
-    let mut failed_count = 0u32;
-
-    for i in 0..args.count {
-        println!("📝 Generating dataset {}/{}...", i + 1, args.count);
-
-        let (event_tx, mut event_rx) = tokio::sync::mpsc::channel::<FullPipelineEvent>(100);
-
-        // Spawn event handler for this task
-        let event_handle = tokio::spawn(async move {
-            while let Some(event) = event_rx.recv().await {
-                match event {
-                    FullPipelineEvent::StageStarted { stage, .. } => {
-                        println!("  ├─ ⏳ Starting {}...", stage);
-                    }
-                    FullPipelineEvent::StageCompleted {
-                        stage, duration_ms, ..
-                    } => {
-                        println!("  ├─ ✅ {} completed ({}ms)", stage, duration_ms);
-                    }
-                    FullPipelineEvent::StageFailed { stage, error, .. } => {
-                        println!("  ├─ ❌ {} failed: {}", stage, error);
-                    }
-                    FullPipelineEvent::StageSkipped { stage, reason, .. } => {
-                        println!("  ├─ ⏭️ {} skipped: {}", stage, reason);
-                    }
-                    FullPipelineEvent::ResearchComplete {
-                        weaknesses_found,
-                        traps_proposed,
-                        ..
-                    } => {
-                        println!(
-                            "  │   Found {} weaknesses, {} traps proposed",
-                            weaknesses_found, traps_proposed
-                        );
-                    }
-                    FullPipelineEvent::IdeationComplete {
-                        task_title,
-                        category,
-                        ..
-                    } => {
-                        println!("  │   Created: {} [{}]", task_title, category);
-                    }
-                    FullPipelineEvent::AmplificationComplete {
-                        traps_added,
-                        difficulty_score,
-                        ..
-                    } => {
-                        println!(
-                            "  │   Added {} traps, difficulty: {:.2}",
-                            traps_added, difficulty_score
-                        );
-                    }
-                    FullPipelineEvent::TestDesignComplete { test_count, .. } => {
-                        println!("  │   Designed {} tests", test_count);
-                    }
-                    FullPipelineEvent::DockerValidationComplete {
-                        passed,
-                        duration_ms,
-                        ..
-                    } => {
-                        if passed {
-                            println!("  │   Docker validation passed ({}ms)", duration_ms);
-                        } else {
-                            println!("  │   Docker validation failed ({}ms)", duration_ms);
-                        }
-                    }
-                    FullPipelineEvent::PipelineComplete {
-                        task_id,
-                        total_duration_ms,
-                        stages_completed,
-                        ..
-                    } => {
-                        println!(
-                            "  └─ ✅ Task {} generated ({} stages, {}ms)",
-                            task_id, stages_completed, total_duration_ms
-                        );
-                    }
-                    _ => {}
-                }
-            }
-        });
-
-        match orchestrator.generate_task(category, event_tx).await {
-            Ok(result) => {
-                let task = result.task;
-                let task_dir = output_path.join(&task.id);
-                match save_task(&task, &task_dir) {
-                    Ok(()) => {
-                        println!("  📁 Saved to: {}\n", task_dir.display());
-                    }
-                    Err(e) => {
-                        warn!(error = %e, task_id = %task.id, "Failed to save task to disk");
-                        println!("  ⚠️ Failed to save: {}\n", e);
-                    }
-                }
-                generated_tasks.push(task);
-            }
-            Err(e) => {
-                println!("  └─ ❌ Generation failed: {}\n", e);
-                failed_count += 1;
-            }
-        }
-
-        // Wait for event handler to complete
-        let _ = event_handle.await;
+    if args.json {
+        println!("{}", json_output);
+        return Ok(());
     }
 
-    // Print summary
-    println!("\n📊 Generation Summary");
-    println!("━━━━━━━━━━━━━━━━━━━━━");
-    println!("Total requested: {}", args.count);
-    println!("Successfully generated: {}", generated_tasks.len());
-    println!("Failed: {}", failed_count);
-
-    if !generated_tasks.is_empty() {
-        println!("\n📋 Generated Tasks:");
-        for task in &generated_tasks {
-            println!(
-                "  • {} [{}] - {}",
-                task.id,
-                task.metadata.category,
-                task.problem_statement.chars().take(60).collect::<String>()
-            );
-        }
+    if output.status == "failed" {
+        warn!("No tasks were generated with the requested constraints.");
+        println!("{json_output}");
+    } else {
+        println!("{}", json_output);
     }
 
     Ok(())
 }
 
+// ============================================================================
+// Generate Command Implementation
 // ============================================================================
 // Evaluate Command Implementation
 // ============================================================================
@@ -2428,459 +1343,6 @@ async fn run_interactive_evaluation(
     Ok(())
 }
 
-// ============================================================================
-// Synthetic Workspace Command Implementation (Advanced)
-// ============================================================================
-
-/// Parses a language string to LanguageTarget enum.
-fn parse_language_target(language_str: &str) -> anyhow::Result<LanguageTarget> {
-    match language_str.to_lowercase().as_str() {
-        "python" | "py" => Ok(LanguageTarget::Python),
-        "javascript" | "js" => Ok(LanguageTarget::JavaScript),
-        "typescript" | "ts" => Ok(LanguageTarget::TypeScript),
-        "rust" | "rs" => Ok(LanguageTarget::Rust),
-        "go" | "golang" => Ok(LanguageTarget::Go),
-        "java" => Ok(LanguageTarget::Java),
-        "ruby" | "rb" => Ok(LanguageTarget::Ruby),
-        "php" => Ok(LanguageTarget::Php),
-        "cpp" | "c++" => Ok(LanguageTarget::Cpp),
-        "csharp" | "c#" => Ok(LanguageTarget::Csharp),
-        other => Err(anyhow::anyhow!(
-            "Unknown language: '{}'. Available: python, javascript, typescript, rust, go, java, ruby, php, cpp, csharp",
-            other
-        )),
-    }
-}
-
-/// Parses a category string to SyntheticProjectCategory enum.
-fn parse_project_category(category_str: &str) -> anyhow::Result<SyntheticProjectCategory> {
-    match category_str.to_lowercase().replace('-', "_").as_str() {
-        "web_api" | "webapi" | "api" => Ok(SyntheticProjectCategory::WebApi),
-        "cli_tool" | "clitool" | "cli" => Ok(SyntheticProjectCategory::CliTool),
-        "web_app" | "webapp" | "web" => Ok(SyntheticProjectCategory::WebApp),
-        "data_pipeline" | "datapipeline" | "pipeline" => Ok(SyntheticProjectCategory::DataPipeline),
-        "microservice" | "micro" => Ok(SyntheticProjectCategory::Microservice),
-        "library" | "lib" => Ok(SyntheticProjectCategory::Library),
-        "backend_service" | "backendservice" | "backend" => Ok(SyntheticProjectCategory::BackendService),
-        "file_processor" | "fileprocessor" | "file" => Ok(SyntheticProjectCategory::FileProcessor),
-        "auth_service" | "authservice" | "auth" => Ok(SyntheticProjectCategory::AuthService),
-        "database_tool" | "databasetool" | "db" => Ok(SyntheticProjectCategory::DatabaseTool),
-        other => Err(anyhow::anyhow!(
-            "Unknown category: '{}'. Available: web-api, cli-tool, web-app, data-pipeline, microservice, library, backend-service, file-processor, auth-service, database-tool",
-            other
-        )),
-    }
-}
-
-/// Parses a difficulty string to SyntheticDifficultyLevel enum.
-fn parse_difficulty_level(difficulty_str: &str) -> anyhow::Result<SyntheticDifficultyLevel> {
-    match difficulty_str.to_lowercase().as_str() {
-        "easy" | "e" => Ok(SyntheticDifficultyLevel::Easy),
-        "medium" | "m" | "med" => Ok(SyntheticDifficultyLevel::Medium),
-        "hard" | "h" => Ok(SyntheticDifficultyLevel::Hard),
-        "expert" | "x" | "extreme" => Ok(SyntheticDifficultyLevel::Expert),
-        other => Err(anyhow::anyhow!(
-            "Unknown difficulty: '{}'. Available: easy, medium, hard, expert",
-            other
-        )),
-    }
-}
-
-/// Runs the synthetic workspace generation command.
-async fn run_synthetic_command(args: SyntheticArgs) -> anyhow::Result<()> {
-    // Parse configuration
-    let language = parse_language_target(&args.language)?;
-    let category = parse_project_category(&args.category)?;
-    let difficulty = parse_difficulty_level(&args.difficulty)?;
-
-    // Get API key from argument or environment
-    let api_key = args
-        .api_key
-        .clone()
-        .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
-        .or_else(|| std::env::var("LITELLM_API_KEY").ok());
-
-    // Initialize LLM client
-    let llm_client: Arc<dyn crate::llm::LlmProvider> = if let Some(key) = api_key {
-        info!(model = %args.model, "Using OpenRouter with specified API key");
-        Arc::new(OpenRouterProvider::with_model(key, args.model.clone()))
-    } else {
-        info!("Using LiteLLM client from environment");
-        Arc::new(LiteLlmClient::from_env().map_err(|e| {
-            anyhow::anyhow!(
-                "Failed to initialize LLM client: {}. \
-                 Please provide --api-key or set OPENROUTER_API_KEY/LITELLM_API_KEY env var.",
-                e
-            )
-        })?)
-    };
-
-    // Create output directory
-    let output_dir = args.output.clone();
-    let output_path = Path::new(&output_dir);
-    fs::create_dir_all(output_path)?;
-    info!(output = %output_dir, "Output directory ready");
-
-    // Build configuration
-    let mut config = SyntheticWorkspaceConfig::new()
-        .with_language(language)
-        .with_category(category)
-        .with_difficulty(difficulty)
-        .with_generation_model(&args.model)
-        .with_debate_model(&args.model)
-        .with_debate_rounds(args.debate_rounds)
-        .with_consensus_threshold(args.consensus_threshold)
-        .with_min_vulnerabilities(args.min_vulnerabilities)
-        .with_max_vulnerabilities(args.max_vulnerabilities)
-        .with_generation_temperature(args.generation_temperature)
-        .with_debate_temperature(args.debate_temperature)
-        .with_auto_clean(!args.no_clean)
-        .with_output_dir(&args.output);
-
-    if let Some(seed) = args.seed {
-        config = config.with_seed(seed);
-    }
-
-    // Create orchestrator
-    let orchestrator = SyntheticWorkspaceOrchestrator::new(llm_client, config);
-
-    if args.json {
-        run_json_synthetic(&orchestrator, &args, output_path).await
-    } else {
-        run_interactive_synthetic(&orchestrator, &args, output_path).await
-    }
-}
-
-/// JSON output structure for synthetic workspace generation.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SyntheticOutput {
-    pub status: String,
-    pub model: String,
-    pub language: String,
-    pub category: String,
-    pub difficulty: String,
-    pub workspaces: Vec<SyntheticWorkspaceOutput>,
-    pub total_duration_ms: u64,
-    pub output_directory: String,
-}
-
-/// JSON output for a single synthetic workspace.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SyntheticWorkspaceOutput {
-    pub workspace_id: String,
-    pub project_name: String,
-    pub file_count: usize,
-    pub vulnerability_count: usize,
-    pub total_loc: usize,
-    pub saved_path: Option<String>,
-    pub zip_path: Option<String>,
-    pub debates_conducted: usize,
-}
-
-/// Runs synthetic generation with JSON output.
-async fn run_json_synthetic(
-    orchestrator: &SyntheticWorkspaceOrchestrator,
-    args: &SyntheticArgs,
-    output_path: &Path,
-) -> anyhow::Result<()> {
-    let start_time = std::time::Instant::now();
-    let mut workspaces = Vec::new();
-
-    for i in 0..args.count {
-        let (event_tx, _event_rx) = tokio::sync::mpsc::channel::<GenerationEvent>(100);
-
-        match orchestrator.generate(event_tx).await {
-            Ok(workspace) => {
-                // Save workspace to directory
-                let saved_path = match workspace.export_to_directory(output_path).await {
-                    Ok(path) => Some(path.to_string_lossy().to_string()),
-                    Err(e) => {
-                        warn!(error = %e, workspace_id = %workspace.id, "Failed to save workspace");
-                        None
-                    }
-                };
-
-                // Export to zip if requested
-                let zip_path = if args.zip && saved_path.is_some() {
-                    let zip_file = output_path.join(format!("{}.tar.gz", workspace.id));
-                    match workspace.export_to_zip(&zip_file).await {
-                        Ok(path) => Some(path.to_string_lossy().to_string()),
-                        Err(e) => {
-                            warn!(error = %e, workspace_id = %workspace.id, "Failed to export zip");
-                            None
-                        }
-                    }
-                } else {
-                    None
-                };
-
-                workspaces.push(SyntheticWorkspaceOutput {
-                    workspace_id: workspace.id.clone(),
-                    project_name: workspace.spec.name.clone(),
-                    file_count: workspace.files.len(),
-                    vulnerability_count: workspace.vulnerabilities.len(),
-                    total_loc: workspace.total_loc,
-                    saved_path,
-                    zip_path,
-                    debates_conducted: workspace.debates.len(),
-                });
-            }
-            Err(e) => {
-                error!(workspace_index = i, error = %e, "Failed to generate workspace");
-            }
-        }
-    }
-
-    let duration_ms = start_time.elapsed().as_millis() as u64;
-
-    let output = SyntheticOutput {
-        status: if workspaces.is_empty() && args.count > 0 {
-            "failed".to_string()
-        } else {
-            "success".to_string()
-        },
-        model: args.model.clone(),
-        language: args.language.clone(),
-        category: args.category.clone(),
-        difficulty: args.difficulty.clone(),
-        workspaces,
-        total_duration_ms: duration_ms,
-        output_directory: output_path.to_string_lossy().to_string(),
-    };
-
-    let json_output = serde_json::to_string_pretty(&output)
-        .map_err(|e| anyhow::anyhow!("Failed to serialize JSON output: {}", e))?;
-    println!("{}", json_output);
-
-    Ok(())
-}
-
-/// Runs interactive synthetic generation with progress output.
-async fn run_interactive_synthetic(
-    orchestrator: &SyntheticWorkspaceOrchestrator,
-    args: &SyntheticArgs,
-    output_path: &Path,
-) -> anyhow::Result<()> {
-    println!("\n🧪 Advanced Synthetic Workspace Generation");
-    println!("==========================================");
-    println!("Model: {}", args.model);
-    println!("Language: {}", args.language);
-    println!("Category: {}", args.category);
-    println!("Difficulty: {}", args.difficulty);
-    println!("Count: {}", args.count);
-    println!("Output: {}", output_path.display());
-    println!(
-        "Vulnerabilities: {}-{}",
-        args.min_vulnerabilities, args.max_vulnerabilities
-    );
-    println!();
-
-    println!("Pipeline stages:");
-    println!("├─ ○ Planning (Project specification)");
-    println!("├─ ○ Debate (Multi-agent consensus)");
-    println!("│   ├─ Vulnerability Selection");
-    println!("│   └─ Difficulty Calibration");
-    println!("├─ ○ Code Generation (LLM-powered)");
-    println!("├─ ○ Vulnerability Injection (Subtle)");
-    println!("├─ ○ Cleaning (Remove hints)");
-    println!("└─ ○ Export (Save artifacts)\n");
-
-    let mut generated_workspaces = Vec::new();
-    let mut failed_count = 0u32;
-
-    for i in 0..args.count {
-        println!("📝 Generating workspace {}/{}...", i + 1, args.count);
-
-        let (event_tx, mut event_rx) = tokio::sync::mpsc::channel::<GenerationEvent>(100);
-
-        // Spawn event handler
-        let event_handle = tokio::spawn(async move {
-            while let Some(event) = event_rx.recv().await {
-                match event {
-                    GenerationEvent::Started {
-                        workspace_id,
-                        language,
-                        category,
-                        difficulty,
-                        ..
-                    } => {
-                        println!(
-                            "   🚀 Started {} ({} {} {})",
-                            workspace_id, language, category, difficulty
-                        );
-                    }
-                    GenerationEvent::StageStarted { stage, .. } => {
-                        println!("   ⟳ {} started...", stage);
-                    }
-                    GenerationEvent::StageCompleted {
-                        stage, duration_ms, ..
-                    } => {
-                        println!("   ✓ {} completed ({}ms)", stage, duration_ms);
-                    }
-                    GenerationEvent::DebateRound {
-                        topic,
-                        round,
-                        agreement_score,
-                        ..
-                    } => {
-                        println!(
-                            "   💬 {} round {}: {:.0}% agreement",
-                            topic,
-                            round,
-                            agreement_score * 100.0
-                        );
-                    }
-                    GenerationEvent::DebateCompleted {
-                        topic,
-                        consensus_reached,
-                        decision,
-                        ..
-                    } => {
-                        let status = if consensus_reached {
-                            "✓ consensus"
-                        } else {
-                            "⚠ no consensus"
-                        };
-                        println!(
-                            "   💬 {} {}: {}",
-                            topic,
-                            status,
-                            decision.unwrap_or_default()
-                        );
-                    }
-                    GenerationEvent::FileGenerated {
-                        path,
-                        file_type,
-                        lines,
-                        ..
-                    } => {
-                        println!("   📄 {} ({:?}, {} lines)", path, file_type, lines);
-                    }
-                    GenerationEvent::VulnerabilityInjected {
-                        vulnerability_type,
-                        file,
-                        severity,
-                        ..
-                    } => {
-                        println!(
-                            "   💉 {} in {} (severity: {})",
-                            vulnerability_type, file, severity
-                        );
-                    }
-                    GenerationEvent::CleaningCompleted {
-                        files_cleaned,
-                        patterns_removed,
-                        ..
-                    } => {
-                        println!(
-                            "   🧹 Cleaned {} files, removed {} patterns",
-                            files_cleaned, patterns_removed
-                        );
-                    }
-                    GenerationEvent::Completed {
-                        workspace_id,
-                        file_count,
-                        vulnerability_count,
-                        total_loc,
-                        duration_ms,
-                        ..
-                    } => {
-                        println!(
-                            "   ✓ Complete: {} ({} files, {} vulns, {} LOC, {}ms)",
-                            workspace_id, file_count, vulnerability_count, total_loc, duration_ms
-                        );
-                    }
-                    GenerationEvent::Failed { stage, error, .. } => {
-                        println!("   ✗ Failed at {}: {}", stage, error);
-                    }
-                }
-            }
-        });
-
-        let result = orchestrator.generate(event_tx).await;
-
-        // Wait for event handler to finish
-        let _ = event_handle.await;
-
-        match result {
-            Ok(workspace) => {
-                // Save workspace to directory
-                match workspace.export_to_directory(output_path).await {
-                    Ok(path) => {
-                        println!("   💾 Saved: {} → {}", workspace.id, path.display());
-                    }
-                    Err(e) => {
-                        warn!(error = %e, workspace_id = %workspace.id, "Failed to save workspace");
-                    }
-                }
-
-                // Export to zip if requested
-                if args.zip {
-                    let zip_file = output_path.join(format!("{}.tar.gz", workspace.id));
-                    match workspace.export_to_zip(&zip_file).await {
-                        Ok(path) => {
-                            println!("   📦 Exported: {}", path.display());
-                        }
-                        Err(e) => {
-                            warn!(error = %e, workspace_id = %workspace.id, "Failed to export zip");
-                        }
-                    }
-                }
-
-                println!("\n✓ Workspace {} generated successfully!", i + 1);
-                println!("  ID: {}", workspace.id);
-                println!("  Project: {}", workspace.spec.name);
-                println!("  Files: {}", workspace.files.len());
-                println!("  LOC: {}", workspace.total_loc);
-                println!("  Vulnerabilities: {}", workspace.vulnerabilities.len());
-                println!("  Debates: {}", workspace.debates.len());
-                generated_workspaces.push(workspace);
-            }
-            Err(e) => {
-                eprintln!("\n✗ Workspace {} failed: {}", i + 1, e);
-                failed_count += 1;
-            }
-        }
-
-        if i < args.count - 1 {
-            println!();
-        }
-    }
-
-    // Print summary
-    println!("\n{}", "=".repeat(50));
-    println!("🧪 Synthetic Workspace Generation Summary");
-    println!("{}", "=".repeat(50));
-    println!(
-        "✓ Successfully generated: {}/{}",
-        generated_workspaces.len(),
-        args.count
-    );
-    if failed_count > 0 {
-        println!("✗ Failed: {}", failed_count);
-    }
-    println!("📁 Output directory: {}", output_path.display());
-
-    if !generated_workspaces.is_empty() {
-        println!("\n📋 Generated Workspaces:");
-        for (idx, workspace) in generated_workspaces.iter().enumerate() {
-            println!(
-                "  {}. {} ({} files, {} vulns, {} LOC)",
-                idx + 1,
-                workspace.spec.name,
-                workspace.files.len(),
-                workspace.vulnerabilities.len(),
-                workspace.total_loc
-            );
-        }
-    }
-
-    if generated_workspaces.is_empty() && args.count > 0 {
-        return Err(anyhow::anyhow!("Failed to generate any workspaces"));
-    }
-
-    Ok(())
-}
 
 #[cfg(test)]
 mod tests {
@@ -2903,11 +1365,10 @@ mod tests {
                 assert_eq!(args.count, 1);
                 assert_eq!(args.model, DEFAULT_MODEL);
                 assert!(args.category.is_none());
+                assert!(args.languages.is_none());
+                assert_eq!(args.min_stars, 20);
                 assert_eq!(args.output, DEFAULT_OUTPUT_DIR);
                 assert!(!args.json);
-                assert!((args.min_score - 0.6).abs() < 0.01);
-                assert_eq!(args.max_retries, 3);
-                assert!(!args.factory);
             }
             _ => panic!("Expected Generate command"),
         }
@@ -2924,16 +1385,13 @@ mod tests {
             "anthropic/claude-3-opus",
             "-c",
             "debugging",
+            "--languages",
+            "python,rust",
+            "--min-stars",
+            "50",
             "-o",
             "./my-output",
             "-j",
-            "-s",
-            "42",
-            "--min-score",
-            "0.8",
-            "--max-retries",
-            "5",
-            "--factory",
         ];
         let cli = Cli::try_parse_from(args).expect("should parse");
 
@@ -2942,12 +1400,10 @@ mod tests {
                 assert_eq!(args.count, 5);
                 assert_eq!(args.model, "anthropic/claude-3-opus");
                 assert_eq!(args.category, Some("debugging".to_string()));
+                assert_eq!(args.languages, Some("python,rust".to_string()));
+                assert_eq!(args.min_stars, 50);
                 assert_eq!(args.output, "./my-output");
                 assert!(args.json);
-                assert_eq!(args.seed, Some(42));
-                assert!((args.min_score - 0.8).abs() < 0.01);
-                assert_eq!(args.max_retries, 5);
-                assert!(args.factory);
             }
             _ => panic!("Expected Generate command"),
         }
@@ -2967,39 +1423,34 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_task_category() {
-        assert_eq!(
-            parse_task_category("debugging").expect("valid category"),
-            AgentTaskCategory::Debugging
-        );
-        assert_eq!(
-            parse_task_category("debug").expect("valid category"),
-            AgentTaskCategory::Debugging
-        );
-        assert_eq!(
-            parse_task_category("security").expect("valid category"),
-            AgentTaskCategory::Security
-        );
-        assert_eq!(
-            parse_task_category("algorithm-design").expect("valid category"),
-            AgentTaskCategory::AlgorithmDesign
-        );
-        assert_eq!(
-            parse_task_category("infrastructure").expect("valid category"),
-            AgentTaskCategory::Infrastructure
-        );
-        assert_eq!(
-            parse_task_category("containers").expect("valid category"),
-            AgentTaskCategory::Containers
-        );
-        assert!(parse_task_category("invalid-category").is_err());
+    fn test_swe_validate_parses() {
+        let args = vec![
+            "dataforge",
+            "swe",
+            "validate",
+            "--input",
+            "./workspace-dir",
+            "--validate-docker",
+            "-m",
+            "anthropic/claude-3-opus",
+        ];
+        let cli = Cli::try_parse_from(args).expect("should parse");
+
+        match cli.command {
+            Commands::Swe(SweArgs { command: SweSubcommand::Validate(s) }) => {
+                assert_eq!(s.input, "./workspace-dir");
+                assert_eq!(s.model, "anthropic/claude-3-opus");
+                assert!(s.validate_docker);
+            }
+            _ => panic!("Expected swe validate command"),
+        }
     }
 
     #[test]
     fn test_generation_output_serialization() {
         let output = GenerationOutput {
             status: "success".to_string(),
-            model: "moonshotai/kimi-k2.5".to_string(),
+            model: "openai/gpt-5.2-codex:nitro".to_string(),
             tasks: vec![GeneratedTaskOutput {
                 task_id: "dataforge-task-001".to_string(),
                 category: "debugging".to_string(),
@@ -3010,7 +1461,6 @@ mod tests {
                 saved_path: Some("./output/dataforge-task-001".to_string()),
             }],
             total_duration_ms: 5000,
-            retries: 1,
             output_directory: "./output".to_string(),
         };
 
@@ -3018,11 +1468,10 @@ mod tests {
 
         // Verify key fields are present in output
         assert!(json.contains("\"status\": \"success\""));
-        assert!(json.contains("\"model\": \"moonshotai/kimi-k2.5\""));
+        assert!(json.contains("\"model\": \"openai/gpt-5.2-codex:nitro\""));
         assert!(json.contains("\"task_id\": \"dataforge-task-001\""));
         assert!(json.contains("\"category\": \"debugging\""));
         assert!(json.contains("\"total_duration_ms\": 5000"));
-        assert!(json.contains("\"retries\": 1"));
     }
 
     #[test]
@@ -3092,7 +1541,7 @@ mod tests {
     fn test_evaluation_output_serialization() {
         let output = EvaluationOutput {
             status: "success".to_string(),
-            model: "moonshotai/kimi-k2.5".to_string(),
+            model: "openai/gpt-5.2-codex:nitro".to_string(),
             total_tasks: 3,
             successful_tasks: 2,
             success_rate: 0.667,
@@ -3134,7 +1583,7 @@ mod tests {
 
         // Verify key fields are present in output
         assert!(json.contains("\"status\": \"success\""));
-        assert!(json.contains("\"model\": \"moonshotai/kimi-k2.5\""));
+        assert!(json.contains("\"model\": \"openai/gpt-5.2-codex:nitro\""));
         assert!(json.contains("\"total_tasks\": 3"));
         assert!(json.contains("\"successful_tasks\": 2"));
         assert!(json.contains("\"success_rate\": 0.667"));
@@ -3227,184 +1676,4 @@ mod tests {
         assert!(metrics.hard_avg_duration_ms.is_none());
     }
 
-    // ========================================================================
-    // Workspace Command Tests
-    // ========================================================================
-
-    #[test]
-    fn test_workspace_command_defaults() {
-        let args = vec!["dataforge", "workspace"];
-        let cli = Cli::try_parse_from(args).expect("should parse");
-
-        match cli.command {
-            Commands::Workspace(args) => {
-                assert_eq!(args.count, 1);
-                assert_eq!(args.model, DEFAULT_MODEL);
-                assert!(args.language.is_none());
-                assert!(args.project_type.is_none());
-                assert_eq!(args.output, DEFAULT_OUTPUT_DIR);
-                assert!(!args.json);
-                assert_eq!(args.debate_rounds, 3);
-                assert!((args.consensus_threshold - 0.6).abs() < 0.01);
-                assert_eq!(args.min_vulnerabilities, 3);
-                assert_eq!(args.max_vulnerabilities, 8);
-                assert!(args.seed.is_none());
-                assert!(!args.zip);
-            }
-            _ => panic!("Expected Workspace command"),
-        }
-    }
-
-    #[test]
-    fn test_workspace_command_with_all_options() {
-        let args = vec![
-            "dataforge",
-            "workspace",
-            "-n",
-            "3",
-            "-L",
-            "rust",
-            "-t",
-            "cli-tool",
-            "-m",
-            "anthropic/claude-3-opus",
-            "-o",
-            "./workspaces",
-            "-j",
-            "-s",
-            "12345",
-            "--debate-rounds",
-            "5",
-            "--consensus-threshold",
-            "0.8",
-            "--min-vulnerabilities",
-            "2",
-            "--max-vulnerabilities",
-            "10",
-            "--zip",
-        ];
-        let cli = Cli::try_parse_from(args).expect("should parse");
-
-        match cli.command {
-            Commands::Workspace(args) => {
-                assert_eq!(args.count, 3);
-                assert_eq!(args.language, Some("rust".to_string()));
-                assert_eq!(args.project_type, Some("cli-tool".to_string()));
-                assert_eq!(args.model, "anthropic/claude-3-opus");
-                assert_eq!(args.output, "./workspaces");
-                assert!(args.json);
-                assert_eq!(args.seed, Some(12345));
-                assert_eq!(args.debate_rounds, 5);
-                assert!((args.consensus_threshold - 0.8).abs() < 0.01);
-                assert_eq!(args.min_vulnerabilities, 2);
-                assert_eq!(args.max_vulnerabilities, 10);
-                assert!(args.zip);
-            }
-            _ => panic!("Expected Workspace command"),
-        }
-    }
-
-    #[test]
-    fn test_workspace_alias() {
-        let args = vec!["dataforge", "ws", "-n", "2"];
-        let cli = Cli::try_parse_from(args).expect("should parse with alias");
-
-        match cli.command {
-            Commands::Workspace(args) => {
-                assert_eq!(args.count, 2);
-            }
-            _ => panic!("Expected Workspace command"),
-        }
-    }
-
-    #[test]
-    fn test_parse_programming_language() {
-        assert_eq!(
-            parse_programming_language("python").expect("valid language"),
-            ProgrammingLanguage::Python
-        );
-        assert_eq!(
-            parse_programming_language("py").expect("valid language"),
-            ProgrammingLanguage::Python
-        );
-        assert_eq!(
-            parse_programming_language("rust").expect("valid language"),
-            ProgrammingLanguage::Rust
-        );
-        assert_eq!(
-            parse_programming_language("rs").expect("valid language"),
-            ProgrammingLanguage::Rust
-        );
-        assert_eq!(
-            parse_programming_language("javascript").expect("valid language"),
-            ProgrammingLanguage::JavaScript
-        );
-        assert_eq!(
-            parse_programming_language("js").expect("valid language"),
-            ProgrammingLanguage::JavaScript
-        );
-        assert_eq!(
-            parse_programming_language("typescript").expect("valid language"),
-            ProgrammingLanguage::TypeScript
-        );
-        assert_eq!(
-            parse_programming_language("ts").expect("valid language"),
-            ProgrammingLanguage::TypeScript
-        );
-        assert_eq!(
-            parse_programming_language("go").expect("valid language"),
-            ProgrammingLanguage::Go
-        );
-        assert_eq!(
-            parse_programming_language("golang").expect("valid language"),
-            ProgrammingLanguage::Go
-        );
-        assert_eq!(
-            parse_programming_language("java").expect("valid language"),
-            ProgrammingLanguage::Java
-        );
-        assert_eq!(
-            parse_programming_language("cpp").expect("valid language"),
-            ProgrammingLanguage::Cpp
-        );
-        assert_eq!(
-            parse_programming_language("c++").expect("valid language"),
-            ProgrammingLanguage::Cpp
-        );
-        assert_eq!(
-            parse_programming_language("c").expect("valid language"),
-            ProgrammingLanguage::C
-        );
-        assert!(parse_programming_language("invalid-language").is_err());
-    }
-
-    #[test]
-    fn test_workspace_output_serialization() {
-        let output = WorkspaceOutput {
-            status: "success".to_string(),
-            model: "moonshotai/kimi-k2.5".to_string(),
-            workspaces: vec![GeneratedWorkspaceOutput {
-                workspace_id: "ws-001".to_string(),
-                language: "Python".to_string(),
-                project_type: "web-api".to_string(),
-                file_count: 5,
-                vulnerability_count: 3,
-                saved_path: Some("./output/ws-001".to_string()),
-                zip_path: None,
-            }],
-            total_duration_ms: 10000,
-            output_directory: "./output".to_string(),
-        };
-
-        let json = serde_json::to_string_pretty(&output).expect("serialization should succeed");
-
-        // Verify key fields are present in output
-        assert!(json.contains("\"status\": \"success\""));
-        assert!(json.contains("\"model\": \"moonshotai/kimi-k2.5\""));
-        assert!(json.contains("\"workspace_id\": \"ws-001\""));
-        assert!(json.contains("\"language\": \"Python\""));
-        assert!(json.contains("\"file_count\": 5"));
-        assert!(json.contains("\"vulnerability_count\": 3"));
-        assert!(json.contains("\"total_duration_ms\": 10000"));
-    }
 }

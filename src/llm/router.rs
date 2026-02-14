@@ -513,6 +513,7 @@ impl MultiModelRouter {
                     temperature: request.temperature,
                     max_tokens: request.max_tokens,
                     top_p: request.top_p,
+                    response_format: request.response_format.clone(),
                 };
 
                 match provider.generate(model_request).await {

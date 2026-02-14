@@ -6,7 +6,7 @@
 use std::sync::Arc;
 
 use crate::difficulty::DifficultyLevel;
-use crate::llm::{GenerationRequest, LlmProvider, Message};
+use crate::llm::{GenerationRequest, JsonSchemaSpec, LlmProvider, Message, ResponseFormat};
 
 use super::error::{AgentError, AgentResult};
 use super::types::{GeneratedTask, ValidationResult};
@@ -28,23 +28,11 @@ Evaluation Criteria:
 4. Need for troubleshooting or iteration
 5. Clarity vs ambiguity of instructions
 
-Output Format:
-You MUST respond with ONLY a JSON object in this exact format:
-{
-  "score": <float between 0.0 and 1.0>,
-  "matches_difficulty": <true or false>,
-  "reasoning": "<detailed explanation>",
-  "estimated_steps": <integer>,
-  "issues": ["<issue1>", "<issue2>"]
-}
-
 The score represents how well the task matches the expected difficulty:
 - 1.0: Perfect match
 - 0.7-0.9: Good match with minor concerns
 - 0.5-0.7: Acceptable but questionable
-- Below 0.5: Mismatch
-
-Do not include any text outside the JSON object."#;
+- Below 0.5: Mismatch"#;
 
 /// User prompt template for difficulty validation.
 const DIFFICULTY_VALIDATION_USER_TEMPLATE: &str = r#"Evaluate if the following task matches the expected difficulty level.
@@ -147,7 +135,8 @@ impl DifficultyValidatorAgent {
             ],
         )
         .with_temperature(self.config.temperature)
-        .with_max_tokens(self.config.max_tokens);
+        .with_max_tokens(self.config.max_tokens)
+        .with_response_format(Self::response_schema());
 
         let response = self.llm_client.generate(request).await?;
 
@@ -156,6 +145,27 @@ impl DifficultyValidatorAgent {
             .ok_or_else(|| AgentError::ResponseParseError("Empty LLM response".to_string()))?;
 
         self.parse_response(content)
+    }
+
+    fn response_schema() -> ResponseFormat {
+        ResponseFormat::JsonSchema {
+            json_schema: JsonSchemaSpec {
+                name: "difficulty_validation".to_string(),
+                strict: true,
+                schema: serde_json::json!({
+                    "type": "object",
+                    "properties": {
+                        "score": { "type": "number", "description": "Score 0.0-1.0 for difficulty match" },
+                        "matches_difficulty": { "type": "boolean" },
+                        "reasoning": { "type": "string" },
+                        "estimated_steps": { "type": "integer" },
+                        "issues": { "type": "array", "items": { "type": "string" } }
+                    },
+                    "required": ["score", "matches_difficulty", "reasoning", "estimated_steps", "issues"],
+                    "additionalProperties": false
+                }),
+            },
+        }
     }
 
     /// Builds the user prompt for difficulty validation.
@@ -184,11 +194,16 @@ impl DifficultyValidatorAgent {
 
     /// Parses the LLM response into a ValidationResult.
     fn parse_response(&self, content: &str) -> AgentResult<ValidationResult> {
-        // Try to extract JSON from the response
-        let json_content = self.extract_json(content)?;
-
-        let parsed: DifficultyValidationResponse = serde_json::from_str(&json_content)
-            .map_err(|e| AgentError::ResponseParseError(format!("Invalid JSON: {}", e)))?;
+        // With structured output, content should be valid JSON directly.
+        // Fall back to extract_json if direct parse fails (non-structured providers).
+        let parsed: DifficultyValidationResponse = match serde_json::from_str(content.trim()) {
+            Ok(v) => v,
+            Err(_) => {
+                let json_content = self.extract_json(content)?;
+                serde_json::from_str(&json_content)
+                    .map_err(|e| AgentError::ResponseParseError(format!("Invalid JSON: {}", e)))?
+            }
+        };
 
         let issues = parsed.issues.unwrap_or_default();
         let details = if issues.is_empty() {

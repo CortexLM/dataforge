@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 
 use super::analyzer_agent::AnalyzedTask;
 use super::error::{AgentError, AgentResult};
-use crate::llm::{GenerationRequest, LlmProvider, Message};
+use crate::llm::{GenerationRequest, LlmProvider, Message, ResponseFormat};
 
 /// System prompt for test design.
 const TEST_DESIGN_SYSTEM_PROMPT: &str = r#"You are an expert test engineer designing automated validation tests for benchmark tasks.
@@ -27,33 +27,7 @@ Test Design Guidelines:
 - Include timeouts to prevent hanging
 - Test both the happy path and edge cases
 - Avoid tests that require external network access
-- Make tests idempotent when possible
-
-Output Format:
-You MUST respond with ONLY a JSON object in this exact format:
-{
-  "fail_to_pass": [
-    {
-      "command": "<shell command to run>",
-      "expected_exit_code": 0,
-      "expected_output_contains": "<optional substring that must be in output>",
-      "timeout_seconds": 30
-    }
-  ],
-  "pass_to_pass": [
-    {
-      "command": "<shell command>",
-      "expected_exit_code": 0,
-      "expected_output_contains": null,
-      "timeout_seconds": 30
-    }
-  ],
-  "setup_commands": ["<command1>", "<command2>"],
-  "cleanup_commands": ["<command1>", "<command2>"],
-  "test_script_content": "<bash script content>"
-}
-
-Do not include any text outside the JSON object."#;
+- Make tests idempotent when possible"#;
 
 /// User prompt template for test design.
 const TEST_DESIGN_USER_TEMPLATE: &str = r#"Design validation tests for the following benchmark task:
@@ -379,7 +353,8 @@ impl TestDesignerAgent {
             ],
         )
         .with_temperature(config.temperature)
-        .with_max_tokens(config.max_tokens);
+        .with_max_tokens(config.max_tokens)
+        .with_response_format(Self::response_schema());
 
         let response = self.llm.generate(request).await?;
 
@@ -388,6 +363,10 @@ impl TestDesignerAgent {
             .ok_or_else(|| AgentError::ResponseParseError("Empty LLM response".to_string()))?;
 
         self.parse_test_design_response(content, config)
+    }
+
+    fn response_schema() -> ResponseFormat {
+        ResponseFormat::JsonObject
     }
 
     /// Designs tests for multiple tasks in batch.
@@ -479,10 +458,38 @@ impl TestDesignerAgent {
         content: &str,
         config: &TestDesignerConfig,
     ) -> AgentResult<TestSpec> {
-        let json_content = self.extract_json(content)?;
-
-        let parsed: TestDesignResponse = serde_json::from_str(&json_content)
-            .map_err(|e| AgentError::ResponseParseError(format!("Invalid JSON: {}", e)))?;
+        let parsed: TestDesignResponse = match serde_json::from_str(content.trim()) {
+            Ok(v) => v,
+            Err(first_err) => {
+                let json_str = match self.extract_json(content) {
+                    Ok(j) => j,
+                    Err(_) => {
+                        return Err(AgentError::ResponseParseError(format!(
+                            "Failed to parse LLM response: {}", first_err
+                        )));
+                    }
+                };
+                match serde_json::from_str(&json_str) {
+                    Ok(v) => v,
+                    Err(e) => {
+                        // Last resort: try to extract commands from any JSON object
+                        if let Ok(val) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                            if let Some(cmds) = extract_test_commands_from_value(&val) {
+                                cmds
+                            } else {
+                                return Err(AgentError::ResponseParseError(
+                                    format!("Invalid JSON: {}", e)
+                                ));
+                            }
+                        } else {
+                            return Err(AgentError::ResponseParseError(
+                                format!("Invalid JSON: {}", e)
+                            ));
+                        }
+                    }
+                }
+            }
+        };
 
         // Convert fail_to_pass tests
         let fail_to_pass: Vec<TestCommand> = parsed
@@ -578,18 +585,114 @@ impl TestDesignerAgent {
 #[derive(Debug, Deserialize)]
 struct TestCommandResponse {
     command: String,
+    #[serde(default)]
     expected_exit_code: i32,
+    #[serde(default)]
     expected_output_contains: Option<String>,
+    #[serde(default = "default_timeout")]
     timeout_seconds: u32,
+}
+
+fn default_timeout() -> u32 {
+    30
+}
+
+/// Best-effort extraction of test commands from any JSON value structure.
+fn extract_test_commands_from_value(val: &serde_json::Value) -> Option<TestDesignResponse> {
+    let obj = val.as_object()?;
+
+    fn extract_cmds(val: &serde_json::Value) -> Vec<TestCommandResponse> {
+        match val {
+            serde_json::Value::Array(arr) => arr
+                .iter()
+                .filter_map(|item| {
+                    let obj = item.as_object()?;
+                    let command = obj.get("command").and_then(|v| v.as_str())?.to_string();
+                    Some(TestCommandResponse {
+                        command,
+                        expected_exit_code: obj
+                            .get("expected_exit_code")
+                            .and_then(|v| v.as_i64())
+                            .unwrap_or(0) as i32,
+                        expected_output_contains: obj
+                            .get("expected_output_contains")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string()),
+                        timeout_seconds: obj
+                            .get("timeout_seconds")
+                            .and_then(|v| v.as_u64())
+                            .unwrap_or(30) as u32,
+                    })
+                })
+                .collect(),
+            _ => Vec::new(),
+        }
+    }
+
+    // Search for any key containing test commands
+    let mut fail_to_pass = Vec::new();
+    let mut pass_to_pass = Vec::new();
+
+    for (key, value) in obj {
+        let k = key.to_lowercase();
+        if k.contains("fail") || k.contains("test") && fail_to_pass.is_empty() {
+            let cmds = extract_cmds(value);
+            if !cmds.is_empty() {
+                fail_to_pass = cmds;
+            }
+        } else if k.contains("pass") || k.contains("regression") {
+            let cmds = extract_cmds(value);
+            if !cmds.is_empty() {
+                pass_to_pass = cmds;
+            }
+        }
+    }
+
+    if fail_to_pass.is_empty() {
+        return None;
+    }
+
+    Some(TestDesignResponse {
+        fail_to_pass,
+        pass_to_pass,
+        setup_commands: obj
+            .get("setup_commands")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        cleanup_commands: obj
+            .get("cleanup_commands")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        test_script_content: obj
+            .get("test_script_content")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string(),
+    })
 }
 
 /// Response structure from LLM test design.
 #[derive(Debug, Deserialize)]
 struct TestDesignResponse {
+    #[serde(default, alias = "fail_tests", alias = "failing_tests", alias = "tests_fail_to_pass")]
     fail_to_pass: Vec<TestCommandResponse>,
+    #[serde(default, alias = "pass_tests", alias = "passing_tests", alias = "tests_pass_to_pass")]
     pass_to_pass: Vec<TestCommandResponse>,
+    #[serde(default)]
     setup_commands: Vec<String>,
+    #[serde(default)]
     cleanup_commands: Vec<String>,
+    #[serde(default)]
     test_script_content: String,
 }
 

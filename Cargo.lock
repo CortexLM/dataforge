@@ -534,6 +534,7 @@ dependencies = [
  "tokio-stream",
  "tracing",
  "tracing-subscriber",
+ "urlencoding",
  "uuid",
  "walkdir",
 ]

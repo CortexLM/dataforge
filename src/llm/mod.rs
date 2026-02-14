@@ -35,10 +35,10 @@
 //!
 //! // Add providers
 //! let provider = Arc::new(OpenRouterProvider::new("api-key".to_string()));
-//! router.add_provider(provider, "moonshotai/kimi-k2.5");
+//! router.add_provider(provider, "openai/gpt-5.2-codex:nitro");
 //!
 //! // Add model capabilities for cost optimization
-//! router.add_model_capabilities(ModelCapabilities::new("moonshotai/kimi-k2.5")
+//! router.add_model_capabilities(ModelCapabilities::new("openai/gpt-5.2-codex:nitro")
 //!     .with_pricing(0.5, 1.5)
 //!     .with_coding_score(0.8));
 //! ```
@@ -69,8 +69,8 @@ pub use cache::{
     ContentHash, PromptCache, SharedPromptCache,
 };
 pub use litellm::{
-    Choice, GenerationRequest, GenerationResponse, LiteLlmClient, LlmProvider, Message,
-    TemplateAssistant, Usage, TEMPLATE_GENERATION_PROMPT,
+    Choice, GenerationRequest, GenerationResponse, JsonSchemaSpec, LiteLlmClient, LlmProvider,
+    Message, ResponseFormat, TemplateAssistant, Usage, TEMPLATE_GENERATION_PROMPT,
 };
 
 // Re-export key types from submodules for convenience
