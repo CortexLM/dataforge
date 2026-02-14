@@ -1,0 +1,47 @@
+id: codenui/rrf.codenui.co.nz-84
+repo: codenui/rrf.codenui.co.nz
+base_commit: 9991b6d61d6d00fbd476d7060f3a9bf729ea3d16
+merge_commit: 82b2bf893dd5b1440f746b9f253656a6f3a6887a
+language: python
+difficulty_score: 1
+created_at: 2026-02-14T14:33:02.015858018Z
+patch: "diff --git a/rrf.py b/rrf.py\nindex a86f2f5..2d43ccb 100644\n--- a/rrf.py\n+++ b/rrf.py\n@@ -1514,6 +1514,7 @@ def build_html(data: List[Dict[str, Any]]) -> str:\n       const first = sortedItems[0];\n       const count = sortedItems.length;\n       const carrierCount = carrierGroups.length;\n+      const siteTypeLabel = carrierCount === 1 ? \"Solo site\" : \"Shared site\";\n       const nearbySuffix = \"\";\n       const carrierSummary = \"\";\n       const headerBadge = \"\";\n@@ -1701,8 +1702,7 @@ def build_html(data: List[Dict[str, Any]]) -> str:\n               <div class=\"flex-grow-1\">\n                 <div class=\"detail-section-title\">Site details</div>\n                 <div class=\"d-flex flex-wrap gap-2 align-items-center\">\n-                  <span class=\"badge rounded-pill text-bg-primary\">${count} licence(s)</span>\n-                  <span class=\"badge rounded-pill text-bg-light\">${carrierCount} carrier(s)</span>\n+                  <span class=\"badge rounded-pill text-bg-light\">${siteTypeLabel}</span>\n                   ${carrierSummary}\n                 </div>\n               </div>\n@@ -2355,7 +2355,6 @@ def build_html(data: List[Dict[str, Any]]) -> str:\n \n   <div class=\"card\">\n     <div class=\"card-body\">\n-      <div class=\"detail-section-title\">Details</div>\n       <div id=\"detailCard\" class=\"text-secondary\"></div>\n     </div>\n   </div>\n"
+test_patch: ''
+fail_to_pass: []
+pass_to_pass:
+- pytest --version
+install_config:
+  install: pip install -e .
+  python: '3.11'
+  test_cmd: pytest
+meta:
+  added_lines: '2'
+  difficulty: easy
+  files_changed: '1'
+  pr_title: Refine site detail panel headings and site-type badge
+  removed_lines: '3'
+  source: gh-archive-pr
+  test_generation: agentic
+prompt: |-
+  codenui/rrf.codenui.co.nz (#84): Refine site detail panel headings and site-type badge
+
+  Update the site detail panel to reduce redundant headings and visual clutter. Remove the extra “Details” heading and the licence/carrier count badges. Instead, show a single concise badge indicating the site type: display “Solo site” when there is exactly one carrier and “Shared site” when there is more than one.
+original_pr_body: |-
+  codenui/rrf.codenui.co.nz (#84): Refine site detail panel headings and site-type badge
+
+  ### Motivation
+  - Reduce redundant headings and visual clutter in the site details panel by removing the extra `Details` heading and the licence/carrier count badges, and surface a concise site-type label (`Solo site` / `Shared site`).
+
+  ### Description
+  - Updated the HTML template in `rrf.py` to compute `siteTypeLabel = carrierCount === 1 ? "Solo site" : "Shared site"` and replaced the licence/count badges with a single badge showing `siteTypeLabel`, and removed the separate `Details` heading from the detail card.
+
+  ### Testing
+  - Ran `python -m py_compile rrf.py` which passed, regenerated the HTML with `python rrf.py --html-only` (wrote `index.html`), and served the site with `python -m http.server 4173` and captured a Playwright screenshot for visual verification (all succeeded).
+
+  ------
+  [Codex Task](https://chatgpt.com/codex/tasks/task_e_69900a4e2e408327ae43215f600d2dbc)
+quality_score: 0.25
+quality_passed: true
+docker_passed: false
+workspace_path: null
+status: ready

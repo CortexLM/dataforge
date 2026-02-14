@@ -1,0 +1,35 @@
+id: MiniMax-AI/Mini-Agent-52
+repo: MiniMax-AI/Mini-Agent
+base_commit: 415869d6b9ddce619008080504ca9e2ffc070193
+merge_commit: 24812a33778d5277289735936c90323c43f1b2a8
+language: python
+difficulty_score: 1
+created_at: 2026-02-14T14:29:26.295452441Z
+patch: "diff --git a/README.md b/README.md\nindex dbcde25..9eecfc5 100644\n--- a/README.md\n+++ b/README.md\n@@ -333,7 +333,7 @@ This project is licensed under the [MIT License](LICENSE).\n \n ## References\n \n-- MiniMax API: https://platform.minimaxi.com/document\n+- MiniMax API: https://platform.minimax.io/docs\n - MiniMax-M2: https://github.com/MiniMax-AI/MiniMax-M2\n - Anthropic API: https://docs.anthropic.com/claude/reference\n - Claude Skills: https://github.com/anthropics/skills\ndiff --git a/README_CN.md b/README_CN.md\nindex 286d41e..696c5a3 100644\n--- a/README_CN.md\n+++ b/README_CN.md\n@@ -313,7 +313,7 @@ python -m mini_agent.cli\n ## 相关文档\n \n - [开发指南](docs/DEVELOPMENT_GUIDE_CN.md) - 详细的开发和配置指引\n-- [生产环境指南](docs/PRODUCTION_DEPLOYMENT_GUIDE_CN.md) - 生产部署最佳实践\n+- [生产环境指南](docs/PRODUCTION_GUIDE_CN.md) - 生产部署最佳实践\n \n ## 社区\n \n@@ -334,7 +334,7 @@ python -m mini_agent.cli\n \n ## 参考资源\n \n-- MiniMax API: https://platform.minimaxi.com/document\n+- MiniMax API: https://platform.minimaxi.com/docs\n - MiniMax-M2: https://github.com/MiniMax-AI/MiniMax-M2\n - Anthropic API: https://docs.anthropic.com/claude/reference\n - Claude Skills: https://github.com/anthropics/skills\n"
+test_patch: ''
+fail_to_pass:
+- python3 /tmp/test_readme_links.py
+pass_to_pass:
+- python3 /tmp/test_markdown_utils.py
+install_config:
+  install: pip install -e .
+  python: '3.11'
+  test_cmd: pytest
+meta:
+  added_lines: '3'
+  difficulty: easy
+  files_changed: '2'
+  pr_title: 'docs: Fix broken documentation links in README files'
+  removed_lines: '3'
+  source: gh-archive-pr
+  test_generation: agentic
+prompt: |-
+  MiniMax-AI/Mini-Agent (#52): docs: Fix broken documentation links in README files
+
+  Fix broken documentation links in the English and Chinese README files so all referenced guides and API documentation URLs point to the correct resources. Ensure the production guide link matches the actual file name and the MiniMax API reference URLs are accurate for their respective locales. The end result should let users follow README links without encountering 404s or incorrect destinations.
+original_pr_body: "MiniMax-AI/Mini-Agent (#52): docs: Fix broken documentation links in README files\n\n# Fix broken documentation links in README files\r\n\r\n## 📝 Description\r\n\r\nThis PR fixes broken and incorrect documentation links in both English and Chinese README files.\r\n\r\n## 🔧 Changes\r\n\r\n### README.md\r\n- Fixed MiniMax API reference link from `https://platform.minimaxi.com/document` to `https://platform.minimax.io/docs` (correct global platform URL)\r\n\r\n### README_CN.md\r\n- Fixed production guide link from `docs/PRODUCTION_DEPLOYMENT_GUIDE_CN.md` to `docs/PRODUCTION_GUIDE_CN.md` (correct filename)\r\n- Fixed MiniMax API reference link from `https://platform.minimaxi.com/document` to `https://platform.minimaxi.com/docs` (correct path)\r\n\r\n## 🎯 Impact\r\n\r\n- Users following the documentation links will now reach the correct resources\r\n- Improved documentation accuracy and user experience\r\n- Ensures consistency between English and Chinese documentation\r\n\r\n## ✅ Testing\r\n\r\n- Verified all referenced files exist in the repository\r\n- Confirmed URLs are accessible and correct\r\n\r\n## 📋 Checklist\r\n\r\n- [x] Documentation links verified\r\n- [x] Both English and Chinese versions updated\r\n- [x] No breaking changes\r\n"
+quality_score: 0.2
+quality_passed: true
+docker_passed: false
+workspace_path: null
+status: ready

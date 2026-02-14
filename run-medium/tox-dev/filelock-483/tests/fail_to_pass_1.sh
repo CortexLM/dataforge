@@ -1,0 +1,22 @@
+#!/bin/bash
+# This test must FAIL on base commit, PASS after fix
+cat <<'PY' > /tmp/test_default_mode.py
+import os
+from filelock import SoftFileLock
+
+def test_default_mode_uses_open_mode(tmp_path, monkeypatch):
+    lock_path = tmp_path / "a.lock"
+    captured = {}
+    real_open = os.open
+
+    def open_capture(path, flags, mode=0o777, *, dir_fd=None):
+        captured["mode"] = mode
+        return real_open(path, flags, mode) if dir_fd is None else real_open(path, flags, mode, dir_fd=dir_fd)
+
+    monkeypatch.setattr(os, "open", open_capture)
+    lock = SoftFileLock(str(lock_path))
+    lock.acquire()
+    lock.release()
+    assert captured["mode"] == 0o666
+PY
+/tmp/venv/bin/python -m pytest -q /tmp/test_default_mode.py

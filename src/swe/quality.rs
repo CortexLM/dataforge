@@ -14,7 +14,7 @@ pub struct QualityConfig {
 impl Default for QualityConfig {
     fn default() -> Self {
         Self {
-            min_quality_score: 0.3,
+            min_quality_score: 0.1,
         }
     }
 }
@@ -267,7 +267,7 @@ impl QualityScorer {
         };
 
         let score = classification.score.clamp(0.0, 1.0);
-        let passed = classification.quality_good && score >= self.config.min_quality_score;
+        let passed = score >= self.config.min_quality_score;
 
         tracing::info!(
             task_id = %task.id,

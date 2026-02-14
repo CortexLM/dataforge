@@ -6,6 +6,8 @@ use std::collections::HashSet;
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
+use futures::stream::FuturesUnordered;
+use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, Sender};
 use tokio::sync::Semaphore;
@@ -297,12 +299,11 @@ impl SwePipeline {
             let test_generator = &self.test_generator;
             let prompt_rewriter = &self.prompt_rewriter;
 
-            let mut process_futures = Vec::with_capacity(candidates.len());
-            for enriched in &candidates {
+            let mut futs: FuturesUnordered<_> = candidates.iter().map(|enriched| {
                 let sem = process_sem.clone();
                 let enriched = enriched.clone();
                 let df = difficulty_filter.clone();
-                process_futures.push(async move {
+                async move {
                     let _permit = sem.acquire().await.unwrap();
 
                     let patch = match extractor.extract_patch(&PatchExtractionInput {
@@ -385,16 +386,16 @@ impl SwePipeline {
                         task.status = crate::swe::SweTaskStatus::Ready;
                         Some(task)
                     } else { None }
-                });
-            }
+                }
+            }).collect();
 
-            let results = futures::future::join_all(process_futures).await;
-            for result in results {
+            while let Some(result) = futs.next().await {
                 scored += 1;
                 if let Some(task) = result {
                     extracted += 1;
                     tasks.push(task);
                     if tasks.len() >= config.max_tasks && config.once {
+                        tracing::info!("Reached max_tasks={}, stopping early", config.max_tasks);
                         break;
                     }
                 }

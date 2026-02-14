@@ -1,4 +1,0 @@
-PYTHONPATH=src /tmp/venv/bin/pytest -q tests/unit/manager/dependencies/system/test_composer.py --confcutdir=tests/unit/manager/dependencies
-PYTHONPATH=src /tmp/venv/bin/pytest -q tests/unit/manager/dependencies/system/test_providers.py --confcutdir=tests/unit/manager/dependencies
-PYTHONPATH=src /tmp/venv/bin/pytest -q tests/unit/common/dependencies/test_base.py --confcutdir=tests/unit/common/dependencies
-PYTHONPATH=src /tmp/venv/bin/pytest -q tests/unit/common/dependencies/stacks/test_visualizing.py --confcutdir=tests/unit/common/dependencies

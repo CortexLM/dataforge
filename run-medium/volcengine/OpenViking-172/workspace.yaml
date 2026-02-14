@@ -1,0 +1,36 @@
+id: volcengine/OpenViking-172
+repo: volcengine/OpenViking
+base_commit: 44032c93f70594ffaac8fe5fd15f44ef06dba079
+merge_commit: ce59613a11025afd8675b4fc1ae2f230cce59520
+language: python
+difficulty_score: 2
+created_at: 2026-02-14T14:29:10.790016525Z
+patch: "diff --git a/crates/openviking-cli/src/main.rs b/crates/openviking-cli/src/main.rs\nindex 8986f343..6e9f99a2 100644\n--- a/crates/openviking-cli/src/main.rs\n+++ b/crates/openviking-cli/src/main.rs\n@@ -37,11 +37,11 @@ impl CliContext {\n #[command(arg_required_else_help = true)]\n struct Cli {\n     /// Output format\n-    #[arg(short, long, value_enum, default_value = \"table\")]\n+    #[arg(short, long, value_enum, default_value = \"table\", global = true)]\n     output: OutputFormat,\n \n     /// Output compact JSON with {ok, result} wrapper (for scripts)\n-    #[arg(long)]\n+    #[arg(long, global = true)]\n     json: bool,\n \n     #[command(subcommand)]\n"
+test_patch: ''
+fail_to_pass:
+- cargo run -p openviking-cli -- ls --json
+- cargo run -p openviking-cli -- ls -o json
+pass_to_pass:
+- cargo test -p openviking-cli
+install_config:
+  install: pip install -e .
+  python: '3.11'
+  test_cmd: pytest
+meta:
+  added_lines: '2'
+  difficulty: medium
+  files_changed: '1'
+  pr_title: 'feat: make -o and --json global param'
+  removed_lines: '2'
+  source: gh-archive-pr
+  test_generation: agentic
+prompt: |-
+  volcengine/OpenViking (#172): feat: make -o and --json global param
+
+  Make output format flags global. Ensure the CLI accepts `--json` and `-o json` in any position (before or after subcommands/paths) and applies them consistently to commands like `ls`.
+original_pr_body: "volcengine/OpenViking (#172): feat: make -o and --json global param\n\nmake this work\r\n```\r\n ./target/release/ov ls viking://resources/ --json\r\n  ./target/release/ov ls -o json viking://resources/\r\n ```"
+quality_score: 0.45
+quality_passed: true
+docker_passed: false
+workspace_path: null
+status: ready

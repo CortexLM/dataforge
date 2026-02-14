@@ -1,0 +1,3 @@
+cd /tmp/.tmpOebznq/packages/server && /root/.bun/bin/bun test
+cd /tmp/.tmpOebznq/packages/filesystem && /root/.bun/bin/bun test
+cd /tmp/.tmpOebznq/packages/epicenter && /root/.bun/bin/bun test src/server/actions.test.ts
