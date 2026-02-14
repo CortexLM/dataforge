@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+
+echo "=== pre-push: checking fmt ==="
+cargo +nightly fmt --all -- --check
+echo "=== pre-push: checking clippy ==="
+cargo +nightly clippy --all-targets --all-features -- -D warnings
+echo "=== pre-push: all checks passed ==="

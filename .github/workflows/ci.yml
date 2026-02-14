@@ -13,7 +13,6 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   CARGO_INCREMENTAL: 0
-  RUSTFLAGS: "-C debuginfo=0 -D warnings"
   CARGO_NET_RETRY: 10
   RUST_BACKTRACE: short
 
@@ -26,6 +25,9 @@ jobs:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install mold linker
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mold clang
 
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
@@ -50,13 +52,16 @@ jobs:
         run: cargo +nightly clippy --all-targets --all-features -- -D warnings
 
   # ──────────────────────────────────────────────
-  # Build (release profile, nightly, max parallelism)
+  # Build (release profile, nightly, max parallelism, mold)
   # ──────────────────────────────────────────────
   build:
     name: Build (nightly, release)
     runs-on: blacksmith-32vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install mold linker
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mold clang
 
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
@@ -75,7 +80,7 @@ jobs:
       - name: Build release
         run: cargo +nightly build --release -j $(nproc)
         env:
-          RUSTFLAGS: "-C debuginfo=0 -C target-cpu=native -D warnings"
+          RUSTFLAGS: "-C debuginfo=0 -C target-cpu=native -C link-arg=-fuse-ld=mold -D warnings"
 
       - name: Upload binary
         uses: actions/upload-artifact@v4
@@ -85,13 +90,16 @@ jobs:
           retention-days: 7
 
   # ──────────────────────────────────────────────
-  # Tests (parallel, nightly, 32 vCPU)
+  # Tests (parallel, nightly, 32 vCPU, mold)
   # ──────────────────────────────────────────────
   test:
     name: Tests
     runs-on: blacksmith-32vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install mold linker
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mold clang
 
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
@@ -120,6 +128,9 @@ jobs:
     runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install mold linker
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mold clang
 
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly

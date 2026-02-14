@@ -317,7 +317,7 @@ impl EmbeddingGenerator {
             *counts.entry(action.tool_name.clone()).or_insert(0) += 1;
         }
         let mut sorted: Vec<_> = counts.into_iter().collect();
-        sorted.sort_by(|a, b| b.1.cmp(&a.1));
+        sorted.sort_by_key(|item| std::cmp::Reverse(item.1));
         sorted
     }
 

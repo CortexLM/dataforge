@@ -514,7 +514,8 @@ impl TestDesignerAgent {
                     Ok(j) => j,
                     Err(_) => {
                         return Err(AgentError::ResponseParseError(format!(
-                            "Failed to parse LLM response: {}", first_err
+                            "Failed to parse LLM response: {}",
+                            first_err
                         )));
                     }
                 };
@@ -526,14 +527,16 @@ impl TestDesignerAgent {
                             if let Some(cmds) = extract_test_commands_from_value(&val) {
                                 cmds
                             } else {
-                                return Err(AgentError::ResponseParseError(
-                                    format!("Invalid JSON: {}", e)
-                                ));
+                                return Err(AgentError::ResponseParseError(format!(
+                                    "Invalid JSON: {}",
+                                    e
+                                )));
                             }
                         } else {
-                            return Err(AgentError::ResponseParseError(
-                                format!("Invalid JSON: {}", e)
-                            ));
+                            return Err(AgentError::ResponseParseError(format!(
+                                "Invalid JSON: {}",
+                                e
+                            )));
                         }
                     }
                 }
@@ -733,9 +736,19 @@ fn extract_test_commands_from_value(val: &serde_json::Value) -> Option<TestDesig
 /// Response structure from LLM test design.
 #[derive(Debug, Deserialize)]
 struct TestDesignResponse {
-    #[serde(default, alias = "fail_tests", alias = "failing_tests", alias = "tests_fail_to_pass")]
+    #[serde(
+        default,
+        alias = "fail_tests",
+        alias = "failing_tests",
+        alias = "tests_fail_to_pass"
+    )]
     fail_to_pass: Vec<TestCommandResponse>,
-    #[serde(default, alias = "pass_tests", alias = "passing_tests", alias = "tests_pass_to_pass")]
+    #[serde(
+        default,
+        alias = "pass_tests",
+        alias = "passing_tests",
+        alias = "tests_pass_to_pass"
+    )]
     pass_to_pass: Vec<TestCommandResponse>,
     #[serde(default)]
     setup_commands: Vec<String>,

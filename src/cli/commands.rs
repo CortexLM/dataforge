@@ -4,12 +4,12 @@
 //! SWE-derived benchmark datasets in one shot.
 
 use crate::agents::{
-    AntiMemorizationConfig, DockerValidatorAgent, DockerValidatorConfig, DifficultyScoring,
+    AntiMemorizationConfig, DifficultyScoring, DockerValidatorAgent, DockerValidatorConfig,
     HiddenSolution, SyntheticTask, TaskMetadata, VerificationSpec,
 };
 use crate::difficulty::DifficultyLevel;
-use crate::swe::{SweOrchestrator, SweOrchestratorConfig};
 use crate::llm::{LiteLlmClient, OpenRouterProvider};
+use crate::swe::{SweOrchestrator, SweOrchestratorConfig};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
@@ -374,7 +374,10 @@ struct SweValidateOutput {
 async fn run_swe_validate_command(args: SweValidateArgs) -> anyhow::Result<()> {
     let input_dir = Path::new(&args.input);
     if !input_dir.exists() {
-        return Err(anyhow::anyhow!("Input directory does not exist: {}", args.input));
+        return Err(anyhow::anyhow!(
+            "Input directory does not exist: {}",
+            args.input
+        ));
     }
 
     let llm_client = build_llm_client(args.api_key, args.model).await?;
@@ -392,9 +395,9 @@ async fn run_swe_validate_command(args: SweValidateArgs) -> anyhow::Result<()> {
     };
 
     let mut total = 0usize;
-        let mut quality_ok = 0usize;
-        let mut docker_passed = 0usize;
-        let mut results = Vec::new();
+    let mut quality_ok = 0usize;
+    let mut docker_passed = 0usize;
+    let mut results = Vec::new();
 
     for entry in fs::read_dir(input_dir)? {
         let entry = entry?;
@@ -456,12 +459,16 @@ async fn run_swe_validate_command(args: SweValidateArgs) -> anyhow::Result<()> {
         quality_ok
     };
 
-        let output = SweValidateOutput {
-        status: if passed > 0 { "success".to_string() } else { "failed".to_string() },
+    let output = SweValidateOutput {
+        status: if passed > 0 {
+            "success".to_string()
+        } else {
+            "failed".to_string()
+        },
         tasks: total,
         quality_passed: quality_ok,
         docker_requested: args.validate_docker,
-        docker_passed: docker_passed,
+        docker_passed,
         results,
     };
 
@@ -491,12 +498,18 @@ async fn run_swe_harness_command(args: SweHarnessArgs) -> anyhow::Result<()> {
 
     let input_dir = Path::new(&args.input);
     if !input_dir.exists() {
-        return Err(anyhow::anyhow!("Input directory does not exist: {}", args.input));
+        return Err(anyhow::anyhow!(
+            "Input directory does not exist: {}",
+            args.input
+        ));
     }
 
     let agent_dir = Path::new(&args.agent_dir);
     if !agent_dir.exists() {
-        return Err(anyhow::anyhow!("Agent directory does not exist: {}", args.agent_dir));
+        return Err(anyhow::anyhow!(
+            "Agent directory does not exist: {}",
+            args.agent_dir
+        ));
     }
 
     let config = harness::HarnessConfig {
@@ -509,7 +522,10 @@ async fn run_swe_harness_command(args: SweHarnessArgs) -> anyhow::Result<()> {
         parallel: args.parallel,
     };
 
-    info!("Running SWE harness on {} with agent from {}", args.input, args.agent_dir);
+    info!(
+        "Running SWE harness on {} with agent from {}",
+        args.input, args.agent_dir
+    );
     let summary = harness::run_harness(input_dir, &config).await?;
 
     if args.json {
@@ -532,9 +548,12 @@ async fn run_swe_harness_command(args: SweHarnessArgs) -> anyhow::Result<()> {
             let p2p_ok = r.pass_to_pass.iter().filter(|t| t.passed).count();
             println!(
                 "  {} [{}] f2p={}/{} p2p={}/{} agent={:.1}s",
-                r.task_id, r.status,
-                f2p_ok, r.fail_to_pass.len(),
-                p2p_ok, r.pass_to_pass.len(),
+                r.task_id,
+                r.status,
+                f2p_ok,
+                r.fail_to_pass.len(),
+                p2p_ok,
+                r.pass_to_pass.len(),
                 r.agent_duration_secs,
             );
             if let Some(err) = &r.error {
@@ -551,7 +570,10 @@ async fn run_swe_export_command(args: SweExportArgs) -> anyhow::Result<()> {
     let destination_dir = Path::new(&args.output);
 
     if !source_dir.exists() {
-        return Err(anyhow::anyhow!("Input directory does not exist: {}", args.input));
+        return Err(anyhow::anyhow!(
+            "Input directory does not exist: {}",
+            args.input
+        ));
     }
 
     fs::create_dir_all(destination_dir)?;
@@ -590,7 +612,11 @@ async fn run_swe_export_command(args: SweExportArgs) -> anyhow::Result<()> {
     }
 
     let output = SweExportOutput {
-        status: if copied > 0 { "success".to_string() } else { "failed".to_string() },
+        status: if copied > 0 {
+            "success".to_string()
+        } else {
+            "failed".to_string()
+        },
         source: args.input,
         destination: args.output,
         copied,
@@ -606,7 +632,10 @@ async fn run_swe_export_command(args: SweExportArgs) -> anyhow::Result<()> {
     }
 
     if output.status == "failed" {
-        warn!("No workspace artifacts were exported from {}", output.source);
+        warn!(
+            "No workspace artifacts were exported from {}",
+            output.source
+        );
     }
 
     println!("{}", json_output);
@@ -641,16 +670,17 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
 
     let skip_prs = load_skip_prs(args.pr_file.as_deref())?;
 
-    let mut config = SweOrchestratorConfig::default();
-    config.output_dir = output_dir.clone();
-    config.min_stars = args.min_stars;
-    config.languages = languages;
-    config.max_tasks = args.max_tasks;
-    config.once = args.once;
-    config.validate_docker = args.validate_docker;
-    config.skip_prs = skip_prs;
-    config.pr_file = args.pr_file.clone();
-    config.difficulty_filter = args.difficulty.clone();
+    let config = SweOrchestratorConfig {
+        output_dir: output_dir.clone(),
+        min_stars: args.min_stars,
+        languages,
+        max_tasks: args.max_tasks,
+        once: args.once,
+        validate_docker: args.validate_docker,
+        skip_prs,
+        pr_file: args.pr_file.clone(),
+        difficulty_filter: args.difficulty.clone(),
+    };
 
     let orchestrator = SweOrchestrator::new(llm_client, config);
     let result = orchestrator.mine().await?;
@@ -667,7 +697,11 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
         }
 
         let output = SweMineOutput {
-            status: if result.passed > 0 { "success".to_string() } else { "failed".to_string() },
+            status: if result.passed > 0 {
+                "success".to_string()
+            } else {
+                "failed".to_string()
+            },
             attempted: result.attempted,
             passed: result.passed,
             skipped: result.skipped,
@@ -686,7 +720,10 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
         );
         println!("✓ SWE mine completed");
         println!("  Output dir: {}", output_dir);
-        println!("  Tasks: {} attempted, {} passed, {} skipped", result.attempted, result.passed, result.skipped);
+        println!(
+            "  Tasks: {} attempted, {} passed, {} skipped",
+            result.attempted, result.passed, result.skipped
+        );
     }
 
     Ok(())
@@ -694,11 +731,19 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
 
 fn load_swe_workspace_task(path: &Path) -> anyhow::Result<crate::swe::SweTask> {
     let content = fs::read_to_string(path)?;
-    serde_yaml::from_str(&content)
-        .map_err(|e| anyhow::anyhow!("Failed to parse SWE workspace yaml {}: {}", path.display(), e))
+    serde_yaml::from_str(&content).map_err(|e| {
+        anyhow::anyhow!(
+            "Failed to parse SWE workspace yaml {}: {}",
+            path.display(),
+            e
+        )
+    })
 }
 
-fn synthetic_task_from_swe_task(task: &crate::swe::SweTask, _config: &DockerValidatorConfig) -> SyntheticTask {
+fn synthetic_task_from_swe_task(
+    task: &crate::swe::SweTask,
+    _config: &DockerValidatorConfig,
+) -> SyntheticTask {
     let mut tags = Vec::<String>::new();
     tags.push(format!("language:{}", task.language.to_lowercase()));
     tags.push(format!("repo:{}", task.repo));
@@ -706,10 +751,13 @@ fn synthetic_task_from_swe_task(task: &crate::swe::SweTask, _config: &DockerVali
     let mut metadata = TaskMetadata::new("swe", task.id.clone()).with_tags(tags);
     metadata.subcategory = "mined-pr".to_string();
 
-    let hidden_solution = HiddenSolution::new(format!("Solve the bug described in issue context for {}", task.id))
-        .with_reference_commands(task.fail_to_pass.clone())
-        .with_expected_time_seconds(900)
-        .with_step_count(5);
+    let hidden_solution = HiddenSolution::new(format!(
+        "Solve the bug described in issue context for {}",
+        task.id
+    ))
+    .with_reference_commands(task.fail_to_pass.clone())
+    .with_expected_time_seconds(900)
+    .with_step_count(5);
 
     let verification = VerificationSpec::new().with_success_criteria(
         task.fail_to_pass
@@ -725,9 +773,14 @@ fn synthetic_task_from_swe_task(task: &crate::swe::SweTask, _config: &DockerVali
         _ => DifficultyScoring::new(DifficultyLevel::Hard),
     };
 
-    let mut synthetic_task =
-        SyntheticTask::new(task.prompt.clone(), hidden_solution, verification, difficulty, metadata)
-            .with_anti_memorization(AntiMemorizationConfig::default());
+    let mut synthetic_task = SyntheticTask::new(
+        task.prompt.clone(),
+        hidden_solution,
+        verification,
+        difficulty,
+        metadata,
+    )
+    .with_anti_memorization(AntiMemorizationConfig::default());
     synthetic_task.id = task.id.clone();
 
     synthetic_task
@@ -778,7 +831,11 @@ fn load_skip_prs(path: Option<&str>) -> anyhow::Result<HashSet<(String, u64)>> {
             }
         }
     }
-    info!(skip_count = set.len(), path = path, "Loaded PRs to skip from file");
+    info!(
+        skip_count = set.len(),
+        path = path,
+        "Loaded PRs to skip from file"
+    );
     Ok(set)
 }
 
@@ -848,13 +905,15 @@ async fn run_generate_command(args: GenerateArgs) -> anyhow::Result<()> {
     let output_path = Path::new(&args.output);
     fs::create_dir_all(output_path)?;
 
-    let mut config = SweOrchestratorConfig::default();
-    config.output_dir = args.output.clone();
-    config.min_stars = args.min_stars;
-    config.languages = parse_language_filter(&args.languages.unwrap_or_default());
-    config.max_tasks = args.count.max(1) as usize;
-    config.once = args.count <= 1;
-    config.validate_docker = args.validate_docker && !args.no_docker;
+    let config = SweOrchestratorConfig {
+        output_dir: args.output.clone(),
+        min_stars: args.min_stars,
+        languages: parse_language_filter(&args.languages.unwrap_or_default()),
+        max_tasks: args.count.max(1) as usize,
+        once: args.count <= 1,
+        validate_docker: args.validate_docker && !args.no_docker,
+        ..SweOrchestratorConfig::default()
+    };
 
     let orchestrator = SweOrchestrator::new(llm_client, config);
     let start = std::time::Instant::now();
@@ -869,9 +928,10 @@ async fn run_generate_command(args: GenerateArgs) -> anyhow::Result<()> {
             requested_category
                 .as_ref()
                 .map(|requested| {
-                    task.meta.values().any(|value| {
-                        value.to_lowercase().contains(requested)
-                    }) || task.language.to_lowercase().contains(requested)
+                    task.meta
+                        .values()
+                        .any(|value| value.to_lowercase().contains(requested))
+                        || task.language.to_lowercase().contains(requested)
                         || task.repo.to_lowercase().contains(requested)
                         || task.prompt.to_lowercase().contains(requested)
                         || task.id.to_lowercase().contains(requested)
@@ -890,13 +950,20 @@ async fn run_generate_command(args: GenerateArgs) -> anyhow::Result<()> {
                     .clone()
                     .unwrap_or_else(|| "swe-mining".to_string()),
                 problem_statement: task.prompt,
-                difficulty: map_difficulty_label(task.quality_score, task.difficulty_score as usize),
+                difficulty: map_difficulty_label(
+                    task.quality_score,
+                    task.difficulty_score as usize,
+                ),
                 tags: vec![
                     "swe".to_string(),
                     format!("language:{}", task.language.to_lowercase()),
                     format!("repo:{}", task.repo),
                 ],
-                verification_criteria: task.fail_to_pass.into_iter().chain(task.pass_to_pass).collect(),
+                verification_criteria: task
+                    .fail_to_pass
+                    .into_iter()
+                    .chain(task.pass_to_pass)
+                    .collect(),
                 saved_path,
             }
         })
@@ -1445,7 +1512,6 @@ async fn run_interactive_evaluation(
     Ok(())
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1539,7 +1605,9 @@ mod tests {
         let cli = Cli::try_parse_from(args).expect("should parse");
 
         match cli.command {
-            Commands::Swe(SweArgs { command: SweSubcommand::Validate(s) }) => {
+            Commands::Swe(SweArgs {
+                command: SweSubcommand::Validate(s),
+            }) => {
                 assert_eq!(s.input, "./workspace-dir");
                 assert_eq!(s.model, "anthropic/claude-3-opus");
                 assert!(s.validate_docker);
@@ -1777,5 +1845,4 @@ mod tests {
         assert!(metrics.medium_avg_duration_ms.is_none());
         assert!(metrics.hard_avg_duration_ms.is_none());
     }
-
 }

@@ -15,7 +15,7 @@ use tokio::sync::Semaphore;
 use crate::llm::LlmProvider;
 use crate::swe::{
     enricher::{EnrichedPullRequest, PullRequestEnricher},
-    extractor::{PatchExtractor, PatchExtractorConfig, PatchExtractionInput},
+    extractor::{PatchExtractionInput, PatchExtractor, PatchExtractorConfig},
     filters::SweepFilter,
     gharchive::GhArchiveClient,
     quality::{QualityConfig, QualityScorer},
@@ -25,12 +25,28 @@ use crate::swe::{
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SwePipelineEvent {
-    CollectionStarted { requested: usize },
-    CandidateFiltered { event_id: String, accepted: bool, reasons: Vec<String> },
-    TaskExtracted { task_id: String },
-    TestGenerated { task_id: String },
-    QualityScored { task_id: String, score: f64, passed: bool },
-    PipelineCompleted { emitted: usize },
+    CollectionStarted {
+        requested: usize,
+    },
+    CandidateFiltered {
+        event_id: String,
+        accepted: bool,
+        reasons: Vec<String>,
+    },
+    TaskExtracted {
+        task_id: String,
+    },
+    TestGenerated {
+        task_id: String,
+    },
+    QualityScored {
+        task_id: String,
+        score: f64,
+        passed: bool,
+    },
+    PipelineCompleted {
+        emitted: usize,
+    },
 }
 
 #[derive(Debug, Clone)]
@@ -80,10 +96,7 @@ pub struct SwePipeline {
 }
 
 impl SwePipeline {
-    pub fn new(
-        config: &SwePipelineConfig,
-        llm: Arc<dyn LlmProvider>,
-    ) -> anyhow::Result<Self> {
+    pub fn new(config: &SwePipelineConfig, llm: Arc<dyn LlmProvider>) -> anyhow::Result<Self> {
         let archive = GhArchiveClient::new(None);
         let enricher = PullRequestEnricher::with_default()?;
 
@@ -129,10 +142,7 @@ impl SwePipeline {
 
         // Cap hours_back to avoid downloading too much data
         let hours_back = ((config.max_candidates / 50) + 1).clamp(6, 12) as u32;
-        let mut events = self
-            .archive
-            .fetch_events(hours_back)
-            .await?;
+        let mut events = self.archive.fetch_events(hours_back).await?;
 
         let total_before_filter = events.len();
         events.retain(|e| e.action.to_lowercase() == "merged");
@@ -160,13 +170,24 @@ impl SwePipeline {
         let before_prefilter = events.len();
         events.retain(|e| {
             // Must have a valid PR number
-            if e.pull_number == 0 { return false; }
+            if e.pull_number == 0 {
+                return false;
+            }
             // Skip already-processed PRs
-            if config.skip_prs.contains(&(e.repository.clone(), e.pull_number)) { return false; }
+            if config
+                .skip_prs
+                .contains(&(e.repository.clone(), e.pull_number))
+            {
+                return false;
+            }
             // Exclude bots
-            if e.actor.contains("[bot]") || e.actor == "dependabot" { return false; }
+            if e.actor.contains("[bot]") || e.actor == "dependabot" {
+                return false;
+            }
             // Prefer repos with an org (real projects, not personal forks)
-            if !e.has_org { return false; }
+            if !e.has_org {
+                return false;
+            }
             true
         });
         tracing::info!(
@@ -209,16 +230,11 @@ impl SwePipeline {
             }
             let enrich_results = futures::future::join_all(enrich_futures).await;
 
-            let mut enriched_prs: Vec<EnrichedPullRequest> = Vec::new();
-            for result in enrich_results {
-                if let Ok(e) = result {
-                    // Reject if enrichment didn't get real data (title/merge_sha missing)
-                    if e.title == "Untitled change" || e.merge_sha.is_empty() {
-                        continue;
-                    }
-                    enriched_prs.push(e);
-                }
-            }
+            let enriched_prs: Vec<EnrichedPullRequest> = enrich_results
+                .into_iter()
+                .flatten()
+                .filter(|e| e.title != "Untitled change" && !e.merge_sha.is_empty())
+                .collect();
 
             // --- Local filter ---
             let mut filtered_prs: Vec<EnrichedPullRequest> = Vec::new();
@@ -260,7 +276,9 @@ impl SwePipeline {
                     let df_clone = df.clone();
                     triage_futures.push(async move {
                         let _permit = sem.acquire().await.unwrap();
-                        let result = quality.pre_classify(&repo, number, &title, &body, &df_clone).await;
+                        let result = quality
+                            .pre_classify(&repo, number, &title, &body, &df_clone)
+                            .await;
                         (number, repo, result)
                     });
                 }
@@ -276,7 +294,9 @@ impl SwePipeline {
                         Ok(pre) => {
                             tracing::debug!(repo = %repo, pr = number, triage = %pre.difficulty, "Skipped by pre-classification");
                         }
-                        Err(_) => { accepted_set.insert((repo, number)); }
+                        Err(_) => {
+                            accepted_set.insert((repo, number));
+                        }
                     }
                 }
 
@@ -424,12 +444,8 @@ fn infer_added_lines(pr: &EnrichedPullRequest) -> usize {
     (pr.title.len() + pr.body.len()) % 700 + 15
 }
 
-
-
 async fn emit(tx: &Option<mpsc::Sender<SwePipelineEvent>>, event: SwePipelineEvent) {
     if let Some(sender) = tx {
         let _ = sender.send(event).await;
     }
 }
-
-

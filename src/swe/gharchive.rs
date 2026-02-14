@@ -10,8 +10,6 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-
-
 const GH_ARCHIVE_BASE_URL: &str = "https://data.gharchive.org";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -59,7 +57,10 @@ impl GhArchiveClient {
     }
 
     /// Fetch GH Archive events from recent hourly buckets.
-    pub async fn fetch_events(&self, max_hours_back: u32) -> Result<Vec<GhArchiveEvent>, anyhow::Error> {
+    pub async fn fetch_events(
+        &self,
+        max_hours_back: u32,
+    ) -> Result<Vec<GhArchiveEvent>, anyhow::Error> {
         let max_hours = max_hours_back.max(1);
 
         // Build all hour keys
@@ -81,9 +82,8 @@ impl GhArchiveClient {
             handles.push(tokio::spawn(async move {
                 let _permit = sem.acquire().await.unwrap();
                 fetch_hour_events_static(&client, &token, &key).await
-                    .map(|batch| {
+                    .inspect(|batch| {
                         tracing::info!(hour = %key, events = batch.len(), "Fetched GH Archive hour");
-                        batch
                     })
                     .map_err(|err| {
                         tracing::warn!(hour = %key, error = %err, "GH Archive hour fetch failed");
@@ -174,10 +174,16 @@ async fn fetch_hour_events_static(
 
 fn parse_github_archive_event(value: &Value) -> Option<GhArchiveEvent> {
     let event_type = value.get("type").and_then(Value::as_str)?;
-    let payload = value.get("payload").cloned().unwrap_or_else(|| Value::Object(Default::default()));
+    let payload = value
+        .get("payload")
+        .cloned()
+        .unwrap_or_else(|| Value::Object(Default::default()));
     let pull_request = payload.get("pull_request");
     let issue = payload.get("issue");
-    let raw_action = payload.get("action").and_then(Value::as_str).unwrap_or("unknown");
+    let raw_action = payload
+        .get("action")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown");
     let pr_merged = pull_request
         .and_then(|pr| pr.get("merged"))
         .and_then(Value::as_bool)
@@ -243,13 +249,10 @@ fn parse_github_archive_event(value: &Value) -> Option<GhArchiveEvent> {
         .and_then(|value| u32::try_from(value).ok())
         .unwrap_or(0);
 
-    let id = value
-        .get("id")
-        .and_then(Value::as_u64)
-        .unwrap_or_else(|| {
-            let fallback = Utc::now().timestamp_nanos_opt().unwrap_or(0);
-            u64::try_from(fallback).unwrap_or(0)
-        });
+    let id = value.get("id").and_then(Value::as_u64).unwrap_or_else(|| {
+        let fallback = Utc::now().timestamp_nanos_opt().unwrap_or(0);
+        u64::try_from(fallback).unwrap_or(0)
+    });
 
     let has_org = value.get("org").is_some();
 

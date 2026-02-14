@@ -13,7 +13,7 @@ env:
 
 jobs:
   # ──────────────────────────────────────────────
-  # Full nightly build + test matrix
+  # Full nightly build + test matrix (mold linker)
   # ──────────────────────────────────────────────
   nightly-build:
     name: Nightly (${{ matrix.toolchain }})
@@ -24,6 +24,9 @@ jobs:
         toolchain: [stable, nightly]
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install mold linker
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mold clang
 
       - name: Install Rust ${{ matrix.toolchain }}
         uses: dtolnay/rust-toolchain@master
@@ -45,7 +48,7 @@ jobs:
       - name: Build
         run: cargo build --release -j $(nproc)
         env:
-          RUSTFLAGS: "-C debuginfo=0 -C target-cpu=native"
+          RUSTFLAGS: "-C debuginfo=0 -C target-cpu=native -C link-arg=-fuse-ld=mold"
 
       - name: Test
         run: cargo test --release -j $(nproc) -- --test-threads=$(nproc)
@@ -57,13 +60,16 @@ jobs:
         if: matrix.toolchain == 'nightly'
 
   # ──────────────────────────────────────────────
-  # Optimized release binary (nightly + LTO)
+  # Optimized release binary (nightly + fat LTO + mold)
   # ──────────────────────────────────────────────
   release-binary:
     name: Release binary (LTO)
     runs-on: blacksmith-32vcpu-ubuntu-2404
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install mold linker
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mold clang
 
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
@@ -86,7 +92,7 @@ jobs:
           CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "1"
           CARGO_PROFILE_RELEASE_OPT_LEVEL: "3"
           CARGO_PROFILE_RELEASE_STRIP: "symbols"
-          RUSTFLAGS: "-C target-cpu=native"
+          RUSTFLAGS: "-C target-cpu=native -C link-arg=-fuse-ld=mold"
 
       - name: Binary size
         run: ls -lh target/release/dataforge

@@ -24,12 +24,12 @@ pub mod registry;
 pub mod scaffold;
 pub mod scheduler;
 pub mod storage;
+pub mod swe;
 pub mod template;
 pub mod test_framework;
 pub mod trajectory;
 pub mod utils;
 pub mod validation;
-pub mod swe;
 pub mod workspace;
 
 // Re-export commonly used error types

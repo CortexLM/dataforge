@@ -1047,8 +1047,7 @@ edition = "2021"
                         .map(|d| format!(
                             "{} = \"{}\"",
                             d.name,
-                            d.version
-                                .trim_start_matches(['>', '=', '^'])
+                            d.version.trim_start_matches(['>', '=', '^'])
                         ))
                         .collect::<Vec<_>>()
                         .join("\n")

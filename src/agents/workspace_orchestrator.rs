@@ -71,6 +71,7 @@ impl std::fmt::Display for WorkspacePipelineStage {
 
 /// Events emitted during workspace generation for TUI updates.
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(clippy::large_enum_variant)]
 pub enum WorkspacePipelineEvent {
     /// Pipeline has started.
     PipelineStarted {

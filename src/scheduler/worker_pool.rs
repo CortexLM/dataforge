@@ -201,11 +201,11 @@ impl SharedPoolStats {
         let active = self.active_workers.load(Ordering::SeqCst);
 
         let total_jobs = completed + failed;
-        let average_duration = if total_jobs > 0 {
-            Duration::from_millis(total_duration_ms / total_jobs)
-        } else {
-            Duration::ZERO
-        };
+        let average_duration = total_jobs
+            .checked_div(total_jobs)
+            .map_or(Duration::ZERO, |_| {
+                Duration::from_millis(total_duration_ms / total_jobs)
+            });
 
         PoolStats {
             num_workers,

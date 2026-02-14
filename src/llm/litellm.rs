@@ -75,7 +75,10 @@ impl Message {
     }
 
     /// Create an assistant message with tool calls (for multi-turn agentic loops).
-    pub fn assistant_with_tool_calls(content: impl Into<String>, tool_calls: Vec<ToolCallInfo>) -> Self {
+    pub fn assistant_with_tool_calls(
+        content: impl Into<String>,
+        tool_calls: Vec<ToolCallInfo>,
+    ) -> Self {
         Self {
             role: "assistant".to_string(),
             content: content.into(),
@@ -152,7 +155,11 @@ pub struct ToolChoiceFunction {
 
 impl ToolDefinition {
     /// Create a function tool from a name, description, and JSON Schema for parameters.
-    pub fn function(name: impl Into<String>, description: impl Into<String>, parameters: serde_json::Value) -> Self {
+    pub fn function(
+        name: impl Into<String>,
+        description: impl Into<String>,
+        parameters: serde_json::Value,
+    ) -> Self {
         Self {
             tool_type: "function".to_string(),
             function: FunctionDefinition {

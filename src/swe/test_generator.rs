@@ -299,8 +299,7 @@ impl TestGenerator {
                     Ok(a) => a,
                     Err(e) => return ToolResult::Error(format!("Invalid shell args: {}", e)),
                 };
-                let result =
-                    execute_shell(&args.command, repo_path, args.timeout_ms).await;
+                let result = execute_shell(&args.command, repo_path, args.timeout_ms).await;
                 tracing::debug!(
                     task_id = task_id, turn = turn,
                     cmd = %args.command, exit = result.exit_code,
@@ -330,7 +329,9 @@ impl TestGenerator {
                             "Agent wrote file"
                         );
                         // Track the file
-                        if let Some(existing) = written_files.iter_mut().find(|f| f.path == args.path) {
+                        if let Some(existing) =
+                            written_files.iter_mut().find(|f| f.path == args.path)
+                        {
                             existing.content = args.content;
                         } else {
                             written_files.push(TestFile {

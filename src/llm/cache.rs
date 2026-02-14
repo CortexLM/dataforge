@@ -835,9 +835,11 @@ mod tests {
 
     #[test]
     fn test_cache_stats_total_accesses() {
-        let mut stats = CacheStats::default();
-        stats.hits = 5;
-        stats.misses = 3;
+        let stats = CacheStats {
+            hits: 5,
+            misses: 3,
+            ..CacheStats::default()
+        };
 
         assert_eq!(stats.total_accesses(), 8);
     }

@@ -599,6 +599,7 @@ mod tests {
 
     /// Mock provider for testing.
     struct MockProvider {
+        #[allow(dead_code)]
         model: String,
         response: Mutex<Option<GenerationResponse>>,
         should_fail: Mutex<bool>,

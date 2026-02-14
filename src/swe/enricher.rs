@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use anyhow::Result;
-use reqwest::Client;
 use regex::Regex;
+use reqwest::Client;
 use serde_json::Value;
 
 use crate::swe::gharchive::GhArchiveEvent;
@@ -92,7 +92,7 @@ impl PullRequestEnricher {
             .language_hint
             .clone()
             .unwrap_or_else(|| self.config.default_language.clone());
-        let mut files_changed = (event.title.chars().count() % 8 + 1) as usize;
+        let mut files_changed = event.title.chars().count() % 8 + 1;
         let mut stars = event.stars;
         let mut base_sha = event.base_sha.clone();
         let mut merge_sha = event.merge_sha.clone();
@@ -104,32 +104,32 @@ impl PullRequestEnricher {
                 .fetch_pr_metadata(&event.repository, event.pull_number, token)
                 .await
             {
-            Err(err) => {
-                tracing::debug!(repo = %event.repository, pr = event.pull_number, error = %err, "GitHub API enrichment failed");
-            }
-            Ok(meta) => {
-                if let Some(found_lang) = meta.language {
-                    language = found_lang;
+                Err(err) => {
+                    tracing::debug!(repo = %event.repository, pr = event.pull_number, error = %err, "GitHub API enrichment failed");
                 }
-                if let Some(value) = meta.files_changed {
-                    files_changed = value;
+                Ok(meta) => {
+                    if let Some(found_lang) = meta.language {
+                        language = found_lang;
+                    }
+                    if let Some(value) = meta.files_changed {
+                        files_changed = value;
+                    }
+                    if let Some(value) = meta.stars {
+                        stars = value;
+                    }
+                    if let Some(value) = meta.base_sha {
+                        base_sha = value;
+                    }
+                    if let Some(value) = meta.merge_sha {
+                        merge_sha = value;
+                    }
+                    if let Some(value) = meta.title {
+                        title = value;
+                    }
+                    if let Some(value) = meta.body {
+                        body = value;
+                    }
                 }
-                if let Some(value) = meta.stars {
-                    stars = value;
-                }
-                if let Some(value) = meta.base_sha {
-                    base_sha = value;
-                }
-                if let Some(value) = meta.merge_sha {
-                    merge_sha = value;
-                }
-                if let Some(value) = meta.title {
-                    title = value;
-                }
-                if let Some(value) = meta.body {
-                    body = value;
-                }
-            }
             }
         }
 
@@ -138,8 +138,14 @@ impl PullRequestEnricher {
         metadata.insert("action_by".to_string(), event.actor.clone());
         metadata.insert("source".to_string(), "gharchive".to_string());
         if self.config.fallback_commits {
-            metadata.insert("has_merge_sha".to_string(), (!merge_sha.is_empty()).to_string());
-            metadata.insert("has_base_sha".to_string(), (!base_sha.is_empty()).to_string());
+            metadata.insert(
+                "has_merge_sha".to_string(),
+                (!merge_sha.is_empty()).to_string(),
+            );
+            metadata.insert(
+                "has_base_sha".to_string(),
+                (!base_sha.is_empty()).to_string(),
+            );
         }
 
         Ok(EnrichedPullRequest {
@@ -210,8 +216,14 @@ impl PullRequestEnricher {
                 .get("merge_commit_sha")
                 .and_then(Value::as_str)
                 .map(std::string::ToString::to_string),
-            title: raw.get("title").and_then(Value::as_str).map(|v| v.to_string()),
-            body: raw.get("body").and_then(Value::as_str).map(|v| v.to_string()),
+            title: raw
+                .get("title")
+                .and_then(Value::as_str)
+                .map(|v| v.to_string()),
+            body: raw
+                .get("body")
+                .and_then(Value::as_str)
+                .map(|v| v.to_string()),
         })
     }
 }
@@ -233,9 +245,8 @@ async fn fetch_pr_files_changed(
     number: u64,
     token: &str,
 ) -> Result<usize> {
-    let files_url = format!(
-        "https://api.github.com/repos/{repository}/pulls/{number}/files?per_page=100"
-    );
+    let files_url =
+        format!("https://api.github.com/repos/{repository}/pulls/{number}/files?per_page=100");
     let response = client
         .get(&files_url)
         .header("User-Agent", "dataforge/1.0")

@@ -32,3 +32,4 @@ generated-datasets/
 /test-run-hard/
 *.jsonl
 
+test-verify/

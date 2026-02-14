@@ -93,20 +93,22 @@ impl PatchExtractor {
     fn extract_from_repo(&self, input: &PatchExtractionInput<'_>) -> Result<ExtractedPatch> {
         let namespace = input.repository.replace('/', "_");
 
-        let diff = self.fetch_diff_from_api(input)
-            .or_else(|api_err| {
-                tracing::debug!(
-                    repo = %input.repository,
-                    pr = input.pull_number,
-                    error = %api_err,
-                    "GitHub API diff failed, trying git clone"
-                );
-                self.fetch_diff_from_clone(input)
-            })?;
+        let diff = self.fetch_diff_from_api(input).or_else(|api_err| {
+            tracing::debug!(
+                repo = %input.repository,
+                pr = input.pull_number,
+                error = %api_err,
+                "GitHub API diff failed, trying git clone"
+            );
+            self.fetch_diff_from_clone(input)
+        })?;
 
         if diff.trim().is_empty() {
             if self.config.require_real_extraction {
-                anyhow::bail!("empty diff between commits for {repo}", repo = input.repository);
+                anyhow::bail!(
+                    "empty diff between commits for {repo}",
+                    repo = input.repository
+                );
             }
             return Ok(self.extract_fallback(input));
         }
@@ -126,9 +128,7 @@ impl PatchExtractor {
         };
         let summary = format!(
             "{} (#{}) files={}",
-            input.language,
-            input.pull_number,
-            namespace
+            input.language, input.pull_number, namespace
         );
 
         Ok(ExtractedPatch {
@@ -152,12 +152,18 @@ impl PatchExtractor {
 
         let output = Command::new("curl")
             .args([
-                "-sS", "-f",
-                "-H", &format!("Authorization: Bearer {token}"),
-                "-H", "Accept: application/vnd.github.v3.diff",
-                "-H", "User-Agent: dataforge/1.0",
-                "-H", "X-GitHub-Api-Version: 2022-11-28",
-                "--max-time", "30",
+                "-sS",
+                "-f",
+                "-H",
+                &format!("Authorization: Bearer {token}"),
+                "-H",
+                "Accept: application/vnd.github.v3.diff",
+                "-H",
+                "User-Agent: dataforge/1.0",
+                "-H",
+                "X-GitHub-Api-Version: 2022-11-28",
+                "--max-time",
+                "30",
                 &url,
             ])
             .output()?;
@@ -172,7 +178,11 @@ impl PatchExtractor {
 
         let diff = String::from_utf8_lossy(&output.stdout).to_string();
         if diff.trim().is_empty() {
-            anyhow::bail!("empty diff from GitHub API for {}/{}", input.repository, input.pull_number);
+            anyhow::bail!(
+                "empty diff from GitHub API for {}/{}",
+                input.repository,
+                input.pull_number
+            );
         }
 
         tracing::info!(
@@ -190,11 +200,7 @@ impl PatchExtractor {
         let repo_path = temp.path().join("repo");
 
         Self::clone_repository(input.repository, &repo_path)?;
-        Self::extract_commit_diff(
-            &repo_path,
-            input.base_commit,
-            input.merge_commit,
-        )
+        Self::extract_commit_diff(&repo_path, input.base_commit, input.merge_commit)
     }
 
     fn clone_repository(repository: &str, destination: &Path) -> Result<()> {
@@ -229,7 +235,7 @@ impl PatchExtractor {
             (Some(base), Some(merge)) if !base.is_empty() && !merge.is_empty() => {
                 format!("{base}..{merge}")
             }
-            (_, Some(merge)) if !merge.is_empty() => format!("{merge}"),
+            (_, Some(merge)) if !merge.is_empty() => merge.to_string(),
             _ => "HEAD".to_string(),
         };
 
@@ -270,8 +276,8 @@ impl PatchExtractor {
             solution_patch,
             test_patch: test_section,
             files_changed: input.files_changed,
-            added_lines: (input.title.len() % 80 + 10) as usize,
-            removed_lines: (input.title.len() % 40) as usize,
+            added_lines: (input.title.len() % 80 + 10),
+            removed_lines: (input.title.len() % 40),
             summary: format!("{} (#{})", input.language, input.pull_number),
         }
     }
@@ -396,9 +402,15 @@ fn is_test_file(path: Option<&str>) -> bool {
         return false;
     };
     let lowered = path.to_lowercase();
-    lowered.contains("/test") || lowered.ends_with("_test.py") || lowered.ends_with("_test.rs")
-        || lowered.ends_with("_test.js") || lowered.ends_with("_test.ts") || lowered.contains("/tests/")
-        || lowered.contains("/spec/") || lowered.ends_with(".spec.rs") || lowered.ends_with(".spec.ts")
+    lowered.contains("/test")
+        || lowered.ends_with("_test.py")
+        || lowered.ends_with("_test.rs")
+        || lowered.ends_with("_test.js")
+        || lowered.ends_with("_test.ts")
+        || lowered.contains("/tests/")
+        || lowered.contains("/spec/")
+        || lowered.ends_with(".spec.rs")
+        || lowered.ends_with(".spec.ts")
         || lowered.ends_with(".spec.js")
 }
 

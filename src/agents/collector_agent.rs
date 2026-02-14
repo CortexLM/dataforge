@@ -782,7 +782,7 @@ mod tests {
         let p1 = PrioritizedTask::new(task1, 0.5, 0.5, 0.5, "Medium priority");
         let p2 = PrioritizedTask::new(task2, 0.9, 0.9, 0.9, "High priority");
 
-        let mut tasks = vec![p1, p2];
+        let mut tasks = [p1, p2];
         tasks.sort_by(|a, b| {
             b.priority_score
                 .partial_cmp(&a.priority_score)

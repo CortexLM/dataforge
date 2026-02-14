@@ -161,15 +161,15 @@ impl QualityScorer {
         };
         let prompt = format!(
             "PR: {repo}#{pr}\nTitle: {title}\nDescription: {body}",
-            repo = repo, pr = pr, title = title, body = body_truncated,
+            repo = repo,
+            pr = pr,
+            title = title,
+            body = body_truncated,
         );
 
         let request = GenerationRequest::new(
             "",
-            vec![
-                Message::system(TRIAGE_SYSTEM_PROMPT),
-                Message::user(prompt),
-            ],
+            vec![Message::system(TRIAGE_SYSTEM_PROMPT), Message::user(prompt)],
         )
         .with_temperature(0.1)
         .with_max_tokens(200)
@@ -182,7 +182,9 @@ impl QualityScorer {
             Ok(v) => v,
             Err(_) => {
                 let extracted = crate::utils::json_extraction::extract_json_from_response(content);
-                serde_json::from_str(&extracted).unwrap_or(TriageResponse { difficulty: "medium".to_string() })
+                serde_json::from_str(&extracted).unwrap_or(TriageResponse {
+                    difficulty: "medium".to_string(),
+                })
             }
         };
 
@@ -205,7 +207,9 @@ impl QualityScorer {
 
     pub async fn assess(&self, task: &SweTask) -> Result<QualityAssessment> {
         let patch_lines = task.patch.matches('\n').count();
-        let files_changed = task.meta.get("files_changed")
+        let files_changed = task
+            .meta
+            .get("files_changed")
             .and_then(|v| v.parse::<usize>().ok())
             .unwrap_or(0);
 
@@ -221,7 +225,11 @@ impl QualityScorer {
              PR description:\n{desc}",
             repo = task.repo,
             lang = task.language,
-            title = task.meta.get("pr_title").map(|s| s.as_str()).unwrap_or("(unknown)"),
+            title = task
+                .meta
+                .get("pr_title")
+                .map(|s| s.as_str())
+                .unwrap_or("(unknown)"),
             patch_lines = patch_lines,
             files = files_changed,
             has_tests = task.has_tests(),
@@ -231,9 +239,13 @@ impl QualityScorer {
                 let p = &task.prompt;
                 if p.len() > 2000 {
                     let mut end = 2000;
-                    while !p.is_char_boundary(end) && end > 0 { end -= 1; }
+                    while !p.is_char_boundary(end) && end > 0 {
+                        end -= 1;
+                    }
                     &p[..end]
-                } else { p }
+                } else {
+                    p
+                }
             },
         );
 
@@ -279,7 +291,10 @@ impl QualityScorer {
 
         let mut reasons = vec![classification.reasoning];
         if !passed {
-            reasons.push(format!("quality gate: score={:.2}, quality_good={}", score, classification.quality_good));
+            reasons.push(format!(
+                "quality gate: score={:.2}, quality_good={}",
+                score, classification.quality_good
+            ));
         }
 
         Ok(QualityAssessment {

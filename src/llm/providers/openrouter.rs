@@ -11,7 +11,10 @@ use std::time::Duration;
 use crate::error::LlmError;
 #[cfg(test)]
 use crate::llm::ResponseFormat;
-use crate::llm::{Choice, GenerationRequest, GenerationResponse, LlmProvider, Message, ToolCallFunction, ToolCallInfo, Usage};
+use crate::llm::{
+    Choice, GenerationRequest, GenerationResponse, LlmProvider, Message, ToolCallFunction,
+    ToolCallInfo, Usage,
+};
 
 /// Default OpenRouter API endpoint.
 const OPENROUTER_BASE_URL: &str = "https://openrouter.ai/api/v1";
@@ -244,14 +247,16 @@ impl OpenRouterProvider {
             .map(|choice| {
                 // Convert API tool_calls to our ToolCallInfo format
                 let tool_calls_info = choice.message.tool_calls.as_ref().map(|tcs| {
-                    tcs.iter().map(|tc| ToolCallInfo {
-                        id: tc.id.clone(),
-                        call_type: "function".to_string(),
-                        function: ToolCallFunction {
-                            name: tc.function.name.clone(),
-                            arguments: tc.function.arguments.clone(),
-                        },
-                    }).collect::<Vec<_>>()
+                    tcs.iter()
+                        .map(|tc| ToolCallInfo {
+                            id: tc.id.clone(),
+                            call_type: "function".to_string(),
+                            function: ToolCallFunction {
+                                name: tc.function.name.clone(),
+                                arguments: tc.function.arguments.clone(),
+                            },
+                        })
+                        .collect::<Vec<_>>()
                 });
 
                 // For backwards compat: if tool_calls exist, put first arguments as content
@@ -336,33 +341,34 @@ impl LlmProvider for OpenRouterProvider {
 
         // Don't use reasoning mode when structured output is requested --
         // reasoning tokens interfere with strict JSON output.
-        let (reasoning, adjusted_max_tokens) = if is_reasoning_model(&model) && !has_structured_output {
-            let user_max_tokens = request.max_tokens.unwrap_or(4000);
-            let reasoning_budget = 8000u32;
-            let min_total_tokens = 16000u32;
-            let adjusted = (user_max_tokens + reasoning_budget).max(min_total_tokens);
+        let (reasoning, adjusted_max_tokens) =
+            if is_reasoning_model(&model) && !has_structured_output {
+                let user_max_tokens = request.max_tokens.unwrap_or(4000);
+                let reasoning_budget = 8000u32;
+                let min_total_tokens = 16000u32;
+                let adjusted = (user_max_tokens + reasoning_budget).max(min_total_tokens);
 
-            (
-                Some(ReasoningConfig {
-                    effort: Some("medium".to_string()),
-                    max_tokens: None,
-                }),
-                Some(adjusted),
-            )
-        } else {
-            (None, request.max_tokens)
-        };
+                (
+                    Some(ReasoningConfig {
+                        effort: Some("medium".to_string()),
+                        max_tokens: None,
+                    }),
+                    Some(adjusted),
+                )
+            } else {
+                (None, request.max_tokens)
+            };
 
-        let response_format = request.response_format.map(|rf| {
-            serde_json::to_value(&rf).unwrap_or(serde_json::Value::Null)
-        });
+        let response_format = request
+            .response_format
+            .map(|rf| serde_json::to_value(&rf).unwrap_or(serde_json::Value::Null));
 
-        let tools = request.tools.map(|t| {
-            serde_json::to_value(&t).unwrap_or(serde_json::Value::Null)
-        });
-        let tool_choice = request.tool_choice.map(|tc| {
-            serde_json::to_value(&tc).unwrap_or(serde_json::Value::Null)
-        });
+        let tools = request
+            .tools
+            .map(|t| serde_json::to_value(&t).unwrap_or(serde_json::Value::Null));
+        let tool_choice = request
+            .tool_choice
+            .map(|tc| serde_json::to_value(&tc).unwrap_or(serde_json::Value::Null));
 
         let api_request = ApiRequest {
             model,
@@ -675,7 +681,9 @@ mod tests {
             top_p: None,
             reasoning: None,
             response_format: None,
-        tools: None, tool_choice: None, };
+            tools: None,
+            tool_choice: None,
+        };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");
         assert!(json.contains("\"model\":\"test-model\""));
@@ -697,7 +705,9 @@ mod tests {
                 max_tokens: None,
             }),
             response_format: None,
-        tools: None, tool_choice: None, };
+            tools: None,
+            tool_choice: None,
+        };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");
         assert!(json.contains("\"reasoning\""));
@@ -717,7 +727,9 @@ mod tests {
                 max_tokens: Some(8000),
             }),
             response_format: None,
-        tools: None, tool_choice: None, };
+            tools: None,
+            tool_choice: None,
+        };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");
         assert!(json.contains("\"reasoning\""));
@@ -746,7 +758,9 @@ mod tests {
             top_p: None,
             reasoning: None,
             response_format: Some(serde_json::to_value(&rf).unwrap()),
-        tools: None, tool_choice: None, };
+            tools: None,
+            tool_choice: None,
+        };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");
         assert!(json.contains("\"response_format\""));

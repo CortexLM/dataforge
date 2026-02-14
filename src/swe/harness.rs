@@ -128,7 +128,11 @@ async fn docker_exec(container: &str, cmd: &str, timeout_secs: u64) -> (i32, Str
             String::from_utf8_lossy(&output.stderr).to_string(),
         ),
         Ok(Err(e)) => (-1, String::new(), format!("exec error: {e}")),
-        Err(_) => (-1, String::new(), format!("timed out after {timeout_secs}s")),
+        Err(_) => (
+            -1,
+            String::new(),
+            format!("timed out after {timeout_secs}s"),
+        ),
     }
 }
 
@@ -179,23 +183,28 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
 
     // 1. SETUP: start container
     info!(task_id = %task.id, "Starting container {}", cname);
-    let agent_dir_abs = std::fs::canonicalize(&config.agent_dir)
-        .unwrap_or_else(|_| config.agent_dir.clone());
+    let agent_dir_abs =
+        std::fs::canonicalize(&config.agent_dir).unwrap_or_else(|_| config.agent_dir.clone());
 
     // Remove stale container if exists
     docker_rm(&cname).await;
 
     let start_output = Command::new("docker")
         .args([
-            "run", "-d",
-            "--name", &cname,
+            "run",
+            "-d",
+            "--name",
+            &cname,
             "--network=host",
             "--memory=4g",
             "--cpus=4",
-            "-v", &format!("{}:/agent:ro", agent_dir_abs.display()),
-            "-w", "/repo",
+            "-v",
+            &format!("{}:/agent:ro", agent_dir_abs.display()),
+            "-w",
+            "/repo",
             &config.docker_image,
-            "sleep", "7200",
+            "sleep",
+            "7200",
         ])
         .output()
         .await;
@@ -225,7 +234,10 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
     )
     .await;
     if code != 0 {
-        result.error = Some(format!("Failed to install system deps: {}", truncate(&err, 500)));
+        result.error = Some(format!(
+            "Failed to install system deps: {}",
+            truncate(&err, 500)
+        ));
         return result;
     }
 
@@ -258,12 +270,8 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
     if let Some(install_cmd) = task.install_config.get("install") {
         if !install_cmd.is_empty() {
             info!(task_id = %task.id, "Installing deps: {}", install_cmd);
-            let (code, _, err) = docker_exec(
-                &cname,
-                &format!("cd /repo && {} 2>&1", install_cmd),
-                300,
-            )
-            .await;
+            let (code, _, err) =
+                docker_exec(&cname, &format!("cd /repo && {} 2>&1", install_cmd), 300).await;
             if code != 0 {
                 warn!(task_id = %task.id, "Install command failed (continuing): {}", truncate(&err, 200));
             }
@@ -456,7 +464,11 @@ pub fn discover_tasks(input_dir: &Path) -> Result<Vec<PathBuf>> {
                 let p = entry.path();
                 if p.is_dir() {
                     walk(&p, paths);
-                } else if p.file_name().map(|f| f == "workspace.yaml").unwrap_or(false) {
+                } else if p
+                    .file_name()
+                    .map(|f| f == "workspace.yaml")
+                    .unwrap_or(false)
+                {
                     paths.push(p);
                 }
             }
@@ -474,7 +486,11 @@ pub async fn run_harness(input_dir: &Path, config: &HarnessConfig) -> Result<Har
         anyhow::bail!("No workspace.yaml files found in {}", input_dir.display());
     }
 
-    info!("Discovered {} tasks in {}", yaml_paths.len(), input_dir.display());
+    info!(
+        "Discovered {} tasks in {}",
+        yaml_paths.len(),
+        input_dir.display()
+    );
 
     let mut tasks = Vec::new();
     for path in &yaml_paths {
@@ -488,7 +504,11 @@ pub async fn run_harness(input_dir: &Path, config: &HarnessConfig) -> Result<Har
         anyhow::bail!("No valid tasks found");
     }
 
-    info!("Loaded {} valid tasks, running with parallelism={}", tasks.len(), config.parallel);
+    info!(
+        "Loaded {} valid tasks, running with parallelism={}",
+        tasks.len(),
+        config.parallel
+    );
 
     let mut results = Vec::new();
 
@@ -498,9 +518,9 @@ pub async fn run_harness(input_dir: &Path, config: &HarnessConfig) -> Result<Har
         for task in chunk {
             let task = task.clone();
             let cfg = config.clone();
-            handles.push(tokio::spawn(async move {
-                evaluate_task(&task, &cfg).await
-            }));
+            handles.push(tokio::spawn(
+                async move { evaluate_task(&task, &cfg).await },
+            ));
         }
         for handle in handles {
             match handle.await {
@@ -512,12 +532,30 @@ pub async fn run_harness(input_dir: &Path, config: &HarnessConfig) -> Result<Har
 
     // Build summary
     let total = results.len();
-    let resolved = results.iter().filter(|r| matches!(r.status, HarnessStatus::Resolved)).count();
-    let unresolved = results.iter().filter(|r| matches!(r.status, HarnessStatus::Unresolved)).count();
-    let agent_error = results.iter().filter(|r| matches!(r.status, HarnessStatus::AgentError)).count();
-    let test_error = results.iter().filter(|r| matches!(r.status, HarnessStatus::TestError)).count();
-    let setup_error = results.iter().filter(|r| matches!(r.status, HarnessStatus::SetupError)).count();
-    let sanity_fail = results.iter().filter(|r| matches!(r.status, HarnessStatus::SanityFail)).count();
+    let resolved = results
+        .iter()
+        .filter(|r| matches!(r.status, HarnessStatus::Resolved))
+        .count();
+    let unresolved = results
+        .iter()
+        .filter(|r| matches!(r.status, HarnessStatus::Unresolved))
+        .count();
+    let agent_error = results
+        .iter()
+        .filter(|r| matches!(r.status, HarnessStatus::AgentError))
+        .count();
+    let test_error = results
+        .iter()
+        .filter(|r| matches!(r.status, HarnessStatus::TestError))
+        .count();
+    let setup_error = results
+        .iter()
+        .filter(|r| matches!(r.status, HarnessStatus::SetupError))
+        .count();
+    let sanity_fail = results
+        .iter()
+        .filter(|r| matches!(r.status, HarnessStatus::SanityFail))
+        .count();
 
     let agent_times: Vec<f64> = results
         .iter()

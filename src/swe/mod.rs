@@ -27,10 +27,10 @@ pub use enricher::EnrichedPullRequest;
 pub use extractor::{ExtractedPatch, PatchExtractor, PatchExtractorConfig};
 pub use filters::{FilterConfig, FilterResult, SweepFilter};
 pub use gharchive::{GhArchiveClient, GhArchiveEvent, GhArchiveEventId};
-pub use harness::{HarnessConfig, HarnessResult, HarnessSummary, run_harness};
-pub use prompt_rewriter::PromptRewriter;
+pub use harness::{run_harness, HarnessConfig, HarnessResult, HarnessSummary};
 pub use orchestrator::{SweOrchestrator, SweOrchestratorConfig, SweRunResult};
 pub use pipeline::{SwePipeline, SwePipelineEvent, SwePipelineRunResult};
+pub use prompt_rewriter::PromptRewriter;
 pub use quality::{QualityAssessment, QualityConfig, QualityScorer};
 pub use test_generator::{TestFile, TestGenerator};
 
@@ -187,12 +187,18 @@ impl SweTask {
             }
             "java" => {
                 map.insert("java".to_string(), "21".to_string());
-                map.insert("install".to_string(), "./mvnw -q -DskipTests package".to_string());
+                map.insert(
+                    "install".to_string(),
+                    "./mvnw -q -DskipTests package".to_string(),
+                );
                 map.insert("test_cmd".to_string(), "./mvnw test".to_string());
             }
             _ => {
                 map.insert("install".to_string(), String::from("# manual install"));
-                map.insert("test_cmd".to_string(), String::from("# manual test command"));
+                map.insert(
+                    "test_cmd".to_string(),
+                    String::from("# manual test command"),
+                );
             }
         }
         map

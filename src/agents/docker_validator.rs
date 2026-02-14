@@ -546,7 +546,7 @@ mod tests {
 
     #[test]
     fn test_determine_base_image_python() {
-        let config = DockerValidatorConfig::default();
+        let _config = DockerValidatorConfig::default();
         // We can't test the agent without Docker, but we can test image selection logic
         // by checking the category parsing
         let task = create_test_task();

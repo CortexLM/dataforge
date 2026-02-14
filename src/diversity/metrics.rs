@@ -559,7 +559,7 @@ mod tests {
 
         // Check overall score is reasonable (between 0 and 1)
         let score = metrics.overall_score();
-        assert!(score >= 0.0 && score <= 1.0);
+        assert!((0.0..=1.0).contains(&score));
     }
 
     #[test]

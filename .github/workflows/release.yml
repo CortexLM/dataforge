@@ -18,6 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install mold linker
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq mold clang
+
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
 
@@ -39,7 +42,7 @@ jobs:
           CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "1"
           CARGO_PROFILE_RELEASE_OPT_LEVEL: "3"
           CARGO_PROFILE_RELEASE_STRIP: "symbols"
-          RUSTFLAGS: "-C target-cpu=x86-64-v3"
+          RUSTFLAGS: "-C target-cpu=x86-64-v3 -C link-arg=-fuse-ld=mold"
 
       - name: Package
         run: |

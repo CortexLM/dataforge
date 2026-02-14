@@ -69,7 +69,8 @@ impl SweepFilter {
         // Only reject known languages not in whitelist; unknown languages pass
         if !self.config.allowed_languages.is_empty()
             && !lang_unknown
-            && !self.config
+            && !self
+                .config
                 .allowed_languages
                 .iter()
                 .any(|l| l.eq_ignore_ascii_case(&normalized_language))
@@ -80,7 +81,10 @@ impl SweepFilter {
 
         // Only apply stars filter if stars > 0 (i.e. data is available)
         if stars > 0 && stars < self.config.min_stars {
-            reasons.push(format!("stars {} below minimum {}", stars, self.config.min_stars));
+            reasons.push(format!(
+                "stars {} below minimum {}",
+                stars, self.config.min_stars
+            ));
             score -= 0.3;
         }
 

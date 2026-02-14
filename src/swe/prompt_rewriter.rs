@@ -73,10 +73,14 @@ impl PromptRewriter {
 
     /// Rewrite a raw PR body into a clean task prompt.
     /// Returns the rewritten prompt, or the original on LLM failure.
-    pub async fn rewrite(&self, repo: &str, pr_number: u64, title: &str, body: &str) -> Result<String> {
-        let user_msg = format!(
-            "Repository: {repo}\nPR #{pr_number}: {title}\n\n---\n\n{body}"
-        );
+    pub async fn rewrite(
+        &self,
+        repo: &str,
+        pr_number: u64,
+        title: &str,
+        body: &str,
+    ) -> Result<String> {
+        let user_msg = format!("Repository: {repo}\nPR #{pr_number}: {title}\n\n---\n\n{body}");
 
         let request = GenerationRequest::new(
             "default",
@@ -88,10 +92,7 @@ impl PromptRewriter {
         .with_tool(rewrite_tool());
 
         let response = self.llm.generate(request).await?;
-        let content = response
-            .first_content()
-            .unwrap_or_default()
-            .to_string();
+        let content = response.first_content().unwrap_or_default().to_string();
 
         match serde_json::from_str::<RewriteResponse>(&content) {
             Ok(parsed) => {
@@ -101,7 +102,10 @@ impl PromptRewriter {
                 Ok(parsed.prompt)
             }
             Err(e) => {
-                warn!(repo, pr_number, "Failed to parse rewrite response: {e}, using raw content");
+                warn!(
+                    repo,
+                    pr_number, "Failed to parse rewrite response: {e}, using raw content"
+                );
                 if content.trim().is_empty() {
                     anyhow::bail!("LLM returned empty response");
                 }
