@@ -1,2 +1,0 @@
-npx vitest run tests/daily-debates.test.ts
-npx vitest run tests/api-schemas.test.ts

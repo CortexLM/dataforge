@@ -1,3 +1,0 @@
-cargo run -p openviking-cli -- ls --json
-cargo run -p openviking-cli -- ls -o json
-cargo test -p openviking-cli

@@ -1,2 +1,0 @@
-pytest -q /tmp/test_softcsa_noaudio.py
-pytest -q /tmp/test_repo_sanity.py

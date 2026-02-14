@@ -28,8 +28,12 @@ test-outputs/
 # Generated datasets and outputs
 outputs/
 generated-datasets/
+generated-swe/
 /swe-datasets/
 /test-run-hard/
+run-easy/
+run-medium/
+run-hard/
 *.jsonl
 
 test-verify/

@@ -1,2 +1,0 @@
-python3 /tmp/test_readme_links.py
-python3 /tmp/test_markdown_utils.py
