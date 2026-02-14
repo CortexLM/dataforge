@@ -131,6 +131,7 @@ pub struct SweMineArgs {
     #[arg(long, env = "OPENROUTER_API_KEY")]
     pub api_key: Option<String>,
 
+
     /// Output JSON summary.
     #[arg(short = 'j', long)]
     pub json: bool,
@@ -643,6 +644,14 @@ async fn run_swe_export_command(args: SweExportArgs) -> anyhow::Result<()> {
 }
 
 async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
+    // --- Validate required env upfront ---
+    if std::env::var("GITHUB_TOKEN").is_err() && std::env::var("GITHUB_PERSONAL_ACCESS_TOKEN").is_err() {
+        anyhow::bail!(
+            "GITHUB_TOKEN is required but not set.\n\
+             Set the GITHUB_TOKEN environment variable before running this command."
+        );
+    }
+
     let languages = parse_language_filter(args.languages.as_deref().unwrap_or_default());
     let output_dir = args.output.clone();
     let api_key = args
@@ -651,18 +660,17 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
         .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
         .or_else(|| std::env::var("LITELLM_API_KEY").ok());
 
-    let llm_client: Arc<dyn crate::llm::LlmProvider> = if let Some(key) = api_key {
+    if api_key.is_none() {
+        anyhow::bail!(
+            "OPENROUTER_API_KEY is required but not set.\n\
+             Provide it via --api-key <KEY> or set the OPENROUTER_API_KEY environment variable."
+        );
+    }
+
+    let llm_client: Arc<dyn crate::llm::LlmProvider> = {
+        let key = api_key.unwrap();
         info!(model = %args.model, "Using OpenRouter with specified API key");
         Arc::new(OpenRouterProvider::with_model(key, args.model.clone()))
-    } else {
-        info!("Using LiteLLM client from environment");
-        Arc::new(LiteLlmClient::from_env().map_err(|e| {
-            anyhow::anyhow!(
-                "Failed to initialize LLM client: {}. Please provide --api-key or set \
-                 OPENROUTER_API_KEY/LITELLM_API_KEY env var.",
-                e
-            )
-        })?)
     };
 
     let output_path = Path::new(&args.output);
