@@ -123,12 +123,35 @@ fn export_task_to_disk(task: &SweTask, output_dir: &str) -> anyhow::Result<()> {
     let dir = Path::new(output_dir).join(&task.id);
     fs::create_dir_all(&dir)?;
 
+    // prompt.md -- clean LLM-rewritten prompt (no test plan, no watermarks)
     let prompt = format!("# {}\n\n{}\n", task.id, task.prompt);
     fs::write(dir.join("prompt.md"), prompt)?;
 
+    // original_pr.md -- raw PR body before rewriting
+    if !task.original_pr_body.is_empty() {
+        let original = format!("# {} (original PR)\n\n{}\n", task.id, task.original_pr_body);
+        fs::write(dir.join("original_pr.md"), original)?;
+    }
+
+    // workspace.yaml -- full task metadata
     let workspace = serde_yaml::to_string(task)?;
     fs::write(dir.join("workspace.yaml"), workspace)?;
 
+    // tests/ directory -- individual test files
+    let tests_dir = dir.join("tests");
+    fs::create_dir_all(&tests_dir)?;
+
+    for (i, cmd) in task.fail_to_pass.iter().enumerate() {
+        let filename = format!("fail_to_pass_{}.sh", i + 1);
+        fs::write(tests_dir.join(&filename), format!("#!/bin/bash\n# This test must FAIL on base commit, PASS after fix\n{cmd}\n"))?;
+    }
+
+    for (i, cmd) in task.pass_to_pass.iter().enumerate() {
+        let filename = format!("pass_to_pass_{}.sh", i + 1);
+        fs::write(tests_dir.join(&filename), format!("#!/bin/bash\n# This test must PASS on base commit AND after fix\n{cmd}\n"))?;
+    }
+
+    // checks.txt -- all test commands (legacy flat format)
     if !task.fail_to_pass.is_empty() {
         let checks = task
             .fail_to_pass

@@ -74,6 +74,7 @@ pub struct SwePipeline {
     extractor: PatchExtractor,
     test_generator: TestGenerator,
     quality: QualityScorer,
+    prompt_rewriter: super::PromptRewriter,
 }
 
 impl SwePipeline {
@@ -97,7 +98,8 @@ impl SwePipeline {
             require_real_extraction: true,
         });
         let test_generator = TestGenerator::new(llm.clone());
-        let quality = QualityScorer::new(llm, QualityConfig::default());
+        let quality = QualityScorer::new(llm.clone(), QualityConfig::default());
+        let prompt_rewriter = super::PromptRewriter::new(llm);
 
         Ok(Self {
             archive,
@@ -106,6 +108,7 @@ impl SwePipeline {
             extractor,
             test_generator,
             quality,
+            prompt_rewriter,
         })
     }
 
@@ -292,6 +295,7 @@ impl SwePipeline {
             let process_sem = Arc::new(Semaphore::new(3));
             let extractor = &self.extractor;
             let test_generator = &self.test_generator;
+            let prompt_rewriter = &self.prompt_rewriter;
 
             let mut process_futures = Vec::with_capacity(candidates.len());
             for enriched in &candidates {
@@ -321,12 +325,30 @@ impl SwePipeline {
                         &enriched.repository, enriched.number, &enriched.language,
                         &enriched.base_sha, &enriched.merge_sha, &patch,
                     );
-                    task.prompt = format!(
+
+                    let raw_body = if enriched.body.is_empty() { "(no description)" } else { &enriched.body };
+                    task.original_pr_body = format!(
                         "{repo} (#{pr}): {title}\n\n{body}",
                         repo = enriched.repository, pr = enriched.number,
-                        title = enriched.title,
-                        body = if enriched.body.is_empty() { "(no description)" } else { &enriched.body },
+                        title = enriched.title, body = raw_body,
                     );
+
+                    match prompt_rewriter.rewrite(
+                        &enriched.repository, enriched.number, &enriched.title, raw_body,
+                    ).await {
+                        Ok(rewritten) => {
+                            task.prompt = format!(
+                                "{repo} (#{pr}): {title}\n\n{rewritten}",
+                                repo = enriched.repository, pr = enriched.number,
+                                title = enriched.title,
+                            );
+                        }
+                        Err(err) => {
+                            tracing::warn!(task_id = %task.id, error = %err, "Prompt rewrite failed");
+                            return None;
+                        }
+                    }
+
                     task.meta.insert("pr_title".to_string(), enriched.title.clone());
 
                     if !task.has_tests() {
@@ -408,3 +430,5 @@ async fn emit(tx: &Option<mpsc::Sender<SwePipelineEvent>>, event: SwePipelineEve
         let _ = sender.send(event).await;
     }
 }
+
+

@@ -19,6 +19,7 @@ pub mod gharchive;
 pub mod harness;
 pub mod orchestrator;
 pub mod pipeline;
+pub mod prompt_rewriter;
 pub mod quality;
 pub mod test_generator;
 
@@ -27,6 +28,7 @@ pub use extractor::{ExtractedPatch, PatchExtractor, PatchExtractorConfig};
 pub use filters::{FilterConfig, FilterResult, SweepFilter};
 pub use gharchive::{GhArchiveClient, GhArchiveEvent, GhArchiveEventId};
 pub use harness::{HarnessConfig, HarnessResult, HarnessSummary, run_harness};
+pub use prompt_rewriter::PromptRewriter;
 pub use orchestrator::{SweOrchestrator, SweOrchestratorConfig, SweRunResult};
 pub use pipeline::{SwePipeline, SwePipelineEvent, SwePipelineRunResult};
 pub use quality::{QualityAssessment, QualityConfig, QualityScorer};
@@ -64,8 +66,11 @@ pub struct SweTask {
     pub install_config: BTreeMap<String, String>,
     /// Optional metadata from GitHub + extractor.
     pub meta: BTreeMap<String, String>,
-    /// Human-readable prompt source.
+    /// Human-readable prompt (LLM-rewritten, no test plan leak).
     pub prompt: String,
+    /// Original PR body before rewriting.
+    #[serde(default)]
+    pub original_pr_body: String,
     /// Difficulty score from quality/validation phase.
     pub quality_score: Option<f64>,
     /// Whether task passed quality gate.
@@ -112,6 +117,7 @@ impl SweTask {
             install_config: BTreeMap::new(),
             meta: BTreeMap::new(),
             prompt: String::new(),
+            original_pr_body: String::new(),
             quality_score: None,
             quality_passed: false,
             docker_passed: false,
