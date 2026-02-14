@@ -1,4 +1,4 @@
-//! Simplified CLI command definitions for dataforge.
+//! Simplified CLI command definitions for swe_forge.
 //!
 //! This module provides a streamlined command-line interface for generating
 //! SWE-derived benchmark datasets in one shot.
@@ -27,11 +27,11 @@ const DEFAULT_SWE_OUTPUT_DIR: &str = "./generated-swe";
 
 /// SWE-derived benchmark dataset generator for LLM evaluation.
 #[derive(Parser)]
-#[command(name = "dataforge")]
+#[command(name = "swe_forge")]
 #[command(about = "Generate SWE-derived benchmark datasets for LLM evaluation")]
 #[command(version)]
 #[command(
-    long_about = "dataforge generates SWE-derived terminal/CLI benchmark tasks from mined GitHub PRs.\n\nTasks are validated and exported as workspace artifacts (workspace.yaml + prompt.md).\n\nExample usage:\n  dataforge generate --count 5 --model openai/gpt-5.2-codex:nitro --output ./generated-datasets"
+    long_about = "swe_forge generates SWE-derived terminal/CLI benchmark tasks from mined GitHub PRs.\n\nTasks are validated and exported as workspace artifacts (workspace.yaml + prompt.md).\n\nExample usage:\n  swe_forge generate --count 5 --model openai/gpt-5.2-codex:nitro --output ./generated-datasets"
 )]
 pub struct Cli {
     /// The subcommand to execute.
@@ -87,7 +87,7 @@ pub enum SweSubcommand {
     Harness(SweHarnessArgs),
 }
 
-/// Arguments for `dataforge swe mine`.
+/// Arguments for `swe_forge swe mine`.
 #[derive(Parser, Debug)]
 pub struct SweMineArgs {
     /// Number of SWE tasks to emit.
@@ -136,7 +136,7 @@ pub struct SweMineArgs {
     pub json: bool,
 }
 
-/// Arguments for `dataforge swe validate`.
+/// Arguments for `swe_forge swe validate`.
 #[derive(Parser, Debug)]
 pub struct SweValidateArgs {
     /// Directory containing SWE workspaces.
@@ -160,7 +160,7 @@ pub struct SweValidateArgs {
     pub json: bool,
 }
 
-/// Arguments for `dataforge swe export`.
+/// Arguments for `swe_forge swe export`.
 #[derive(Parser, Debug)]
 pub struct SweExportArgs {
     /// Input directory with existing SWE workspace artifacts.
@@ -176,7 +176,7 @@ pub struct SweExportArgs {
     pub json: bool,
 }
 
-/// Arguments for `dataforge swe harness`.
+/// Arguments for `swe_forge swe harness`.
 #[derive(Parser, Debug)]
 pub struct SweHarnessArgs {
     /// Directory containing SWE workspaces (from `swe mine`).
@@ -323,7 +323,7 @@ pub async fn run() -> anyhow::Result<()> {
 
 /// Run the CLI with the parsed arguments.
 ///
-/// This is the main entry point for the dataforge CLI.
+/// This is the main entry point for the swe_forge CLI.
 pub async fn run_with_cli(cli: Cli) -> anyhow::Result<()> {
     match cli.command {
         Commands::Generate(args) => {
@@ -1525,7 +1525,7 @@ mod tests {
 
     #[test]
     fn test_generate_command_defaults() {
-        let args = vec!["dataforge", "generate"];
+        let args = vec!["swe_forge", "generate"];
         let cli = Cli::try_parse_from(args).expect("should parse");
 
         match cli.command {
@@ -1545,7 +1545,7 @@ mod tests {
     #[test]
     fn test_generate_command_with_all_options() {
         let args = vec![
-            "dataforge",
+            "swe_forge",
             "generate",
             "-n",
             "5",
@@ -1579,7 +1579,7 @@ mod tests {
 
     #[test]
     fn test_generate_alias() {
-        let args = vec!["dataforge", "gen", "-n", "2"];
+        let args = vec!["swe_forge", "gen", "-n", "2"];
         let cli = Cli::try_parse_from(args).expect("should parse with alias");
 
         match cli.command {
@@ -1593,7 +1593,7 @@ mod tests {
     #[test]
     fn test_swe_validate_parses() {
         let args = vec![
-            "dataforge",
+            "swe_forge",
             "swe",
             "validate",
             "--input",
@@ -1622,13 +1622,13 @@ mod tests {
             status: "success".to_string(),
             model: "openai/gpt-5.2-codex:nitro".to_string(),
             tasks: vec![GeneratedTaskOutput {
-                task_id: "dataforge-task-001".to_string(),
+                task_id: "swe_forge-task-001".to_string(),
                 category: "debugging".to_string(),
                 problem_statement: "Find the bug in the code".to_string(),
                 difficulty: "Medium".to_string(),
                 tags: vec!["memory".to_string(), "profiling".to_string()],
                 verification_criteria: vec!["Bug identified".to_string()],
-                saved_path: Some("./output/dataforge-task-001".to_string()),
+                saved_path: Some("./output/swe_forge-task-001".to_string()),
             }],
             total_duration_ms: 5000,
             output_directory: "./output".to_string(),
@@ -1639,14 +1639,14 @@ mod tests {
         // Verify key fields are present in output
         assert!(json.contains("\"status\": \"success\""));
         assert!(json.contains("\"model\": \"openai/gpt-5.2-codex:nitro\""));
-        assert!(json.contains("\"task_id\": \"dataforge-task-001\""));
+        assert!(json.contains("\"task_id\": \"swe_forge-task-001\""));
         assert!(json.contains("\"category\": \"debugging\""));
         assert!(json.contains("\"total_duration_ms\": 5000"));
     }
 
     #[test]
     fn test_evaluate_command_defaults() {
-        let args = vec!["dataforge", "evaluate", "--tasks-dir", "/tmp/tasks"];
+        let args = vec!["swe_forge", "evaluate", "--tasks-dir", "/tmp/tasks"];
         let cli = Cli::try_parse_from(args).expect("should parse");
 
         match cli.command {
@@ -1665,7 +1665,7 @@ mod tests {
     #[test]
     fn test_evaluate_command_with_all_options() {
         let args = vec![
-            "dataforge",
+            "swe_forge",
             "evaluate",
             "--tasks-dir",
             "./my-tasks",
@@ -1696,7 +1696,7 @@ mod tests {
 
     #[test]
     fn test_evaluate_alias() {
-        let args = vec!["dataforge", "eval", "-t", "/tmp/tasks"];
+        let args = vec!["swe_forge", "eval", "-t", "/tmp/tasks"];
         let cli = Cli::try_parse_from(args).expect("should parse with alias");
 
         match cli.command {

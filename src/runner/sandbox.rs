@@ -148,7 +148,7 @@ impl Sandbox {
     /// Creates a new sandbox with the given configuration.
     pub fn new(config: SandboxConfig, output_dir: impl Into<PathBuf>) -> Self {
         Self {
-            id: format!("dataforge-sandbox-{}", Uuid::new_v4()),
+            id: format!("swe-forge-sandbox-{}", Uuid::new_v4()),
             config,
             working_dir: PathBuf::from("/workspace"),
             output_dir: output_dir.into(),

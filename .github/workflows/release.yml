@@ -47,11 +47,11 @@ jobs:
       - name: Package
         run: |
           mkdir -p dist
-          cp target/release/dataforge dist/
-          cd dist && tar czf ../dataforge-${{ github.ref_name }}-linux-x86_64.tar.gz dataforge
+          cp target/release/swe-forge dist/
+          cd dist && tar czf ../swe-forge-${{ github.ref_name }}-linux-x86_64.tar.gz swe-forge
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dataforge-${{ github.ref_name }}-linux-x86_64.tar.gz
+          files: swe-forge-${{ github.ref_name }}-linux-x86_64.tar.gz
           generate_release_notes: true

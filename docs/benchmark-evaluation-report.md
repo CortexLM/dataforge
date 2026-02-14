@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This report documents the evaluation of the dataforge synthetic benchmark task generation system using the `moonshotai/kimi-k2.5` model via OpenRouter API.
+This report documents the evaluation of the swe-forge synthetic benchmark task generation system using the `moonshotai/kimi-k2.5` model via OpenRouter API.
 
 ### Key Findings (Final Calibration)
 
@@ -55,7 +55,7 @@ test_script: "verification script"
 reference_solution: "solution script"
 ```
 
-### dataforge Format
+### swe-forge Format
 ```yaml
 id: "unique-id"
 problem_statement: "Task description without hints"
@@ -72,7 +72,7 @@ difficulty:
 ```
 
 ### Key Differences
-1. **Separation of concerns**: dataforge explicitly separates problem from solution
+1. **Separation of concerns**: swe-forge explicitly separates problem from solution
 2. **Anti-memorization**: Built-in canary tokens for contamination detection
 3. **Structured verification**: Multiple automated check types
 4. **Difficulty metadata**: Explicit difficulty scoring and factors
@@ -200,7 +200,7 @@ Modified `src/agents/ideator.rs` to require:
 
 ## 8. Conclusion
 
-The dataforge benchmark generation system produces challenging, well-structured tasks that:
+The swe-forge benchmark generation system produces challenging, well-structured tasks that:
 - Follow a format compatible with terminal-bench principles
 - Include built-in anti-memorization measures (canary tokens)
 - Achieve **30% success rate** - within the 30-40% target for Hard tasks

@@ -481,26 +481,26 @@ pub struct SecurityConfig {
 
 ```
 # Task metrics
-dataforge_tasks_submitted_total
-dataforge_tasks_completed_total
-dataforge_tasks_failed_total
-dataforge_task_duration_seconds
+swe_forge_tasks_submitted_total
+swe_forge_tasks_completed_total
+swe_forge_tasks_failed_total
+swe_forge_task_duration_seconds
 
 # Trajectory metrics
-dataforge_trajectory_length_steps
-dataforge_trajectory_reward_total
-dataforge_trajectory_tokens_total
+swe_forge_trajectory_length_steps
+swe_forge_trajectory_reward_total
+swe_forge_trajectory_tokens_total
 
 # Worker metrics
-dataforge_worker_active_containers
-dataforge_worker_cpu_usage_percent
-dataforge_worker_memory_usage_bytes
+swe_forge_worker_active_containers
+swe_forge_worker_cpu_usage_percent
+swe_forge_worker_memory_usage_bytes
 
 # LLM metrics
-dataforge_llm_requests_total
-dataforge_llm_tokens_total
-dataforge_llm_cost_dollars_total
-dataforge_llm_latency_seconds
+swe_forge_llm_requests_total
+swe_forge_llm_tokens_total
+swe_forge_llm_cost_dollars_total
+swe_forge_llm_latency_seconds
 ```
 
 ### 7.2 Logging Structure

@@ -1,6 +1,6 @@
-# Prometheus configuration for dataforge monitoring
+# Prometheus configuration for swe-forge monitoring
 #
-# This configuration scrapes metrics from dataforge services and related
+# This configuration scrapes metrics from swe-forge services and related
 # infrastructure components.
 
 global:
@@ -11,22 +11,22 @@ global:
   # Attach these labels to any time series or alerts when communicating with
   # external systems (federation, remote storage, Alertmanager)
   external_labels:
-    monitor: 'dataforge'
+    monitor: 'swe-forge'
 
-# Scrape configuration for dataforge services
+# Scrape configuration for swe-forge services
 scrape_configs:
-  # Main dataforge application
-  - job_name: 'dataforge'
+  # Main swe-forge application
+  - job_name: 'swe-forge'
     static_configs:
-      - targets: ['dataforge:8080']
+      - targets: ['swe-forge:8080']
     metrics_path: '/metrics'
     scrape_interval: 15s
     scrape_timeout: 10s
 
   # Dataforge worker processes
-  - job_name: 'dataforge-workers'
+  - job_name: 'swe-forge-workers'
     static_configs:
-      - targets: ['dataforge-worker:8080']
+      - targets: ['swe-forge-worker:8080']
     metrics_path: '/metrics'
     scrape_interval: 15s
     scrape_timeout: 10s

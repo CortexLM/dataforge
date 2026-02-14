@@ -1,4 +1,4 @@
-//! Category taxonomy system for dataforge.
+//! Category taxonomy system for swe_forge.
 //!
 //! Defines the 12 main benchmark categories and their subcategories.
 

@@ -146,7 +146,7 @@ impl CollectorConfig for GitHubAdvisoryConfig {
 /// # Example
 ///
 /// ```ignore
-/// use dataforge::collectors::{GitHubAdvisoryCollector, Ecosystem, Severity};
+/// use swe_forge::collectors::{GitHubAdvisoryCollector, Ecosystem, Severity};
 ///
 /// let collector = GitHubAdvisoryCollector::new(Some("ghp_xxxxx".to_string()))
 ///     .with_ecosystem(Ecosystem::Pip)
@@ -255,7 +255,7 @@ impl GitHubAdvisoryCollector {
             .post(GITHUB_GRAPHQL_API)
             .header("Authorization", format!("Bearer {}", token))
             .header("Content-Type", "application/json")
-            .header("User-Agent", "dataforge/1.0")
+            .header("User-Agent", "swe_forge/1.0")
             .json(&serde_json::json!({ "query": query }))
             .send()
             .await

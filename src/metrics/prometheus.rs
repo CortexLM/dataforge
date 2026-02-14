@@ -1,6 +1,6 @@
 //! Prometheus metrics registration and export.
 //!
-//! This module defines all Prometheus metrics used by dataforge and provides
+//! This module defines all Prometheus metrics used by swe_forge and provides
 //! functions for initializing, registering, and exporting metrics.
 
 use prometheus::{
@@ -9,7 +9,7 @@ use prometheus::{
 };
 use std::sync::OnceLock;
 
-/// Global Prometheus registry for all dataforge metrics.
+/// Global Prometheus registry for all swe_forge metrics.
 pub static REGISTRY: OnceLock<Registry> = OnceLock::new();
 
 /// Total number of tasks executed, labeled by status, difficulty, and model.
@@ -59,7 +59,7 @@ pub static ACTIVE_WORKERS: OnceLock<Gauge> = OnceLock::new();
 /// # Example
 ///
 /// ```ignore
-/// use dataforge::metrics::init_metrics;
+/// use swe_forge::metrics::init_metrics;
 ///
 /// fn main() {
 ///     init_metrics().expect("Failed to initialize metrics");
@@ -72,13 +72,13 @@ pub fn init_metrics() -> Result<(), prometheus::Error> {
 
     // Task metrics
     let tasks_total = CounterVec::new(
-        Opts::new("dataforge_tasks_total", "Total number of tasks executed"),
+        Opts::new("swe_forge_tasks_total", "Total number of tasks executed"),
         &["status", "difficulty", "model"],
     )?;
 
     let task_duration = HistogramVec::new(
         prometheus::HistogramOpts::new(
-            "dataforge_task_duration_seconds",
+            "swe_forge_task_duration_seconds",
             "Task execution duration in seconds",
         )
         .buckets(vec![10.0, 30.0, 60.0, 120.0, 300.0, 600.0, 1800.0]),
@@ -87,24 +87,24 @@ pub fn init_metrics() -> Result<(), prometheus::Error> {
 
     // Queue metrics
     let queue_depth = GaugeVec::new(
-        Opts::new("dataforge_queue_depth", "Number of jobs in queue"),
+        Opts::new("swe_forge_queue_depth", "Number of jobs in queue"),
         &["queue_name"],
     )?;
 
     let jobs_in_progress = Gauge::new(
-        "dataforge_jobs_in_progress",
+        "swe_forge_jobs_in_progress",
         "Number of jobs currently being processed",
     )?;
 
     // LLM metrics
     let llm_requests_total = CounterVec::new(
-        Opts::new("dataforge_llm_requests_total", "Total LLM API requests"),
+        Opts::new("swe_forge_llm_requests_total", "Total LLM API requests"),
         &["model", "status"],
     )?;
 
     let llm_latency = HistogramVec::new(
         prometheus::HistogramOpts::new(
-            "dataforge_llm_latency_seconds",
+            "swe_forge_llm_latency_seconds",
             "LLM API request latency in seconds",
         )
         .buckets(vec![0.5, 1.0, 2.0, 5.0, 10.0, 30.0]),
@@ -112,28 +112,28 @@ pub fn init_metrics() -> Result<(), prometheus::Error> {
     )?;
 
     let llm_tokens_total = CounterVec::new(
-        Opts::new("dataforge_llm_tokens_total", "Total tokens used"),
+        Opts::new("swe_forge_llm_tokens_total", "Total tokens used"),
         &["model", "type"],
     )?;
 
     let llm_cost_cents = CounterVec::new(
-        Opts::new("dataforge_llm_cost_cents", "LLM API costs in cents"),
+        Opts::new("swe_forge_llm_cost_cents", "LLM API costs in cents"),
         &["model"],
     )?;
 
     // Quality metrics
     let quality_score = Histogram::with_opts(
-        prometheus::HistogramOpts::new("dataforge_quality_score", "Distribution of quality scores")
+        prometheus::HistogramOpts::new("swe_forge_quality_score", "Distribution of quality scores")
             .buckets(vec![0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]),
     )?;
 
     let quality_filtered = Counter::new(
-        "dataforge_quality_filtered_total",
+        "swe_forge_quality_filtered_total",
         "Total trajectories filtered by quality",
     )?;
 
     // Worker metrics
-    let active_workers = Gauge::new("dataforge_active_workers", "Number of active workers")?;
+    let active_workers = Gauge::new("swe_forge_active_workers", "Number of active workers")?;
 
     // Register all metrics with the registry
     registry.register(Box::new(tasks_total.clone()))?;
@@ -181,7 +181,7 @@ pub fn init_metrics() -> Result<(), prometheus::Error> {
 /// # Example
 ///
 /// ```ignore
-/// use dataforge::metrics::{init_metrics, export_metrics};
+/// use swe_forge::metrics::{init_metrics, export_metrics};
 ///
 /// init_metrics().expect("Failed to init");
 /// let metrics = export_metrics();
@@ -213,7 +213,7 @@ pub fn export_metrics() -> String {
 ///
 /// ```ignore
 /// use axum::{routing::get, Router};
-/// use dataforge::metrics::metrics_handler;
+/// use swe_forge::metrics::metrics_handler;
 ///
 /// let app = Router::new()
 ///     .route("/metrics", get(|| async { metrics_handler().await }));

@@ -159,7 +159,7 @@ impl PatchExtractor {
                 "-H",
                 "Accept: application/vnd.github.v3.diff",
                 "-H",
-                "User-Agent: dataforge/1.0",
+                "User-Agent: swe_forge/1.0",
                 "-H",
                 "X-GitHub-Api-Version: 2022-11-28",
                 "--max-time",

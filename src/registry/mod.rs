@@ -445,7 +445,7 @@ mod tests {
 
     #[test]
     fn test_save_and_load() {
-        let test_dir = temp_dir().join("dataforge_test_registry");
+        let test_dir = temp_dir().join("swe_forge_test_registry");
         let _ = fs::remove_dir_all(&test_dir);
 
         // Save

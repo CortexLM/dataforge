@@ -16,7 +16,7 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::workspace::{WorkspaceCleaner, GeneratedWorkspace};
+//! use swe_forge::workspace::{WorkspaceCleaner, GeneratedWorkspace};
 //!
 //! let cleaner = WorkspaceCleaner::new()
 //!     .with_remove_todos(true)

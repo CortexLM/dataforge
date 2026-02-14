@@ -24,11 +24,11 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::agents::synthetic_workspace::{
+//! use swe_forge::agents::synthetic_workspace::{
 //!     SyntheticWorkspaceOrchestrator, SyntheticWorkspaceConfig,
 //!     WorkspaceTemplate, LanguageTarget, DifficultyLevel,
 //! };
-//! use dataforge::llm::OpenRouterProvider;
+//! use swe_forge::llm::OpenRouterProvider;
 //! use std::sync::Arc;
 //!
 //! let llm = Arc::new(OpenRouterProvider::with_model(

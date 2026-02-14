@@ -1,4 +1,4 @@
-//! Dockerfile generation for dataforge tasks.
+//! Dockerfile generation for swe_forge tasks.
 //!
 //! This module provides utilities for generating Dockerfiles based on task configurations,
 //! including base image selection and customization for different task categories.
@@ -7,19 +7,19 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 /// Base Ubuntu image with essential tools.
-pub const BASE_UBUNTU: &str = "dataforge/ubuntu-24.04:latest";
+pub const BASE_UBUNTU: &str = "swe_forge/ubuntu-24.04:latest";
 
 /// Python 3.13 image for Python-focused tasks.
-pub const BASE_PYTHON: &str = "dataforge/python-3.13:latest";
+pub const BASE_PYTHON: &str = "swe_forge/python-3.13:latest";
 
 /// Node.js 22 image for JavaScript/TypeScript tasks.
-pub const BASE_NODE: &str = "dataforge/node-22:latest";
+pub const BASE_NODE: &str = "swe_forge/node-22:latest";
 
 /// Rust 1.80 image for systems programming tasks.
-pub const BASE_RUST: &str = "dataforge/rust-1.80:latest";
+pub const BASE_RUST: &str = "swe_forge/rust-1.80:latest";
 
 /// Multi-language image with Python, Node, Go, and Rust.
-pub const BASE_MULTI_LANG: &str = "dataforge/multi-lang:latest";
+pub const BASE_MULTI_LANG: &str = "swe_forge/multi-lang:latest";
 
 /// Configuration for generating a Dockerfile.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,15 +82,15 @@ impl DockerfileBuilder {
 
         // Labels
         lines.push(format!(
-            "LABEL dataforge.task.id=\"{}\"",
+            "LABEL swe_forge.task.id=\"{}\"",
             self.config.task_id
         ));
         lines.push(format!(
-            "LABEL dataforge.task.category=\"{}\"",
+            "LABEL swe_forge.task.category=\"{}\"",
             self.config.category
         ));
         lines.push(format!(
-            "LABEL dataforge.task.difficulty=\"{}\"",
+            "LABEL swe_forge.task.difficulty=\"{}\"",
             self.config.difficulty
         ));
         lines.push(String::new());
@@ -249,8 +249,8 @@ mod tests {
 
         let dockerfile = DockerfileBuilder::new(config).build();
 
-        assert!(dockerfile.contains("FROM dataforge/ubuntu-24.04:latest"));
-        assert!(dockerfile.contains("LABEL dataforge.task.id=\"test-001\""));
+        assert!(dockerfile.contains("FROM swe_forge/ubuntu-24.04:latest"));
+        assert!(dockerfile.contains("LABEL swe_forge.task.id=\"test-001\""));
         assert!(dockerfile.contains("USER user"));
         assert!(dockerfile.contains("WORKDIR /home/user"));
         assert!(dockerfile.contains("CMD [\"/bin/bash\"]"));

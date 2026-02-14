@@ -1,12 +1,12 @@
 //! Metrics module for Prometheus-based monitoring.
 //!
 //! This module provides comprehensive metrics collection and export for
-//! dataforge operations, including task execution, LLM usage, and quality scores.
+//! swe_forge operations, including task execution, LLM usage, and quality scores.
 //!
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::metrics::{init_metrics, export_metrics, MetricsCollector};
+//! use swe_forge::metrics::{init_metrics, export_metrics, MetricsCollector};
 //!
 //! // Initialize metrics on startup
 //! init_metrics().expect("Failed to initialize metrics");

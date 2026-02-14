@@ -1,4 +1,4 @@
-# dataforge
+# swe-forge
 
 [![Rust](https://img.shields.io/badge/rust-1.70%2B-orange.svg)](https://www.rust-lang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -9,7 +9,7 @@ Built on top of [SweInfinite](https://github.com/unconst/SweInfinite) by [@uncon
 
 ## What it does
 
-dataforge connects to [GH Archive](https://www.gharchive.org/) to discover recently merged pull requests, enriches them via the GitHub API, classifies their difficulty using an LLM, generates test specifications via an agentic loop, and exports SWE-bench-compatible task instances. It also includes a full evaluation harness to run external coding agents on generated tasks and verify their solutions.
+swe-forge connects to [GH Archive](https://www.gharchive.org/) to discover recently merged pull requests, enriches them via the GitHub API, classifies their difficulty using an LLM, generates test specifications via an agentic loop, and exports SWE-bench-compatible task instances. It also includes a full evaluation harness to run external coding agents on generated tasks and verify their solutions.
 
 ## Key features
 
@@ -77,8 +77,8 @@ graph TB
 ### Build
 
 ```bash
-git clone https://github.com/CortexLM/dataforge.git
-cd dataforge
+git clone https://github.com/CortexLM/swe-forge.git
+cd swe-forge
 cargo build --release
 ```
 
@@ -313,7 +313,7 @@ Pre-classification uses only the PR title and body (~100 tokens, ~0.5s). Full cl
 ### `swe mine`
 
 ```
-dataforge swe mine [OPTIONS]
+swe-forge swe mine [OPTIONS]
 
 Options:
   -o, --output <DIR>          Output directory [default: ./swe-datasets]
@@ -330,7 +330,7 @@ Options:
 ### `swe harness`
 
 ```
-dataforge swe harness [OPTIONS] --agent-dir <AGENT_DIR>
+swe-forge swe harness [OPTIONS] --agent-dir <AGENT_DIR>
 
 Options:
   -i, --input <INPUT>                 Directory containing SWE workspaces [default: ./generated-swe]
@@ -347,7 +347,7 @@ Options:
 ### `swe validate`
 
 ```
-dataforge swe validate [OPTIONS]
+swe-forge swe validate [OPTIONS]
 
 Options:
   -i, --input <DIR>           Input directory with SWE workspaces [default: ./generated-swe]
@@ -358,7 +358,7 @@ Options:
 ### `swe export`
 
 ```
-dataforge swe export [OPTIONS]
+swe-forge swe export [OPTIONS]
 
 Options:
   -i, --input <DIR>           Input directory [default: ./generated-swe]
@@ -427,7 +427,7 @@ RUST_LOG=debug cargo run -- swe mine --max-tasks 1 --once  # Debug run
 
 ## Credits
 
-Built on top of [SweInfinite](https://github.com/unconst/SweInfinite) by [@unconst](https://github.com/unconst). The original architecture for mining GitHub PRs and generating SWE-bench-style datasets was designed by the SweInfinite team. dataforge extends it with:
+Built on top of [SweInfinite](https://github.com/unconst/SweInfinite) by [@unconst](https://github.com/unconst). The original architecture for mining GitHub PRs and generating SWE-bench-style datasets was designed by the SweInfinite team. swe-forge extends it with:
 
 - Difficulty-based pre-classification and filtering
 - Agentic test generation (Codex-style multi-turn loop with shell access)

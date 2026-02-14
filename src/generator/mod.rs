@@ -1,4 +1,4 @@
-//! Task generation pipeline for dataforge.
+//! Task generation pipeline for swe_forge.
 //!
 //! This module implements the complete pipeline for generating task instances from templates:
 //!
@@ -10,8 +10,8 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::generator::{Generator, ParameterSampler, InstanceGenerator};
-//! use dataforge::template::TaskTemplate;
+//! use swe_forge::generator::{Generator, ParameterSampler, InstanceGenerator};
+//! use swe_forge::template::TaskTemplate;
 //!
 //! // Load a template
 //! let template: TaskTemplate = load_template("log-analysis-001")?;

@@ -1,4 +1,4 @@
-//! Custom metric collectors for dataforge operations.
+//! Custom metric collectors for swe_forge operations.
 //!
 //! This module provides a high-level interface for recording various metrics
 //! throughout the application. The `MetricsCollector` struct wraps the raw
@@ -33,7 +33,7 @@ impl TokenUsage {
     }
 }
 
-/// Metrics collector for recording dataforge operational metrics.
+/// Metrics collector for recording swe_forge operational metrics.
 ///
 /// This struct provides a convenient interface for recording metrics throughout
 /// the application. It wraps the underlying Prometheus metrics and ensures
@@ -42,7 +42,7 @@ impl TokenUsage {
 /// # Example
 ///
 /// ```ignore
-/// use dataforge::metrics::{MetricsCollector, TokenUsage, init_metrics};
+/// use swe_forge::metrics::{MetricsCollector, TokenUsage, init_metrics};
 ///
 /// init_metrics().expect("Failed to init metrics");
 /// let collector = MetricsCollector::new();

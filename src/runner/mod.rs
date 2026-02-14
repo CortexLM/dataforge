@@ -18,7 +18,7 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::runner::{AgentRunner, RunConfig, AgentType, Verifier};
+//! use swe_forge::runner::{AgentRunner, RunConfig, AgentType, Verifier};
 //!
 //! // Run an agent
 //! let config = RunConfig::new("./tasks/checkout-system")

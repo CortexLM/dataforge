@@ -16,7 +16,7 @@
 //! # Example
 //!
 //! ```
-//! use dataforge::utils::json_extraction::extract_json_from_response;
+//! use swe_forge::utils::json_extraction::extract_json_from_response;
 //!
 //! // Simple JSON object extraction
 //! let response = "Here is the result: {\"name\": \"example\", \"value\": 42}";

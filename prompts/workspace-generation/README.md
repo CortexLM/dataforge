@@ -67,7 +67,7 @@ Workspaces span multiple dimensions:
 ### Generating a New Workspace Idea
 
 ```python
-from dataforge.agents import WorkspaceIdeatorAgent
+from swe-forge.agents import WorkspaceIdeatorAgent
 
 ideator = WorkspaceIdeatorAgent()
 idea = ideator.generate_idea(

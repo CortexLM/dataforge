@@ -175,7 +175,7 @@ impl PullRequestEnricher {
         let response = self
             .client
             .get(&pr_url)
-            .header("User-Agent", "dataforge/1.0")
+            .header("User-Agent", "swe_forge/1.0")
             .header("Accept", "application/vnd.github+json")
             .header("X-GitHub-Api-Version", "2022-11-28")
             .header("Authorization", format!("Bearer {token}"))
@@ -249,7 +249,7 @@ async fn fetch_pr_files_changed(
         format!("https://api.github.com/repos/{repository}/pulls/{number}/files?per_page=100");
     let response = client
         .get(&files_url)
-        .header("User-Agent", "dataforge/1.0")
+        .header("User-Agent", "swe_forge/1.0")
         .header("Accept", "application/vnd.github+json")
         .header("X-GitHub-Api-Version", "2022-11-28")
         .header("Authorization", format!("Bearer {token}"))

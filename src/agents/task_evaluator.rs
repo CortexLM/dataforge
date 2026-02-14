@@ -8,8 +8,8 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::agents::task_evaluator::{TaskEvaluator, EvaluationConfig, EvaluationResult};
-//! use dataforge::llm::LiteLlmClient;
+//! use swe_forge::agents::task_evaluator::{TaskEvaluator, EvaluationConfig, EvaluationResult};
+//! use swe_forge::llm::LiteLlmClient;
 //! use std::sync::Arc;
 //!
 //! // Setup LLM client

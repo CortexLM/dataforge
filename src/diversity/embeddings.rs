@@ -40,7 +40,7 @@ impl EmbeddingGenerator {
     /// # Example
     ///
     /// ```
-    /// use dataforge::diversity::EmbeddingGenerator;
+    /// use swe_forge::diversity::EmbeddingGenerator;
     ///
     /// let generator = EmbeddingGenerator::new(64);
     /// ```

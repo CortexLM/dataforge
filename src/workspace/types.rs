@@ -17,7 +17,7 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::workspace::{WorkspaceSpec, WorkspaceLanguage, VulnerabilityType};
+//! use swe_forge::workspace::{WorkspaceSpec, WorkspaceLanguage, VulnerabilityType};
 //!
 //! let spec = WorkspaceSpec::new("sql-injection-fix")
 //!     .with_language(WorkspaceLanguage::Python)

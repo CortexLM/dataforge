@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document outlines a comprehensive plan to transform **dataforge** into a full-scale **Synthetic Dataset Generation System** using Reinforcement Learning with Long Horizon trajectories. The system will leverage Docker containers, multiple LLMs, and specialized scaffolds (OpenHands, SWE-Agent style) to generate high-quality training datasets at scale.
+This document outlines a comprehensive plan to transform **swe-forge** into a full-scale **Synthetic Dataset Generation System** using Reinforcement Learning with Long Horizon trajectories. The system will leverage Docker containers, multiple LLMs, and specialized scaffolds (OpenHands, SWE-Agent style) to generate high-quality training datasets at scale.
 
 ## Table of Contents
 

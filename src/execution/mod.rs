@@ -1,4 +1,4 @@
-//! Docker execution layer for dataforge tasks.
+//! Docker execution layer for swe_forge tasks.
 //!
 //! This module provides the Docker execution layer using the bollard crate
 //! for container lifecycle management, resource control, and task execution.
@@ -13,7 +13,7 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::execution::{DockerClient, Container, ContainerConfig};
+//! use swe_forge::execution::{DockerClient, Container, ContainerConfig};
 //!
 //! let client = DockerClient::new()?;
 //!

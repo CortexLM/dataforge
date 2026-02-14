@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-This roadmap outlines a **12-week implementation plan** to transform dataforge into a full-scale Synthetic Dataset Generation System. The plan is structured in 4 phases, each building on the previous.
+This roadmap outlines a **12-week implementation plan** to transform swe-forge into a full-scale Synthetic Dataset Generation System. The plan is structured in 4 phases, each building on the previous.
 
 ---
 
@@ -100,7 +100,7 @@ gantt
 ### 3.5 Phase 1 Success Criteria
 
 ```
-Can execute: dataforge generate-trajectory --task simple-task-001
+Can execute: swe-forge generate-trajectory --task simple-task-001
 Container starts, runs scaffold, executes tools
 Trajectory saved to local file
 At least 50% success rate on easy tasks

@@ -67,7 +67,7 @@ impl CollectorConfig for SweBenchConfig {
 /// # Example
 ///
 /// ```ignore
-/// use dataforge::collectors::SweBenchCollector;
+/// use swe_forge::collectors::SweBenchCollector;
 ///
 /// let collector = SweBenchCollector::new();
 /// let tasks = collector.collect(10, 0).await?;

@@ -102,7 +102,7 @@ impl Default for PipelineConfig {
             similarity_threshold: 0.85,
 
             // Storage defaults
-            database_url: "postgres://localhost/dataforge".to_string(),
+            database_url: "postgres://localhost/swe-forge".to_string(),
             artifact_path: PathBuf::from("./artifacts"),
             trajectory_path: PathBuf::from("./trajectories"),
 

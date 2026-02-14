@@ -1,15 +1,15 @@
 [package]
-name = "dataforge"
+name = "swe-forge"
 version = "0.1.0"
 edition = "2021"
-description = "Data pipeline orchestration framework for LLM evaluation with multi-agent validation"
+description = "SWE-bench dataset forge: mine, generate and evaluate real software engineering tasks"
 license = "MIT"
-repository = "https://github.com/dataforge/dataforge"
+repository = "https://github.com/CortexLM/swe-forge"
 readme = "README.md"
-keywords = ["dataforge", "pipeline", "llm", "evaluation", "agents"]
+keywords = ["swe-bench", "pipeline", "llm", "evaluation", "agents"]
 
 [[bin]]
-name = "dataforge"
+name = "swe-forge"
 path = "src/main.rs"
 
 [dependencies]

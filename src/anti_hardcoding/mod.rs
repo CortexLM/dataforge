@@ -15,7 +15,7 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::anti_hardcoding::{
+//! use swe_forge::anti_hardcoding::{
 //!     AntiHardcodingVerifier, CanaryConfig, ProcessValidationConfig
 //! };
 //!

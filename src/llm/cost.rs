@@ -79,7 +79,7 @@ impl CostTracker {
     /// # Example
     ///
     /// ```
-    /// use dataforge::llm::cost::CostTracker;
+    /// use swe_forge::llm::cost::CostTracker;
     ///
     /// // Create tracker with $10/day and $100/month budget
     /// let tracker = CostTracker::new(10.0, 100.0);
@@ -111,7 +111,7 @@ impl CostTracker {
     /// # Example
     ///
     /// ```
-    /// use dataforge::llm::cost::CostTracker;
+    /// use swe_forge::llm::cost::CostTracker;
     ///
     /// let tracker = CostTracker::new(10.0, 100.0);
     /// // Record usage: 1000 input tokens, 500 output tokens

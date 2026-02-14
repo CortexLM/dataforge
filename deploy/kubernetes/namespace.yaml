@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: dataforge
+  name: swe-forge
   labels:
-    app.kubernetes.io/name: dataforge
+    app.kubernetes.io/name: swe-forge
     app.kubernetes.io/component: namespace

@@ -13,11 +13,11 @@
 //! # Usage
 //!
 //! ```rust,ignore
-//! use dataforge::storage::{Database, ArtifactStorage, TrajectoryFilter};
+//! use swe_forge::storage::{Database, ArtifactStorage, TrajectoryFilter};
 //! use std::sync::Arc;
 //!
 //! // Connect to database
-//! let db = Database::connect("postgres://user:pass@localhost/dataforge").await?;
+//! let db = Database::connect("postgres://user:pass@localhost/swe_forge").await?;
 //!
 //! // Run migrations
 //! db.run_migrations().await?;

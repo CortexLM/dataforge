@@ -12,8 +12,8 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::agents::factory_orchestrator::{FactoryOrchestrator, FactoryOrchestratorConfig};
-//! use dataforge::llm::LiteLlmClient;
+//! use swe_forge::agents::factory_orchestrator::{FactoryOrchestrator, FactoryOrchestratorConfig};
+//! use swe_forge::llm::LiteLlmClient;
 //! use std::sync::Arc;
 //! use tokio::sync::mpsc;
 //!

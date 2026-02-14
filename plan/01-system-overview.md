@@ -156,7 +156,7 @@ flowchart TB
 
 ---
 
-## 7. Integration with Existing dataforge
+## 7. Integration with Existing swe-forge
 
 ### What We Keep
 

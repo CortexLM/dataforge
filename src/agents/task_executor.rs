@@ -12,9 +12,9 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::agents::task_executor::{TaskExecutorAgent, TaskExecutorConfig};
-//! use dataforge::agents::task_validator::{TaskIdea, ValidationAssessment};
-//! use dataforge::llm::LiteLlmClient;
+//! use swe_forge::agents::task_executor::{TaskExecutorAgent, TaskExecutorConfig};
+//! use swe_forge::agents::task_validator::{TaskIdea, ValidationAssessment};
+//! use swe_forge::llm::LiteLlmClient;
 //! use std::sync::Arc;
 //!
 //! // Create LLM client

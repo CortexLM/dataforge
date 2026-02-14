@@ -26,11 +26,11 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::workspace::{
+//! use swe_forge::workspace::{
 //!     WorkspaceGenerator, WorkspaceSpec, WorkspaceLanguage,
 //!     VulnerabilityType, WorkspaceExporter,
 //! };
-//! use dataforge::llm::LiteLlmClient;
+//! use swe_forge::llm::LiteLlmClient;
 //! use std::sync::Arc;
 //!
 //! // Set up LLM client

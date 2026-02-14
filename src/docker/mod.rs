@@ -1,4 +1,4 @@
-//! Docker environment generation for dataforge tasks.
+//! Docker environment generation for swe_forge tasks.
 //!
 //! This module provides utilities for generating Dockerfiles, docker-compose.yaml files,
 //! and managing container resources for benchmark task execution.

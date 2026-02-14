@@ -3,11 +3,11 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::agents::{
+//! use swe_forge::agents::{
 //!     OrchestratorAgent, OrchestratorConfig,
 //!     PipelineEvent, DifficultyLevel,
 //! };
-//! use dataforge::llm::LiteLlmClient;
+//! use swe_forge::llm::LiteLlmClient;
 //! use std::sync::Arc;
 //! use tokio::sync::mpsc;
 //!

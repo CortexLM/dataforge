@@ -30,8 +30,8 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use dataforge::scheduler::{WorkerPool, WorkerPoolConfig, JobQueue, Job, TaskSpec};
-//! use dataforge::pipeline::PipelineOrchestrator;
+//! use swe_forge::scheduler::{WorkerPool, WorkerPoolConfig, JobQueue, Job, TaskSpec};
+//! use swe_forge::pipeline::PipelineOrchestrator;
 //! use std::sync::Arc;
 //! use std::time::Duration;
 //!

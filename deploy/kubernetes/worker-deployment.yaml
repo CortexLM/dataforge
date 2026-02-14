@@ -1,33 +1,33 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dataforge-worker
-  namespace: dataforge
+  name: swe-forge-worker
+  namespace: swe-forge
   labels:
-    app.kubernetes.io/name: dataforge
+    app.kubernetes.io/name: swe-forge
     app.kubernetes.io/component: worker
 spec:
   replicas: 4
   selector:
     matchLabels:
-      app: dataforge-worker
+      app: swe-forge-worker
   template:
     metadata:
       labels:
-        app: dataforge-worker
-        app.kubernetes.io/name: dataforge
+        app: swe-forge-worker
+        app.kubernetes.io/name: swe-forge
         app.kubernetes.io/component: worker
     spec:
       containers:
         - name: worker
-          image: dataforge:latest
+          image: swe-forge:latest
           imagePullPolicy: IfNotPresent
-          command: ["dataforge", "worker", "--queue", "tasks"]
+          command: ["swe-forge", "worker", "--queue", "tasks"]
           envFrom:
             - configMapRef:
-                name: dataforge-config
+                name: swe-forge-config
             - secretRef:
-                name: dataforge-secrets
+                name: swe-forge-secrets
           resources:
             requests:
               cpu: "250m"
@@ -40,7 +40,7 @@ spec:
               command:
                 - /bin/sh
                 - -c
-                - "pgrep dataforge"
+                - "pgrep swe-forge"
             initialDelaySeconds: 30
             periodSeconds: 10
             timeoutSeconds: 5

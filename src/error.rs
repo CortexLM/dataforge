@@ -1,4 +1,4 @@
-//! Error types for dataforge operations.
+//! Error types for swe_forge operations.
 //!
 //! Defines comprehensive error types for all major subsystems:
 //! - Template parsing and validation

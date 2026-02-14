@@ -17,7 +17,7 @@ The interactive TUI provides real-time visualization of the multi-agent validati
 ### Launching the TUI
 
 ```bash
-dataforge tui
+swe-forge tui
 ```
 
 ### Controls
@@ -39,7 +39,7 @@ The TUI is divided into three main panels:
 
 ```
 +------------------------------------------------------------------+
-|                           dataforge                              |
+|                           swe-forge                              |
 +---------------------+--------------------------------------------+
 |                     |                                            |
 |    Difficulty       |           Pipeline Progress                |
@@ -83,7 +83,7 @@ The status bar at the bottom shows:
 Use `--json` flag to output structured JSON instead of the TUI:
 
 ```bash
-dataforge tui --json --difficulty medium --seed 42
+swe-forge tui --json --difficulty medium --seed 42
 ```
 
 ### Output Schema
@@ -145,7 +145,7 @@ dataforge tui --json --difficulty medium --seed 42
 #!/bin/bash
 
 # Generate task and parse result
-result=$(dataforge tui --json --difficulty hard --seed $RANDOM)
+result=$(swe-forge tui --json --difficulty hard --seed $RANDOM)
 
 # Check if approved
 status=$(echo "$result" | jq -r '.status')
@@ -288,19 +288,19 @@ expected_outputs:
 
 1. **Initialize scaffold:**
    ```bash
-   dataforge init --id my-task --category debugging --output ./templates
+   swe-forge init --id my-task --category debugging --output ./templates
    ```
 
 2. **Edit the generated YAML file** to define your task
 
 3. **Validate the template:**
    ```bash
-   dataforge validate --path ./templates/my-task.yaml --validate-type template
+   swe-forge validate --path ./templates/my-task.yaml --validate-type template
    ```
 
 4. **Test task generation:**
    ```bash
-   dataforge generate --template ./templates/my-task.yaml --seed 42 --output ./test-output
+   swe-forge generate --template ./templates/my-task.yaml --seed 42 --output ./test-output
    ```
 
 ## Difficulty Levels
@@ -454,7 +454,7 @@ export LITELLM_API_KEY="your-api-key"
 # Optional: Logging level
 export RUST_LOG="info"              # Default
 export RUST_LOG="debug"             # Verbose
-export RUST_LOG="dataforge=debug"   # Module-specific
+export RUST_LOG="swe-forge=debug"   # Module-specific
 
 # Optional: Template directory
 export DATAFORGE_TEMPLATES="./my-templates"
@@ -489,5 +489,5 @@ litellm --config litellm_config.yaml --port 4000
 Then configure Dataforge:
 ```bash
 export LITELLM_API_BASE="http://localhost:4000"
-dataforge tui
+swe-forge tui
 ```

@@ -134,7 +134,7 @@ impl CollectorConfig for GitHubIssuesConfig {
 /// # Example
 ///
 /// ```ignore
-/// use dataforge::collectors::{GitHubIssuesCollector, RepoConfig};
+/// use swe_forge::collectors::{GitHubIssuesCollector, RepoConfig};
 ///
 /// let collector = GitHubIssuesCollector::new(Some("ghp_xxxxx".to_string()))
 ///     .add_repo(RepoConfig::new("owner", "repo").with_label("bug"));
@@ -333,7 +333,7 @@ impl GitHubIssuesCollector {
             .http_client
             .get(&url)
             .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", "dataforge/1.0")
+            .header("User-Agent", "swe_forge/1.0")
             .header("X-GitHub-Api-Version", "2022-11-28");
 
         if let Some(ref token) = self.api_token {
@@ -396,7 +396,7 @@ impl GitHubIssuesCollector {
             .http_client
             .get(&url)
             .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", "dataforge/1.0")
+            .header("User-Agent", "swe_forge/1.0")
             .header("X-GitHub-Api-Version", "2022-11-28");
 
         if let Some(ref token) = self.api_token {
@@ -488,7 +488,7 @@ impl GitHubIssuesCollector {
             .http_client
             .get(&url)
             .header("Accept", "application/vnd.github.v3.diff")
-            .header("User-Agent", "dataforge/1.0")
+            .header("User-Agent", "swe_forge/1.0")
             .header("X-GitHub-Api-Version", "2022-11-28");
 
         if let Some(ref token) = self.api_token {

@@ -239,7 +239,7 @@ impl MultiModelRouter {
     /// # Example
     ///
     /// ```
-    /// use dataforge::llm::router::{MultiModelRouter, RoutingStrategy};
+    /// use swe_forge::llm::router::{MultiModelRouter, RoutingStrategy};
     ///
     /// let router = MultiModelRouter::new(RoutingStrategy::CostOptimized);
     /// ```

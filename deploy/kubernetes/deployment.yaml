@@ -1,35 +1,35 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: dataforge
-  namespace: dataforge
+  name: swe-forge
+  namespace: swe-forge
   labels:
-    app.kubernetes.io/name: dataforge
+    app.kubernetes.io/name: swe-forge
     app.kubernetes.io/component: api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: dataforge
+      app: swe-forge
   template:
     metadata:
       labels:
-        app: dataforge
-        app.kubernetes.io/name: dataforge
+        app: swe-forge
+        app.kubernetes.io/name: swe-forge
         app.kubernetes.io/component: api
     spec:
       containers:
-        - name: dataforge
-          image: dataforge:latest
+        - name: swe-forge
+          image: swe-forge:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8080
               name: http
           envFrom:
             - configMapRef:
-                name: dataforge-config
+                name: swe-forge-config
             - secretRef:
-                name: dataforge-secrets
+                name: swe-forge-secrets
           resources:
             requests:
               cpu: "500m"
@@ -64,15 +64,15 @@ spec:
             path: /var/run/docker.sock
         - name: data
           persistentVolumeClaim:
-            claimName: dataforge-data
+            claimName: swe-forge-data
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: dataforge-data
-  namespace: dataforge
+  name: swe-forge-data
+  namespace: swe-forge
   labels:
-    app.kubernetes.io/name: dataforge
+    app.kubernetes.io/name: swe-forge
     app.kubernetes.io/component: storage
 spec:
   accessModes:

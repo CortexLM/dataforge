@@ -23,7 +23,7 @@
 //! ## Deduplicating Trajectories
 //!
 //! ```rust,ignore
-//! use dataforge::diversity::Deduplicator;
+//! use swe_forge::diversity::Deduplicator;
 //!
 //! // Create a deduplicator with 85% similarity threshold
 //! let deduplicator = Deduplicator::new(0.85);
@@ -36,7 +36,7 @@
 //! ## Diverse Sampling
 //!
 //! ```rust,ignore
-//! use dataforge::diversity::{DiverseSampler, SamplingStrategy};
+//! use swe_forge::diversity::{DiverseSampler, SamplingStrategy};
 //!
 //! let sampler = DiverseSampler::new().with_seed(42);
 //!
@@ -51,7 +51,7 @@
 //! ## Measuring Diversity
 //!
 //! ```rust,ignore
-//! use dataforge::diversity::DiversityMetrics;
+//! use swe_forge::diversity::DiversityMetrics;
 //!
 //! let metrics = DiversityMetrics::calculate(&trajectories);
 //! println!("Category entropy: {:.3}", metrics.category_entropy());

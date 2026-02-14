@@ -1,4 +1,4 @@
-//! Shared utility functions for dataforge.
+//! Shared utility functions for swe_forge.
 //!
 //! This module provides common utilities used across multiple modules,
 //! including JSON extraction from LLM responses.

@@ -1,4 +1,4 @@
-//! Category system for dataforge benchmarks.
+//! Category system for swe_forge benchmarks.
 //!
 //! This module provides the taxonomy and registry for categorizing benchmark tasks.
 

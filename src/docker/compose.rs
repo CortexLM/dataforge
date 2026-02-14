@@ -1,4 +1,4 @@
-//! Docker Compose configuration generation for dataforge tasks.
+//! Docker Compose configuration generation for swe_forge tasks.
 //!
 //! This module provides utilities for generating docker-compose.yaml files
 //! for multi-container task environments.
@@ -606,7 +606,7 @@ mod tests {
     #[test]
     fn test_compose_builder_basic() {
         let config = DockerfileConfig {
-            base_image: "dataforge/ubuntu-24.04:latest".to_string(),
+            base_image: "swe-forge/ubuntu-24.04:latest".to_string(),
             task_id: "test-001".to_string(),
             category: "file-operations".to_string(),
             difficulty: "easy".to_string(),
@@ -630,7 +630,7 @@ mod tests {
     #[test]
     fn test_compose_builder_with_database() {
         let config = DockerfileConfig {
-            base_image: "dataforge/ubuntu-24.04:latest".to_string(),
+            base_image: "swe-forge/ubuntu-24.04:latest".to_string(),
             task_id: "test-002".to_string(),
             category: "data-science".to_string(),
             difficulty: "medium".to_string(),
@@ -655,7 +655,7 @@ mod tests {
     #[test]
     fn test_compose_builder_with_cache() {
         let config = DockerfileConfig {
-            base_image: "dataforge/ubuntu-24.04:latest".to_string(),
+            base_image: "swe-forge/ubuntu-24.04:latest".to_string(),
             task_id: "test-003".to_string(),
             category: "web".to_string(),
             difficulty: "medium".to_string(),
@@ -679,7 +679,7 @@ mod tests {
     #[test]
     fn test_compose_builder_with_webserver() {
         let config = DockerfileConfig {
-            base_image: "dataforge/ubuntu-24.04:latest".to_string(),
+            base_image: "swe-forge/ubuntu-24.04:latest".to_string(),
             task_id: "test-004".to_string(),
             category: "web".to_string(),
             difficulty: "hard".to_string(),

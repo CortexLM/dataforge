@@ -1,4 +1,4 @@
-//! External data source collectors for dataforge.
+//! External data source collectors for swe_forge.
 //!
 //! This module provides collectors for fetching benchmark data from external sources:
 //! - SWE-bench: Python bug instances from HuggingFace datasets

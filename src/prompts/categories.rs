@@ -560,7 +560,7 @@ static CATEGORY_LOOKUP: LazyLock<HashMap<&'static str, &'static CategoryPrompt>>
 /// # Examples
 ///
 /// ```
-/// use dataforge::prompts::get_category_prompt;
+/// use swe_forge::prompts::get_category_prompt;
 ///
 /// let prompt = get_category_prompt("AlgorithmDesign").unwrap();
 /// assert_eq!(prompt.category, "AlgorithmDesign");
@@ -574,7 +574,7 @@ pub fn get_category_prompt(category: &str) -> Option<&'static CategoryPrompt> {
 /// # Examples
 ///
 /// ```
-/// use dataforge::prompts::categories::all_category_names;
+/// use swe_forge::prompts::categories::all_category_names;
 ///
 /// let names = all_category_names();
 /// assert!(names.contains(&"AlgorithmDesign"));

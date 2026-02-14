@@ -24,14 +24,14 @@
 //! # Example
 //!
 //! ```rust,ignore
-//! use dataforge::pipeline::{PipelineOrchestrator, PipelineConfig, TaskSpec};
+//! use swe_forge::pipeline::{PipelineOrchestrator, PipelineConfig, TaskSpec};
 //! use std::time::Duration;
 //!
 //! // Create configuration
 //! let config = PipelineConfig::new()
 //!     .with_max_concurrent_tasks(4)
 //!     .with_task_timeout(Duration::from_secs(1800))
-//!     .with_database_url("postgres://localhost/dataforge");
+//!     .with_database_url("postgres://localhost/swe-forge");
 //!
 //! // Create orchestrator
 //! let orchestrator = PipelineOrchestrator::new(config).await?;

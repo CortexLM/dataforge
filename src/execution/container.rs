@@ -74,7 +74,7 @@ impl Container {
     /// # Example
     ///
     /// ```ignore
-    /// use dataforge::execution::{DockerClient, Container, ContainerConfig};
+    /// use swe_forge::execution::{DockerClient, Container, ContainerConfig};
     ///
     /// let client = DockerClient::new()?;
     /// let config = ContainerConfig::new("task-123", "python:3.11-slim");

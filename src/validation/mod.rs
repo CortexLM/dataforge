@@ -1,4 +1,4 @@
-//! Validation modules for dataforge.
+//! Validation modules for swe_forge.
 //!
 //! This module provides schema validation for task templates and
 //! task validation for ensuring tasks meet quality standards.

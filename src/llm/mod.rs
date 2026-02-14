@@ -1,4 +1,4 @@
-//! LLM integration for dataforge.
+//! LLM integration for swe_forge.
 //!
 //! This module provides integration with various LLM providers for AI-assisted
 //! template generation, instruction improvement, and multi-model routing.
@@ -10,7 +10,7 @@
 //! across multiple agent conversations.
 //!
 //! ```ignore
-//! use dataforge::llm::{LiteLlmClient, PromptCache, Message, GenerationRequest};
+//! use swe_forge::llm::{LiteLlmClient, PromptCache, Message, GenerationRequest};
 //!
 //! let client = LiteLlmClient::from_env()?;
 //! let cache = PromptCache::new(1000);
@@ -27,8 +27,8 @@
 //! requests across multiple LLM providers:
 //!
 //! ```ignore
-//! use dataforge::llm::router::{MultiModelRouter, RoutingStrategy, ModelCapabilities};
-//! use dataforge::llm::providers::OpenRouterProvider;
+//! use swe_forge::llm::router::{MultiModelRouter, RoutingStrategy, ModelCapabilities};
+//! use swe_forge::llm::providers::OpenRouterProvider;
 //! use std::sync::Arc;
 //!
 //! let mut router = MultiModelRouter::new(RoutingStrategy::CostOptimized);
@@ -48,7 +48,7 @@
 //! Track LLM usage costs with daily and monthly budgets:
 //!
 //! ```ignore
-//! use dataforge::llm::cost::CostTracker;
+//! use swe_forge::llm::cost::CostTracker;
 //!
 //! let tracker = CostTracker::new(10.0, 100.0); // $10/day, $100/month
 //! tracker.record_usage("gpt-4", 1000, 500, 3.0, 15.0);

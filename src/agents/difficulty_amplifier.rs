@@ -15,9 +15,9 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::agents::difficulty_amplifier::{DifficultyAmplifierAgent, AmplifierConfig};
-//! use dataforge::agents::factory_types::{FactoryTaskSpec, DifficultyTrap};
-//! use dataforge::llm::LiteLlmClient;
+//! use swe_forge::agents::difficulty_amplifier::{DifficultyAmplifierAgent, AmplifierConfig};
+//! use swe_forge::agents::factory_types::{FactoryTaskSpec, DifficultyTrap};
+//! use swe_forge::llm::LiteLlmClient;
 //! use std::sync::Arc;
 //!
 //! let llm_client = Arc::new(LiteLlmClient::from_env()?);

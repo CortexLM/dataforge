@@ -565,50 +565,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dataforge"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-stream",
- "async-trait",
- "base64 0.22.1",
- "bollard",
- "chrono",
- "clap",
- "flate2",
- "futures",
- "hex",
- "ndarray",
- "ordered-float",
- "pin-project-lite",
- "prometheus",
- "rand 0.10.0",
- "rand_chacha 0.10.0",
- "rand_distr",
- "redis",
- "regex",
- "reqwest",
- "semver",
- "serde",
- "serde_json",
- "serde_yaml",
- "sha2",
- "sqlx",
- "tar",
- "tempfile",
- "tera",
- "thiserror 2.0.18",
- "time",
- "tokio",
- "tokio-stream",
- "tracing",
- "tracing-subscriber",
- "urlencoding",
- "uuid",
- "walkdir",
-]
-
-[[package]]
 name = "der"
 version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3099,6 +3055,50 @@ name = "subtle"
 version = "2.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "13c2bddecc57b384dee18652358fb23172facb8a2c51ccc10d74c157bdea3292"
+
+[[package]]
+name = "swe-forge"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-stream",
+ "async-trait",
+ "base64 0.22.1",
+ "bollard",
+ "chrono",
+ "clap",
+ "flate2",
+ "futures",
+ "hex",
+ "ndarray",
+ "ordered-float",
+ "pin-project-lite",
+ "prometheus",
+ "rand 0.10.0",
+ "rand_chacha 0.10.0",
+ "rand_distr",
+ "redis",
+ "regex",
+ "reqwest",
+ "semver",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "sha2",
+ "sqlx",
+ "tar",
+ "tempfile",
+ "tera",
+ "thiserror 2.0.18",
+ "time",
+ "tokio",
+ "tokio-stream",
+ "tracing",
+ "tracing-subscriber",
+ "urlencoding",
+ "uuid",
+ "walkdir",
+]
 
 [[package]]
 name = "syn"

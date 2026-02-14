@@ -126,7 +126,7 @@ async fn fetch_hour_events_static(
 ) -> Result<Vec<GhArchiveEvent>, anyhow::Error> {
     let mut request = client
         .get(format!("{GH_ARCHIVE_BASE_URL}/{hour_key}.json.gz"))
-        .header("User-Agent", "dataforge/1.0");
+        .header("User-Agent", "swe_forge/1.0");
 
     if let Some(ref token) = token {
         request = request.header("Authorization", format!("Bearer {token}"));

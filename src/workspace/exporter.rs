@@ -8,7 +8,7 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::workspace::{WorkspaceExporter, GeneratedWorkspace};
+//! use swe_forge::workspace::{WorkspaceExporter, GeneratedWorkspace};
 //! use std::path::Path;
 //!
 //! let exporter = WorkspaceExporter::new()

@@ -100,7 +100,7 @@ impl ExecutionLimits {
 /// # Example
 ///
 /// ```
-/// use dataforge::execution::get_execution_limits;
+/// use swe_forge::execution::get_execution_limits;
 ///
 /// let limits = get_execution_limits("hard");
 /// assert_eq!(limits.memory_mb, 2048);

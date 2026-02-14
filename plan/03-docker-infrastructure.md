@@ -275,7 +275,7 @@ pub struct CleanupPolicy {
 
 ```
 /workspace/                    # Main working directory
-├── .dataforge/                # System files (read-only)
+├── .swe-forge/                # System files (read-only)
 │   ├── task.json              # Task specification
 │   ├── tools.json             # Available tools
 │   └── config.yaml            # Configuration
@@ -295,7 +295,7 @@ pub fn create_mounts(task: &Task) -> Vec<Mount> {
         // Task specification (read-only)
         Mount::bind(
             &task.spec_path,
-            "/workspace/.dataforge",
+            "/workspace/.swe-forge",
             true, // read_only
         ),
         // Working directory (read-write, ephemeral)
@@ -305,7 +305,7 @@ pub fn create_mounts(task: &Task) -> Vec<Mount> {
         ),
         // Artifact output (persistent)
         Mount::volume(
-            &format!("dataforge-artifacts-{}", task.id),
+            &format!("swe-forge-artifacts-{}", task.id),
             "/workspace/output",
             false,
         ),
@@ -322,8 +322,8 @@ version: '3.8'
 
 services:
   task-executor:
-    image: ${TASK_IMAGE:-dataforge/python-base:latest}
-    container_name: dataforge-task-${TASK_ID}
+    image: ${TASK_IMAGE:-swe-forge/python-base:latest}
+    container_name: swe-forge-task-${TASK_ID}
     
     # Resource limits
     deploy:
@@ -357,7 +357,7 @@ services:
       - task-artifacts:/workspace/output
       - type: bind
         source: ${TASK_SPEC_PATH}
-        target: /workspace/.dataforge
+        target: /workspace/.swe-forge
         read_only: true
     
     # Environment
@@ -368,16 +368,16 @@ services:
     
     # Healthcheck
     healthcheck:
-      test: ["CMD", "test", "-f", "/workspace/.dataforge/task.json"]
+      test: ["CMD", "test", "-f", "/workspace/.swe-forge/task.json"]
       interval: 30s
       timeout: 10s
       retries: 3
     
     # Labels for management
     labels:
-      dataforge.task_id: ${TASK_ID}
-      dataforge.created_at: ${CREATED_AT}
-      dataforge.difficulty: ${DIFFICULTY}
+      swe-forge.task_id: ${TASK_ID}
+      swe-forge.created_at: ${CREATED_AT}
+      swe-forge.difficulty: ${DIFFICULTY}
 
 networks:
   task-network:

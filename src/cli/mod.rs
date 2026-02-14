@@ -1,4 +1,4 @@
-//! Command-line interface for dataforge.
+//! Command-line interface for swe_forge.
 //!
 //! Provides commands for template management, task generation, validation,
 //! and export operations.

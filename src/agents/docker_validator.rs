@@ -321,7 +321,7 @@ impl DockerValidatorAgent {
         let image = self.determine_base_image(task);
 
         ContainerConfig::new(
-            format!("dataforge-validate-{}", &task.id[..8.min(task.id.len())]),
+            format!("swe_forge-validate-{}", &task.id[..8.min(task.id.len())]),
             image,
         )
         .with_limits(limits)

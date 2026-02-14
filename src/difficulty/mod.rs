@@ -1,4 +1,4 @@
-//! Difficulty system for dataforge benchmarks.
+//! Difficulty system for swe_forge benchmarks.
 //!
 //! This module provides difficulty levels, resource limits, and scoring calculations
 //! for benchmark tasks.

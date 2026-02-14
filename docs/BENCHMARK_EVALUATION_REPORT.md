@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This report documents the evaluation of the dataforge benchmark task generation system against the terminal-bench format standard. Key improvements were made to align generated tasks with practical, executable terminal benchmarks.
+This report documents the evaluation of the swe-forge benchmark task generation system against the terminal-bench format standard. Key improvements were made to align generated tasks with practical, executable terminal benchmarks.
 
 ## Initial Findings
 
@@ -97,7 +97,7 @@ Generated tasks are saved in:
 
 ## Conclusion
 
-The changes successfully aligned dataforge's task generation with the terminal-bench format. Generated tasks are now:
+The changes successfully aligned swe-forge's task generation with the terminal-bench format. Generated tasks are now:
 - Practical and executable
 - Have concrete file paths and outputs
 - Can be verified programmatically

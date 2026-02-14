@@ -1,4 +1,4 @@
-//! Template system for dataforge task definitions.
+//! Template system for swe_forge task definitions.
 //!
 //! This module provides the infrastructure for defining, loading, and validating
 //! task templates. Templates define the structure of benchmark tasks, including
@@ -8,7 +8,7 @@
 //! # Example
 //!
 //! ```ignore
-//! use dataforge::template::{TemplateLoader, TaskTemplate};
+//! use swe_forge::template::{TemplateLoader, TaskTemplate};
 //!
 //! let mut loader = TemplateLoader::new();
 //! loader.load_directory("templates/")?;

@@ -58,18 +58,18 @@ impl Default for EnvironmentConfig {
         let mut base_images = HashMap::new();
         base_images.insert(
             "python".to_string(),
-            "dataforge/python-3.13:latest".to_string(),
+            "swe_forge/python-3.13:latest".to_string(),
         );
-        base_images.insert("node".to_string(), "dataforge/node-22:latest".to_string());
-        base_images.insert("rust".to_string(), "dataforge/rust-1.80:latest".to_string());
-        base_images.insert("go".to_string(), "dataforge/go-1.22:latest".to_string());
+        base_images.insert("node".to_string(), "swe_forge/node-22:latest".to_string());
+        base_images.insert("rust".to_string(), "swe_forge/rust-1.80:latest".to_string());
+        base_images.insert("go".to_string(), "swe_forge/go-1.22:latest".to_string());
         base_images.insert(
             "multi".to_string(),
-            "dataforge/multi-lang:latest".to_string(),
+            "swe_forge/multi-lang:latest".to_string(),
         );
         base_images.insert(
             "ubuntu".to_string(),
-            "dataforge/ubuntu-24.04:latest".to_string(),
+            "swe_forge/ubuntu-24.04:latest".to_string(),
         );
 
         Self {
@@ -116,7 +116,7 @@ impl EnvironmentConfig {
         self.base_images
             .get(runtime)
             .map(|s| s.as_str())
-            .unwrap_or("dataforge/ubuntu-24.04:latest")
+            .unwrap_or("swe_forge/ubuntu-24.04:latest")
     }
 }
 
@@ -754,7 +754,7 @@ mod tests {
 
         assert!(result
             .dockerfile_content
-            .contains("dataforge/python-3.13:latest"));
+            .contains("swe_forge/python-3.13:latest"));
         assert!(result.dockerfile_content.contains("pip install"));
         assert_eq!(result.dependencies, vec!["numpy", "pandas"]);
         assert_eq!(result.runtime_version, "3.13");

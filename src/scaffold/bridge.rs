@@ -51,7 +51,7 @@ impl std::error::Error for BridgeError {}
 /// # Example
 ///
 /// ```ignore
-/// use dataforge::scaffold::bridge::ProcessBridge;
+/// use swe_forge::scaffold::bridge::ProcessBridge;
 /// use std::time::Duration;
 ///
 /// let bridge = ProcessBridge::spawn(

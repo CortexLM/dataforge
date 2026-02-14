@@ -86,7 +86,7 @@ Output ONLY the JSON object. No additional text or explanation."#;
 /// # Examples
 ///
 /// ```
-/// use dataforge::prompts::{get_category_prompt, build_ideation_prompt};
+/// use swe_forge::prompts::{get_category_prompt, build_ideation_prompt};
 ///
 /// let category = get_category_prompt("AlgorithmDesign").unwrap();
 /// let prompt = build_ideation_prompt(category, 1.0, None);

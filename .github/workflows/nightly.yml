@@ -95,13 +95,13 @@ jobs:
           RUSTFLAGS: "-C target-cpu=native -C link-arg=-fuse-ld=mold"
 
       - name: Binary size
-        run: ls -lh target/release/dataforge
+        run: ls -lh target/release/swe-forge
 
       - name: Upload release binary
         uses: actions/upload-artifact@v4
         with:
-          name: dataforge-nightly-linux-x86_64
-          path: target/release/dataforge
+          name: swe-forge-nightly-linux-x86_64
+          path: target/release/swe-forge
           retention-days: 14
 
   # ──────────────────────────────────────────────

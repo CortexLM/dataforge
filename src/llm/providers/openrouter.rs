@@ -202,8 +202,8 @@ impl OpenRouterProvider {
             .post(url)
             .header("Content-Type", "application/json")
             .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("HTTP-Referer", "https://dataforge.local")
-            .header("X-Title", "dataforge")
+            .header("HTTP-Referer", "https://swe_forge.local")
+            .header("X-Title", "swe_forge")
             .json(request)
             .send()
             .await

@@ -1,4 +1,4 @@
-//! LiteLLM-compatible client implementation for dataforge.
+//! LiteLLM-compatible client implementation for swe_forge.
 //!
 //! This module provides a client for interacting with LiteLLM-compatible APIs
 //! for AI-assisted template generation and instruction improvement.
@@ -419,7 +419,7 @@ impl LiteLlmClient {
     /// # Example
     ///
     /// ```ignore
-    /// use dataforge::llm::{LiteLlmClient, PromptCache, Message, GenerationRequest};
+    /// use swe_forge::llm::{LiteLlmClient, PromptCache, Message, GenerationRequest};
     ///
     /// let client = LiteLlmClient::from_env()?;
     /// let cache = PromptCache::new(1000);
@@ -564,8 +564,8 @@ impl LlmProvider for LiteLlmClient {
             .http_client
             .post(&url)
             .header("Content-Type", "application/json")
-            .header("HTTP-Referer", "https://dataforge.local")
-            .header("X-Title", "dataforge");
+            .header("HTTP-Referer", "https://swe_forge.local")
+            .header("X-Title", "swe_forge");
 
         if let Some(ref api_key) = self.api_key {
             http_request = http_request.header("Authorization", format!("Bearer {}", api_key));
