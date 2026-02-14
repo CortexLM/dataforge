@@ -3,6 +3,7 @@
 //! pre-classification, extraction, test generation, and quality scoring.
 
 use std::collections::HashSet;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
@@ -10,7 +11,7 @@ use futures::stream::FuturesUnordered;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::{self, Sender};
-use tokio::sync::Semaphore;
+use tokio::sync::{Mutex, Semaphore};
 
 use crate::llm::LlmProvider;
 use crate::swe::{
@@ -196,135 +197,120 @@ impl SwePipeline {
             "Pre-filtered events (excluded bots, non-org repos)"
         );
 
-        // === STAGE 1: Parallel enrichment with rate limiting ===
-        // GitHub API: 5000 req/h. We use 2 calls per PR (pr + files).
-        // With 3 concurrent and a 500ms delay between batches, we stay safe.
-        let enrich_sem = Arc::new(Semaphore::new(3));
+        // === POOL-BASED PIPELINE ===
+        // Each event flows independently through: enrich -> filter -> pre-classify -> deep process.
+        // Semaphores control concurrency at each stage. No chunk barriers.
+        let enrich_sem = Arc::new(Semaphore::new(5));
+        let preclassify_sem = Arc::new(Semaphore::new(15));
+        let deep_sem = Arc::new(Semaphore::new(5));
+
         let enricher = &self.enricher;
         let filter = &self.filter;
         let quality = &self.quality;
+        let extractor = &self.extractor;
+        let test_generator = &self.test_generator;
+        let prompt_rewriter = &self.prompt_rewriter;
         let difficulty_filter = config.difficulty_filter.clone();
+        let max_tasks = config.max_tasks;
+        let once = config.once;
 
-        // We process in streaming batches: enrich -> filter -> pre-classify -> deep process
-        // This avoids enriching thousands of PRs we'll never use.
-        let mut tasks: Vec<SweTask> = Vec::new();
-        let mut filtered_count = 0usize;
-        let mut extracted = 0usize;
-        let mut scored = 0usize;
+        let completed = Arc::new(AtomicUsize::new(0));
+        let tasks_mu: Arc<Mutex<Vec<SweTask>>> = Arc::new(Mutex::new(Vec::new()));
+        let filtered_count = Arc::new(AtomicUsize::new(0));
+        let extracted_count = Arc::new(AtomicUsize::new(0));
+        let scored_count = Arc::new(AtomicUsize::new(0));
 
-        // Process in chunks to manage rate limits while maintaining parallelism
-        let chunk_size = 30;
-        for chunk in events.chunks(chunk_size) {
-            if tasks.len() >= config.max_tasks && config.once {
-                break;
-            }
-
-            // --- Enrich chunk in parallel (3 concurrent) ---
-            let mut enrich_futures = Vec::with_capacity(chunk.len());
-            for event in chunk {
-                let sem = enrich_sem.clone();
-                enrich_futures.push(async move {
-                    let _permit = sem.acquire().await.unwrap();
-                    enricher.enrich(event).await
-                });
-            }
-            let enrich_results = futures::future::join_all(enrich_futures).await;
-
-            let enriched_prs: Vec<EnrichedPullRequest> = enrich_results
-                .into_iter()
-                .flatten()
-                .filter(|e| e.title != "Untitled change" && !e.merge_sha.is_empty())
-                .collect();
-
-            // --- Local filter ---
-            let mut filtered_prs: Vec<EnrichedPullRequest> = Vec::new();
-            for enriched in enriched_prs {
-                let added_lines = infer_added_lines(&enriched);
-                let filter_result = filter.keep_candidate(
-                    &enriched.language,
-                    enriched.stars,
-                    enriched.files_changed,
-                    added_lines,
-                );
-                filtered_count += 1;
-                if filter_result.accepted {
-                    filtered_prs.push(enriched);
-                }
-            }
-
-            if filtered_prs.is_empty() {
-                continue;
-            }
-
-            tracing::info!(
-                chunk_enriched = chunk.len(),
-                chunk_accepted = filtered_prs.len(),
-                "Chunk filtered"
-            );
-
-            // --- Pre-classify difficulty in parallel (10 concurrent LLM) ---
-            let mut candidates = Vec::new();
-            if let Some(ref df) = difficulty_filter {
-                let preclassify_sem = Arc::new(Semaphore::new(10));
-                let mut triage_futures = Vec::with_capacity(filtered_prs.len());
-                for pr in &filtered_prs {
-                    let sem = preclassify_sem.clone();
-                    let repo = pr.repository.clone();
-                    let number = pr.number;
-                    let title = pr.title.clone();
-                    let body = pr.body.clone();
-                    let df_clone = df.clone();
-                    triage_futures.push(async move {
-                        let _permit = sem.acquire().await.unwrap();
-                        let result = quality
-                            .pre_classify(&repo, number, &title, &body, &df_clone)
-                            .await;
-                        (number, repo, result)
-                    });
-                }
-                let triage_results = futures::future::join_all(triage_futures).await;
-
-                let mut accepted_set: HashSet<(String, u64)> = HashSet::new();
-                for (number, repo, result) in triage_results {
-                    match result {
-                        Ok(pre) if !pre.dominated_out => {
-                            tracing::info!(repo = %repo, pr = number, triage = %pre.difficulty, "Pre-classification: ACCEPTED");
-                            accepted_set.insert((repo, number));
-                        }
-                        Ok(pre) => {
-                            tracing::debug!(repo = %repo, pr = number, triage = %pre.difficulty, "Skipped by pre-classification");
-                        }
-                        Err(_) => {
-                            accepted_set.insert((repo, number));
-                        }
-                    }
-                }
-
-                for pr in filtered_prs {
-                    if accepted_set.contains(&(pr.repository.clone(), pr.number)) {
-                        candidates.push(pr);
-                    }
-                }
-            } else {
-                candidates = filtered_prs;
-            }
-
-            if candidates.is_empty() {
-                continue;
-            }
-
-            // --- Deep processing in parallel (3 concurrent: extraction + test gen + quality) ---
-            let process_sem = Arc::new(Semaphore::new(3));
-            let extractor = &self.extractor;
-            let test_generator = &self.test_generator;
-            let prompt_rewriter = &self.prompt_rewriter;
-
-            let mut futs: FuturesUnordered<_> = candidates.iter().map(|enriched| {
-                let sem = process_sem.clone();
-                let enriched = enriched.clone();
+        let mut pool: FuturesUnordered<_> = events
+            .into_iter()
+            .map(|event| {
+                let enrich_sem = enrich_sem.clone();
+                let preclassify_sem = preclassify_sem.clone();
+                let deep_sem = deep_sem.clone();
                 let df = difficulty_filter.clone();
+                let completed = completed.clone();
+                let tasks_mu = tasks_mu.clone();
+                let filtered_count = filtered_count.clone();
+                let extracted_count = extracted_count.clone();
+                let scored_count = scored_count.clone();
                 async move {
-                    let _permit = sem.acquire().await.unwrap();
+                    if completed.load(Ordering::Relaxed) >= max_tasks && once {
+                        return;
+                    }
+
+                    // --- Stage 1: Enrich ---
+                    let enriched = {
+                        let _permit = enrich_sem.acquire().await.unwrap();
+                        match enricher.enrich(&event).await {
+                            Ok(e) => e,
+                            Err(_) => return,
+                        }
+                    };
+
+                    if enriched.title == "Untitled change" || enriched.merge_sha.is_empty() {
+                        return;
+                    }
+
+                    // --- Stage 2: Local filter ---
+                    let added_lines = infer_added_lines(&enriched);
+                    let filter_result = filter.keep_candidate(
+                        &enriched.language,
+                        enriched.stars,
+                        enriched.files_changed,
+                        added_lines,
+                    );
+                    filtered_count.fetch_add(1, Ordering::Relaxed);
+                    if !filter_result.accepted {
+                        return;
+                    }
+
+                    if completed.load(Ordering::Relaxed) >= max_tasks && once {
+                        return;
+                    }
+
+                    // --- Stage 3: Pre-classify difficulty ---
+                    if let Some(ref df_val) = df {
+                        let _permit = preclassify_sem.acquire().await.unwrap();
+                        match quality
+                            .pre_classify(
+                                &enriched.repository,
+                                enriched.number,
+                                &enriched.title,
+                                &enriched.body,
+                                df_val,
+                            )
+                            .await
+                        {
+                            Ok(pre) if pre.dominated_out => {
+                                tracing::debug!(
+                                    repo = %enriched.repository,
+                                    pr = enriched.number,
+                                    triage = %pre.difficulty,
+                                    "Skipped by pre-classification"
+                                );
+                                return;
+                            }
+                            Ok(pre) => {
+                                tracing::info!(
+                                    repo = %enriched.repository,
+                                    pr = enriched.number,
+                                    triage = %pre.difficulty,
+                                    "Pre-classification: ACCEPTED"
+                                );
+                            }
+                            Err(_) => { /* on error, let it through */ }
+                        }
+                    }
+
+                    if completed.load(Ordering::Relaxed) >= max_tasks && once {
+                        return;
+                    }
+
+                    // --- Stage 4: Deep processing (extraction + test gen + quality) ---
+                    let _permit = deep_sem.acquire().await.unwrap();
+
+                    if completed.load(Ordering::Relaxed) >= max_tasks && once {
+                        return;
+                    }
 
                     let patch = match extractor.extract_patch(&PatchExtractionInput {
                         repository: &enriched.repository,
@@ -338,45 +324,63 @@ impl SwePipeline {
                         Ok(p) => p,
                         Err(err) => {
                             tracing::warn!(repo = %enriched.repository, pr = enriched.number, error = %err, "Extraction failed");
-                            return None;
+                            return;
                         }
                     };
 
                     let mut task = SweTask::from_pull_request(
-                        &enriched.repository, enriched.number, &enriched.language,
-                        &enriched.base_sha, &enriched.merge_sha, &patch,
+                        &enriched.repository,
+                        enriched.number,
+                        &enriched.language,
+                        &enriched.base_sha,
+                        &enriched.merge_sha,
+                        &patch,
                     );
 
-                    let raw_body = if enriched.body.is_empty() { "(no description)" } else { &enriched.body };
+                    let raw_body = if enriched.body.is_empty() {
+                        "(no description)"
+                    } else {
+                        &enriched.body
+                    };
                     task.original_pr_body = format!(
                         "{repo} (#{pr}): {title}\n\n{body}",
-                        repo = enriched.repository, pr = enriched.number,
-                        title = enriched.title, body = raw_body,
+                        repo = enriched.repository,
+                        pr = enriched.number,
+                        title = enriched.title,
+                        body = raw_body,
                     );
 
-                    match prompt_rewriter.rewrite(
-                        &enriched.repository, enriched.number, &enriched.title, raw_body,
-                    ).await {
+                    match prompt_rewriter
+                        .rewrite(
+                            &enriched.repository,
+                            enriched.number,
+                            &enriched.title,
+                            raw_body,
+                        )
+                        .await
+                    {
                         Ok(rewritten) => {
                             task.prompt = format!(
                                 "{repo} (#{pr}): {title}\n\n{rewritten}",
-                                repo = enriched.repository, pr = enriched.number,
+                                repo = enriched.repository,
+                                pr = enriched.number,
                                 title = enriched.title,
                             );
                         }
                         Err(err) => {
                             tracing::warn!(task_id = %task.id, error = %err, "Prompt rewrite failed");
-                            return None;
+                            return;
                         }
                     }
 
-                    task.meta.insert("pr_title".to_string(), enriched.title.clone());
+                    task.meta
+                        .insert("pr_title".to_string(), enriched.title.clone());
 
                     if !task.has_tests() {
                         let language = task.language.clone();
                         if let Err(err) = test_generator.ensure_tests(&mut task, &language).await {
                             tracing::warn!(task_id = %task.id, error = %err, "Test generation failed");
-                            return None;
+                            return;
                         }
                     }
 
@@ -384,43 +388,69 @@ impl SwePipeline {
                         Ok(a) => a,
                         Err(err) => {
                             tracing::warn!(task_id = %task.id, error = %err, "Quality assessment failed");
-                            return None;
+                            return;
                         }
                     };
+
+                    scored_count.fetch_add(1, Ordering::Relaxed);
 
                     let (score, passed) = (assessment.score, assessment.passed);
                     task.quality_score = Some(score);
                     task.quality_passed = passed;
                     task.difficulty_score = match assessment.difficulty_level.as_str() {
-                        "easy" => 1, "medium" => 2, "hard" => 3, _ => 1,
+                        "easy" => 1,
+                        "medium" => 2,
+                        "hard" => 3,
+                        _ => 1,
                     };
-                    task.meta.insert("difficulty".to_string(), assessment.difficulty_level.clone());
+                    task.meta.insert(
+                        "difficulty".to_string(),
+                        assessment.difficulty_level.clone(),
+                    );
                     let difficulty_ok = match df.as_deref() {
                         Some(f) => assessment.difficulty_level == f,
                         None => true,
                     };
 
-                    tracing::info!(task_id = %task.id, difficulty = %assessment.difficulty_level, score, passed = passed && difficulty_ok, "Task processed");
+                    tracing::info!(
+                        task_id = %task.id,
+                        difficulty = %assessment.difficulty_level,
+                        score,
+                        passed = passed && difficulty_ok,
+                        "Task processed"
+                    );
 
                     if passed && difficulty_ok {
                         task.status = crate::swe::SweTaskStatus::Ready;
-                        Some(task)
-                    } else { None }
-                }
-            }).collect();
-
-            while let Some(result) = futs.next().await {
-                scored += 1;
-                if let Some(task) = result {
-                    extracted += 1;
-                    tasks.push(task);
-                    if tasks.len() >= config.max_tasks && config.once {
-                        tracing::info!("Reached max_tasks={}, stopping early", config.max_tasks);
-                        break;
+                        let prev = completed.fetch_add(1, Ordering::Relaxed);
+                        if prev < max_tasks || !once {
+                            extracted_count.fetch_add(1, Ordering::Relaxed);
+                            tasks_mu.lock().await.push(task);
+                            tracing::info!(
+                                completed = prev + 1,
+                                max_tasks,
+                                "Task accepted into pool"
+                            );
+                        }
                     }
                 }
+            })
+            .collect();
+
+        while pool.next().await.is_some() {
+            if completed.load(Ordering::Relaxed) >= max_tasks && once {
+                tracing::info!("Reached max_tasks={}, stopping pool", max_tasks);
+                break;
             }
         }
+
+        let tasks = match Arc::try_unwrap(tasks_mu) {
+            Ok(mu) => mu.into_inner(),
+            Err(arc) => arc.lock().await.clone(),
+        };
+        let filtered_count = filtered_count.load(Ordering::Relaxed);
+        let extracted = extracted_count.load(Ordering::Relaxed);
+        let scored = scored_count.load(Ordering::Relaxed);
 
         emit(
             &event_tx,
