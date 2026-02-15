@@ -29,6 +29,7 @@ pub fn swe_bench_schema() -> Schema {
         Field::new("version", DataType::Utf8, true),
         Field::new("FAIL_TO_PASS", DataType::Utf8, false),
         Field::new("PASS_TO_PASS", DataType::Utf8, false),
+        Field::new("MUST_NOT_PASS", DataType::Utf8, true),
         Field::new("environment_setup_commit", DataType::Utf8, true),
         // swe-forge extensions
         Field::new("language", DataType::Utf8, false),
@@ -53,6 +54,7 @@ pub fn tasks_to_record_batch(tasks: &[SweTask]) -> anyhow::Result<RecordBatch> {
     let mut version = StringBuilder::new();
     let mut fail_to_pass = StringBuilder::new();
     let mut pass_to_pass = StringBuilder::new();
+    let mut must_not_pass = StringBuilder::new();
     let mut env_setup_commit = StringBuilder::new();
     let mut language = StringBuilder::new();
     let mut difficulty = StringBuilder::new();
@@ -95,6 +97,13 @@ pub fn tasks_to_record_batch(tasks: &[SweTask]) -> anyhow::Result<RecordBatch> {
         fail_to_pass.append_value(&f2p);
         let p2p = serde_json::to_string(&task.pass_to_pass).unwrap_or_else(|_| "[]".to_string());
         pass_to_pass.append_value(&p2p);
+
+        if task.must_not_pass.is_empty() {
+            must_not_pass.append_null();
+        } else {
+            let mnp = serde_json::to_string(&task.must_not_pass).unwrap_or_else(|_| "[]".to_string());
+            must_not_pass.append_value(&mnp);
+        }
 
         let env_commit = task
             .meta
@@ -139,6 +148,7 @@ pub fn tasks_to_record_batch(tasks: &[SweTask]) -> anyhow::Result<RecordBatch> {
         Arc::new(version.finish()),
         Arc::new(fail_to_pass.finish()),
         Arc::new(pass_to_pass.finish()),
+        Arc::new(must_not_pass.finish()),
         Arc::new(env_setup_commit.finish()),
         Arc::new(language.finish()),
         Arc::new(difficulty.finish()),
@@ -235,6 +245,7 @@ pub fn read_parquet(input_path: &Path) -> anyhow::Result<Vec<SweTask>> {
         let created_ats = get_string("created_at");
         let fail_to_passes = get_string("FAIL_TO_PASS");
         let pass_to_passes = get_string("PASS_TO_PASS");
+        let must_not_passes = get_string("MUST_NOT_PASS");
         let languages = get_string("language");
         let difficulties = get_string("difficulty");
 
@@ -261,8 +272,10 @@ pub fn read_parquet(input_path: &Path) -> anyhow::Result<Vec<SweTask>> {
 
             let f2p_str = fail_to_passes[i].clone().unwrap_or_else(|| "[]".to_string());
             let p2p_str = pass_to_passes[i].clone().unwrap_or_else(|| "[]".to_string());
+            let mnp_str = must_not_passes[i].clone().unwrap_or_else(|| "[]".to_string());
             let fail_to_pass: Vec<String> = serde_json::from_str(&f2p_str).unwrap_or_default();
             let pass_to_pass: Vec<String> = serde_json::from_str(&p2p_str).unwrap_or_default();
+            let must_not_pass_vec: Vec<String> = serde_json::from_str(&mnp_str).unwrap_or_default();
 
             let created_at = created_ats[i]
                 .as_deref()
@@ -282,6 +295,7 @@ pub fn read_parquet(input_path: &Path) -> anyhow::Result<Vec<SweTask>> {
             task.quality_passed = true;
             task.fail_to_pass = fail_to_pass;
             task.pass_to_pass = pass_to_pass;
+            task.must_not_pass = must_not_pass_vec;
             task.created_at = created_at;
             task.status = crate::swe::SweTaskStatus::Exported;
 
@@ -330,8 +344,9 @@ mod tests {
         assert!(schema.field_with_name("FAIL_TO_PASS").is_ok());
         assert!(schema.field_with_name("PASS_TO_PASS").is_ok());
         assert!(schema.field_with_name("difficulty").is_ok());
+        assert!(schema.field_with_name("MUST_NOT_PASS").is_ok());
         assert!(schema.field_with_name("quality_score").is_ok());
-        assert_eq!(schema.fields().len(), 16);
+        assert_eq!(schema.fields().len(), 17);
     }
 
     #[test]
@@ -339,7 +354,7 @@ mod tests {
         let tasks = vec![make_test_task("task-001"), make_test_task("task-002")];
         let batch = tasks_to_record_batch(&tasks).unwrap();
         assert_eq!(batch.num_rows(), 2);
-        assert_eq!(batch.num_columns(), 16);
+        assert_eq!(batch.num_columns(), 17);
     }
 
     #[test]

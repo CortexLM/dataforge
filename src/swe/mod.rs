@@ -62,6 +62,9 @@ pub struct SweTask {
     pub fail_to_pass: Vec<String>,
     /// Regression/pass-to-pass test commands.
     pub pass_to_pass: Vec<String>,
+    /// Must-not-pass test commands (must FAIL even after PR, anti-cheat).
+    #[serde(default)]
+    pub must_not_pass: Vec<String>,
     /// Install/configuration hints.
     pub install_config: BTreeMap<String, String>,
     /// Optional metadata from GitHub + extractor.
@@ -114,6 +117,7 @@ impl SweTask {
             test_patch: String::new(),
             fail_to_pass: Vec::new(),
             pass_to_pass: Vec::new(),
+            must_not_pass: Vec::new(),
             install_config: BTreeMap::new(),
             meta: BTreeMap::new(),
             prompt: String::new(),

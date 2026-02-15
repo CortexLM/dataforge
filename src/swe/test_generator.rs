@@ -1,10 +1,11 @@
-//! Agentic test generator inspired by OpenAI Codex CLI.
+//! Agentic test generator with dual-commit validation.
 //!
-//! The LLM has access to `shell` and `submit_tests` function calls.
-//! It clones the repo at the base commit, explores the codebase, runs tests,
-//! and iteratively validates commands until submitting final results.
+//! The LLM writes tests against the base commit, then the generator
+//! automatically verifies them against the PR commit (patch applied)
+//! to ensure fail_to_pass tests actually pass after the fix.
 
 use anyhow::Result;
+use regex::Regex;
 use std::process::Stdio;
 use std::sync::Arc;
 
@@ -14,36 +15,70 @@ use crate::llm::{
 use crate::swe::SweTask;
 
 const MAX_AGENT_TURNS: usize = 200;
+const MAX_VALIDATION_RETRIES: usize = 2;
 
-const SYSTEM_PROMPT: &str = r#"You are a test engineer writing real test code for GitHub pull requests for SWE-bench.
+const SYSTEM_PROMPT: &str = r#"You are a test engineer writing verification tests for GitHub pull requests for the SWE-bench benchmark.
+
+CONTEXT: You write tests that verify whether a coding agent correctly reproduced a PR's changes.
+- fail_to_pass: tests that FAIL on the base commit (before PR), PASS after the PR is applied.
+- pass_to_pass: tests that PASS on both the base commit and after the PR.
+- must_not_pass: tests that must FAIL even after the PR (to catch agents making overly broad changes).
 
 You have three tools:
 - `shell`: execute a command in the cloned repository (at the BASE commit, before the PR).
 - `write_file`: create or overwrite a file in the repository (for writing test files).
 - `submit_tests`: return your final validated test commands AND the test files you wrote.
 
-Your goal:
-1. Use `shell` to explore the repo structure: find existing tests, understand the framework, read source code.
-2. Read the PR diff carefully to understand what changed.
-3. WRITE actual test files using `write_file`:
-   - Write test code that exercises the behavior introduced by the PR.
-   - Use the project's real test framework (pytest, jest, go test, cargo test, etc.).
-   - Follow the project's existing test patterns and directory structure.
-4. Run your test files via `shell` to verify:
-   - fail_to_pass tests MUST fail (exit != 0) on the base commit (the PR code is not there yet).
-   - pass_to_pass tests MUST pass (exit == 0) on the base commit.
-5. Call `submit_tests` with the commands AND the test file contents.
+WORKFLOW:
+1. Use `shell` to explore the repo: project structure, existing tests, build system, dependencies.
+2. Read the PR diff carefully: understand WHAT changed and WHY.
+3. Find existing test suites covering code ADJACENT to the PR changes -- add them as pass_to_pass.
+4. Write NEW test files that exercise the BEHAVIOR introduced by the PR.
+5. Run your tests via `shell` to validate: fail_to_pass MUST fail, pass_to_pass MUST pass on base.
+6. Call `submit_tests` with everything.
 
-RULES:
-- You MUST write real test files with actual assertions, not just shell commands.
-- Every test file must be written with `write_file` before running it.
-- Every command you submit MUST be validated via `shell` first.
-- fail_to_pass commands MUST exit non-zero when you run them (on the base commit).
-- pass_to_pass commands MUST exit zero when you run them (on the base commit).
-- For fail_to_pass: write tests that check for behavior/functions/features added by the PR. They fail because the code doesn't exist yet.
-- For pass_to_pass: run existing tests or write tests for existing functionality that must not break.
-- Test files should be in the standard test directory for the project (tests/, test/, __tests__/, etc.).
-- Use targeted test commands (e.g. `pytest tests/test_new_feature.py`, not just `pytest`)."#;
+MANDATORY RULES FOR TEST QUALITY:
+
+1. BEHAVIORAL TESTS ONLY
+   - Every fail_to_pass test MUST exercise runtime behavior: import modules, call functions,
+     instantiate classes, make HTTP requests, run CLI commands, check return values.
+   - Tests must fail with SEMANTIC errors (ImportError, AttributeError, TypeError, AssertionError
+     on return values, HTTP 404, missing CLI subcommand) -- NOT "string not found in file".
+
+2. FORBIDDEN PATTERNS (your submission will be REJECTED if you use these):
+   - Reading source files and asserting on their text content
+     (no open()/readFileSync()/fs.readFile then asserting strings exist in the source).
+   - Checking that specific variable names, function names, or import statements exist in source code.
+   - Using grep/cat/awk on source files as the test mechanism.
+   - Any test whose only assertion is "this string exists in this file".
+   - File existence checks as the sole test (assert path.exists() alone is not enough).
+
+3. REGRESSION COVERAGE (pass_to_pass)
+   - Include at least 1 pass_to_pass command running existing project tests that cover code
+     adjacent to the PR changes.
+   - If the project has a test suite, find relevant existing test commands and include them.
+
+4. ANTI-CHEAT TESTS (must_not_pass)
+   - Include at least 1 must_not_pass test that verifies something the PR intentionally does NOT do.
+   - Examples: test that a removed API is gone, test that unrelated functionality was NOT modified,
+     test behavior that should remain broken/absent even after a correct implementation.
+   - These catch agents that make overly broad changes or copy the entire diff blindly.
+
+5. SPECIFICITY
+   - Tests must be specific enough that a lazy agent who deletes files or rewrites entire modules fails.
+   - Tests must be specific enough that an agent who only partially implements the PR fails.
+
+6. EDGE CASES
+   - For bug fixes: test the specific bug scenario AND at least one edge case.
+   - For new features: test the happy path AND at least one error/boundary case.
+   - For refactors: test that the new API behaves correctly AND old behavior is preserved where expected.
+
+ANTI-PATTERNS THAT WILL BE REJECTED:
+- `assert "class Foo" in Path("src/foo.py").read_text()` -> REJECTED
+- `source = open("src/foo.py").read(); assert "def bar" in source` -> REJECTED
+- `assert fs.readFileSync("src/foo.ts").includes("someString")` -> REJECTED
+- `const src = fs.readFileSync(...); assert(src.includes(...))` -> REJECTED
+- Tests with fewer than 2 meaningful assertions -> REJECTED"#;
 
 fn shell_tool() -> ToolDefinition {
     ToolDefinition::function(
@@ -54,7 +89,7 @@ fn shell_tool() -> ToolDefinition {
             "properties": {
                 "command": {
                     "type": "string",
-                    "description": "Shell command to execute (e.g. 'ls -la', 'cat src/main.rs', 'cargo test')"
+                    "description": "Shell command to execute"
                 },
                 "timeout_ms": {
                     "type": "integer",
@@ -97,12 +132,17 @@ fn submit_tool() -> ToolDefinition {
                 "fail_to_pass": {
                     "type": "array",
                     "items": {"type": "string"},
-                    "description": "Commands that FAIL on base commit, PASS after PR"
+                    "description": "Commands that FAIL on base commit, PASS after PR patch"
                 },
                 "pass_to_pass": {
                     "type": "array",
                     "items": {"type": "string"},
                     "description": "Commands that PASS on both base and PR commit"
+                },
+                "must_not_pass": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Commands that must FAIL even after PR (anti-cheat: catches overly broad agent changes)"
                 },
                 "test_files": {
                     "type": "array",
@@ -151,7 +191,14 @@ struct SubmitArgs {
     #[serde(default)]
     pass_to_pass: Vec<String>,
     #[serde(default)]
+    must_not_pass: Vec<String>,
+    #[serde(default)]
     test_files: Vec<TestFile>,
+}
+
+enum ValidationResult {
+    Accepted,
+    Rejected(String),
 }
 
 pub struct TestGenerator {
@@ -163,7 +210,6 @@ impl TestGenerator {
         Self { llm }
     }
 
-    /// Run the agentic test generation loop.
     pub async fn ensure_tests(&self, task: &mut SweTask, language: &str) -> Result<()> {
         if task.has_tests() {
             return Ok(());
@@ -181,7 +227,13 @@ impl TestGenerator {
             "Repository: {repo}\nLanguage: {lang}\nPR description: {prompt}\n\n\
              Suggested build: {build}\nSuggested test: {test}\n\n\
              Diff (truncated):\n```\n{patch}\n```\n\n\
-             The repo is cloned at {path}. Explore it, validate test commands, then submit.",
+             The repo is cloned at {path}. Explore it, write behavioral tests, then submit.\n\n\
+             REMEMBER:\n\
+             - Your fail_to_pass tests will be verified against the PR patch. \
+             They MUST pass once the patch is applied, or they will be rejected.\n\
+             - Do NOT read source files and assert on their content. Test runtime behavior only.\n\
+             - Include pass_to_pass tests from existing test suites.\n\
+             - Include at least 1 must_not_pass test (something the PR does NOT do).",
             repo = task.repo,
             lang = language,
             prompt = truncate_utf8(&task.prompt, 1000),
@@ -194,6 +246,7 @@ impl TestGenerator {
         let tools = vec![shell_tool(), write_file_tool(), submit_tool()];
         let mut messages = vec![Message::system(SYSTEM_PROMPT), Message::user(user_msg)];
         let mut written_files: Vec<TestFile> = Vec::new();
+        let mut validation_retries = 0;
 
         for turn in 0..MAX_AGENT_TURNS {
             let request = GenerationRequest {
@@ -213,15 +266,12 @@ impl TestGenerator {
                 None => break,
             };
 
-            // Check if the model made tool calls
             if let Some(ref tool_calls) = choice.message.tool_calls {
-                // Re-add the assistant message with tool_calls so the API sees the full history
                 messages.push(Message::assistant_with_tool_calls(
                     choice.message.content.clone(),
                     tool_calls.clone(),
                 ));
 
-                // Process each tool call
                 for tc in tool_calls {
                     let result = self
                         .handle_tool_call(tc, &repo_path, &task.id, turn, &mut written_files)
@@ -232,7 +282,6 @@ impl TestGenerator {
                             messages.push(Message::tool_result(&tc.id, output));
                         }
                         ToolResult::Submit(submit) => {
-                            // Merge written_files from the session with any from submit
                             let mut all_files = written_files.clone();
                             for f in &submit.test_files {
                                 if !all_files.iter().any(|wf| wf.path == f.path) {
@@ -240,16 +289,86 @@ impl TestGenerator {
                                 }
                             }
 
+                            // --- Heuristic: reject string-matching tests ---
+                            if let Some(rejection) = reject_string_matching_tests(&all_files) {
+                                if validation_retries < MAX_VALIDATION_RETRIES {
+                                    validation_retries += 1;
+                                    tracing::warn!(
+                                        task_id = %task.id,
+                                        retry = validation_retries,
+                                        "Rejecting string-matching tests"
+                                    );
+                                    messages.push(Message::tool_result(
+                                        &tc.id,
+                                        format!(
+                                            "REJECTED: {rejection}\n\n\
+                                             Rewrite your tests to check RUNTIME BEHAVIOR, not file contents. \
+                                             Import modules, call functions, check return values. \
+                                             Do NOT use open()/readFileSync() to read source and assert strings."
+                                        ),
+                                    ));
+                                    continue;
+                                }
+                                tracing::warn!(
+                                    task_id = %task.id,
+                                    "String-matching tests after max retries, accepting anyway"
+                                );
+                            }
+
+                            // --- Dual-commit validation: apply patch, re-run tests ---
+                            let patch_validation = self
+                                .validate_on_pr_commit(
+                                    &repo_path,
+                                    &task.patch,
+                                    &submit,
+                                    &all_files,
+                                )
+                                .await;
+
+                            match patch_validation {
+                                ValidationResult::Rejected(reason) => {
+                                    if validation_retries < MAX_VALIDATION_RETRIES {
+                                        validation_retries += 1;
+                                        tracing::warn!(
+                                            task_id = %task.id,
+                                            retry = validation_retries,
+                                            reason = %reason,
+                                            "Dual-commit validation failed, asking LLM to retry"
+                                        );
+                                        messages.push(Message::tool_result(
+                                            &tc.id,
+                                            format!(
+                                                "REJECTED: {reason}\n\n\
+                                                 Your tests were verified against the actual PR patch and failed validation. \
+                                                 Please rewrite your tests so that fail_to_pass tests PASS after the PR diff is applied."
+                                            ),
+                                        ));
+                                        continue;
+                                    }
+                                    tracing::warn!(
+                                        task_id = %task.id,
+                                        "Dual-commit validation failed after max retries, accepting with warning"
+                                    );
+                                }
+                                ValidationResult::Accepted => {
+                                    tracing::info!(
+                                        task_id = %task.id,
+                                        "Dual-commit validation PASSED"
+                                    );
+                                }
+                            }
+
                             tracing::info!(
                                 task_id = %task.id, turn = turn,
                                 f2p = submit.fail_to_pass.len(),
                                 p2p = submit.pass_to_pass.len(),
+                                mnp = submit.must_not_pass.len(),
                                 files = all_files.len(),
-                                "Agent submitted validated tests"
+                                "Agent submitted tests"
                             );
                             task.fail_to_pass = submit.fail_to_pass;
                             task.pass_to_pass = submit.pass_to_pass;
-                            // Store test files as JSON in meta
+                            task.must_not_pass = submit.must_not_pass;
                             if !all_files.is_empty() {
                                 if let Ok(json) = serde_json::to_string(&all_files) {
                                     task.meta.insert("test_files".to_string(), json);
@@ -267,7 +386,6 @@ impl TestGenerator {
                 continue;
             }
 
-            // Model returned plain text (no tool call) -- nudge it
             if !choice.message.content.trim().is_empty() {
                 messages.push(Message::assistant(choice.message.content.clone()));
                 messages.push(Message::user(
@@ -280,9 +398,153 @@ impl TestGenerator {
         }
 
         anyhow::bail!(
-            "Agentic test generation failed for {}: agent exhausted {} turns without submitting tests",
+            "Agentic test generation failed for {}: exhausted {} turns without submitting",
             task.id, MAX_AGENT_TURNS
         )
+    }
+
+    /// Validate submitted tests by applying the PR patch and re-running them.
+    async fn validate_on_pr_commit(
+        &self,
+        repo_path: &std::path::Path,
+        patch: &str,
+        submit: &SubmitArgs,
+        test_files: &[TestFile],
+    ) -> ValidationResult {
+        if patch.trim().is_empty() {
+            tracing::warn!("Empty patch, skipping dual-commit validation");
+            return ValidationResult::Accepted;
+        }
+
+        // Ensure test files are written (they may have been cleaned by git checkout)
+        for tf in test_files {
+            let full_path = repo_path.join(&tf.path);
+            if let Some(parent) = full_path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let _ = std::fs::write(&full_path, &tf.content);
+        }
+
+        // Write the PR patch and apply it
+        let patch_file = repo_path.join(".swe_forge_pr.patch");
+        if let Err(e) = std::fs::write(&patch_file, patch) {
+            tracing::warn!(error = %e, "Failed to write patch file");
+            return ValidationResult::Accepted;
+        }
+
+        let apply_result = execute_shell(
+            "git apply --allow-empty .swe_forge_pr.patch 2>&1",
+            repo_path,
+            30_000,
+        )
+        .await;
+
+        if apply_result.exit_code != 0 {
+            // Try with --3way fallback
+            let apply_3way = execute_shell(
+                "git apply --3way .swe_forge_pr.patch 2>&1",
+                repo_path,
+                30_000,
+            )
+            .await;
+            if apply_3way.exit_code != 0 {
+                tracing::warn!(
+                    stderr = %apply_3way.stderr,
+                    "Patch apply failed, skipping dual-commit validation"
+                );
+                // Clean up
+                let _ = execute_shell("git checkout -- . 2>/dev/null", repo_path, 10_000).await;
+                return ValidationResult::Accepted;
+            }
+        }
+
+        // Re-run fail_to_pass: must now PASS
+        for cmd in &submit.fail_to_pass {
+            let result = execute_shell(cmd, repo_path, 60_000).await;
+            if result.exit_code != 0 {
+                // Revert patch
+                let _ = execute_shell("git checkout -- . 2>/dev/null", repo_path, 10_000).await;
+                let _ = execute_shell(
+                    "git clean -fd 2>/dev/null",
+                    repo_path,
+                    10_000,
+                )
+                .await;
+                // Re-write test files on base for next retry
+                for tf in test_files {
+                    let full_path = repo_path.join(&tf.path);
+                    if let Some(parent) = full_path.parent() {
+                        let _ = std::fs::create_dir_all(parent);
+                    }
+                    let _ = std::fs::write(&full_path, &tf.content);
+                }
+                return ValidationResult::Rejected(format!(
+                    "fail_to_pass test '{}' still FAILS after the PR patch is applied (exit={}, stderr={}). \
+                     This means your test does not actually test what the PR changes.",
+                    cmd,
+                    result.exit_code,
+                    truncate_utf8(&result.stderr, 500),
+                ));
+            }
+        }
+
+        // Re-run pass_to_pass: must still PASS
+        for cmd in &submit.pass_to_pass {
+            let result = execute_shell(cmd, repo_path, 60_000).await;
+            if result.exit_code != 0 {
+                let _ = execute_shell("git checkout -- . 2>/dev/null", repo_path, 10_000).await;
+                let _ = execute_shell("git clean -fd 2>/dev/null", repo_path, 10_000).await;
+                for tf in test_files {
+                    let full_path = repo_path.join(&tf.path);
+                    if let Some(parent) = full_path.parent() {
+                        let _ = std::fs::create_dir_all(parent);
+                    }
+                    let _ = std::fs::write(&full_path, &tf.content);
+                }
+                return ValidationResult::Rejected(format!(
+                    "pass_to_pass test '{}' FAILS after the PR patch (exit={}, stderr={}). \
+                     This is a regression in your test.",
+                    cmd,
+                    result.exit_code,
+                    truncate_utf8(&result.stderr, 500),
+                ));
+            }
+        }
+
+        // Re-run must_not_pass: must still FAIL
+        for cmd in &submit.must_not_pass {
+            let result = execute_shell(cmd, repo_path, 60_000).await;
+            if result.exit_code == 0 {
+                let _ = execute_shell("git checkout -- . 2>/dev/null", repo_path, 10_000).await;
+                let _ = execute_shell("git clean -fd 2>/dev/null", repo_path, 10_000).await;
+                for tf in test_files {
+                    let full_path = repo_path.join(&tf.path);
+                    if let Some(parent) = full_path.parent() {
+                        let _ = std::fs::create_dir_all(parent);
+                    }
+                    let _ = std::fs::write(&full_path, &tf.content);
+                }
+                return ValidationResult::Rejected(format!(
+                    "must_not_pass test '{}' PASSES after the PR patch, but it should still fail. \
+                     Rewrite it to test something the PR intentionally does NOT change.",
+                    cmd,
+                ));
+            }
+        }
+
+        // Revert to base commit for cleanliness
+        let _ = execute_shell("git checkout -- . 2>/dev/null", repo_path, 10_000).await;
+        let _ = execute_shell("git clean -fd 2>/dev/null", repo_path, 10_000).await;
+        // Re-write test files on base
+        for tf in test_files {
+            let full_path = repo_path.join(&tf.path);
+            if let Some(parent) = full_path.parent() {
+                let _ = std::fs::create_dir_all(parent);
+            }
+            let _ = std::fs::write(&full_path, &tf.content);
+        }
+
+        ValidationResult::Accepted
     }
 
     async fn handle_tool_call(
@@ -328,7 +590,6 @@ impl TestGenerator {
                             path = %args.path, bytes = args.content.len(),
                             "Agent wrote file"
                         );
-                        // Track the file
                         if let Some(existing) =
                             written_files.iter_mut().find(|f| f.path == args.path)
                         {
@@ -393,6 +654,68 @@ struct ShellOutput {
     stdout: String,
     stderr: String,
     exit_code: i32,
+}
+
+/// Scan test files for string-matching anti-patterns and return a rejection reason if found.
+fn reject_string_matching_tests(files: &[TestFile]) -> Option<String> {
+    let patterns: &[(&str, &str)] = &[
+        // Python source-reading patterns
+        (r#"open\([^)]*\)\.read"#, "open().read() used to read source files"),
+        (r#"Path\([^)]*\)\.read_text"#, "Path().read_text() used to read source files"),
+        (r#"\.read\(\)[^;]*assert.*\bin\b"#, ".read() + assert...in (string-matching)"),
+        // JavaScript/TypeScript source-reading patterns
+        (r#"readFileSync\("#, "readFileSync() used to read source files"),
+        (r#"readFile\("#, "readFile() used to read source files"),
+        // Combined read + assert patterns
+        (r#"assert.*\bin\s+(source|content|text|code|file_content|src|contents)"#,
+         "assert...in source/content (string-matching on file content)"),
+        (r#"\.(includes|contains)\(['""]"#, ".includes()/.contains() on source content"),
+    ];
+
+    let mut violations = Vec::new();
+
+    for file in files {
+        let content = &file.content;
+        for &(pattern, description) in patterns {
+            if let Ok(re) = Regex::new(pattern) {
+                let matches: Vec<_> = re.find_iter(content).collect();
+                if !matches.is_empty() {
+                    // Check if this is actually testing source files (not testing output/response)
+                    // Heuristic: if the file also contains behavioral test patterns, it's likely mixed
+                    let has_behavioral = content.contains("import ")
+                        || content.contains("require(")
+                        || content.contains("from ")
+                        || content.contains("fetch(")
+                        || content.contains("request(");
+
+                    // Count string-matching assertions vs total assertions
+                    let total_asserts = content.matches("assert").count()
+                        + content.matches("expect(").count()
+                        + content.matches("Assert.").count();
+                    let string_match_count = matches.len();
+
+                    // Reject if >50% of assertions are string-matching, or if there are no behavioral patterns
+                    if total_asserts > 0
+                        && (string_match_count * 2 > total_asserts || !has_behavioral)
+                    {
+                        violations.push(format!(
+                            "File '{}': {} ({} of {} assertions)",
+                            file.path, description, string_match_count, total_asserts
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    if violations.is_empty() {
+        None
+    } else {
+        Some(format!(
+            "Your tests use forbidden source-reading patterns:\n- {}",
+            violations.join("\n- ")
+        ))
+    }
 }
 
 async fn execute_shell(command: &str, cwd: &std::path::Path, timeout_ms: u64) -> ShellOutput {

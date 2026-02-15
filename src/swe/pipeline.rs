@@ -730,12 +730,22 @@ fn export_task_to_disk(task: &SweTask, output_dir: &str) -> anyhow::Result<()> {
         if let Ok(files) =
             serde_json::from_str::<Vec<crate::swe::test_generator::TestFile>>(test_files_json)
         {
+            let mut seen_names = std::collections::HashSet::new();
             for tf in &files {
-                let file_path = tests_dir.join(&tf.path);
-                if let Some(parent) = file_path.parent() {
-                    fs::create_dir_all(parent)?;
-                }
-                fs::write(&file_path, &tf.content)?;
+                // Flatten to basename only -- avoid nested tests/tests/ duplication
+                let basename = std::path::Path::new(&tf.path)
+                    .file_name()
+                    .map(|n| n.to_string_lossy().to_string())
+                    .unwrap_or_else(|| tf.path.clone());
+                let unique_name = if seen_names.contains(&basename) {
+                    let prefixed = format!("{}_{}", seen_names.len(), basename);
+                    seen_names.insert(prefixed.clone());
+                    prefixed
+                } else {
+                    seen_names.insert(basename.clone());
+                    basename
+                };
+                fs::write(tests_dir.join(&unique_name), &tf.content)?;
             }
         }
     }
@@ -756,11 +766,20 @@ fn export_task_to_disk(task: &SweTask, output_dir: &str) -> anyhow::Result<()> {
         )?;
     }
 
+    for (i, cmd) in task.must_not_pass.iter().enumerate() {
+        let filename = format!("must_not_pass_{}.sh", i + 1);
+        fs::write(
+            tests_dir.join(&filename),
+            format!("#!/bin/bash\n# This test must FAIL even after fix (anti-cheat)\n{cmd}\n"),
+        )?;
+    }
+
     if !task.fail_to_pass.is_empty() {
         let checks = task
             .fail_to_pass
             .iter()
             .chain(task.pass_to_pass.iter())
+            .chain(task.must_not_pass.iter())
             .cloned()
             .collect::<Vec<_>>()
             .join("\n");
