@@ -81,6 +81,8 @@ pub struct SweOrchestratorConfig {
     pub difficulty_targets: Option<DifficultyTargets>,
     /// HuggingFace upload config. When set, tasks are uploaded in real-time as parquet.
     pub hf_upload: Option<HfUploadConfig>,
+    /// SQLite PR cache for deduplication and triage caching.
+    pub cache: super::OptionalCache,
 }
 
 impl Default for SweOrchestratorConfig {
@@ -97,6 +99,7 @@ impl Default for SweOrchestratorConfig {
             difficulty_filter: None,
             difficulty_targets: None,
             hf_upload: None,
+            cache: super::OptionalCache::none(),
         }
     }
 }
@@ -138,6 +141,7 @@ impl SweOrchestrator {
             skip_prs: self.config.skip_prs.clone(),
             difficulty_filter: if is_multi { None } else { self.config.difficulty_filter.clone() },
             difficulty_targets: self.config.difficulty_targets.clone(),
+            cache: self.config.cache.clone(),
         };
 
         // Real-time export config: tasks are written to disk inside the pipeline worker loop

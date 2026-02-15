@@ -83,6 +83,8 @@ pub struct SwePipelineConfig {
     /// Per-difficulty quotas. When set, difficulty_filter is ignored and each
     /// difficulty level has its own independent quota.
     pub difficulty_targets: Option<DifficultyTargets>,
+    /// SQLite PR cache for deduplication and triage caching.
+    pub cache: super::OptionalCache,
 }
 
 impl Default for SwePipelineConfig {
@@ -97,6 +99,7 @@ impl Default for SwePipelineConfig {
             skip_prs: HashSet::new(),
             difficulty_filter: None,
             difficulty_targets: None,
+            cache: super::OptionalCache::none(),
         }
     }
 }
@@ -255,6 +258,7 @@ impl SwePipeline {
         let test_generator = &self.test_generator;
         let prompt_rewriter = &self.prompt_rewriter;
         let difficulty_filter = config.difficulty_filter.clone();
+        let cache = config.cache.clone();
         let difficulty_targets = config.difficulty_targets.clone();
         let max_tasks = config.max_tasks;
         let once = config.once;
@@ -287,6 +291,7 @@ impl SwePipeline {
                 let per_diff = per_difficulty_completed.clone();
                 let export_cfg = export_cfg.clone();
                 let ds_handle = ds_handle.clone();
+                let cache = cache.clone();
                 async move {
                     // Helper: check if all quotas are met (multi-target mode)
                     let all_targets_met = |per_diff: &HashMap<String, usize>, dt: &Option<DifficultyTargets>| -> bool {
@@ -307,6 +312,15 @@ impl SwePipeline {
                         return;
                     }
 
+                    // --- Cache check: skip already processed PRs ---
+                    if cache.should_skip(&event.repository, event.pull_number).await {
+                        tracing::debug!(
+                            repo = %event.repository, pr = event.pull_number,
+                            "Skipped by PR cache (already exported/rejected)"
+                        );
+                        return;
+                    }
+
                     // --- Stage 1: Enrich ---
                     let enriched = {
                         let _permit = enrich_sem.acquire().await.unwrap();
@@ -319,6 +333,22 @@ impl SwePipeline {
                     if enriched.title == "Untitled change" || enriched.merge_sha.is_empty() {
                         return;
                     }
+
+                    // Save enriched data to cache
+                    let _ = cache.upsert(&super::PrCacheEntry {
+                        repo: enriched.repository.clone(),
+                        pr_number: enriched.number,
+                        actor: Some(enriched.actor.clone()),
+                        title: Some(enriched.title.clone()),
+                        body: Some(enriched.body.clone()),
+                        language: Some(enriched.language.clone()),
+                        stars: Some(enriched.stars),
+                        base_sha: Some(enriched.base_sha.clone()),
+                        merge_sha: Some(enriched.merge_sha.clone()),
+                        files_changed: Some(enriched.files_changed),
+                        status: "enriched".to_string(),
+                        ..Default::default()
+                    }).await;
 
                     // --- Stage 2: Local filter ---
                     let added_lines = infer_added_lines(&enriched);
@@ -341,85 +371,89 @@ impl SwePipeline {
                     }
 
                     // --- Stage 3: Pre-classify difficulty ---
-                    // In multi-target mode, pre-classify to skip levels whose quotas are already met
-                    if dt.is_some() {
+                    // Check cache first to avoid redundant LLM calls
+                    let cached_triage = cache.triage_difficulty(
+                        &enriched.repository, enriched.number
+                    ).await;
+
+                    let triage_result: Option<String> = if let Some(cached) = cached_triage {
+                        tracing::debug!(
+                            repo = %enriched.repository, pr = enriched.number,
+                            triage = %cached, "Using cached pre-classification"
+                        );
+                        Some(cached)
+                    } else if dt.is_some() || df.is_some() {
                         let _permit = preclassify_sem.acquire().await.unwrap();
-                        match quality
-                            .pre_classify(
-                                &enriched.repository,
-                                enriched.number,
-                                &enriched.title,
-                                &enriched.body,
-                                "medium", // dummy; we just want the triage result
-                            )
-                            .await
-                        {
+                        let filter_val = df.as_deref().unwrap_or("medium");
+                        match quality.pre_classify(
+                            &enriched.repository, enriched.number,
+                            &enriched.title, &enriched.body, filter_val,
+                        ).await {
                             Ok(pre) => {
-                                let counts = per_diff.lock().await;
-                                if let Some(ref targets) = dt {
-                                    let current = counts.get(&pre.difficulty).copied().unwrap_or(0);
-                                    let quota = targets.targets.get(&pre.difficulty).copied().unwrap_or(0);
-                                    if quota == 0 {
-                                        // This difficulty level is not requested at all
-                                        tracing::debug!(
-                                            repo = %enriched.repository,
-                                            pr = enriched.number,
-                                            triage = %pre.difficulty,
-                                            "Skipped: difficulty not in targets"
-                                        );
-                                        return;
-                                    }
-                                    if current >= quota {
-                                        tracing::debug!(
-                                            repo = %enriched.repository,
-                                            pr = enriched.number,
-                                            triage = %pre.difficulty,
-                                            current,
-                                            quota,
-                                            "Skipped: quota already met for this difficulty"
-                                        );
-                                        return;
-                                    }
-                                }
-                                tracing::info!(
-                                    repo = %enriched.repository,
-                                    pr = enriched.number,
-                                    triage = %pre.difficulty,
-                                    "Pre-classification (multi-target): ACCEPTED"
-                                );
+                                // Save triage to cache
+                                let _ = cache.upsert(&super::PrCacheEntry {
+                                    repo: enriched.repository.clone(),
+                                    pr_number: enriched.number,
+                                    triage_difficulty: Some(pre.difficulty.clone()),
+                                    status: "pre_classified".to_string(),
+                                    ..Default::default()
+                                }).await;
+                                Some(pre.difficulty)
                             }
-                            Err(_) => { /* on error, let it through */ }
+                            Err(_) => None, // on error, let it through
                         }
-                    } else if let Some(ref df_val) = df {
-                        let _permit = preclassify_sem.acquire().await.unwrap();
-                        match quality
-                            .pre_classify(
-                                &enriched.repository,
-                                enriched.number,
-                                &enriched.title,
-                                &enriched.body,
-                                df_val,
-                            )
-                            .await
-                        {
-                            Ok(pre) if pre.dominated_out => {
-                                tracing::debug!(
-                                    repo = %enriched.repository,
-                                    pr = enriched.number,
-                                    triage = %pre.difficulty,
-                                    "Skipped by pre-classification"
+                    } else {
+                        None
+                    };
+
+                    // Apply difficulty filter using triage result
+                    if let Some(ref triage) = triage_result {
+                        if dt.is_some() {
+                            let counts = per_diff.lock().await;
+                            if let Some(ref targets) = dt {
+                                let current = counts.get(triage).copied().unwrap_or(0);
+                                let quota = targets.targets.get(triage).copied().unwrap_or(0);
+                                if quota == 0 {
+                                    tracing::debug!(
+                                        repo = %enriched.repository, pr = enriched.number,
+                                        triage = %triage, "Skipped: difficulty not in targets"
+                                    );
+                                    let _ = cache.mark_rejected(
+                                        &enriched.repository, enriched.number,
+                                        "difficulty not in targets",
+                                    ).await;
+                                    return;
+                                }
+                                if current >= quota {
+                                    tracing::debug!(
+                                        repo = %enriched.repository, pr = enriched.number,
+                                        triage = %triage, current, quota,
+                                        "Skipped: quota already met for this difficulty"
+                                    );
+                                    return;
+                                }
+                            }
+                            tracing::info!(
+                                repo = %enriched.repository, pr = enriched.number,
+                                triage = %triage, "Pre-classification (multi-target): ACCEPTED"
+                            );
+                        } else if let Some(ref df_val) = df {
+                            if triage != df_val {
+                                tracing::info!(
+                                    repo = %enriched.repository, pr = enriched.number,
+                                    triage_difficulty = %triage, filter = %df_val,
+                                    skipped = true, "Pre-classification triage"
                                 );
+                                let _ = cache.mark_rejected(
+                                    &enriched.repository, enriched.number,
+                                    &format!("triage={}, filter={}", triage, df_val),
+                                ).await;
                                 return;
                             }
-                            Ok(pre) => {
-                                tracing::info!(
-                                    repo = %enriched.repository,
-                                    pr = enriched.number,
-                                    triage = %pre.difficulty,
-                                    "Pre-classification: ACCEPTED"
-                                );
-                            }
-                            Err(_) => { /* on error, let it through */ }
+                            tracing::info!(
+                                repo = %enriched.repository, pr = enriched.number,
+                                triage = %triage, "Pre-classification: ACCEPTED"
+                            );
                         }
                     }
 
@@ -584,6 +618,9 @@ impl SwePipeline {
                                         task.status = crate::swe::SweTaskStatus::Exported;
                                         task.workspace_path = Some(format!("{}/{}", out_dir, task.id));
                                         append_pr_to_file(&ecfg.pr_file, &task.repo, &task.id);
+                                        let pr_num = task.id.rsplit('-').next()
+                                            .and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+                                        let _ = cache.mark_exported(&task.repo, pr_num).await;
                                         tracing::info!(
                                             task_id = %task.id,
                                             difficulty = %level,
@@ -622,6 +659,9 @@ impl SwePipeline {
                                             task.status = crate::swe::SweTaskStatus::Exported;
                                             task.workspace_path = Some(format!("{}/{}", ecfg.output_dir, task.id));
                                             append_pr_to_file(&ecfg.pr_file, &task.repo, &task.id);
+                                            let pr_num = task.id.rsplit('-').next()
+                                                .and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
+                                            let _ = cache.mark_exported(&task.repo, pr_num).await;
                                             tracing::info!(
                                                 task_id = %task.id,
                                                 output = %ecfg.output_dir,
@@ -671,6 +711,8 @@ impl SwePipeline {
                 break;
             }
         }
+
+        config.cache.log_stats().await;
 
         let tasks = match Arc::try_unwrap(tasks_mu) {
             Ok(mu) => mu.into_inner(),

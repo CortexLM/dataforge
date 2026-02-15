@@ -153,6 +153,11 @@ pub struct SweMineArgs {
     #[arg(long)]
     pub hf_private: bool,
 
+    /// SQLite cache database for PR deduplication and triage caching.
+    /// Avoids re-running LLM pre-classification on already-seen PRs.
+    #[arg(long, default_value = "swe_cache.db")]
+    pub cache_db: String,
+
     /// Output JSON summary.
     #[arg(short = 'j', long)]
     pub json: bool,
@@ -746,6 +751,9 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
         _ => None,
     };
 
+    let pr_cache = crate::swe::PrCache::open(&args.cache_db).await?;
+    let cache = crate::swe::OptionalCache::some(pr_cache);
+
     let config = SweOrchestratorConfig {
         output_dir: output_dir.clone(),
         min_stars: args.min_stars,
@@ -758,6 +766,7 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
         difficulty_filter: effective_difficulty_filter,
         difficulty_targets,
         hf_upload,
+        cache: cache.clone(),
     };
 
     let orchestrator = SweOrchestrator::new(llm_client, config);
