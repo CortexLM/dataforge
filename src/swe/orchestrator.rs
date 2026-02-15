@@ -1,15 +1,15 @@
 //! Orchestrator glue for SWE mining end-to-end.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::fs;
-use std::io::Write;
-use std::path::Path;
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
+use crate::export::{DatasetConfig, DatasetManager, HfUploadConfig};
 use crate::llm::LlmProvider;
-use crate::swe::{pipeline::SwePipelineConfig, SwePipelineRunResult, SweTask};
+use crate::swe::pipeline::{DatasetHandle, ExportConfig, SwePipelineConfig};
+use crate::swe::{SwePipelineRunResult, SweTask};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SweRunResult {
@@ -18,6 +18,52 @@ pub struct SweRunResult {
     pub passed: usize,
     pub skipped: usize,
     pub finished_at: String,
+}
+
+/// Per-difficulty quotas for multi-level mining in a single pipeline run.
+/// e.g. { "easy": 50, "medium": 50, "hard": 50 }
+#[derive(Debug, Clone, Default)]
+pub struct DifficultyTargets {
+    pub targets: HashMap<String, usize>,
+}
+
+impl DifficultyTargets {
+    /// Parse from a string like "easy:50,medium:50,hard:50".
+    pub fn parse(input: &str) -> anyhow::Result<Self> {
+        let mut targets = HashMap::new();
+        for part in input.split(',') {
+            let part = part.trim();
+            if part.is_empty() {
+                continue;
+            }
+            let (level, count) = part.split_once(':').ok_or_else(|| {
+                anyhow::anyhow!(
+                    "Invalid difficulty target '{}'. Expected format: easy:50,medium:50,hard:50",
+                    part
+                )
+            })?;
+            let level = level.trim().to_lowercase();
+            if !matches!(level.as_str(), "easy" | "medium" | "hard") {
+                anyhow::bail!("Unknown difficulty level '{}'. Use easy, medium, or hard.", level);
+            }
+            let count: usize = count.trim().parse().map_err(|_| {
+                anyhow::anyhow!("Invalid count '{}' for difficulty '{}'", count.trim(), level)
+            })?;
+            targets.insert(level, count);
+        }
+        if targets.is_empty() {
+            anyhow::bail!("No valid difficulty targets found. Use format: easy:50,medium:50,hard:50");
+        }
+        Ok(Self { targets })
+    }
+
+    pub fn total_tasks(&self) -> usize {
+        self.targets.values().sum()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.targets.is_empty()
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -31,6 +77,10 @@ pub struct SweOrchestratorConfig {
     pub skip_prs: HashSet<(String, u64)>,
     pub pr_file: Option<String>,
     pub difficulty_filter: Option<String>,
+    /// Multi-difficulty quotas. When set, overrides difficulty_filter and max_tasks.
+    pub difficulty_targets: Option<DifficultyTargets>,
+    /// HuggingFace upload config. When set, tasks are uploaded in real-time as parquet.
+    pub hf_upload: Option<HfUploadConfig>,
 }
 
 impl Default for SweOrchestratorConfig {
@@ -45,6 +95,8 @@ impl Default for SweOrchestratorConfig {
             skip_prs: HashSet::new(),
             pr_file: None,
             difficulty_filter: None,
+            difficulty_targets: None,
+            hf_upload: None,
         }
     }
 }
@@ -60,134 +112,103 @@ impl SweOrchestrator {
     }
 
     pub async fn mine(&self) -> anyhow::Result<SweRunResult> {
-        // When filtering for hard tasks, we need many more candidates
-        let candidate_multiplier = if self.config.difficulty_filter.as_deref() == Some("hard") {
-            200
+        let is_multi = self.config.difficulty_targets.is_some();
+
+        let (max_tasks, candidate_multiplier) = if let Some(ref targets) = self.config.difficulty_targets {
+            let total = targets.total_tasks();
+            let has_hard = targets.targets.contains_key("hard");
+            let mult = if has_hard { 200 } else { 100 };
+            tracing::info!(?targets, total, "Starting multi-difficulty mining");
+            (total, mult)
+        } else if self.config.difficulty_filter.as_deref() == Some("hard") {
+            (self.config.max_tasks, 200)
         } else if self.config.difficulty_filter.is_some() {
-            100
+            (self.config.max_tasks, 100)
         } else {
-            50
+            (self.config.max_tasks, 50)
         };
 
         let pipeline_config = SwePipelineConfig {
             min_stars: self.config.min_stars,
             languages: self.config.languages.clone(),
-            max_candidates: self
-                .config
-                .max_tasks
-                .saturating_mul(candidate_multiplier)
-                .max(10),
-            max_tasks: self.config.max_tasks,
+            max_candidates: max_tasks.saturating_mul(candidate_multiplier).max(10),
+            max_tasks,
             once: self.config.once,
             validate_docker: self.config.validate_docker,
             skip_prs: self.config.skip_prs.clone(),
-            difficulty_filter: self.config.difficulty_filter.clone(),
+            difficulty_filter: if is_multi { None } else { self.config.difficulty_filter.clone() },
+            difficulty_targets: self.config.difficulty_targets.clone(),
+        };
+
+        // Real-time export config: tasks are written to disk inside the pipeline worker loop
+        let export_config = Arc::new(ExportConfig {
+            output_dir: self.config.output_dir.clone(),
+            pr_file: self.config.pr_file.clone(),
+            per_difficulty_dirs: is_multi,
+        });
+
+        fs::create_dir_all(&self.config.output_dir)?;
+
+        // Create dataset manager for parquet + optional HF upload
+        let dataset_handle: Option<DatasetHandle> = if self.config.hf_upload.is_some() || true {
+            let ds_config = DatasetConfig {
+                output_dir: std::path::PathBuf::from(&self.config.output_dir),
+                hf_config: self.config.hf_upload.clone(),
+                shard_size: 50,
+                dataset_name: "SWE-Forge Benchmark".to_string(),
+            };
+            Some(Arc::new(DatasetManager::new(ds_config).await?))
+        } else {
+            None
         };
 
         let pipeline = crate::swe::pipeline::SwePipeline::new(&pipeline_config, self.llm.clone())?;
-        let mut run: SwePipelineRunResult = pipeline.run(&pipeline_config, None).await?;
+        let run: SwePipelineRunResult = pipeline
+            .run_full(&pipeline_config, None, Some(export_config), dataset_handle.clone())
+            .await?;
 
-        let mut passed = 0usize;
-        for task in run.tasks.iter_mut() {
-            if task.quality_passed {
-                export_task_to_disk(task, &self.config.output_dir)?;
-                task.status = crate::swe::SweTaskStatus::Exported;
-                task.workspace_path = Some(format!("{}/{}", self.config.output_dir, task.id));
-                append_pr_to_file(&self.config.pr_file, &task.repo, task.id.as_str());
-                passed += 1;
-            } else {
-                task.status = crate::swe::SweTaskStatus::Rejected;
+        // Finalize dataset: flush remaining shard, write combined parquet, upload splits
+        if let Some(ref ds) = dataset_handle {
+            match ds.finalize().await {
+                Ok(summary) => {
+                    tracing::info!(
+                        total = summary.total_tasks,
+                        shards = summary.shard_count,
+                        hf = ?summary.hf_repo,
+                        "Dataset finalized"
+                    );
+                }
+                Err(e) => {
+                    tracing::warn!(error = %e, "Dataset finalize failed");
+                }
             }
         }
 
+        let tasks = run.tasks;
+        let passed = tasks.iter().filter(|t| t.quality_passed).count();
+
+        if is_multi {
+            let mut per_level: HashMap<String, usize> = HashMap::new();
+            for task in &tasks {
+                if task.quality_passed {
+                    let level = task.meta.get("difficulty").cloned().unwrap_or_else(|| "unknown".to_string());
+                    *per_level.entry(level).or_insert(0) += 1;
+                }
+            }
+            for (level, count) in &per_level {
+                tracing::info!(level = %level, count = count, "Tasks exported for difficulty level");
+            }
+        }
+
+        let skipped = tasks.len().saturating_sub(passed);
         Ok(SweRunResult {
             attempted: run.scored,
-            tasks: run.tasks.clone(),
+            tasks,
             passed,
-            skipped: run.tasks.len().saturating_sub(passed),
+            skipped,
             finished_at: run.finished_at.to_rfc3339(),
         })
     }
 }
 
-fn append_pr_to_file(pr_file: &Option<String>, repo: &str, task_id: &str) {
-    let Some(path) = pr_file else { return };
-    let pr_number: u64 = task_id
-        .rsplit('-')
-        .next()
-        .and_then(|s| s.parse().ok())
-        .unwrap_or(0);
-    let line = serde_json::json!({"repo": repo, "pr": pr_number});
-    if let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open(path) {
-        let _ = writeln!(f, "{}", line);
-    }
-}
 
-fn export_task_to_disk(task: &SweTask, output_dir: &str) -> anyhow::Result<()> {
-    let dir = Path::new(output_dir).join(&task.id);
-    fs::create_dir_all(&dir)?;
-
-    // prompt.md -- clean LLM-rewritten prompt (no test plan, no watermarks)
-    let prompt = format!("# {}\n\n{}\n", task.id, task.prompt);
-    fs::write(dir.join("prompt.md"), prompt)?;
-
-    // original_pr.md -- raw PR body before rewriting
-    if !task.original_pr_body.is_empty() {
-        let original = format!("# {} (original PR)\n\n{}\n", task.id, task.original_pr_body);
-        fs::write(dir.join("original_pr.md"), original)?;
-    }
-
-    // workspace.yaml -- full task metadata
-    let workspace = serde_yaml::to_string(task)?;
-    fs::write(dir.join("workspace.yaml"), workspace)?;
-
-    // tests/ directory
-    let tests_dir = dir.join("tests");
-    fs::create_dir_all(&tests_dir)?;
-
-    // Write actual test source files generated by the agent
-    if let Some(test_files_json) = task.meta.get("test_files") {
-        if let Ok(files) =
-            serde_json::from_str::<Vec<crate::swe::test_generator::TestFile>>(test_files_json)
-        {
-            for tf in &files {
-                let file_path = tests_dir.join(&tf.path);
-                if let Some(parent) = file_path.parent() {
-                    fs::create_dir_all(parent)?;
-                }
-                fs::write(&file_path, &tf.content)?;
-            }
-        }
-    }
-
-    // Shell scripts for running tests
-    for (i, cmd) in task.fail_to_pass.iter().enumerate() {
-        let filename = format!("fail_to_pass_{}.sh", i + 1);
-        fs::write(
-            tests_dir.join(&filename),
-            format!("#!/bin/bash\n# This test must FAIL on base commit, PASS after fix\n{cmd}\n"),
-        )?;
-    }
-
-    for (i, cmd) in task.pass_to_pass.iter().enumerate() {
-        let filename = format!("pass_to_pass_{}.sh", i + 1);
-        fs::write(
-            tests_dir.join(&filename),
-            format!("#!/bin/bash\n# This test must PASS on base commit AND after fix\n{cmd}\n"),
-        )?;
-    }
-
-    // checks.txt -- all test commands (legacy flat format)
-    if !task.fail_to_pass.is_empty() {
-        let checks = task
-            .fail_to_pass
-            .iter()
-            .chain(task.pass_to_pass.iter())
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("\n");
-        fs::write(dir.join("checks.txt"), checks)?;
-    }
-
-    Ok(())
-}

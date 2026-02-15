@@ -9,9 +9,10 @@ export OPENROUTER_API_KEY
 
 cd "$(dirname "$0")"
 
+# Mine 50 tasks per difficulty level (easy, medium, hard) in a single pipeline run.
+# Tasks are exported to ./generated-swe/easy-tasks, ./generated-swe/medium-tasks, ./generated-swe/hard-tasks.
 cargo run --release -- swe mine \
-  --output ./hard-tasks \
+  --output ./generated-swe \
   --pr-file ./processed.jsonl \
-  --max-tasks 100 \
-  --difficulty hard \
+  --difficulty-targets "easy:50,medium:50,hard:50" \
   --once

@@ -9,6 +9,7 @@ use crate::agents::{
 };
 use crate::difficulty::DifficultyLevel;
 use crate::llm::{LiteLlmClient, OpenRouterProvider};
+use crate::swe::orchestrator::DifficultyTargets;
 use crate::swe::{SweOrchestrator, SweOrchestratorConfig};
 use clap::Parser;
 use serde::{Deserialize, Serialize};
@@ -85,6 +86,9 @@ pub enum SweSubcommand {
 
     /// Run evaluation harness: execute an agent on tasks, then verify with tests.
     Harness(SweHarnessArgs),
+
+    /// Load a dataset from HuggingFace or local parquet for inspection/evaluation.
+    Load(SweLoadArgs),
 }
 
 /// Arguments for `swe_forge swe mine`.
@@ -112,8 +116,13 @@ pub struct SweMineArgs {
     pub pr_file: Option<String>,
 
     /// Only keep tasks matching this difficulty level (easy, medium, hard).
-    #[arg(long)]
+    #[arg(long, conflicts_with = "difficulty_targets")]
     pub difficulty: Option<String>,
+
+    /// Mine multiple difficulty levels in a single pipeline run with per-level quotas.
+    /// Format: "easy:50,medium:50,hard:50". Overrides --difficulty and --max-tasks.
+    #[arg(long)]
+    pub difficulty_targets: Option<String>,
 
     /// Output directory for generated SWE workspaces.
     #[arg(short = 'o', long, default_value = DEFAULT_SWE_OUTPUT_DIR)]
@@ -130,6 +139,19 @@ pub struct SweMineArgs {
     /// OpenRouter API key (can also be set via OPENROUTER_API_KEY or LITELLM_API_KEY env var).
     #[arg(long, env = "OPENROUTER_API_KEY")]
     pub api_key: Option<String>,
+
+    /// HuggingFace dataset repo to upload to (e.g. "myorg/swe-forge-bench").
+    /// Requires --hf-token.
+    #[arg(long)]
+    pub hf_repo: Option<String>,
+
+    /// HuggingFace API token for dataset upload (can also use HF_TOKEN env var).
+    #[arg(long, env = "HF_TOKEN")]
+    pub hf_token: Option<String>,
+
+    /// Make the HuggingFace dataset repo private.
+    #[arg(long)]
+    pub hf_private: bool,
 
     /// Output JSON summary.
     #[arg(short = 'j', long)]
@@ -212,6 +234,26 @@ pub struct SweHarnessArgs {
     pub keep_containers: bool,
 
     /// Output results as JSON.
+    #[arg(short = 'j', long)]
+    pub json: bool,
+}
+
+/// Arguments for `swe_forge swe load`.
+#[derive(Parser, Debug)]
+pub struct SweLoadArgs {
+    /// HuggingFace dataset repo ID (e.g. "princeton-nlp/SWE-bench") or local path.
+    #[arg(short = 'i', long)]
+    pub source: String,
+
+    /// Dataset split to load (e.g. "train", "easy", "medium", "hard").
+    #[arg(long)]
+    pub split: Option<String>,
+
+    /// Output directory to save the downloaded parquet file.
+    #[arg(short = 'o', long, default_value = "./downloaded-dataset")]
+    pub output: String,
+
+    /// Output JSON summary of loaded dataset.
     #[arg(short = 'j', long)]
     pub json: bool,
 }
@@ -349,6 +391,7 @@ async fn run_swe_command(args: SweArgs) -> anyhow::Result<()> {
         SweSubcommand::Validate(args) => run_swe_validate_command(args).await,
         SweSubcommand::Export(args) => run_swe_export_command(args).await,
         SweSubcommand::Harness(args) => run_swe_harness_command(args).await,
+        SweSubcommand::Load(args) => run_swe_load_command(args).await,
     }
 }
 
@@ -679,16 +722,42 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
 
     let skip_prs = load_skip_prs(args.pr_file.as_deref())?;
 
+    let difficulty_targets = match args.difficulty_targets {
+        Some(ref raw) => Some(DifficultyTargets::parse(raw)?),
+        None => None,
+    };
+
+    let (effective_max_tasks, effective_difficulty_filter) = if let Some(ref dt) = difficulty_targets
+    {
+        (dt.total_tasks(), None)
+    } else {
+        (args.max_tasks, args.difficulty.clone())
+    };
+
+    let hf_upload = match (&args.hf_repo, &args.hf_token) {
+        (Some(repo), Some(token)) => Some(crate::export::HfUploadConfig {
+            repo_id: repo.clone(),
+            token: token.clone(),
+            private: args.hf_private,
+        }),
+        (Some(_), None) => {
+            anyhow::bail!("--hf-repo requires --hf-token (or set HF_TOKEN env var)");
+        }
+        _ => None,
+    };
+
     let config = SweOrchestratorConfig {
         output_dir: output_dir.clone(),
         min_stars: args.min_stars,
         languages,
-        max_tasks: args.max_tasks,
+        max_tasks: effective_max_tasks,
         once: args.once,
         validate_docker: args.validate_docker,
         skip_prs,
         pr_file: args.pr_file.clone(),
-        difficulty_filter: args.difficulty.clone(),
+        difficulty_filter: effective_difficulty_filter,
+        difficulty_targets,
+        hf_upload,
     };
 
     let orchestrator = SweOrchestrator::new(llm_client, config);
@@ -733,6 +802,88 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
             "  Tasks: {} attempted, {} passed, {} skipped",
             result.attempted, result.passed, result.skipped
         );
+
+        // Show per-difficulty breakdown
+        let mut per_level: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+        for task in &result.tasks {
+            if task.quality_passed {
+                let level = task
+                    .meta
+                    .get("difficulty")
+                    .cloned()
+                    .unwrap_or_else(|| "unknown".to_string());
+                *per_level.entry(level).or_insert(0) += 1;
+            }
+        }
+        if !per_level.is_empty() {
+            println!("  Per-difficulty breakdown:");
+            for level in &["easy", "medium", "hard"] {
+                if let Some(&count) = per_level.get(*level) {
+                    println!("    {}: {}", level, count);
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn run_swe_load_command(args: SweLoadArgs) -> anyhow::Result<()> {
+    let source = &args.source;
+    let output_dir = Path::new(&args.output);
+
+    let tasks = if source.contains('/') && !Path::new(source).exists() {
+        // Looks like a HuggingFace repo ID
+        info!(repo = source, "Downloading dataset from HuggingFace");
+        crate::export::download_dataset(source, args.split.as_deref(), output_dir).await?
+    } else {
+        // Local path
+        let path = Path::new(source);
+        crate::export::load_dataset(path)?
+    };
+
+    if tasks.is_empty() {
+        warn!("No tasks found in dataset");
+        if args.json {
+            println!("{{\"status\":\"empty\",\"tasks\":0}}");
+        } else {
+            println!("No tasks found.");
+        }
+        return Ok(());
+    }
+
+    // Compute stats
+    let mut by_difficulty: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut by_language: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for task in &tasks {
+        let diff = task.meta.get("difficulty").cloned().unwrap_or_else(|| "unknown".to_string());
+        *by_difficulty.entry(diff).or_insert(0) += 1;
+        *by_language.entry(task.language.clone()).or_insert(0) += 1;
+    }
+
+    if args.json {
+        let output = serde_json::json!({
+            "status": "success",
+            "total_tasks": tasks.len(),
+            "by_difficulty": by_difficulty,
+            "by_language": by_language,
+            "source": source,
+        });
+        println!("{}", serde_json::to_string_pretty(&output)?);
+    } else {
+        println!("Loaded {} tasks from {}", tasks.len(), source);
+        println!("  By difficulty:");
+        for level in &["easy", "medium", "hard"] {
+            if let Some(&count) = by_difficulty.get(*level) {
+                println!("    {}: {}", level, count);
+            }
+        }
+        println!("  By language:");
+        let mut langs: Vec<_> = by_language.iter().collect();
+        langs.sort_by(|a, b| b.1.cmp(a.1));
+        for (lang, count) in langs.iter().take(10) {
+            println!("    {}: {}", lang, count);
+        }
     }
 
     Ok(())
@@ -939,7 +1090,7 @@ async fn run_generate_command(args: GenerateArgs) -> anyhow::Result<()> {
                 .map(|requested| {
                     task.meta
                         .values()
-                        .any(|value| value.to_lowercase().contains(requested))
+                        .any(|value: &String| value.to_lowercase().contains(requested))
                         || task.language.to_lowercase().contains(requested)
                         || task.repo.to_lowercase().contains(requested)
                         || task.prompt.to_lowercase().contains(requested)

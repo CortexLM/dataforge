@@ -1,8 +1,12 @@
 //! End-to-end SWE mining pipeline stages.
 //! Uses aggressive parallelism at every stage: GH Archive fetch, enrichment,
 //! pre-classification, extraction, test generation, and quality scoring.
+//! Tasks and tests are exported to disk in real-time as they are accepted.
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
+use std::fs;
+use std::io::Write;
+use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 
@@ -19,10 +23,26 @@ use crate::swe::{
     extractor::{PatchExtractionInput, PatchExtractor, PatchExtractorConfig},
     filters::SweepFilter,
     gharchive::GhArchiveClient,
+    orchestrator::DifficultyTargets,
     quality::{QualityConfig, QualityScorer},
     test_generator::TestGenerator,
     SweTask,
 };
+
+/// Configuration for real-time export of tasks to disk as they are accepted.
+#[derive(Debug, Clone)]
+pub struct ExportConfig {
+    /// Base output directory.
+    pub output_dir: String,
+    /// JSONL file to append processed PRs to.
+    pub pr_file: Option<String>,
+    /// When true and difficulty_targets is set, export into per-difficulty subdirectories.
+    pub per_difficulty_dirs: bool,
+}
+
+/// Optional dataset manager handle for real-time parquet + HF upload.
+/// Wrapped in Arc so it can be shared across async tasks.
+pub type DatasetHandle = Arc<crate::export::DatasetManager>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SwePipelineEvent {
@@ -60,6 +80,9 @@ pub struct SwePipelineConfig {
     pub validate_docker: bool,
     pub skip_prs: HashSet<(String, u64)>,
     pub difficulty_filter: Option<String>,
+    /// Per-difficulty quotas. When set, difficulty_filter is ignored and each
+    /// difficulty level has its own independent quota.
+    pub difficulty_targets: Option<DifficultyTargets>,
 }
 
 impl Default for SwePipelineConfig {
@@ -73,6 +96,7 @@ impl Default for SwePipelineConfig {
             validate_docker: false,
             skip_prs: HashSet::new(),
             difficulty_filter: None,
+            difficulty_targets: None,
         }
     }
 }
@@ -132,6 +156,26 @@ impl SwePipeline {
         &self,
         config: &SwePipelineConfig,
         event_tx: Option<Sender<SwePipelineEvent>>,
+    ) -> anyhow::Result<SwePipelineRunResult> {
+        self.run_with_export(config, event_tx, None).await
+    }
+
+    pub async fn run_with_export(
+        &self,
+        config: &SwePipelineConfig,
+        event_tx: Option<Sender<SwePipelineEvent>>,
+        export_config: Option<Arc<ExportConfig>>,
+    ) -> anyhow::Result<SwePipelineRunResult> {
+        self.run_full(config, event_tx, export_config, None).await
+    }
+
+    /// Full pipeline run with optional disk export and optional dataset (parquet + HF) manager.
+    pub async fn run_full(
+        &self,
+        config: &SwePipelineConfig,
+        event_tx: Option<Sender<SwePipelineEvent>>,
+        export_config: Option<Arc<ExportConfig>>,
+        dataset_handle: Option<DatasetHandle>,
     ) -> anyhow::Result<SwePipelineRunResult> {
         emit(
             &event_tx,
@@ -211,6 +255,7 @@ impl SwePipeline {
         let test_generator = &self.test_generator;
         let prompt_rewriter = &self.prompt_rewriter;
         let difficulty_filter = config.difficulty_filter.clone();
+        let difficulty_targets = config.difficulty_targets.clone();
         let max_tasks = config.max_tasks;
         let once = config.once;
 
@@ -219,6 +264,12 @@ impl SwePipeline {
         let filtered_count = Arc::new(AtomicUsize::new(0));
         let extracted_count = Arc::new(AtomicUsize::new(0));
         let scored_count = Arc::new(AtomicUsize::new(0));
+        // Per-difficulty completed counts for multi-target mode
+        let per_difficulty_completed: Arc<Mutex<HashMap<String, usize>>> =
+            Arc::new(Mutex::new(HashMap::new()));
+        // Shared export config for real-time disk writes
+        let export_cfg = export_config.clone();
+        let ds_handle = dataset_handle.clone();
 
         let mut pool: FuturesUnordered<_> = events
             .into_iter()
@@ -227,13 +278,32 @@ impl SwePipeline {
                 let preclassify_sem = preclassify_sem.clone();
                 let deep_sem = deep_sem.clone();
                 let df = difficulty_filter.clone();
+                let dt = difficulty_targets.clone();
                 let completed = completed.clone();
                 let tasks_mu = tasks_mu.clone();
                 let filtered_count = filtered_count.clone();
                 let extracted_count = extracted_count.clone();
                 let scored_count = scored_count.clone();
+                let per_diff = per_difficulty_completed.clone();
+                let export_cfg = export_cfg.clone();
+                let ds_handle = ds_handle.clone();
                 async move {
-                    if completed.load(Ordering::Relaxed) >= max_tasks && once {
+                    // Helper: check if all quotas are met (multi-target mode)
+                    let all_targets_met = |per_diff: &HashMap<String, usize>, dt: &Option<DifficultyTargets>| -> bool {
+                        match dt {
+                            Some(ref targets) => targets.targets.iter().all(|(level, &quota)| {
+                                per_diff.get(level).copied().unwrap_or(0) >= quota
+                            }),
+                            None => false,
+                        }
+                    };
+
+                    // Early exit: single-difficulty mode
+                    if dt.is_none() && completed.load(Ordering::Relaxed) >= max_tasks && once {
+                        return;
+                    }
+                    // Early exit: multi-difficulty mode
+                    if dt.is_some() && all_targets_met(&*per_diff.lock().await, &dt) && once {
                         return;
                     }
 
@@ -263,12 +333,64 @@ impl SwePipeline {
                         return;
                     }
 
-                    if completed.load(Ordering::Relaxed) >= max_tasks && once {
+                    if dt.is_none() && completed.load(Ordering::Relaxed) >= max_tasks && once {
+                        return;
+                    }
+                    if dt.is_some() && all_targets_met(&*per_diff.lock().await, &dt) && once {
                         return;
                     }
 
                     // --- Stage 3: Pre-classify difficulty ---
-                    if let Some(ref df_val) = df {
+                    // In multi-target mode, pre-classify to skip levels whose quotas are already met
+                    if dt.is_some() {
+                        let _permit = preclassify_sem.acquire().await.unwrap();
+                        match quality
+                            .pre_classify(
+                                &enriched.repository,
+                                enriched.number,
+                                &enriched.title,
+                                &enriched.body,
+                                "medium", // dummy; we just want the triage result
+                            )
+                            .await
+                        {
+                            Ok(pre) => {
+                                let counts = per_diff.lock().await;
+                                if let Some(ref targets) = dt {
+                                    let current = counts.get(&pre.difficulty).copied().unwrap_or(0);
+                                    let quota = targets.targets.get(&pre.difficulty).copied().unwrap_or(0);
+                                    if quota == 0 {
+                                        // This difficulty level is not requested at all
+                                        tracing::debug!(
+                                            repo = %enriched.repository,
+                                            pr = enriched.number,
+                                            triage = %pre.difficulty,
+                                            "Skipped: difficulty not in targets"
+                                        );
+                                        return;
+                                    }
+                                    if current >= quota {
+                                        tracing::debug!(
+                                            repo = %enriched.repository,
+                                            pr = enriched.number,
+                                            triage = %pre.difficulty,
+                                            current,
+                                            quota,
+                                            "Skipped: quota already met for this difficulty"
+                                        );
+                                        return;
+                                    }
+                                }
+                                tracing::info!(
+                                    repo = %enriched.repository,
+                                    pr = enriched.number,
+                                    triage = %pre.difficulty,
+                                    "Pre-classification (multi-target): ACCEPTED"
+                                );
+                            }
+                            Err(_) => { /* on error, let it through */ }
+                        }
+                    } else if let Some(ref df_val) = df {
                         let _permit = preclassify_sem.acquire().await.unwrap();
                         match quality
                             .pre_classify(
@@ -301,14 +423,20 @@ impl SwePipeline {
                         }
                     }
 
-                    if completed.load(Ordering::Relaxed) >= max_tasks && once {
+                    if dt.is_none() && completed.load(Ordering::Relaxed) >= max_tasks && once {
+                        return;
+                    }
+                    if dt.is_some() && all_targets_met(&*per_diff.lock().await, &dt) && once {
                         return;
                     }
 
                     // --- Stage 4: Deep processing (extraction + test gen + quality) ---
                     let _permit = deep_sem.acquire().await.unwrap();
 
-                    if completed.load(Ordering::Relaxed) >= max_tasks && once {
+                    if dt.is_none() && completed.load(Ordering::Relaxed) >= max_tasks && once {
+                        return;
+                    }
+                    if dt.is_some() && all_targets_met(&*per_diff.lock().await, &dt) && once {
                         return;
                     }
 
@@ -407,9 +535,21 @@ impl SwePipeline {
                         "difficulty".to_string(),
                         assessment.difficulty_level.clone(),
                     );
-                    let difficulty_ok = match df.as_deref() {
-                        Some(f) => assessment.difficulty_level == f,
-                        None => true,
+
+                    // Determine if this task's difficulty is accepted
+                    let difficulty_ok = if let Some(ref targets) = dt {
+                        // Multi-target mode: check per-difficulty quota
+                        let counts = per_diff.lock().await;
+                        let level = &assessment.difficulty_level;
+                        let current = counts.get(level).copied().unwrap_or(0);
+                        let quota = targets.targets.get(level).copied().unwrap_or(0);
+                        quota > 0 && current < quota
+                    } else {
+                        // Single-difficulty filter mode
+                        match df.as_deref() {
+                            Some(f) => assessment.difficulty_level == f,
+                            None => true,
+                        }
                     };
 
                     tracing::info!(
@@ -422,15 +562,93 @@ impl SwePipeline {
 
                     if passed && difficulty_ok {
                         task.status = crate::swe::SweTaskStatus::Ready;
-                        let prev = completed.fetch_add(1, Ordering::Relaxed);
-                        if prev < max_tasks || !once {
+
+                        if dt.is_some() {
+                            // Multi-target: increment per-difficulty counter
+                            let mut counts = per_diff.lock().await;
+                            let level = assessment.difficulty_level.clone();
+                            let current = counts.entry(level.clone()).or_insert(0);
+                            *current += 1;
+                            let new_count = *current;
+                            drop(counts);
+
+                            // Real-time export to disk
+                            if let Some(ref ecfg) = export_cfg {
+                                let out_dir = if ecfg.per_difficulty_dirs {
+                                    format!("{}/{}-tasks", ecfg.output_dir, level)
+                                } else {
+                                    ecfg.output_dir.clone()
+                                };
+                                match export_task_to_disk(&task, &out_dir) {
+                                    Ok(()) => {
+                                        task.status = crate::swe::SweTaskStatus::Exported;
+                                        task.workspace_path = Some(format!("{}/{}", out_dir, task.id));
+                                        append_pr_to_file(&ecfg.pr_file, &task.repo, &task.id);
+                                        tracing::info!(
+                                            task_id = %task.id,
+                                            difficulty = %level,
+                                            output = %out_dir,
+                                            "Exported task to disk (real-time)"
+                                        );
+                                    }
+                                    Err(err) => {
+                                        tracing::warn!(task_id = %task.id, error = %err, "Real-time export failed");
+                                    }
+                                }
+                            }
+
+                            // Real-time parquet + HF upload
+                            if let Some(ref ds) = ds_handle {
+                                if let Err(e) = ds.add_task(task.clone()).await {
+                                    tracing::warn!(error = %e, "Dataset manager add_task failed");
+                                }
+                            }
+
+                            completed.fetch_add(1, Ordering::Relaxed);
                             extracted_count.fetch_add(1, Ordering::Relaxed);
                             tasks_mu.lock().await.push(task);
                             tracing::info!(
-                                completed = prev + 1,
-                                max_tasks,
-                                "Task accepted into pool"
+                                difficulty = %level,
+                                count = new_count,
+                                "Task accepted (multi-target)"
                             );
+                        } else {
+                            let prev = completed.fetch_add(1, Ordering::Relaxed);
+                            if prev < max_tasks || !once {
+                                // Real-time export to disk
+                                if let Some(ref ecfg) = export_cfg {
+                                    match export_task_to_disk(&task, &ecfg.output_dir) {
+                                        Ok(()) => {
+                                            task.status = crate::swe::SweTaskStatus::Exported;
+                                            task.workspace_path = Some(format!("{}/{}", ecfg.output_dir, task.id));
+                                            append_pr_to_file(&ecfg.pr_file, &task.repo, &task.id);
+                                            tracing::info!(
+                                                task_id = %task.id,
+                                                output = %ecfg.output_dir,
+                                                "Exported task to disk (real-time)"
+                                            );
+                                        }
+                                        Err(err) => {
+                                            tracing::warn!(task_id = %task.id, error = %err, "Real-time export failed");
+                                        }
+                                    }
+                                }
+
+                                // Real-time parquet + HF upload
+                                if let Some(ref ds) = ds_handle {
+                                    if let Err(e) = ds.add_task(task.clone()).await {
+                                        tracing::warn!(error = %e, "Dataset manager add_task failed");
+                                    }
+                                }
+
+                                extracted_count.fetch_add(1, Ordering::Relaxed);
+                                tasks_mu.lock().await.push(task);
+                                tracing::info!(
+                                    completed = prev + 1,
+                                    max_tasks,
+                                    "Task accepted into pool"
+                                );
+                            }
                         }
                     }
                 }
@@ -438,7 +656,17 @@ impl SwePipeline {
             .collect();
 
         while pool.next().await.is_some() {
-            if completed.load(Ordering::Relaxed) >= max_tasks && once {
+            // Check completion: multi-target mode or single mode
+            if let Some(ref targets) = difficulty_targets {
+                let counts = per_difficulty_completed.lock().await;
+                let all_met = targets.targets.iter().all(|(level, &quota)| {
+                    counts.get(level).copied().unwrap_or(0) >= quota
+                });
+                if all_met && once {
+                    tracing::info!("All difficulty targets met, stopping pool");
+                    break;
+                }
+            } else if completed.load(Ordering::Relaxed) >= max_tasks && once {
                 tracing::info!("Reached max_tasks={}, stopping pool", max_tasks);
                 break;
             }
@@ -477,5 +705,80 @@ fn infer_added_lines(pr: &EnrichedPullRequest) -> usize {
 async fn emit(tx: &Option<mpsc::Sender<SwePipelineEvent>>, event: SwePipelineEvent) {
     if let Some(sender) = tx {
         let _ = sender.send(event).await;
+    }
+}
+
+fn export_task_to_disk(task: &SweTask, output_dir: &str) -> anyhow::Result<()> {
+    let dir = Path::new(output_dir).join(&task.id);
+    fs::create_dir_all(&dir)?;
+
+    let prompt = format!("# {}\n\n{}\n", task.id, task.prompt);
+    fs::write(dir.join("prompt.md"), prompt)?;
+
+    if !task.original_pr_body.is_empty() {
+        let original = format!("# {} (original PR)\n\n{}\n", task.id, task.original_pr_body);
+        fs::write(dir.join("original_pr.md"), original)?;
+    }
+
+    let workspace = serde_yaml::to_string(task)?;
+    fs::write(dir.join("workspace.yaml"), workspace)?;
+
+    let tests_dir = dir.join("tests");
+    fs::create_dir_all(&tests_dir)?;
+
+    if let Some(test_files_json) = task.meta.get("test_files") {
+        if let Ok(files) =
+            serde_json::from_str::<Vec<crate::swe::test_generator::TestFile>>(test_files_json)
+        {
+            for tf in &files {
+                let file_path = tests_dir.join(&tf.path);
+                if let Some(parent) = file_path.parent() {
+                    fs::create_dir_all(parent)?;
+                }
+                fs::write(&file_path, &tf.content)?;
+            }
+        }
+    }
+
+    for (i, cmd) in task.fail_to_pass.iter().enumerate() {
+        let filename = format!("fail_to_pass_{}.sh", i + 1);
+        fs::write(
+            tests_dir.join(&filename),
+            format!("#!/bin/bash\n# This test must FAIL on base commit, PASS after fix\n{cmd}\n"),
+        )?;
+    }
+
+    for (i, cmd) in task.pass_to_pass.iter().enumerate() {
+        let filename = format!("pass_to_pass_{}.sh", i + 1);
+        fs::write(
+            tests_dir.join(&filename),
+            format!("#!/bin/bash\n# This test must PASS on base commit AND after fix\n{cmd}\n"),
+        )?;
+    }
+
+    if !task.fail_to_pass.is_empty() {
+        let checks = task
+            .fail_to_pass
+            .iter()
+            .chain(task.pass_to_pass.iter())
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("\n");
+        fs::write(dir.join("checks.txt"), checks)?;
+    }
+
+    Ok(())
+}
+
+fn append_pr_to_file(pr_file: &Option<String>, repo: &str, task_id: &str) {
+    let Some(path) = pr_file else { return };
+    let pr_number: u64 = task_id
+        .rsplit('-')
+        .next()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or(0);
+    let line = serde_json::json!({"repo": repo, "pr": pr_number});
+    if let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open(path) {
+        let _ = writeln!(f, "{}", line);
     }
 }
