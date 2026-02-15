@@ -1,10 +1,10 @@
 //! Patch extraction for mined PRs using real git history when possible.
+//! Clone-based fallback runs inside a Docker container for isolation.
 
-use anyhow::{Context, Result};
-use std::path::Path;
+use anyhow::Result;
 use std::process::Command;
-use tempfile::tempdir;
 
+use crate::swe::docker_sandbox::DockerSandbox;
 use crate::swe::SweTask;
 
 fn github_token() -> Option<String> {
@@ -65,8 +65,8 @@ impl PatchExtractor {
         Self::new(PatchExtractorConfig::default())
     }
 
-    pub fn extract_patch(&self, input: &PatchExtractionInput<'_>) -> Result<ExtractedPatch> {
-        match self.extract_from_repo(input) {
+    pub async fn extract_patch(&self, input: &PatchExtractionInput<'_>) -> Result<ExtractedPatch> {
+        match self.extract_from_repo(input).await {
             Ok(patch) => Ok(patch),
             Err(err) => {
                 if self.config.require_real_extraction {
@@ -90,18 +90,21 @@ impl PatchExtractor {
         }
     }
 
-    fn extract_from_repo(&self, input: &PatchExtractionInput<'_>) -> Result<ExtractedPatch> {
+    async fn extract_from_repo(&self, input: &PatchExtractionInput<'_>) -> Result<ExtractedPatch> {
         let namespace = input.repository.replace('/', "_");
 
-        let diff = self.fetch_diff_from_api(input).or_else(|api_err| {
-            tracing::debug!(
-                repo = %input.repository,
-                pr = input.pull_number,
-                error = %api_err,
-                "GitHub API diff failed, trying git clone"
-            );
-            self.fetch_diff_from_clone(input)
-        })?;
+        let diff = match self.fetch_diff_from_api(input) {
+            Ok(d) => d,
+            Err(api_err) => {
+                tracing::debug!(
+                    repo = %input.repository,
+                    pr = input.pull_number,
+                    error = %api_err,
+                    "GitHub API diff failed, trying Docker clone"
+                );
+                self.fetch_diff_from_docker(input).await?
+            }
+        };
 
         if diff.trim().is_empty() {
             if self.config.require_real_extraction {
@@ -195,63 +198,46 @@ impl PatchExtractor {
         Ok(diff)
     }
 
-    fn fetch_diff_from_clone(&self, input: &PatchExtractionInput<'_>) -> Result<String> {
-        let temp = tempdir()?;
-        let repo_path = temp.path().join("repo");
+    /// Clone the repo inside a Docker container and extract the diff.
+    async fn fetch_diff_from_docker(&self, input: &PatchExtractionInput<'_>) -> Result<String> {
+        let base_commit = input.base_commit.unwrap_or("");
+        let sandbox =
+            DockerSandbox::start(input.repository, base_commit, input.language, None).await?;
 
-        Self::clone_repository(input.repository, &repo_path)?;
-        Self::extract_commit_diff(&repo_path, input.base_commit, input.merge_commit)
-    }
-
-    fn clone_repository(repository: &str, destination: &Path) -> Result<()> {
-        let remote = format!("https://github.com/{repository}.git");
-
-        let status = Command::new("git")
-            .args([
-                "clone",
-                "--depth",
-                "1",
-                "--filter=blob:none",
-                &remote,
-                destination
-                    .to_str()
-                    .context("invalid temporary repository path")?,
-            ])
-            .status()?;
-
-        if !status.success() {
-            anyhow::bail!("git clone failed for {remote}");
-        }
-
-        Ok(())
-    }
-
-    fn extract_commit_diff(
-        repo_path: &Path,
-        base_commit: Option<&str>,
-        merge_commit: Option<&str>,
-    ) -> Result<String> {
-        let diff_ref = match (base_commit, merge_commit) {
+        let diff_ref = match (input.base_commit, input.merge_commit) {
             (Some(base), Some(merge)) if !base.is_empty() && !merge.is_empty() => {
+                // Fetch the merge commit (shallow clone may not have it)
+                sandbox
+                    .exec(&format!("git fetch origin {} --depth=1 2>&1", merge), 60_000)
+                    .await;
                 format!("{base}..{merge}")
             }
-            (_, Some(merge)) if !merge.is_empty() => merge.to_string(),
+            (_, Some(merge)) if !merge.is_empty() => {
+                sandbox
+                    .exec(&format!("git fetch origin {} --depth=1 2>&1", merge), 60_000)
+                    .await;
+                merge.to_string()
+            }
             _ => "HEAD".to_string(),
         };
 
-        let output = Command::new("git")
-            .args(["show", "--no-color", "--unified=3", &diff_ref])
-            .current_dir(repo_path)
-            .output()?;
+        let result = sandbox
+            .exec(
+                &format!("git show --no-color --unified=3 {} 2>&1", diff_ref),
+                60_000,
+            )
+            .await;
 
-        if !output.status.success() {
+        sandbox.destroy().await;
+
+        if result.exit_code != 0 {
             anyhow::bail!(
-                "git show failed: {}",
-                String::from_utf8_lossy(&output.stderr)
+                "git show failed in Docker: {}",
+                &result.stderr
             );
         }
 
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+        Ok(result.stdout)
     }
 
     fn extract_fallback(&self, input: &PatchExtractionInput<'_>) -> ExtractedPatch {

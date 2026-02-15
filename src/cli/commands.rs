@@ -158,6 +158,11 @@ pub struct SweMineArgs {
     #[arg(long, default_value = "swe_cache.db")]
     pub cache_db: String,
 
+    /// Override Docker image for mining containers (default: auto-select based on language).
+    /// All repo cloning, test execution, and validation run inside Docker.
+    #[arg(long)]
+    pub mining_image: Option<String>,
+
     /// Output JSON summary.
     #[arg(short = 'j', long)]
     pub json: bool,
@@ -767,6 +772,7 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
         difficulty_targets,
         hf_upload,
         cache: cache.clone(),
+        mining_image: args.mining_image.clone(),
     };
 
     let orchestrator = SweOrchestrator::new(llm_client, config);

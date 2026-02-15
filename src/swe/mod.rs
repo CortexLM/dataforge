@@ -12,6 +12,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+pub mod docker_sandbox;
 pub mod enricher;
 pub mod extractor;
 pub mod filters;

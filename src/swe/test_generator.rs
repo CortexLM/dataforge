@@ -1,17 +1,17 @@
 //! Agentic test generator with dual-commit validation.
 //!
-//! The LLM writes tests against the base commit, then the generator
-//! automatically verifies them against the PR commit (patch applied)
-//! to ensure fail_to_pass tests actually pass after the fix.
+//! The LLM writes tests against the base commit inside a Docker container,
+//! then the generator automatically verifies them against the PR commit
+//! (patch applied) to ensure fail_to_pass tests actually pass after the fix.
 
 use anyhow::Result;
 use regex::Regex;
-use std::process::Stdio;
 use std::sync::Arc;
 
 use crate::llm::{
     GenerationRequest, LlmProvider, Message, ToolCallInfo, ToolChoice, ToolDefinition,
 };
+use crate::swe::docker_sandbox::DockerSandbox;
 use crate::swe::SweTask;
 
 const MAX_AGENT_TURNS: usize = 200;
@@ -201,11 +201,22 @@ enum ValidationResult {
 
 pub struct TestGenerator {
     llm: Arc<dyn LlmProvider>,
+    image_override: Option<String>,
 }
 
 impl TestGenerator {
     pub fn new(llm: Arc<dyn LlmProvider>) -> Self {
-        Self { llm }
+        Self {
+            llm,
+            image_override: None,
+        }
+    }
+
+    pub fn with_image(llm: Arc<dyn LlmProvider>, image: Option<String>) -> Self {
+        Self {
+            llm,
+            image_override: image,
+        }
     }
 
     pub async fn ensure_tests(&self, task: &mut SweTask, language: &str) -> Result<()> {
@@ -213,11 +224,30 @@ impl TestGenerator {
             return Ok(());
         }
 
-        tracing::info!(task_id = %task.id, repo = %task.repo, "Starting agentic test generation");
+        tracing::info!(task_id = %task.id, repo = %task.repo, "Starting agentic test generation (Docker)");
 
-        let repo_dir = self.clone_repo(&task.repo, &task.base_commit).await?;
-        let repo_path = repo_dir.path().to_path_buf();
+        let sandbox = DockerSandbox::start(
+            &task.repo,
+            &task.base_commit,
+            language,
+            self.image_override.as_deref(),
+        )
+        .await?;
 
+        let result = self.run_agent_loop(&sandbox, task, language).await;
+
+        // Always destroy the container, even on error
+        sandbox.destroy().await;
+
+        result
+    }
+
+    async fn run_agent_loop(
+        &self,
+        sandbox: &DockerSandbox,
+        task: &mut SweTask,
+        language: &str,
+    ) -> Result<()> {
         let (build_cmds, test_cmds) = SweTask::test_commands_for_language(language);
         let patch_preview = truncate_utf8(&task.patch, 4000);
 
@@ -225,7 +255,7 @@ impl TestGenerator {
             "Repository: {repo}\nLanguage: {lang}\nPR description: {prompt}\n\n\
              Suggested build: {build}\nSuggested test: {test}\n\n\
              Diff (truncated):\n```\n{patch}\n```\n\n\
-             The repo is cloned at {path}. Explore it, write behavioral tests, then submit.\n\n\
+             The repo is cloned at /repo. Explore it, write behavioral tests, then submit.\n\n\
              REMEMBER:\n\
              - Your fail_to_pass tests will be verified against the PR patch. \
              They MUST pass once the patch is applied, or they will be rejected.\n\
@@ -238,7 +268,6 @@ impl TestGenerator {
             build = build_cmds.join(" && "),
             test = test_cmds.join(" && "),
             patch = patch_preview,
-            path = repo_path.display(),
         );
 
         let tools = vec![shell_tool(), write_file_tool(), submit_tool()];
@@ -272,7 +301,7 @@ impl TestGenerator {
 
                 for tc in tool_calls {
                     let result = self
-                        .handle_tool_call(tc, &repo_path, &task.id, turn, &mut written_files)
+                        .handle_tool_call(tc, sandbox, &task.id, turn, &mut written_files)
                         .await;
 
                     match result {
@@ -316,7 +345,7 @@ impl TestGenerator {
                             // --- Dual-commit validation: apply patch, re-run tests ---
                             let patch_validation = self
                                 .validate_on_pr_commit(
-                                    &repo_path,
+                                    sandbox,
                                     &task.patch,
                                     &submit,
                                     &all_files,
@@ -371,7 +400,7 @@ impl TestGenerator {
                                 }
                             }
                             task.meta
-                                .insert("test_generation".to_string(), "agentic".to_string());
+                                .insert("test_generation".to_string(), "agentic-docker".to_string());
                             return Ok(());
                         }
                         ToolResult::Error(err) => {
@@ -399,10 +428,10 @@ impl TestGenerator {
         )
     }
 
-    /// Validate submitted tests by applying the PR patch and re-running them.
+    /// Validate submitted tests by applying the PR patch and re-running them inside the sandbox.
     async fn validate_on_pr_commit(
         &self,
-        repo_path: &std::path::Path,
+        sandbox: &DockerSandbox,
         patch: &str,
         submit: &SubmitArgs,
         test_files: &[TestFile],
@@ -414,65 +443,43 @@ impl TestGenerator {
 
         // Ensure test files are written (they may have been cleaned by git checkout)
         for tf in test_files {
-            let full_path = repo_path.join(&tf.path);
-            if let Some(parent) = full_path.parent() {
-                let _ = std::fs::create_dir_all(parent);
+            if let Err(e) = sandbox.write_file(&tf.path, &tf.content).await {
+                tracing::warn!(path = %tf.path, error = %e, "Failed to write test file for validation");
             }
-            let _ = std::fs::write(&full_path, &tf.content);
         }
 
         // Write the PR patch and apply it
-        let patch_file = repo_path.join(".swe_forge_pr.patch");
-        if let Err(e) = std::fs::write(&patch_file, patch) {
+        if let Err(e) = sandbox.write_file(".swe_forge_pr.patch", patch).await {
             tracing::warn!(error = %e, "Failed to write patch file");
             return ValidationResult::Accepted;
         }
 
-        let apply_result = execute_shell(
-            "git apply --allow-empty .swe_forge_pr.patch 2>&1",
-            repo_path,
-            30_000,
-        )
-        .await;
+        let apply_result = sandbox
+            .exec("git apply --allow-empty .swe_forge_pr.patch 2>&1", 30_000)
+            .await;
 
         if apply_result.exit_code != 0 {
-            // Try with --3way fallback
-            let apply_3way = execute_shell(
-                "git apply --3way .swe_forge_pr.patch 2>&1",
-                repo_path,
-                30_000,
-            )
-            .await;
+            let apply_3way = sandbox
+                .exec("git apply --3way .swe_forge_pr.patch 2>&1", 30_000)
+                .await;
             if apply_3way.exit_code != 0 {
                 tracing::warn!(
                     stderr = %apply_3way.stderr,
                     "Patch apply failed, skipping dual-commit validation"
                 );
-                // Clean up
-                let _ = execute_shell("git checkout -- . 2>/dev/null", repo_path, 10_000).await;
+                sandbox.exec("git checkout -- . 2>/dev/null", 10_000).await;
                 return ValidationResult::Accepted;
             }
         }
 
         // Re-run fail_to_pass: must now PASS
         for cmd in &submit.fail_to_pass {
-            let result = execute_shell(cmd, repo_path, 60_000).await;
+            let result = sandbox.exec(cmd, 60_000).await;
             if result.exit_code != 0 {
-                // Revert patch
-                let _ = execute_shell("git checkout -- . 2>/dev/null", repo_path, 10_000).await;
-                let _ = execute_shell(
-                    "git clean -fd 2>/dev/null",
-                    repo_path,
-                    10_000,
-                )
-                .await;
-                // Re-write test files on base for next retry
+                sandbox.exec("git checkout -- . 2>/dev/null", 10_000).await;
+                sandbox.exec("git clean -fd 2>/dev/null", 10_000).await;
                 for tf in test_files {
-                    let full_path = repo_path.join(&tf.path);
-                    if let Some(parent) = full_path.parent() {
-                        let _ = std::fs::create_dir_all(parent);
-                    }
-                    let _ = std::fs::write(&full_path, &tf.content);
+                    let _ = sandbox.write_file(&tf.path, &tf.content).await;
                 }
                 return ValidationResult::Rejected(format!(
                     "fail_to_pass test '{}' still FAILS after the PR patch is applied (exit={}, stderr={}). \
@@ -486,16 +493,12 @@ impl TestGenerator {
 
         // Re-run pass_to_pass: must still PASS
         for cmd in &submit.pass_to_pass {
-            let result = execute_shell(cmd, repo_path, 60_000).await;
+            let result = sandbox.exec(cmd, 60_000).await;
             if result.exit_code != 0 {
-                let _ = execute_shell("git checkout -- . 2>/dev/null", repo_path, 10_000).await;
-                let _ = execute_shell("git clean -fd 2>/dev/null", repo_path, 10_000).await;
+                sandbox.exec("git checkout -- . 2>/dev/null", 10_000).await;
+                sandbox.exec("git clean -fd 2>/dev/null", 10_000).await;
                 for tf in test_files {
-                    let full_path = repo_path.join(&tf.path);
-                    if let Some(parent) = full_path.parent() {
-                        let _ = std::fs::create_dir_all(parent);
-                    }
-                    let _ = std::fs::write(&full_path, &tf.content);
+                    let _ = sandbox.write_file(&tf.path, &tf.content).await;
                 }
                 return ValidationResult::Rejected(format!(
                     "pass_to_pass test '{}' FAILS after the PR patch (exit={}, stderr={}). \
@@ -508,15 +511,10 @@ impl TestGenerator {
         }
 
         // Revert to base commit for cleanliness
-        let _ = execute_shell("git checkout -- . 2>/dev/null", repo_path, 10_000).await;
-        let _ = execute_shell("git clean -fd 2>/dev/null", repo_path, 10_000).await;
-        // Re-write test files on base
+        sandbox.exec("git checkout -- . 2>/dev/null", 10_000).await;
+        sandbox.exec("git clean -fd 2>/dev/null", 10_000).await;
         for tf in test_files {
-            let full_path = repo_path.join(&tf.path);
-            if let Some(parent) = full_path.parent() {
-                let _ = std::fs::create_dir_all(parent);
-            }
-            let _ = std::fs::write(&full_path, &tf.content);
+            let _ = sandbox.write_file(&tf.path, &tf.content).await;
         }
 
         ValidationResult::Accepted
@@ -525,7 +523,7 @@ impl TestGenerator {
     async fn handle_tool_call(
         &self,
         tc: &ToolCallInfo,
-        repo_path: &std::path::Path,
+        sandbox: &DockerSandbox,
         task_id: &str,
         turn: usize,
         written_files: &mut Vec<TestFile>,
@@ -536,11 +534,11 @@ impl TestGenerator {
                     Ok(a) => a,
                     Err(e) => return ToolResult::Error(format!("Invalid shell args: {}", e)),
                 };
-                let result = execute_shell(&args.command, repo_path, args.timeout_ms).await;
+                let result = sandbox.exec(&args.command, args.timeout_ms).await;
                 tracing::debug!(
                     task_id = task_id, turn = turn,
                     cmd = %args.command, exit = result.exit_code,
-                    "Agent shell"
+                    "Agent shell (Docker)"
                 );
                 ToolResult::ShellOutput(format!(
                     "exit_code: {}\nstdout:\n{}\nstderr:\n{}",
@@ -554,16 +552,12 @@ impl TestGenerator {
                     Ok(a) => a,
                     Err(e) => return ToolResult::Error(format!("Invalid write_file args: {}", e)),
                 };
-                let full_path = repo_path.join(&args.path);
-                if let Some(parent) = full_path.parent() {
-                    let _ = std::fs::create_dir_all(parent);
-                }
-                match std::fs::write(&full_path, &args.content) {
+                match sandbox.write_file(&args.path, &args.content).await {
                     Ok(_) => {
                         tracing::debug!(
                             task_id = task_id, turn = turn,
                             path = %args.path, bytes = args.content.len(),
-                            "Agent wrote file"
+                            "Agent wrote file (Docker)"
                         );
                         if let Some(existing) =
                             written_files.iter_mut().find(|f| f.path == args.path)
@@ -587,48 +581,12 @@ impl TestGenerator {
             other => ToolResult::Error(format!("Unknown tool: {}", other)),
         }
     }
-
-    async fn clone_repo(&self, repo: &str, base_commit: &str) -> Result<tempfile::TempDir> {
-        let tmp = tempfile::tempdir()?;
-        let url = format!("https://github.com/{}.git", repo);
-        let path = tmp.path();
-
-        let status = tokio::process::Command::new("git")
-            .args(["clone", "--depth", "50", &url, "."])
-            .current_dir(path)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .await?;
-
-        if !status.success() {
-            anyhow::bail!("Failed to clone {}", repo);
-        }
-
-        if !base_commit.is_empty() {
-            let _ = tokio::process::Command::new("git")
-                .args(["checkout", base_commit])
-                .current_dir(path)
-                .stdout(Stdio::null())
-                .stderr(Stdio::null())
-                .status()
-                .await;
-        }
-
-        Ok(tmp)
-    }
 }
 
 enum ToolResult {
     ShellOutput(String),
     Submit(SubmitArgs),
     Error(String),
-}
-
-struct ShellOutput {
-    stdout: String,
-    stderr: String,
-    exit_code: i32,
 }
 
 /// Scan test files for string-matching anti-patterns and return a rejection reason if found.
@@ -690,37 +648,6 @@ fn reject_string_matching_tests(files: &[TestFile]) -> Option<String> {
             "Your tests use forbidden source-reading patterns:\n- {}",
             violations.join("\n- ")
         ))
-    }
-}
-
-async fn execute_shell(command: &str, cwd: &std::path::Path, timeout_ms: u64) -> ShellOutput {
-    let result = tokio::time::timeout(
-        std::time::Duration::from_millis(timeout_ms),
-        tokio::process::Command::new("sh")
-            .args(["-c", command])
-            .current_dir(cwd)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output(),
-    )
-    .await;
-
-    match result {
-        Ok(Ok(output)) => ShellOutput {
-            stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-            stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-            exit_code: output.status.code().unwrap_or(-1),
-        },
-        Ok(Err(e)) => ShellOutput {
-            stdout: String::new(),
-            stderr: format!("Execution error: {}", e),
-            exit_code: -1,
-        },
-        Err(_) => ShellOutput {
-            stdout: String::new(),
-            stderr: format!("Command timed out after {}ms", timeout_ms),
-            exit_code: -1,
-        },
     }
 }
 

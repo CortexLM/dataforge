@@ -83,6 +83,8 @@ pub struct SweOrchestratorConfig {
     pub hf_upload: Option<HfUploadConfig>,
     /// SQLite PR cache for deduplication and triage caching.
     pub cache: super::OptionalCache,
+    /// Override Docker image for mining containers (auto-select by language if None).
+    pub mining_image: Option<String>,
 }
 
 impl Default for SweOrchestratorConfig {
@@ -100,6 +102,7 @@ impl Default for SweOrchestratorConfig {
             difficulty_targets: None,
             hf_upload: None,
             cache: super::OptionalCache::none(),
+            mining_image: None,
         }
     }
 }
@@ -142,6 +145,7 @@ impl SweOrchestrator {
             difficulty_filter: if is_multi { None } else { self.config.difficulty_filter.clone() },
             difficulty_targets: self.config.difficulty_targets.clone(),
             cache: self.config.cache.clone(),
+            mining_image: self.config.mining_image.clone(),
         };
 
         // Real-time export config: tasks are written to disk inside the pipeline worker loop

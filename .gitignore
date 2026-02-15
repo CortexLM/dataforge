@@ -37,3 +37,8 @@ run-hard/
 *.jsonl
 
 test-verify/
+
+# SQLite cache files
+*.db
+*.db-shm
+*.db-wal

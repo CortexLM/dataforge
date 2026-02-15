@@ -85,6 +85,8 @@ pub struct SwePipelineConfig {
     pub difficulty_targets: Option<DifficultyTargets>,
     /// SQLite PR cache for deduplication and triage caching.
     pub cache: super::OptionalCache,
+    /// Override Docker image for mining containers (auto-select by language if None).
+    pub mining_image: Option<String>,
 }
 
 impl Default for SwePipelineConfig {
@@ -100,6 +102,7 @@ impl Default for SwePipelineConfig {
             difficulty_filter: None,
             difficulty_targets: None,
             cache: super::OptionalCache::none(),
+            mining_image: None,
         }
     }
 }
@@ -140,7 +143,7 @@ impl SwePipeline {
             include_binary: false,
             require_real_extraction: true,
         });
-        let test_generator = TestGenerator::new(llm.clone());
+        let test_generator = TestGenerator::with_image(llm.clone(), config.mining_image.clone());
         let quality = QualityScorer::new(llm.clone(), QualityConfig::default());
         let prompt_rewriter = super::PromptRewriter::new(llm);
 
@@ -490,7 +493,7 @@ impl SwePipeline {
                         title: &enriched.title,
                         base_commit: Some(&enriched.base_sha),
                         merge_commit: Some(&enriched.merge_sha),
-                    }) {
+                    }).await {
                         Ok(p) => p,
                         Err(err) => {
                             tracing::warn!(repo = %enriched.repository, pr = enriched.number, error = %err, "Extraction failed");
