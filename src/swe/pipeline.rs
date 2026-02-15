@@ -766,20 +766,11 @@ fn export_task_to_disk(task: &SweTask, output_dir: &str) -> anyhow::Result<()> {
         )?;
     }
 
-    for (i, cmd) in task.must_not_pass.iter().enumerate() {
-        let filename = format!("must_not_pass_{}.sh", i + 1);
-        fs::write(
-            tests_dir.join(&filename),
-            format!("#!/bin/bash\n# This test must FAIL even after fix (anti-cheat)\n{cmd}\n"),
-        )?;
-    }
-
     if !task.fail_to_pass.is_empty() {
         let checks = task
             .fail_to_pass
             .iter()
             .chain(task.pass_to_pass.iter())
-            .chain(task.must_not_pass.iter())
             .cloned()
             .collect::<Vec<_>>()
             .join("\n");

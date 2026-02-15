@@ -88,7 +88,6 @@ pub struct HarnessResult {
     pub sanity_check: bool,
     pub fail_to_pass: Vec<TestResult>,
     pub pass_to_pass: Vec<TestResult>,
-    pub must_not_pass: Vec<TestResult>,
     pub agent_duration_secs: f64,
     pub total_duration_secs: f64,
     pub agent_output: String,
@@ -175,7 +174,6 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
         sanity_check: false,
         fail_to_pass: Vec::new(),
         pass_to_pass: Vec::new(),
-        must_not_pass: Vec::new(),
         agent_duration_secs: 0.0,
         total_duration_secs: 0.0,
         agent_output: String::new(),
@@ -421,46 +419,19 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
         });
     }
 
-    // must_not_pass: these tests must FAIL even after the agent's changes (anti-cheat)
-    let mut all_mnp_fail = true;
-    for cmd_str in &task.must_not_pass {
-        let cmd_start = Instant::now();
-        let (code, stdout, stderr) = docker_exec(
-            &cname,
-            &format!("cd /repo && {}", cmd_str),
-            config.test_timeout_secs,
-        )
-        .await;
-        // "passed" here means the anti-cheat test correctly FAILED (exit != 0)
-        let passed = code != 0;
-        if !passed {
-            all_mnp_fail = false;
-        }
-        result.must_not_pass.push(TestResult {
-            command: cmd_str.clone(),
-            exit_code: code,
-            stdout: truncate(&stdout, 2000),
-            stderr: truncate(&stderr, 2000),
-            passed,
-            duration_ms: cmd_start.elapsed().as_millis() as u64,
-        });
-    }
-
     // Determine final status
-    if all_f2p_pass && all_p2p_pass && all_mnp_fail {
+    if all_f2p_pass && all_p2p_pass {
         result.status = HarnessStatus::Resolved;
         info!(task_id = %task.id, "RESOLVED");
     } else {
         result.status = HarnessStatus::Unresolved;
         let f2p_passed = result.fail_to_pass.iter().filter(|t| t.passed).count();
         let p2p_passed = result.pass_to_pass.iter().filter(|t| t.passed).count();
-        let mnp_passed = result.must_not_pass.iter().filter(|t| t.passed).count();
         info!(
             task_id = %task.id,
-            "UNRESOLVED (f2p: {}/{}, p2p: {}/{}, mnp: {}/{})",
+            "UNRESOLVED (f2p: {}/{}, p2p: {}/{})",
             f2p_passed, result.fail_to_pass.len(),
-            p2p_passed, result.pass_to_pass.len(),
-            mnp_passed, result.must_not_pass.len()
+            p2p_passed, result.pass_to_pass.len()
         );
     }
 

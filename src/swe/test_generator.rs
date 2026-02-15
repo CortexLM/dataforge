@@ -22,7 +22,6 @@ const SYSTEM_PROMPT: &str = r#"You are a test engineer writing verification test
 CONTEXT: You write tests that verify whether a coding agent correctly reproduced a PR's changes.
 - fail_to_pass: tests that FAIL on the base commit (before PR), PASS after the PR is applied.
 - pass_to_pass: tests that PASS on both the base commit and after the PR.
-- must_not_pass: tests that must FAIL even after the PR (to catch agents making overly broad changes).
 
 You have three tools:
 - `shell`: execute a command in the cloned repository (at the BASE commit, before the PR).
@@ -57,21 +56,27 @@ MANDATORY RULES FOR TEST QUALITY:
    - Include at least 1 pass_to_pass command running existing project tests that cover code
      adjacent to the PR changes.
    - If the project has a test suite, find relevant existing test commands and include them.
+   - If the PR changes function_a() in a module, test that function_b() still works (pass_to_pass).
+   - If the PR changes a class method, verify other methods on the same class are unaffected.
 
-4. ANTI-CHEAT TESTS (must_not_pass)
-   - Include at least 1 must_not_pass test that verifies something the PR intentionally does NOT do.
-   - Examples: test that a removed API is gone, test that unrelated functionality was NOT modified,
-     test behavior that should remain broken/absent even after a correct implementation.
-   - These catch agents that make overly broad changes or copy the entire diff blindly.
-
-5. SPECIFICITY
-   - Tests must be specific enough that a lazy agent who deletes files or rewrites entire modules fails.
-   - Tests must be specific enough that an agent who only partially implements the PR fails.
-
-6. EDGE CASES
-   - For bug fixes: test the specific bug scenario AND at least one edge case.
+4. ROBUSTNESS & EDGE CASES (derive from the PR diff):
+   - If the PR adds input validation: test with null, empty, oversized, malformed inputs.
+   - If the PR adds error handling: test the error paths, not just the happy path.
+   - If the PR adds a new function: test boundary values, not just the example case.
+   - For bug fixes: test the specific bug scenario AND at least one related edge case.
    - For new features: test the happy path AND at least one error/boundary case.
-   - For refactors: test that the new API behaves correctly AND old behavior is preserved where expected.
+   - For refactors: test that the new API behaves correctly AND old behavior is preserved.
+
+5. COMPLETENESS
+   - Write fail_to_pass tests that cover ALL distinct behaviors added by the PR, not just one.
+   - If the PR adds 3 new endpoints, test all 3, not just the first.
+   - If the PR fixes a bug in 2 places, test both fix locations.
+   - Tests must be specific enough that a lazy agent who only partially implements the PR fails.
+
+6. ANTI-HARDCODING
+   - Test with DIFFERENT inputs than those shown in the PR description or diff.
+   - If the PR adds a function that computes something, test with values NOT in the diff.
+   - This catches agents that hardcode return values instead of implementing real logic.
 
 ANTI-PATTERNS THAT WILL BE REJECTED:
 - `assert "class Foo" in Path("src/foo.py").read_text()` -> REJECTED
@@ -139,11 +144,6 @@ fn submit_tool() -> ToolDefinition {
                     "items": {"type": "string"},
                     "description": "Commands that PASS on both base and PR commit"
                 },
-                "must_not_pass": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Commands that must FAIL even after PR (anti-cheat: catches overly broad agent changes)"
-                },
                 "test_files": {
                     "type": "array",
                     "items": {
@@ -191,8 +191,6 @@ struct SubmitArgs {
     #[serde(default)]
     pass_to_pass: Vec<String>,
     #[serde(default)]
-    must_not_pass: Vec<String>,
-    #[serde(default)]
     test_files: Vec<TestFile>,
 }
 
@@ -232,8 +230,8 @@ impl TestGenerator {
              - Your fail_to_pass tests will be verified against the PR patch. \
              They MUST pass once the patch is applied, or they will be rejected.\n\
              - Do NOT read source files and assert on their content. Test runtime behavior only.\n\
-             - Include pass_to_pass tests from existing test suites.\n\
-             - Include at least 1 must_not_pass test (something the PR does NOT do).",
+             - Include pass_to_pass tests from existing test suites adjacent to the changed code.\n\
+             - Test edge cases and use DIFFERENT inputs than those in the diff (anti-hardcoding).",
             repo = task.repo,
             lang = language,
             prompt = truncate_utf8(&task.prompt, 1000),
@@ -362,13 +360,11 @@ impl TestGenerator {
                                 task_id = %task.id, turn = turn,
                                 f2p = submit.fail_to_pass.len(),
                                 p2p = submit.pass_to_pass.len(),
-                                mnp = submit.must_not_pass.len(),
                                 files = all_files.len(),
                                 "Agent submitted tests"
                             );
                             task.fail_to_pass = submit.fail_to_pass;
                             task.pass_to_pass = submit.pass_to_pass;
-                            task.must_not_pass = submit.must_not_pass;
                             if !all_files.is_empty() {
                                 if let Ok(json) = serde_json::to_string(&all_files) {
                                     task.meta.insert("test_files".to_string(), json);
@@ -507,27 +503,6 @@ impl TestGenerator {
                     cmd,
                     result.exit_code,
                     truncate_utf8(&result.stderr, 500),
-                ));
-            }
-        }
-
-        // Re-run must_not_pass: must still FAIL
-        for cmd in &submit.must_not_pass {
-            let result = execute_shell(cmd, repo_path, 60_000).await;
-            if result.exit_code == 0 {
-                let _ = execute_shell("git checkout -- . 2>/dev/null", repo_path, 10_000).await;
-                let _ = execute_shell("git clean -fd 2>/dev/null", repo_path, 10_000).await;
-                for tf in test_files {
-                    let full_path = repo_path.join(&tf.path);
-                    if let Some(parent) = full_path.parent() {
-                        let _ = std::fs::create_dir_all(parent);
-                    }
-                    let _ = std::fs::write(&full_path, &tf.content);
-                }
-                return ValidationResult::Rejected(format!(
-                    "must_not_pass test '{}' PASSES after the PR patch, but it should still fail. \
-                     Rewrite it to test something the PR intentionally does NOT change.",
-                    cmd,
                 ));
             }
         }
