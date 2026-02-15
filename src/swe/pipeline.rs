@@ -379,16 +379,24 @@ impl SwePipeline {
                     let triage_result: Option<String> = if let Some(cached) = cached_triage {
                         tracing::debug!(
                             repo = %enriched.repository, pr = enriched.number,
-                            triage = %cached, "Using cached pre-classification"
+                            triage = %cached, "Using cached classification"
                         );
                         Some(cached)
                     } else if dt.is_some() || df.is_some() {
                         let _permit = preclassify_sem.acquire().await.unwrap();
                         let filter_val = df.as_deref().unwrap_or("medium");
-                        match quality.pre_classify(
-                            &enriched.repository, enriched.number,
-                            &enriched.title, &enriched.body, filter_val,
-                        ).await {
+                        let classify_input = crate::swe::quality::ClassifyInput {
+                            repo: &enriched.repository,
+                            pr: enriched.number,
+                            title: &enriched.title,
+                            body: &enriched.body,
+                            language: &enriched.language,
+                            files_changed: enriched.files_changed,
+                            added_lines: enriched.added_lines,
+                            removed_lines: enriched.removed_lines,
+                            changed_files: &enriched.changed_files,
+                        };
+                        match quality.classify(&classify_input, filter_val).await {
                             Ok(pre) => {
                                 // Save triage to cache
                                 let _ = cache.upsert(&super::PrCacheEntry {
@@ -741,7 +749,7 @@ impl SwePipeline {
 }
 
 fn infer_added_lines(pr: &EnrichedPullRequest) -> usize {
-    (pr.title.len() + pr.body.len()) % 700 + 15
+    pr.added_lines
 }
 
 async fn emit(tx: &Option<mpsc::Sender<SwePipelineEvent>>, event: SwePipelineEvent) {

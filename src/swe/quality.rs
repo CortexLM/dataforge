@@ -100,20 +100,49 @@ struct ClassificationResponse {
     reasoning: String,
 }
 
-/// Quick triage result from pre-classification (title + body only, no diff).
+/// Full classification result using all available PR data.
 #[derive(Debug, Clone)]
 pub struct PreClassification {
     pub difficulty: String,
     pub dominated_out: bool,
 }
 
-const TRIAGE_SYSTEM_PROMPT: &str = r#"You triage GitHub PRs for a SWE benchmark. Given ONLY the PR title and description, estimate the difficulty for a top-tier LLM agent.
+/// Input data for full PR classification.
+#[derive(Debug, Clone)]
+pub struct ClassifyInput<'a> {
+    pub repo: &'a str,
+    pub pr: u64,
+    pub title: &'a str,
+    pub body: &'a str,
+    pub language: &'a str,
+    pub files_changed: usize,
+    pub added_lines: usize,
+    pub removed_lines: usize,
+    pub changed_files: &'a [String],
+}
 
-EASY: typo/doc fix, single rename, formatting
-MEDIUM: bug fix, small feature, test additions
-HARD: cross-cutting refactor, performance/security fix, architectural change
+const TRIAGE_SYSTEM_PROMPT: &str = r#"You classify GitHub PRs for a SWE benchmark. Given the PR title, description, language, changed files, and line counts, estimate the difficulty for a top-tier LLM agent to reproduce from scratch.
 
-Be conservative: if unclear, say medium."#;
+EASY (typo/doc fix, single rename, formatting, config tweaks):
+- Touches 1-2 files, mostly non-code or trivial changes
+- File names suggest docs, config, or CI (e.g. README, .yml, .json, .toml)
+- Few lines added/removed
+
+MEDIUM (bug fix, small feature, test additions):
+- Touches 2-5 files, involves real logic changes
+- Adds or modifies functions/methods in source files
+- Requires understanding the code but the PR description is sufficient
+
+HARD (cross-cutting refactor, performance/security fix, architectural change):
+- Touches many files (5+) or deeply modifies core logic in fewer files
+- Large line count changes (100+ added)
+- File paths suggest multiple modules or packages
+- Requires deep understanding of the project structure and conventions
+
+Analyze the file paths carefully:
+- Test-only PRs (all files in test/ or __tests__/) are usually EASY or MEDIUM
+- PRs that only touch package.json/Cargo.toml/go.mod are usually EASY
+- PRs touching both source and test files across multiple directories are often HARD"#;
 
 fn triage_tool() -> ToolDefinition {
     ToolDefinition::function(
@@ -122,9 +151,10 @@ fn triage_tool() -> ToolDefinition {
         serde_json::json!({
             "type": "object",
             "properties": {
-                "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] }
+                "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"] },
+                "reasoning": { "type": "string", "description": "Brief explanation" }
             },
-            "required": ["difficulty"]
+            "required": ["difficulty", "reasoning"]
         }),
     )
 }
@@ -132,6 +162,8 @@ fn triage_tool() -> ToolDefinition {
 #[derive(Debug, serde::Deserialize)]
 struct TriageResponse {
     difficulty: String,
+    #[serde(default)]
+    reasoning: String,
 }
 
 impl QualityScorer {
@@ -139,31 +171,50 @@ impl QualityScorer {
         Self { llm, config }
     }
 
-    /// Fast pre-classification using only title + body (no diff, no tests).
-    /// Returns whether the PR should be skipped based on the difficulty filter.
-    pub async fn pre_classify(
+    /// Full classification using all available PR data (title, body, language,
+    /// file paths, line counts). Replaces the old title-only pre-classification.
+    pub async fn classify(
         &self,
-        repo: &str,
-        pr: u64,
-        title: &str,
-        body: &str,
+        input: &ClassifyInput<'_>,
         difficulty_filter: &str,
     ) -> Result<PreClassification> {
-        let body_truncated: &str = if body.len() > 500 {
-            // Find a valid char boundary at or before 500
-            let mut end = 500;
-            while !body.is_char_boundary(end) && end > 0 {
+        let body_truncated: &str = if input.body.len() > 1000 {
+            let mut end = 1000;
+            while !input.body.is_char_boundary(end) && end > 0 {
                 end -= 1;
             }
-            &body[..end]
+            &input.body[..end]
         } else {
-            body
+            input.body
         };
+
+        let files_list = if input.changed_files.is_empty() {
+            "(file list unavailable)".to_string()
+        } else {
+            input
+                .changed_files
+                .iter()
+                .take(50)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join("\n  ")
+        };
+
         let prompt = format!(
-            "PR: {repo}#{pr}\nTitle: {title}\nDescription: {body}",
-            repo = repo,
-            pr = pr,
-            title = title,
+            "PR: {repo}#{pr}\n\
+             Title: {title}\n\
+             Language: {lang}\n\
+             Files changed: {files_count} (+{added}/-{removed} lines)\n\
+             Changed files:\n  {files}\n\n\
+             Description:\n{body}",
+            repo = input.repo,
+            pr = input.pr,
+            title = input.title,
+            lang = input.language,
+            files_count = input.files_changed,
+            added = input.added_lines,
+            removed = input.removed_lines,
+            files = files_list,
             body = body_truncated,
         );
 
@@ -172,7 +223,7 @@ impl QualityScorer {
             vec![Message::system(TRIAGE_SYSTEM_PROMPT), Message::user(prompt)],
         )
         .with_temperature(0.1)
-        .with_max_tokens(200)
+        .with_max_tokens(300)
         .with_tool(triage_tool());
 
         let response = self.llm.generate(request).await?;
@@ -184,6 +235,7 @@ impl QualityScorer {
                 let extracted = crate::utils::json_extraction::extract_json_from_response(content);
                 serde_json::from_str(&extracted).unwrap_or(TriageResponse {
                     difficulty: "medium".to_string(),
+                    reasoning: String::new(),
                 })
             }
         };
@@ -191,12 +243,16 @@ impl QualityScorer {
         let dominated_out = triage.difficulty != difficulty_filter;
 
         tracing::info!(
-            repo = repo,
-            pr = pr,
+            repo = input.repo,
+            pr = input.pr,
             triage_difficulty = %triage.difficulty,
             filter = difficulty_filter,
             skipped = dominated_out,
-            "Pre-classification triage"
+            files_changed = input.files_changed,
+            added = input.added_lines,
+            removed = input.removed_lines,
+            reasoning = %triage.reasoning,
+            "Classification triage"
         );
 
         Ok(PreClassification {

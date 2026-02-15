@@ -20,6 +20,10 @@ pub struct EnrichedPullRequest {
     pub base_sha: String,
     pub merge_sha: String,
     pub files_changed: usize,
+    pub added_lines: usize,
+    pub removed_lines: usize,
+    /// Paths of files changed in this PR.
+    pub changed_files: Vec<String>,
     pub stars: u32,
     pub issue_number: Option<u64>,
     pub actor: String,
@@ -93,6 +97,9 @@ impl PullRequestEnricher {
             .clone()
             .unwrap_or_else(|| self.config.default_language.clone());
         let mut files_changed = event.title.chars().count() % 8 + 1;
+        let mut added_lines: usize = 0;
+        let mut removed_lines: usize = 0;
+        let mut changed_files: Vec<String> = Vec::new();
         let mut stars = event.stars;
         let mut base_sha = event.base_sha.clone();
         let mut merge_sha = event.merge_sha.clone();
@@ -129,6 +136,9 @@ impl PullRequestEnricher {
                     if let Some(value) = meta.body {
                         body = value;
                     }
+                    added_lines = meta.added_lines;
+                    removed_lines = meta.removed_lines;
+                    changed_files = meta.changed_files;
                 }
             }
         }
@@ -157,6 +167,9 @@ impl PullRequestEnricher {
             base_sha,
             merge_sha,
             files_changed,
+            added_lines,
+            removed_lines,
+            changed_files,
             stars,
             issue_number: event.issue_number,
             actor: event.actor.clone(),
@@ -199,13 +212,16 @@ impl PullRequestEnricher {
             .and_then(Value::as_u64)
             .and_then(|v| u32::try_from(v).ok());
 
-        let files_changed = fetch_pr_files_changed(&self.client, repository, number, token)
+        let files_info = fetch_pr_files_info(&self.client, repository, number, token)
             .await
-            .ok();
+            .unwrap_or_default();
 
         Ok(GithubPrMetadata {
             language: repo_language,
-            files_changed,
+            files_changed: Some(files_info.count),
+            added_lines: files_info.added_lines,
+            removed_lines: files_info.removed_lines,
+            changed_files: files_info.file_paths,
             stars,
             base_sha: raw
                 .get("base")
@@ -232,6 +248,9 @@ impl PullRequestEnricher {
 struct GithubPrMetadata {
     language: Option<String>,
     files_changed: Option<usize>,
+    added_lines: usize,
+    removed_lines: usize,
+    changed_files: Vec<String>,
     stars: Option<u32>,
     base_sha: Option<String>,
     merge_sha: Option<String>,
@@ -239,12 +258,20 @@ struct GithubPrMetadata {
     body: Option<String>,
 }
 
-async fn fetch_pr_files_changed(
+#[derive(Debug, Clone, Default)]
+struct PrFilesInfo {
+    count: usize,
+    added_lines: usize,
+    removed_lines: usize,
+    file_paths: Vec<String>,
+}
+
+async fn fetch_pr_files_info(
     client: &Client,
     repository: &str,
     number: u64,
     token: &str,
-) -> Result<usize> {
+) -> Result<PrFilesInfo> {
     let files_url =
         format!("https://api.github.com/repos/{repository}/pulls/{number}/files?per_page=100");
     let response = client
@@ -261,6 +288,22 @@ async fn fetch_pr_files_changed(
     }
 
     let files: Vec<Value> = response.json().await?;
-    let length = files.len();
-    Ok(if length > 100 { 100 } else { length })
+    let mut info = PrFilesInfo {
+        count: files.len().min(100),
+        ..Default::default()
+    };
+    for file in &files {
+        if let Some(path) = file.get("filename").and_then(Value::as_str) {
+            info.file_paths.push(path.to_string());
+        }
+        info.added_lines += file
+            .get("additions")
+            .and_then(Value::as_u64)
+            .unwrap_or(0) as usize;
+        info.removed_lines += file
+            .get("deletions")
+            .and_then(Value::as_u64)
+            .unwrap_or(0) as usize;
+    }
+    Ok(info)
 }
