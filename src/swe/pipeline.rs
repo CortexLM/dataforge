@@ -710,9 +710,10 @@ impl SwePipeline {
             // Check completion: multi-target mode or single mode
             if let Some(ref targets) = difficulty_targets {
                 let counts = per_difficulty_completed.lock().await;
-                let all_met = targets.targets.iter().all(|(level, &quota)| {
-                    counts.get(level).copied().unwrap_or(0) >= quota
-                });
+                let all_met = targets
+                    .targets
+                    .iter()
+                    .all(|(level, &quota)| counts.get(level).copied().unwrap_or(0) >= quota);
                 if all_met && once {
                     tracing::info!("All difficulty targets met, stopping pool");
                     break;

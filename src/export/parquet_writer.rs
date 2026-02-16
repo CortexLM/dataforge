@@ -80,11 +80,7 @@ pub fn tasks_to_record_batch(tasks: &[SweTask]) -> anyhow::Result<RecordBatch> {
 
         created_at.append_value(task.created_at.to_rfc3339());
 
-        let ver = task
-            .meta
-            .get("version")
-            .cloned()
-            .unwrap_or_default();
+        let ver = task.meta.get("version").cloned().unwrap_or_default();
         if ver.is_empty() {
             version.append_null();
         } else {
@@ -109,15 +105,15 @@ pub fn tasks_to_record_batch(tasks: &[SweTask]) -> anyhow::Result<RecordBatch> {
 
         language.append_value(&task.language);
 
-        let diff_label = task
-            .meta
-            .get("difficulty")
-            .cloned()
-            .unwrap_or_else(|| match task.difficulty_score {
-                0..=1 => "easy".to_string(),
-                2 => "medium".to_string(),
-                _ => "hard".to_string(),
-            });
+        let diff_label =
+            task.meta
+                .get("difficulty")
+                .cloned()
+                .unwrap_or_else(|| match task.difficulty_score {
+                    0..=1 => "easy".to_string(),
+                    2 => "medium".to_string(),
+                    _ => "hard".to_string(),
+                });
         difficulty.append_value(&diff_label);
         difficulty_score.append_value(task.difficulty_score);
 
@@ -219,9 +215,17 @@ pub fn read_parquet(input_path: &Path) -> anyhow::Result<Vec<SweTask>> {
             batch
                 .column_by_name(name)
                 .and_then(|col| col.as_any().downcast_ref::<StringArray>())
-                .map(|arr| (0..num_rows).map(|i| {
-                    if arr.is_null(i) { None } else { Some(arr.value(i).to_string()) }
-                }).collect())
+                .map(|arr| {
+                    (0..num_rows)
+                        .map(|i| {
+                            if arr.is_null(i) {
+                                None
+                            } else {
+                                Some(arr.value(i).to_string())
+                            }
+                        })
+                        .collect()
+                })
                 .unwrap_or_else(|| vec![None; num_rows])
         };
 
@@ -241,15 +245,27 @@ pub fn read_parquet(input_path: &Path) -> anyhow::Result<Vec<SweTask>> {
         let difficulty_scores: Vec<u8> = batch
             .column_by_name("difficulty_score")
             .and_then(|col| col.as_any().downcast_ref::<arrow::array::UInt8Array>())
-            .map(|arr| (0..num_rows).map(|i| if arr.is_null(i) { 1 } else { arr.value(i) }).collect())
+            .map(|arr| {
+                (0..num_rows)
+                    .map(|i| if arr.is_null(i) { 1 } else { arr.value(i) })
+                    .collect()
+            })
             .unwrap_or_else(|| vec![1; num_rows]);
 
         let quality_scores: Vec<Option<f64>> = batch
             .column_by_name("quality_score")
             .and_then(|col| col.as_any().downcast_ref::<arrow::array::Float64Array>())
-            .map(|arr| (0..num_rows).map(|i| {
-                if arr.is_null(i) { None } else { Some(arr.value(i)) }
-            }).collect())
+            .map(|arr| {
+                (0..num_rows)
+                    .map(|i| {
+                        if arr.is_null(i) {
+                            None
+                        } else {
+                            Some(arr.value(i))
+                        }
+                    })
+                    .collect()
+            })
             .unwrap_or_else(|| vec![None; num_rows]);
 
         for i in 0..num_rows {
@@ -259,8 +275,12 @@ pub fn read_parquet(input_path: &Path) -> anyhow::Result<Vec<SweTask>> {
                 continue;
             }
 
-            let f2p_str = fail_to_passes[i].clone().unwrap_or_else(|| "[]".to_string());
-            let p2p_str = pass_to_passes[i].clone().unwrap_or_else(|| "[]".to_string());
+            let f2p_str = fail_to_passes[i]
+                .clone()
+                .unwrap_or_else(|| "[]".to_string());
+            let p2p_str = pass_to_passes[i]
+                .clone()
+                .unwrap_or_else(|| "[]".to_string());
             let fail_to_pass: Vec<String> = serde_json::from_str(&f2p_str).unwrap_or_default();
             let pass_to_pass: Vec<String> = serde_json::from_str(&p2p_str).unwrap_or_default();
 
@@ -276,7 +296,9 @@ pub fn read_parquet(input_path: &Path) -> anyhow::Result<Vec<SweTask>> {
             task.test_patch = test_patches[i].clone().unwrap_or_default();
             task.prompt = problem_statements[i].clone().unwrap_or_default();
             task.original_pr_body = hints[i].clone().unwrap_or_default();
-            task.language = languages[i].clone().unwrap_or_else(|| "unknown".to_string());
+            task.language = languages[i]
+                .clone()
+                .unwrap_or_else(|| "unknown".to_string());
             task.difficulty_score = difficulty_scores[i];
             task.quality_score = quality_scores[i];
             task.quality_passed = true;
@@ -318,7 +340,8 @@ mod tests {
         task.quality_passed = true;
         task.fail_to_pass = vec!["pytest tests/test_x.py::test_fix".to_string()];
         task.pass_to_pass = vec!["pytest tests/test_x.py::test_other".to_string()];
-        task.meta.insert("difficulty".to_string(), "medium".to_string());
+        task.meta
+            .insert("difficulty".to_string(), "medium".to_string());
         task
     }
 

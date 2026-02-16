@@ -737,12 +737,12 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
         None => None,
     };
 
-    let (effective_max_tasks, effective_difficulty_filter) = if let Some(ref dt) = difficulty_targets
-    {
-        (dt.total_tasks(), None)
-    } else {
-        (args.max_tasks, args.difficulty.clone())
-    };
+    let (effective_max_tasks, effective_difficulty_filter) =
+        if let Some(ref dt) = difficulty_targets {
+            (dt.total_tasks(), None)
+        } else {
+            (args.max_tasks, args.difficulty.clone())
+        };
 
     let hf_upload = match (&args.hf_repo, &args.hf_token) {
         (Some(repo), Some(token)) => Some(crate::export::HfUploadConfig {
@@ -819,7 +819,8 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
         );
 
         // Show per-difficulty breakdown
-        let mut per_level: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+        let mut per_level: std::collections::HashMap<String, usize> =
+            std::collections::HashMap::new();
         for task in &result.tasks {
             if task.quality_passed {
                 let level = task
@@ -868,10 +869,16 @@ async fn run_swe_load_command(args: SweLoadArgs) -> anyhow::Result<()> {
     }
 
     // Compute stats
-    let mut by_difficulty: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
-    let mut by_language: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut by_difficulty: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
+    let mut by_language: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
     for task in &tasks {
-        let diff = task.meta.get("difficulty").cloned().unwrap_or_else(|| "unknown".to_string());
+        let diff = task
+            .meta
+            .get("difficulty")
+            .cloned()
+            .unwrap_or_else(|| "unknown".to_string());
         *by_difficulty.entry(diff).or_insert(0) += 1;
         *by_language.entry(task.language.clone()).or_insert(0) += 1;
     }
