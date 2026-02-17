@@ -1,0 +1,74 @@
+id: amistio/.github-1
+repo: amistio/.github
+base_commit: 54f448c8102907c15eec89cb18ed19e2aee4895c
+merge_commit: 1fd598702ad11344cb7ed8e6f7f259d5636cb824
+language: unknown
+difficulty_score: 1
+created_at: 2026-02-17T13:56:16.207134939Z
+patch: |
+  diff --git a/icons/amistio-1024.png b/icons/amistio-1024.png
+  new file mode 100644
+  index 0000000..c9eea2a
+  Binary files /dev/null and b/icons/amistio-1024.png differ
+  diff --git a/icons/amistio-128.png b/icons/amistio-128.png
+  new file mode 100644
+  index 0000000..b333087
+  Binary files /dev/null and b/icons/amistio-128.png differ
+  diff --git a/icons/amistio-192.png b/icons/amistio-192.png
+  new file mode 100644
+  index 0000000..36a57d6
+  Binary files /dev/null and b/icons/amistio-192.png differ
+  diff --git a/icons/amistio-256.png b/icons/amistio-256.png
+  new file mode 100644
+  index 0000000..e7e61b7
+  Binary files /dev/null and b/icons/amistio-256.png differ
+  diff --git a/icons/amistio-512.png b/icons/amistio-512.png
+  new file mode 100644
+  index 0000000..768bb26
+  Binary files /dev/null and b/icons/amistio-512.png differ
+  diff --git a/icons/apple-touch-icon.png b/icons/apple-touch-icon.png
+  new file mode 100644
+  index 0000000..f7e72aa
+  Binary files /dev/null and b/icons/apple-touch-icon.png differ
+  diff --git a/icons/favicon-16x16.png b/icons/favicon-16x16.png
+  new file mode 100644
+  index 0000000..b0af26e
+  Binary files /dev/null and b/icons/favicon-16x16.png differ
+  diff --git a/icons/favicon-32x32.png b/icons/favicon-32x32.png
+  new file mode 100644
+  index 0000000..eb4520f
+  Binary files /dev/null and b/icons/favicon-32x32.png differ
+  diff --git a/icons/favicon.ico b/icons/favicon.ico
+  new file mode 100644
+  index 0000000..661f9ac
+  Binary files /dev/null and b/icons/favicon.ico differ
+test_patch: ''
+fail_to_pass:
+- sh /repo/tests/icon_assets_test.sh
+pass_to_pass:
+- tar -cf /tmp/amistio_repo.tar -C /repo README.md profile
+install_config:
+  install: '# manual install'
+  test_cmd: '# manual test command'
+meta:
+  added_lines: '0'
+  difficulty: easy
+  files_changed: '9'
+  pr_title: 'chore: added icons'
+  removed_lines: '0'
+  source: gh-archive-pr
+  test_files: '[{"path":"tests/icon_assets_test.sh","content":"#!/bin/sh\nset -eu\n\nrepo_root=\"/repo\"\nicon_dir=\"$repo_root/icons\"\n\nif [ ! -d \"$icon_dir\" ]; then\n  echo \"Missing icons directory\" >&2\n  exit 1\nfi\n\npng_files=\"amistio-1024.png amistio-128.png amistio-192.png amistio-256.png amistio-512.png apple-touch-icon.png favicon-16x16.png favicon-32x32.png\"\n\nfor name in $png_files; do\n  file=\"$icon_dir/$name\"\n  if [ ! -f \"$file\" ]; then\n    echo \"Missing icon $file\" >&2\n    exit 1\n  fi\n  signature=$(od -An -t x1 -N 8 \"$file\" | tr -d '' \\n'')\n  if [ \"$signature\" != \"89504e470d0a1a0a\" ]; then\n    echo \"Expected PNG signature for $file, got $signature\" >&2\n    exit 1\n  fi\n  size=$(wc -c < \"$file\" | tr -d '' '')\n  if [ \"$size\" -le 100 ]; then\n    echo \"Unexpectedly small PNG $file ($size bytes)\" >&2\n    exit 1\n  fi\n  ihdr=$(od -An -t x1 -j 12 -N 4 \"$file\" | tr -d '' \\n'')\n  if [ \"$ihdr\" != \"49484452\" ]; then\n    echo \"Expected IHDR chunk in $file, got $ihdr\" >&2\n    exit 1\n  fi\n  width_bytes=$(od -An -t u1 -j 16 -N 4 \"$file\")\n  set -- $width_bytes\n  width=$(( $1 * 16777216 + $2 * 65536 + $3 * 256 + $4 ))\n  height_bytes=$(od -An -t u1 -j 20 -N 4 \"$file\")\n  set -- $height_bytes\n  height=$(( $1 * 16777216 + $2 * 65536 + $3 * 256 + $4 ))\n  if [ \"$width\" -le 0 ] || [ \"$height\" -le 0 ]; then\n    echo \"Invalid PNG dimensions for $file ($width x $height)\" >&2\n    exit 1\n  fi\n  if [ \"$width\" -ne \"$height\" ]; then\n    echo \"Expected square PNG for $file, got $width x $height\" >&2\n    exit 1\n  fi\n  if [ \"$width\" -lt 16 ] || [ \"$width\" -gt 4096 ]; then\n    echo \"PNG width out of range for $file: $width\" >&2\n    exit 1\n  fi\n  if [ \"$height\" -lt 16 ] || [ \"$height\" -gt 4096 ]; then\n    echo \"PNG height out of range for $file: $height\" >&2\n    exit 1\n  fi\n  if [ \"$width\" -eq 0 ] || [ \"$height\" -eq 0 ]; then\n    echo \"PNG dimension zero for $file\" >&2\n    exit 1\n  fi\n  if [ \"$width\" -ne \"$height\" ]; then\n    echo \"PNG dimensions mismatch for $file: $width x $height\" >&2\n    exit 1\n  fi\n  :\n done\n\nico=\"$icon_dir/favicon.ico\"\nif [ ! -f \"$ico\" ]; then\n  echo \"Missing icon $ico\" >&2\n  exit 1\nfi\n\nico_signature=$(od -An -t x1 -N 4 \"$ico\" | tr -d '' \\n'')\nif [ \"$ico_signature\" != \"00000100\" ]; then\n  echo \"Expected ICO signature for $ico, got $ico_signature\" >&2\n  exit 1\nfi\n\nico_size=$(wc -c < \"$ico\" | tr -d '' '')\nif [ \"$ico_size\" -le 50 ]; then\n  echo \"Unexpectedly small ICO $ico ($ico_size bytes)\" >&2\n  exit 1\nfi\n\nimage_count=$(od -An -t u2 -j 4 -N 2 \"$ico\" | tr -d '' '')\nif [ -z \"$image_count\" ] || [ \"$image_count\" -le 0 ]; then\n  echo \"ICO image count missing for $ico\" >&2\n  exit 1\nfi\n"}]'
+  test_generation: agentic-docker
+prompt: |-
+  amistio/.github (#1): chore: added icons
+
+  Add the necessary icons to the repository so that the project includes the expected icon assets.
+original_pr_body: |-
+  amistio/.github (#1): chore: added icons
+
+  (no description)
+quality_score: 0.2
+quality_passed: true
+docker_passed: false
+workspace_path: null
+status: ready

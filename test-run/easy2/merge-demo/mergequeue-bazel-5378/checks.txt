@@ -1,0 +1,2 @@
+python tests/test_kilo_wordlist.py
+python -m compileall uv/lib

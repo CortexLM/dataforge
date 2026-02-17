@@ -1,0 +1,2 @@
+python tests/test_bazel_wordlists.py
+python -m compileall uv

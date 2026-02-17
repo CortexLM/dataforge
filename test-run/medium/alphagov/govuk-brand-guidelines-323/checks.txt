@@ -1,0 +1,2 @@
+node tests/link-card.test.js
+npm run lint:js:cli -- "eleventy/shortcodes/link-card.js"

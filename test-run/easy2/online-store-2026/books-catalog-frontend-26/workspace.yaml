@@ -1,0 +1,37 @@
+id: online-store-2026/books-catalog-frontend-26
+repo: online-store-2026/books-catalog-frontend
+base_commit: 966f978185c8a10c052431026d1bebbb7a6e4517
+merge_commit: 2e934c0b5246aeddaa4d626b436dc25255bdd2d3
+language: typescript
+difficulty_score: 1
+created_at: 2026-02-17T13:56:18.928324993Z
+patch: "diff --git a/src/components/ui/icons/Icon.tsx b/src/components/ui/icons/Icon.tsx\nindex 1e44947..39f66e2 100644\n--- a/src/components/ui/icons/Icon.tsx\n+++ b/src/components/ui/icons/Icon.tsx\n@@ -85,7 +85,7 @@ export const Icon: React.FC<IconProps> = ({\n     : size === 'sm' ? 'w-4 h-4'\n     : 'w-6 h-6';\n \n-  const variantClasses: Record<IconVariant, string> = {\n+  const variantsOfClasses: Record<IconVariant, string> = {\n     default: 'text-foreground',\n     black: 'text-black',\n   };\n@@ -98,7 +98,7 @@ export const Icon: React.FC<IconProps> = ({\n         'text-red-600'\n       : 'text-foreground hover:text-red-500'\n     : isThickIcon ? 'text-black'\n-    : variantClasses[variant];\n+    : variantsOfClasses[variant];\n \n   const fillValue = isHeart && state === 'selected' ? 'currentColor' : 'none';\n \n"
+test_patch: ''
+fail_to_pass: []
+pass_to_pass:
+- npm run lint
+install_config:
+  install: npm install
+  node: '20'
+  test_cmd: npm test
+meta:
+  added_lines: '2'
+  difficulty: easy
+  files_changed: '1'
+  pr_title: again sent code
+  removed_lines: '2'
+  source: gh-archive-pr
+  test_generation: agentic-docker
+prompt: |-
+  online-store-2026/books-catalog-frontend (#26): again sent code
+
+  Provide a clear description of the required change or bug fix for the books catalog frontend. The PR description is empty, so gather or supply the expected behavior, constraints, and user-facing requirements before proceeding.
+original_pr_body: |-
+  online-store-2026/books-catalog-frontend (#26): again sent code
+
+  (no description)
+quality_score: 0.2
+quality_passed: true
+docker_passed: false
+workspace_path: null
+status: ready

@@ -1,0 +1,2 @@
+cd j1p4vf-ecommerce-order-processing-refactor && npm test -- --runTestsByPath tests/refactor-additional.test.js
+cd j1p4vf-ecommerce-order-processing-refactor && npm test -- --runTestsByPath tests/refactored.test.js

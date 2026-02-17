@@ -1,0 +1,2 @@
+python -m unittest tests.test_reshape_tensor
+python -m compileall cvxro

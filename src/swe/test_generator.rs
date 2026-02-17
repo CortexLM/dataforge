@@ -15,7 +15,7 @@ use crate::swe::docker_sandbox::DockerSandbox;
 use crate::swe::SweTask;
 
 const MAX_AGENT_TURNS: usize = 200;
-const MAX_VALIDATION_RETRIES: usize = 2;
+const MAX_VALIDATION_RETRIES: usize = 3;
 
 const SYSTEM_PROMPT: &str = r#"You are a test engineer writing verification tests for GitHub pull requests for the SWE-bench benchmark.
 
@@ -34,6 +34,8 @@ WORKFLOW:
 3. Find existing test suites covering code ADJACENT to the PR changes -- add them as pass_to_pass.
 4. Write NEW test files that exercise the BEHAVIOR introduced by the PR.
 5. Run your tests via `shell` to validate: fail_to_pass MUST fail, pass_to_pass MUST pass on base.
+5b. VERIFY pass_to_pass: Run each pass_to_pass command via `shell` and confirm exit code 0.
+    If it fails, choose a different existing test or use a build command instead.
 6. Call `submit_tests` with everything.
 
 MANDATORY RULES FOR TEST QUALITY:
@@ -58,6 +60,11 @@ MANDATORY RULES FOR TEST QUALITY:
    - If the project has a test suite, find relevant existing test commands and include them.
    - If the PR changes function_a() in a module, test that function_b() still works (pass_to_pass).
    - If the PR changes a class method, verify other methods on the same class are unaffected.
+   - CRITICAL: pass_to_pass commands MUST use EXISTING test infrastructure that already works
+     on the base commit. Run the command yourself via `shell` BEFORE submitting to verify it passes.
+   - Do NOT create new test files for pass_to_pass. Use the project's existing test commands.
+   - If no existing tests exist adjacent to the PR, use a simple build command (e.g., `cargo build`,
+     `npm run build`, `go build ./...`) as pass_to_pass instead.
 
 4. ROBUSTNESS & EDGE CASES (derive from the PR diff):
    - If the PR adds input validation: test with null, empty, oversized, malformed inputs.
@@ -316,6 +323,29 @@ impl TestGenerator {
                                 }
                             }
 
+                            if submit.fail_to_pass.is_empty() {
+                                if validation_retries < MAX_VALIDATION_RETRIES {
+                                    validation_retries += 1;
+                                    tracing::warn!(
+                                        task_id = %task.id,
+                                        retry = validation_retries,
+                                        "Rejecting empty fail_to_pass"
+                                    );
+                                    messages.push(Message::tool_result(
+                                        &tc.id,
+                                        "REJECTED: fail_to_pass must contain at least one test command. \
+                                         Write a test that FAILS on the base commit and PASSES after the PR patch is applied.".to_string(),
+                                    ));
+                                    continue;
+                                }
+                                messages.push(Message::tool_result(
+                                    &tc.id,
+                                    "REJECTED: fail_to_pass is still empty after retries."
+                                        .to_string(),
+                                ));
+                                continue;
+                            }
+
                             // --- Heuristic: reject string-matching tests ---
                             if let Some(rejection) = reject_string_matching_tests(&all_files) {
                                 if validation_retries < MAX_VALIDATION_RETRIES {
@@ -338,8 +368,15 @@ impl TestGenerator {
                                 }
                                 tracing::warn!(
                                     task_id = %task.id,
-                                    "String-matching tests after max retries, accepting anyway"
+                                    "String-matching tests after max retries, REJECTING"
                                 );
+                                messages.push(Message::tool_result(
+                                    &tc.id,
+                                    "REJECTED: Your tests still use forbidden source-reading patterns after multiple retries. \
+                                     Rewrite completely: import modules, call functions, check return values. \
+                                     Do NOT read source files.".to_string(),
+                                ));
+                                continue;
                             }
 
                             // --- Dual-commit validation: apply patch, re-run tests ---
@@ -369,8 +406,16 @@ impl TestGenerator {
                                     }
                                     tracing::warn!(
                                         task_id = %task.id,
-                                        "Dual-commit validation failed after max retries, accepting with warning"
+                                        "Dual-commit validation failed after max retries, REJECTING"
                                     );
+                                    messages.push(Message::tool_result(
+                                        &tc.id,
+                                        format!(
+                                            "REJECTED: {reason}\n\nYour tests failed dual-commit validation after multiple retries. \
+                                             Rewrite your tests completely."
+                                        ),
+                                    ));
+                                    continue;
                                 }
                                 ValidationResult::Accepted => {
                                     tracing::info!(
@@ -463,10 +508,12 @@ impl TestGenerator {
             if apply_3way.exit_code != 0 {
                 tracing::warn!(
                     stderr = %apply_3way.stderr,
-                    "Patch apply failed, skipping dual-commit validation"
+                    "Patch apply failed, rejecting task"
                 );
                 sandbox.exec("git checkout -- . 2>/dev/null", 10_000).await;
-                return ValidationResult::Accepted;
+                return ValidationResult::Rejected(
+                    "PR patch could not be applied to the base commit. The test cannot be validated.".to_string()
+                );
             }
         }
 

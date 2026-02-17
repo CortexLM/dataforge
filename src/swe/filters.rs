@@ -56,7 +56,8 @@ impl SweepFilter {
         language: &str,
         stars: u32,
         files_changed: usize,
-        _added_lines: usize,
+        added_lines: usize,
+        changed_files: &[String],
     ) -> FilterResult {
         let mut reasons = Vec::new();
         let mut score = 1.0f64;
@@ -97,6 +98,27 @@ impl SweepFilter {
             score -= 0.25;
         }
 
+        if added_lines > 0 && added_lines < self.config.min_added_lines {
+            reasons.push(format!(
+                "added lines {} below minimum {}",
+                added_lines, self.config.min_added_lines
+            ));
+            score -= 0.2;
+        }
+
+        if added_lines > self.config.max_added_lines {
+            reasons.push(format!(
+                "added lines {} above maximum {}",
+                added_lines, self.config.max_added_lines
+            ));
+            score -= 0.2;
+        }
+
+        if !changed_files.is_empty() && Self::is_docs_only_change(changed_files) {
+            reasons.push("all changed files are documentation/config only".to_string());
+            score -= 0.3;
+        }
+
         let accepted = reasons.is_empty();
         if accepted {
             reasons.push("candidate accepted".to_string());
@@ -107,5 +129,34 @@ impl SweepFilter {
             score: score.clamp(0.0, 1.0),
             reasons,
         }
+    }
+
+    fn is_docs_only_change(files: &[String]) -> bool {
+        let doc_extensions = [
+            "md", "txt", "yml", "yaml", "json", "toml", "ini", "cfg", "rst", "adoc", "csv", "svg",
+            "png", "jpg", "jpeg", "gif", "ico",
+        ];
+        let doc_names = [
+            "readme",
+            "changelog",
+            "license",
+            "licence",
+            "contributing",
+            "authors",
+            "codeowners",
+            "code_of_conduct",
+            ".gitignore",
+            ".editorconfig",
+            ".prettierrc",
+            ".eslintignore",
+        ];
+
+        files.iter().all(|f| {
+            let lower = f.to_lowercase();
+            let basename = lower.rsplit('/').next().unwrap_or(&lower);
+            let ext = basename.rsplit('.').next().unwrap_or("");
+
+            doc_extensions.contains(&ext) || doc_names.iter().any(|n| basename.starts_with(n))
+        })
     }
 }

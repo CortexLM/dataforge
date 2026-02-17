@@ -1,0 +1,2 @@
+python -m pytest tests/unit/package_managers/pip/test_fetch_pip_source_env.py -q
+python -m pytest tests/unit/package_managers/pip/test_main.py::test_fetch_pip_source -q

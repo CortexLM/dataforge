@@ -1,0 +1,2 @@
+yarn workspace @studio/pure-functions test --watch=false --testPathPattern PublishedElements.export.test.ts
+yarn workspace @studio/pure-functions test --watch=false --testPathPattern FileNameUtils.test.ts

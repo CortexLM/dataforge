@@ -1,0 +1,2 @@
+javac app/src/main/java/edu/lums/impact/*.java RectangleBehaviorTest.java && java -cp .:app/src/main/java RectangleBehaviorTest
+./gradlew -q tasks --no-daemon

@@ -1,0 +1,2 @@
+yarn install --ignore-engines --frozen-lockfile && node tests/coderabbit-config.test.js
+yarn -s workspace @happier-dev/protocol build

@@ -1,0 +1,2 @@
+python -m unittest tests.test_readme_steps
+python -m compileall utility/export_to_postgres.py

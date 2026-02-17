@@ -1,0 +1,2 @@
+python -m unittest tests.test_claude_doc
+python -m compileall src lib run.py
