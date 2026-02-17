@@ -208,13 +208,19 @@ impl PatchExtractor {
             (Some(base), Some(merge)) if !base.is_empty() && !merge.is_empty() => {
                 // Fetch the merge commit (shallow clone may not have it)
                 sandbox
-                    .exec(&format!("git fetch origin {} --depth=1 2>&1", merge), 60_000)
+                    .exec(
+                        &format!("git fetch origin {} --depth=1 2>&1", merge),
+                        60_000,
+                    )
                     .await;
                 format!("{base}..{merge}")
             }
             (_, Some(merge)) if !merge.is_empty() => {
                 sandbox
-                    .exec(&format!("git fetch origin {} --depth=1 2>&1", merge), 60_000)
+                    .exec(
+                        &format!("git fetch origin {} --depth=1 2>&1", merge),
+                        60_000,
+                    )
                     .await;
                 merge.to_string()
             }
@@ -231,10 +237,7 @@ impl PatchExtractor {
         sandbox.destroy().await;
 
         if result.exit_code != 0 {
-            anyhow::bail!(
-                "git show failed in Docker: {}",
-                &result.stderr
-            );
+            anyhow::bail!("git show failed in Docker: {}", &result.stderr);
         }
 
         Ok(result.stdout)

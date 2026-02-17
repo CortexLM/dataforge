@@ -108,15 +108,13 @@ impl PrCache {
     }
 
     pub async fn get(&self, repo: &str, pr: u64) -> Option<PrCacheEntry> {
-        let row = sqlx::query(
-            "SELECT * FROM pr_cache WHERE repo = ?1 AND pr_number = ?2",
-        )
-        .bind(repo)
-        .bind(pr as i64)
-        .fetch_optional(&self.pool)
-        .await
-        .ok()
-        .flatten()?;
+        let row = sqlx::query("SELECT * FROM pr_cache WHERE repo = ?1 AND pr_number = ?2")
+            .bind(repo)
+            .bind(pr as i64)
+            .fetch_optional(&self.pool)
+            .await
+            .ok()
+            .flatten()?;
 
         Some(PrCacheEntry {
             repo: row.get("repo"),
@@ -129,12 +127,16 @@ impl PrCache {
             stars: row.get::<Option<i32>, _>("stars").map(|v| v as u32),
             base_sha: row.get("base_sha"),
             merge_sha: row.get("merge_sha"),
-            files_changed: row.get::<Option<i32>, _>("files_changed").map(|v| v as usize),
+            files_changed: row
+                .get::<Option<i32>, _>("files_changed")
+                .map(|v| v as usize),
             has_org: row.get::<Option<i32>, _>("has_org").map(|v| v != 0),
             triage_difficulty: row.get("triage_difficulty"),
             patch: row.get("patch"),
             test_patch: row.get("test_patch"),
-            difficulty_score: row.get::<Option<i32>, _>("difficulty_score").map(|v| v as u8),
+            difficulty_score: row
+                .get::<Option<i32>, _>("difficulty_score")
+                .map(|v| v as u8),
             quality_score: row.get("quality_score"),
             quality_passed: row.get::<Option<i32>, _>("quality_passed").map(|v| v != 0),
             status: row.get("status"),
@@ -199,15 +201,13 @@ impl PrCache {
 
     /// Returns true if this PR should be skipped (already exported or rejected).
     pub async fn should_skip(&self, repo: &str, pr: u64) -> bool {
-        let row = sqlx::query(
-            "SELECT status FROM pr_cache WHERE repo = ?1 AND pr_number = ?2",
-        )
-        .bind(repo)
-        .bind(pr as i64)
-        .fetch_optional(&self.pool)
-        .await
-        .ok()
-        .flatten();
+        let row = sqlx::query("SELECT status FROM pr_cache WHERE repo = ?1 AND pr_number = ?2")
+            .bind(repo)
+            .bind(pr as i64)
+            .fetch_optional(&self.pool)
+            .await
+            .ok()
+            .flatten();
 
         match row {
             Some(r) => {
@@ -417,7 +417,10 @@ mod tests {
             ..Default::default()
         };
         cache.upsert(&entry).await.unwrap();
-        cache.mark_rejected("owner/repo", 2, "too easy").await.unwrap();
+        cache
+            .mark_rejected("owner/repo", 2, "too easy")
+            .await
+            .unwrap();
         assert!(cache.should_skip("owner/repo", 2).await);
     }
 

@@ -152,7 +152,15 @@ impl DockerSandbox {
         let result = tokio::time::timeout(
             std::time::Duration::from_millis(timeout_ms),
             Command::new("docker")
-                .args(["exec", "-w", "/repo", &self.container_name, "bash", "-c", cmd])
+                .args([
+                    "exec",
+                    "-w",
+                    "/repo",
+                    &self.container_name,
+                    "bash",
+                    "-c",
+                    cmd,
+                ])
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .output(),

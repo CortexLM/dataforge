@@ -1,0 +1,2 @@
+npx tsx tests/sms-template-send-to-all-extra-phones.test.ts
+npx tsx tests/sms-template-send-bulk-existing.test.ts

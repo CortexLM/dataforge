@@ -133,13 +133,22 @@ impl SweepFilter {
 
     fn is_docs_only_change(files: &[String]) -> bool {
         let doc_extensions = [
-            "md", "txt", "yml", "yaml", "json", "toml", "ini", "cfg", "rst",
-            "adoc", "csv", "svg", "png", "jpg", "jpeg", "gif", "ico",
+            "md", "txt", "yml", "yaml", "json", "toml", "ini", "cfg", "rst", "adoc", "csv", "svg",
+            "png", "jpg", "jpeg", "gif", "ico",
         ];
         let doc_names = [
-            "readme", "changelog", "license", "licence", "contributing",
-            "authors", "codeowners", "code_of_conduct",
-            ".gitignore", ".editorconfig", ".prettierrc", ".eslintignore",
+            "readme",
+            "changelog",
+            "license",
+            "licence",
+            "contributing",
+            "authors",
+            "codeowners",
+            "code_of_conduct",
+            ".gitignore",
+            ".editorconfig",
+            ".prettierrc",
+            ".eslintignore",
         ];
 
         files.iter().all(|f| {
@@ -147,8 +156,7 @@ impl SweepFilter {
             let basename = lower.rsplit('/').next().unwrap_or(&lower);
             let ext = basename.rsplit('.').next().unwrap_or("");
 
-            doc_extensions.contains(&ext)
-                || doc_names.iter().any(|n| basename.starts_with(n))
+            doc_extensions.contains(&ext) || doc_names.iter().any(|n| basename.starts_with(n))
         })
     }
 }

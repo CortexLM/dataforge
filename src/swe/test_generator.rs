@@ -340,7 +340,8 @@ impl TestGenerator {
                                 }
                                 messages.push(Message::tool_result(
                                     &tc.id,
-                                    "REJECTED: fail_to_pass is still empty after retries.".to_string(),
+                                    "REJECTED: fail_to_pass is still empty after retries."
+                                        .to_string(),
                                 ));
                                 continue;
                             }
@@ -380,12 +381,7 @@ impl TestGenerator {
 
                             // --- Dual-commit validation: apply patch, re-run tests ---
                             let patch_validation = self
-                                .validate_on_pr_commit(
-                                    sandbox,
-                                    &task.patch,
-                                    &submit,
-                                    &all_files,
-                                )
+                                .validate_on_pr_commit(sandbox, &task.patch, &submit, &all_files)
                                 .await;
 
                             match patch_validation {
@@ -443,8 +439,10 @@ impl TestGenerator {
                                     task.meta.insert("test_files".to_string(), json);
                                 }
                             }
-                            task.meta
-                                .insert("test_generation".to_string(), "agentic-docker".to_string());
+                            task.meta.insert(
+                                "test_generation".to_string(),
+                                "agentic-docker".to_string(),
+                            );
                             return Ok(());
                         }
                         ToolResult::Error(err) => {
@@ -468,7 +466,8 @@ impl TestGenerator {
 
         anyhow::bail!(
             "Agentic test generation failed for {}: exhausted {} turns without submitting",
-            task.id, MAX_AGENT_TURNS
+            task.id,
+            MAX_AGENT_TURNS
         )
     }
 
@@ -639,16 +638,33 @@ enum ToolResult {
 fn reject_string_matching_tests(files: &[TestFile]) -> Option<String> {
     let patterns: &[(&str, &str)] = &[
         // Python source-reading patterns
-        (r#"open\([^)]*\)\.read"#, "open().read() used to read source files"),
-        (r#"Path\([^)]*\)\.read_text"#, "Path().read_text() used to read source files"),
-        (r#"\.read\(\)[^;]*assert.*\bin\b"#, ".read() + assert...in (string-matching)"),
+        (
+            r#"open\([^)]*\)\.read"#,
+            "open().read() used to read source files",
+        ),
+        (
+            r#"Path\([^)]*\)\.read_text"#,
+            "Path().read_text() used to read source files",
+        ),
+        (
+            r#"\.read\(\)[^;]*assert.*\bin\b"#,
+            ".read() + assert...in (string-matching)",
+        ),
         // JavaScript/TypeScript source-reading patterns
-        (r#"readFileSync\("#, "readFileSync() used to read source files"),
+        (
+            r#"readFileSync\("#,
+            "readFileSync() used to read source files",
+        ),
         (r#"readFile\("#, "readFile() used to read source files"),
         // Combined read + assert patterns
-        (r#"assert.*\bin\s+(source|content|text|code|file_content|src|contents)"#,
-         "assert...in source/content (string-matching on file content)"),
-        (r#"\.(includes|contains)\(['""]"#, ".includes()/.contains() on source content"),
+        (
+            r#"assert.*\bin\s+(source|content|text|code|file_content|src|contents)"#,
+            "assert...in source/content (string-matching on file content)",
+        ),
+        (
+            r#"\.(includes|contains)\(['""]"#,
+            ".includes()/.contains() on source content",
+        ),
     ];
 
     let mut violations = Vec::new();

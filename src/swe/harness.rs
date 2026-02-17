@@ -147,7 +147,9 @@ async fn docker_write_file(container: &str, path: &str, content: &str) -> Result
     use tokio::io::AsyncWriteExt;
     let tee_cmd = format!("cat > '/repo/{}'", path);
     let mut child = Command::new("docker")
-        .args(["exec", "-i", "-w", "/repo", container, "bash", "-c", &tee_cmd])
+        .args([
+            "exec", "-i", "-w", "/repo", container, "bash", "-c", &tee_cmd,
+        ])
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::null())
         .stderr(std::process::Stdio::piped())
@@ -290,14 +292,13 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
         .await;
         if code != 0 {
             info!(task_id = %task.id, "Shallow clone missed commit, fetching full history...");
-            let (fcode, _, _ferr) = docker_exec(
-                &cname,
-                "cd /repo && git fetch --unshallow 2>&1",
-                300,
-            )
-            .await;
+            let (fcode, _, _ferr) =
+                docker_exec(&cname, "cd /repo && git fetch --unshallow 2>&1", 300).await;
             if fcode != 0 {
-                result.error = Some(format!("Checkout failed (even after unshallow): {}", truncate(&err, 500)));
+                result.error = Some(format!(
+                    "Checkout failed (even after unshallow): {}",
+                    truncate(&err, 500)
+                ));
                 return result;
             }
             let (code2, _, err2) = docker_exec(
@@ -338,7 +339,9 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
 
     // Copy test files into container
     if let Some(test_files_json) = task.meta.get("test_files") {
-        if let Ok(files) = serde_json::from_str::<Vec<super::test_generator::TestFile>>(test_files_json) {
+        if let Ok(files) =
+            serde_json::from_str::<Vec<super::test_generator::TestFile>>(test_files_json)
+        {
             for tf in &files {
                 let mkdir_cmd = format!("mkdir -p \"$(dirname '/repo/{}')\"", tf.path);
                 docker_exec(&cname, &mkdir_cmd, 10).await;

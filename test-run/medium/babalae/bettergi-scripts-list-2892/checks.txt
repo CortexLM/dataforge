@@ -1,0 +1,2 @@
+node tests/disabled_tags.test.js
+node build/build.js --help

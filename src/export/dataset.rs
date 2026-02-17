@@ -156,14 +156,21 @@ impl DatasetManager {
             let mut all_tasks = Vec::new();
             let mut entries: Vec<_> = std::fs::read_dir(&data_dir)?
                 .filter_map(|e| e.ok())
-                .filter(|e| e.path().extension().map(|x| x == "parquet").unwrap_or(false))
+                .filter(|e| {
+                    e.path()
+                        .extension()
+                        .map(|x| x == "parquet")
+                        .unwrap_or(false)
+                })
                 .collect();
             entries.sort_by_key(|e| e.file_name());
 
             for entry in &entries {
                 match parquet_writer::read_parquet(&entry.path()) {
                     Ok(tasks) => all_tasks.extend(tasks),
-                    Err(e) => tracing::warn!(path = %entry.path().display(), error = %e, "Failed to read shard"),
+                    Err(e) => {
+                        tracing::warn!(path = %entry.path().display(), error = %e, "Failed to read shard")
+                    }
                 }
             }
 
@@ -188,12 +195,17 @@ impl DatasetManager {
 
                 // Upload combined + splits to HF
                 if let Some(ref uploader) = self.uploader {
-                    let combined_bytes = std::fs::read(self.config.output_dir.join("train.parquet"))?;
+                    let combined_bytes =
+                        std::fs::read(self.config.output_dir.join("train.parquet"))?;
                     let _ = uploader
-                        .upload_file("train.parquet", &combined_bytes, "Add combined train.parquet")
+                        .upload_file(
+                            "train.parquet",
+                            &combined_bytes,
+                            "Add combined train.parquet",
+                        )
                         .await;
 
-                    for (diff, _) in &by_diff {
+                    for diff in by_diff.keys() {
                         let split_path = self.config.output_dir.join(format!("{}.parquet", diff));
                         if let Ok(bytes) = std::fs::read(&split_path) {
                             let _ = uploader
@@ -373,7 +385,12 @@ pub fn load_dataset(path: &Path) -> anyhow::Result<Vec<SweTask>> {
         let mut all_tasks = Vec::new();
         let mut entries: Vec<_> = std::fs::read_dir(path)?
             .filter_map(|e| e.ok())
-            .filter(|e| e.path().extension().map(|x| x == "parquet").unwrap_or(false))
+            .filter(|e| {
+                e.path()
+                    .extension()
+                    .map(|x| x == "parquet")
+                    .unwrap_or(false)
+            })
             .collect();
         entries.sort_by_key(|e| e.file_name());
 
@@ -384,7 +401,10 @@ pub fn load_dataset(path: &Path) -> anyhow::Result<Vec<SweTask>> {
         return Ok(all_tasks);
     }
 
-    anyhow::bail!("Path is neither a parquet file nor a directory: {}", path.display());
+    anyhow::bail!(
+        "Path is neither a parquet file nor a directory: {}",
+        path.display()
+    );
 }
 
 /// Download a dataset from HuggingFace and return the tasks.
@@ -406,10 +426,7 @@ pub async fn download_dataset(
     tracing::info!(repo = repo_id, file = %filename, "Downloading dataset from HuggingFace");
 
     let client = reqwest::Client::new();
-    let resp = client
-        .get(&url)
-        .send()
-        .await?;
+    let resp = client.get(&url).send().await?;
 
     if !resp.status().is_success() {
         anyhow::bail!(

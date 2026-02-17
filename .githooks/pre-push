@@ -1,0 +1,22 @@
+#!/bin/bash
+set -e
+
+# Skip hooks when SKIP_GIT_HOOKS=1 is set
+if [ "${SKIP_GIT_HOOKS:-0}" = "1" ]; then
+  echo "=== pre-push: skipped (SKIP_GIT_HOOKS=1) ==="
+  exit 0
+fi
+
+echo "=== pre-push: checking formatting ==="
+cargo fmt --all -- --check
+
+echo "=== pre-push: running clippy ==="
+cargo clippy --all-targets --all-features -- -D warnings
+
+echo "=== pre-push: running tests ==="
+cargo test --lib
+
+echo "=== pre-push: building ==="
+cargo build
+
+echo "=== pre-push: all checks passed ==="
