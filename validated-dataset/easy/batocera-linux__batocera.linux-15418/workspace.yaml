@@ -8,7 +8,7 @@ created_at: 2026-02-17T11:06:01.166929859Z
 patch: "diff --git a/package/batocera/core/batocera-system/Config.in b/package/batocera/core/batocera-system/Config.in\nindex 28ebc525e77..a28849978df 100644\n--- a/package/batocera/core/batocera-system/Config.in\n+++ b/package/batocera/core/batocera-system/Config.in\n@@ -1134,7 +1134,7 @@ config BR2_PACKAGE_BATOCERA_PORTS_SYSTEMS\n \t# Quake 2\n \tselect BR2_PACKAGE_LIBRETRO_VITAQUAKE2    if BR2_PACKAGE_BATOCERA_GLES3\n \tselect BR2_PACKAGE_VKQUAKE2\t\t          if BR2_PACKAGE_BATOCERA_VULKAN && BR2_PACKAGE_XORG7\n-\tselect BR2_PACKAGE_YQUAKE2\t\t# ALL\n+\tselect BR2_PACKAGE_YQUAKE2\t\t    if !BR2_riscv\n \tselect BR2_PACKAGE_YQUAKE2_XATRIX\tif BR2_PACKAGE_YQUAKE2\t# Mission Packs\n \tselect BR2_PACKAGE_YQUAKE2_ROGUE\tif BR2_PACKAGE_YQUAKE2\n \tselect BR2_PACKAGE_YQUAKE2_ZAERO\tif BR2_PACKAGE_YQUAKE2\n"
 test_patch: ''
 fail_to_pass:
-- python -m unittest tests/test_yquake2_riscv_config.py
+- python -m pytest tests/test_yquake2_riscv_config.py -q
 pass_to_pass:
 - python -m compileall -q python-src
 install_config:

@@ -1,5 +1,9 @@
 # AGENTS.md — src/runner/
 
+## Status
+
+**Not compiled** — This module is not declared in `src/lib.rs` and is not part of the build. It exists as scaffolding for future agent runner infrastructure.
+
 ## Purpose
 
 Agent runner infrastructure for benchmark evaluation. Spawns external AI agents against benchmark tasks in isolated sandboxes, captures outputs, and verifies results.

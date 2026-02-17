@@ -21,6 +21,7 @@ Clap-based CLI interface. Defines all commands, argument parsing, and command di
 | `swe-forge swe harness` | Run evaluation harness on generated tasks |
 | `swe-forge swe validate` | Validate generated SWE workspaces |
 | `swe-forge swe export` | Export SWE workspaces to dataset format |
+| `swe-forge swe load` | Load a dataset from HuggingFace or local parquet for inspection |
 
 ## Rules
 

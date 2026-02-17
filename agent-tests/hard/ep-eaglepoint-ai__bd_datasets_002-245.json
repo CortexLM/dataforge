@@ -1,0 +1,9 @@
+{
+  "task_id": "ep-eaglepoint-ai/bd_datasets_002-245",
+  "repo": "ep-eaglepoint-ai/bd_datasets_002",
+  "status": "sanity_fail",
+  "sanity_check": false,
+  "agent_duration_secs": 0.0,
+  "total_duration_secs": 26.99,
+  "difficulty": "hard"
+}
