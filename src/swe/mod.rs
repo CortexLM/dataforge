@@ -32,7 +32,7 @@ pub use filters::{FilterConfig, FilterResult, SweepFilter};
 pub use gharchive::{GhArchiveClient, GhArchiveEvent, GhArchiveEventId};
 pub use harness::{run_harness, HarnessConfig, HarnessResult, HarnessSummary};
 pub use orchestrator::{SweOrchestrator, SweOrchestratorConfig, SweRunResult};
-pub use pipeline::{SwePipeline, SwePipelineEvent, SwePipelineRunResult};
+pub use pipeline::{BenchmarkMetrics, SwePipeline, SwePipelineEvent, SwePipelineRunResult};
 pub use pr_cache::{OptionalCache, PrCache, PrCacheEntry};
 pub use progress::{ProgressCounters, ProgressMonitor, ProgressSnapshot};
 pub use prompt_rewriter::PromptRewriter;

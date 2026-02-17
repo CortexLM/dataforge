@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use crate::export::{DatasetConfig, DatasetManager, HfUploadConfig};
 use crate::llm::LlmProvider;
-use crate::swe::pipeline::{DatasetHandle, ExportConfig, SwePipelineConfig};
+use crate::swe::pipeline::{BenchmarkMetrics, DatasetHandle, ExportConfig, SwePipelineConfig};
 use crate::swe::progress::{ProgressCounters, ProgressMonitor};
 use crate::swe::{SwePipelineRunResult, SweTask};
 
@@ -21,6 +21,7 @@ pub struct SweRunResult {
     pub passed: usize,
     pub skipped: usize,
     pub finished_at: String,
+    pub benchmark_metrics: Option<BenchmarkMetrics>,
 }
 
 /// Per-difficulty quotas for multi-level mining in a single pipeline run.
@@ -245,6 +246,7 @@ impl SweOrchestrator {
             passed,
             skipped,
             finished_at: run.finished_at.to_rfc3339(),
+            benchmark_metrics: run.benchmark_metrics,
         })
     }
 }
