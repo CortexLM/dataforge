@@ -118,7 +118,7 @@ impl DockerSandbox {
             );
         }
 
-        // Checkout base commit
+        // Checkout base commit (with unshallow fallback)
         if !base_commit.is_empty() {
             let checkout = sandbox
                 .exec(
@@ -127,12 +127,35 @@ impl DockerSandbox {
                 )
                 .await;
             if checkout.exit_code != 0 {
-                tracing::warn!(
+                tracing::info!(
                     container = %sandbox.container_name,
                     commit = base_commit,
-                    stderr = %checkout.stderr,
-                    "Checkout failed (continuing on HEAD)"
+                    "Shallow clone missed commit, fetching full history..."
                 );
+                let unshallow = sandbox
+                    .exec("cd /repo && git fetch --unshallow 2>&1", 300_000)
+                    .await;
+                if unshallow.exit_code != 0 {
+                    tracing::warn!(
+                        container = %sandbox.container_name,
+                        stderr = %unshallow.stderr,
+                        "Unshallow fetch failed"
+                    );
+                }
+                let retry = sandbox
+                    .exec(
+                        &format!("cd /repo && git checkout {} --force 2>&1", base_commit),
+                        60_000,
+                    )
+                    .await;
+                if retry.exit_code != 0 {
+                    tracing::warn!(
+                        container = %sandbox.container_name,
+                        commit = base_commit,
+                        stderr = %retry.stderr,
+                        "Checkout failed even after unshallow (continuing on HEAD)"
+                    );
+                }
             }
         }
 
@@ -255,6 +278,70 @@ impl DockerSandbox {
     /// Get the container name (useful for logging).
     pub fn name(&self) -> &str {
         &self.container_name
+    }
+
+    /// Auto-detect and run the install command based on project files.
+    ///
+    /// Checks for common dependency management files and runs the appropriate
+    /// install command. Returns the working install command if one succeeds,
+    /// or `None` if all attempts fail.
+    pub async fn auto_detect_install(&self, language: &str) -> Option<String> {
+        let candidates = match language.to_lowercase().as_str() {
+            "python" => vec![
+                ("setup.py", "pip install -e . 2>&1"),
+                ("pyproject.toml", "pip install -e . 2>&1"),
+                ("requirements.txt", "pip install -r requirements.txt 2>&1"),
+                ("setup.py", "python setup.py develop 2>&1"),
+            ],
+            "javascript" | "typescript" | "js" | "ts" => vec![
+                ("package.json", "npm install 2>&1"),
+                ("yarn.lock", "yarn install 2>&1"),
+                ("pnpm-lock.yaml", "pnpm install 2>&1"),
+            ],
+            "go" | "golang" => vec![("go.mod", "go mod download 2>&1")],
+            "rust" => vec![("Cargo.toml", "cargo fetch 2>&1")],
+            "java" | "kotlin" => vec![
+                ("pom.xml", "./mvnw -q -DskipTests package 2>&1"),
+                ("build.gradle", "./gradlew build -x test 2>&1"),
+                ("build.gradle.kts", "./gradlew build -x test 2>&1"),
+            ],
+            _ => vec![],
+        };
+
+        for (marker_file, install_cmd) in &candidates {
+            let check = self
+                .exec(&format!("test -f /repo/{}", marker_file), 5_000)
+                .await;
+            if check.exit_code == 0 {
+                tracing::debug!(
+                    container = %self.container_name,
+                    marker = marker_file,
+                    cmd = install_cmd,
+                    "Found dependency file, attempting install"
+                );
+                let result = self
+                    .exec(&format!("cd /repo && {}", install_cmd), 300_000)
+                    .await;
+                if result.exit_code == 0 {
+                    // Strip the trailing " 2>&1" for the clean command
+                    let clean_cmd = install_cmd.trim_end_matches(" 2>&1").to_string();
+                    tracing::info!(
+                        container = %self.container_name,
+                        cmd = %clean_cmd,
+                        "Auto-detected install command succeeded"
+                    );
+                    return Some(clean_cmd);
+                }
+                tracing::debug!(
+                    container = %self.container_name,
+                    cmd = install_cmd,
+                    exit = result.exit_code,
+                    "Install attempt failed, trying next"
+                );
+            }
+        }
+
+        None
     }
 }
 

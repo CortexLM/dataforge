@@ -241,12 +241,53 @@ impl TestGenerator {
         )
         .await?;
 
+        // Try to run install command before the agent loop
+        let working_install = self.try_install(&sandbox, task, language).await;
+        if let Some(ref cmd) = working_install {
+            task.install_config
+                .insert("install".to_string(), cmd.clone());
+        }
+
         let result = self.run_agent_loop(&sandbox, task, language).await;
 
         // Always destroy the container, even on error
         sandbox.destroy().await;
 
         result
+    }
+
+    /// Try the default install command and fallbacks. Returns the working command.
+    async fn try_install(
+        &self,
+        sandbox: &DockerSandbox,
+        task: &SweTask,
+        language: &str,
+    ) -> Option<String> {
+        // Try the task's configured install command first
+        if let Some(install_cmd) = task.install_config.get("install") {
+            if !install_cmd.is_empty() && !install_cmd.starts_with('#') {
+                let result = sandbox
+                    .exec(&format!("cd /repo && {} 2>&1", install_cmd), 300_000)
+                    .await;
+                if result.exit_code == 0 {
+                    tracing::info!(
+                        task_id = %task.id,
+                        cmd = %install_cmd,
+                        "Default install command succeeded"
+                    );
+                    return Some(install_cmd.clone());
+                }
+                tracing::debug!(
+                    task_id = %task.id,
+                    cmd = %install_cmd,
+                    exit = result.exit_code,
+                    "Default install command failed, trying auto-detect"
+                );
+            }
+        }
+
+        // Fall back to auto-detection
+        sandbox.auto_detect_install(language).await
     }
 
     async fn run_agent_loop(
@@ -423,6 +464,38 @@ impl TestGenerator {
                                         "Dual-commit validation PASSED"
                                     );
                                 }
+                            }
+
+                            // Verify pass_to_pass commands actually pass on base commit
+                            let mut p2p_ok = true;
+                            for p2p_cmd in &submit.pass_to_pass {
+                                let p2p_result = sandbox.exec(p2p_cmd, 60_000).await;
+                                if p2p_result.exit_code != 0 {
+                                    p2p_ok = false;
+                                    if validation_retries < MAX_VALIDATION_RETRIES {
+                                        validation_retries += 1;
+                                        tracing::warn!(
+                                            task_id = %task.id,
+                                            retry = validation_retries,
+                                            cmd = %p2p_cmd,
+                                            exit = p2p_result.exit_code,
+                                            "pass_to_pass command fails on base commit"
+                                        );
+                                        messages.push(Message::tool_result(
+                                            &tc.id,
+                                            format!(
+                                                "REJECTED: pass_to_pass command '{}' fails on base commit (exit={}). \
+                                                 pass_to_pass commands MUST pass on the base commit. \
+                                                 Use existing test commands that work, or use a build command instead.",
+                                                p2p_cmd, p2p_result.exit_code,
+                                            ),
+                                        ));
+                                        break;
+                                    }
+                                }
+                            }
+                            if !p2p_ok {
+                                continue;
                             }
 
                             // Validate test scripts before accepting

@@ -149,11 +149,18 @@ async fn fetch_hour_events_static(
         .bytes()
         .await
         .map_err(|e| anyhow::anyhow!("failed reading gharchive payload: {e}"))?;
-    let mut decoder = GzDecoder::new(bytes.as_ref());
-    let mut raw = String::new();
-    decoder
-        .read_to_string(&mut raw)
-        .map_err(|e| anyhow::anyhow!("failed to decode gharchive payload: {e}"))?;
+
+    // Decompress on a blocking thread to avoid blocking the async runtime
+    let raw = tokio::task::spawn_blocking(move || {
+        let mut decoder = GzDecoder::new(bytes.as_ref());
+        let mut raw = String::new();
+        decoder
+            .read_to_string(&mut raw)
+            .map_err(|e| anyhow::anyhow!("failed to decode gharchive payload: {e}"))?;
+        Ok::<String, anyhow::Error>(raw)
+    })
+    .await
+    .map_err(|e| anyhow::anyhow!("gzip decode task panicked: {e}"))??;
 
     let mut events = Vec::new();
     for line in raw.lines() {

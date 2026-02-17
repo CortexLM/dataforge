@@ -98,6 +98,12 @@ pub struct SweOrchestratorConfig {
     pub cache: super::OptionalCache,
     /// Override Docker image for mining containers (auto-select by language if None).
     pub mining_image: Option<String>,
+    /// Enable pre-export workspace validation (default: true).
+    pub validate_workspace: bool,
+    /// Override enrichment concurrency.
+    pub concurrency_enrich: Option<usize>,
+    /// Override deep processing concurrency.
+    pub concurrency_deep: Option<usize>,
 }
 
 impl Default for SweOrchestratorConfig {
@@ -116,6 +122,9 @@ impl Default for SweOrchestratorConfig {
             hf_upload: None,
             cache: super::OptionalCache::none(),
             mining_image: None,
+            validate_workspace: true,
+            concurrency_enrich: None,
+            concurrency_deep: None,
         }
     }
 }
@@ -164,6 +173,9 @@ impl SweOrchestrator {
             difficulty_targets: self.config.difficulty_targets.clone(),
             cache: self.config.cache.clone(),
             mining_image: self.config.mining_image.clone(),
+            validate_workspace: self.config.validate_workspace,
+            concurrency_enrich: self.config.concurrency_enrich,
+            concurrency_deep: self.config.concurrency_deep,
         };
 
         // Real-time export config: tasks are written to disk inside the pipeline worker loop

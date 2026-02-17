@@ -17,6 +17,7 @@ pub mod enricher;
 pub mod extractor;
 pub mod filters;
 pub mod gharchive;
+pub mod github_search;
 pub mod harness;
 pub mod orchestrator;
 pub mod pipeline;
@@ -25,6 +26,7 @@ pub mod progress;
 pub mod prompt_rewriter;
 pub mod quality;
 pub mod test_generator;
+pub mod workspace_validator;
 
 pub use enricher::EnrichedPullRequest;
 pub use extractor::{ExtractedPatch, PatchExtractor, PatchExtractorConfig};
@@ -38,6 +40,7 @@ pub use progress::{ProgressCounters, ProgressMonitor, ProgressSnapshot};
 pub use prompt_rewriter::PromptRewriter;
 pub use quality::{QualityAssessment, QualityConfig, QualityScorer};
 pub use test_generator::{TestFile, TestGenerator};
+pub use workspace_validator::{ValidationOutcome, WorkspaceValidator};
 
 /// Default output directory for generated SWE workspaces.
 pub const DEFAULT_SWE_OUTPUT_DIR: &str = "./generated-swe";

@@ -29,7 +29,7 @@ impl Default for FilterConfig {
                 "rust".to_string(),
                 "java".to_string(),
             ],
-            min_description_length: 30,
+            min_description_length: 80,
         }
     }
 }
@@ -137,6 +137,12 @@ impl SweepFilter {
             score -= 0.3;
         }
 
+        // Reject PRs that only modify test files
+        if !changed_files.is_empty() && Self::is_test_only_change(changed_files) {
+            reasons.push("all changed files are test files only".to_string());
+            score -= 0.3;
+        }
+
         // Reject PRs with empty or very short descriptions
         let description_len = title.trim().len() + body.trim().len();
         if description_len < self.config.min_description_length {
@@ -145,6 +151,12 @@ impl SweepFilter {
                 self.config.min_description_length
             ));
             score -= 0.4;
+        }
+
+        // Check for install infrastructure (dependency management files)
+        if !changed_files.is_empty() && !Self::has_install_infrastructure(changed_files) {
+            reasons.push("no dependency management files detected in changed files".to_string());
+            score -= 0.15;
         }
 
         let accepted = reasons.is_empty();
@@ -186,5 +198,229 @@ impl SweepFilter {
 
             doc_extensions.contains(&ext) || doc_names.iter().any(|n| basename.starts_with(n))
         })
+    }
+
+    /// Check if all changed files are test files only.
+    ///
+    /// PRs that only modify test files cannot produce valid `fail_to_pass` tests
+    /// because the test IS the change.
+    fn is_test_only_change(files: &[String]) -> bool {
+        if files.is_empty() {
+            return false;
+        }
+        files.iter().all(|f| Self::is_test_file(f))
+    }
+
+    /// Check if a file path looks like a test file.
+    fn is_test_file(path: &str) -> bool {
+        let lower = path.to_lowercase();
+        let basename = lower.rsplit('/').next().unwrap_or(&lower);
+
+        // Test file name patterns
+        basename.starts_with("test_")
+            || basename.starts_with("test.")
+            || basename.ends_with("_test.py")
+            || basename.ends_with("_test.go")
+            || basename.ends_with("_test.rs")
+            || basename.ends_with("_test.js")
+            || basename.ends_with("_test.ts")
+            || basename.ends_with(".test.js")
+            || basename.ends_with(".test.ts")
+            || basename.ends_with(".test.tsx")
+            || basename.ends_with(".test.jsx")
+            || basename.ends_with(".spec.js")
+            || basename.ends_with(".spec.ts")
+            || basename.ends_with(".spec.rs")
+            || basename.ends_with("_spec.rb")
+            || basename.ends_with("test.java")
+            // Test directory patterns
+            || lower.contains("/tests/")
+            || lower.contains("/test/")
+            || lower.contains("/__tests__/")
+            || lower.contains("/spec/")
+            // Test config files
+            || basename == "conftest.py"
+            || basename == "pytest.ini"
+            || basename == "jest.config.js"
+            || basename == "jest.config.ts"
+    }
+
+    /// Check if the changed files indicate presence of install/dependency
+    /// management infrastructure in the project.
+    ///
+    /// Repos without standard dependency management are unlikely to produce
+    /// tasks where the install step succeeds.
+    fn has_install_infrastructure(files: &[String]) -> bool {
+        let install_indicators = [
+            "requirements.txt",
+            "setup.py",
+            "setup.cfg",
+            "pyproject.toml",
+            "package.json",
+            "package-lock.json",
+            "yarn.lock",
+            "pnpm-lock.yaml",
+            "go.mod",
+            "go.sum",
+            "cargo.toml",
+            "cargo.lock",
+            "pom.xml",
+            "build.gradle",
+            "build.gradle.kts",
+            "gemfile",
+            "gemfile.lock",
+            "makefile",
+            "cmake",
+            "cmakelists.txt",
+        ];
+
+        // Check if any changed file is an install indicator or if any changed
+        // file's directory siblings might include them (heuristic: if the repo
+        // has source files, it likely has build infrastructure).
+        files.iter().any(|f| {
+            let lower = f.to_lowercase();
+            let basename = lower.rsplit('/').next().unwrap_or(&lower);
+            install_indicators.contains(&basename)
+        }) || files.iter().any(|f| {
+            // If there are source code files, assume the repo has build infrastructure
+            let lower = f.to_lowercase();
+            lower.ends_with(".py")
+                || lower.ends_with(".rs")
+                || lower.ends_with(".go")
+                || lower.ends_with(".java")
+                || lower.ends_with(".js")
+                || lower.ends_with(".ts")
+                || lower.ends_with(".rb")
+                || lower.ends_with(".kt")
+        })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_min_description_length() {
+        let config = FilterConfig::default();
+        assert_eq!(config.min_description_length, 80);
+    }
+
+    #[test]
+    fn test_is_test_only_change() {
+        assert!(SweepFilter::is_test_only_change(&[
+            "tests/test_foo.py".to_string(),
+            "tests/test_bar.py".to_string(),
+        ]));
+
+        assert!(!SweepFilter::is_test_only_change(&[
+            "tests/test_foo.py".to_string(),
+            "src/main.py".to_string(),
+        ]));
+
+        assert!(!SweepFilter::is_test_only_change(&[]));
+    }
+
+    #[test]
+    fn test_is_test_file() {
+        assert!(SweepFilter::is_test_file("tests/test_foo.py"));
+        assert!(SweepFilter::is_test_file("src/components/Button.test.tsx"));
+        assert!(SweepFilter::is_test_file("spec/models/user_spec.rb"));
+        assert!(SweepFilter::is_test_file("__tests__/utils.test.js"));
+        assert!(SweepFilter::is_test_file("conftest.py"));
+
+        assert!(!SweepFilter::is_test_file("src/main.py"));
+        assert!(!SweepFilter::is_test_file("lib/utils.rs"));
+        assert!(!SweepFilter::is_test_file("README.md"));
+    }
+
+    #[test]
+    fn test_has_install_infrastructure() {
+        assert!(SweepFilter::has_install_infrastructure(&[
+            "requirements.txt".to_string(),
+            "src/main.py".to_string(),
+        ]));
+
+        assert!(SweepFilter::has_install_infrastructure(&[
+            "src/main.py".to_string(),
+        ]));
+
+        assert!(SweepFilter::has_install_infrastructure(&[
+            "package.json".to_string(),
+        ]));
+
+        assert!(!SweepFilter::has_install_infrastructure(&[
+            "README.md".to_string(),
+            "docs/guide.md".to_string(),
+        ]));
+    }
+
+    #[test]
+    fn test_reject_test_only_change() {
+        let filter = SweepFilter::with_defaults();
+        let result = filter.keep_candidate(
+            "python",
+            100,
+            2,
+            50,
+            &[
+                "tests/test_foo.py".to_string(),
+                "tests/test_bar.py".to_string(),
+            ],
+            "Update test suite",
+            "This PR updates the test suite with better coverage for the parser module and adds new edge case tests.",
+        );
+        assert!(!result.accepted);
+        assert!(result.reasons.iter().any(|r| r.contains("test files only")));
+    }
+
+    #[test]
+    fn test_accept_mixed_change() {
+        let filter = SweepFilter::with_defaults();
+        let result = filter.keep_candidate(
+            "python",
+            100,
+            3,
+            50,
+            &[
+                "src/parser.py".to_string(),
+                "tests/test_parser.py".to_string(),
+            ],
+            "Fix parser bug",
+            "This PR fixes a critical bug in the parser module where nested expressions were not handled correctly.",
+        );
+        assert!(result.accepted);
+    }
+
+    #[test]
+    fn test_description_length_filter() {
+        let filter = SweepFilter::with_defaults();
+        let result = filter.keep_candidate(
+            "python",
+            100,
+            2,
+            50,
+            &["src/main.py".to_string()],
+            "Fix bug",
+            "Short desc",
+        );
+        assert!(!result.accepted);
+        assert!(result.reasons.iter().any(|r| r.contains("too short")));
+    }
+
+    #[test]
+    fn test_no_install_infrastructure_penalized() {
+        let filter = SweepFilter::with_defaults();
+        let result = filter.keep_candidate(
+            "python",
+            100,
+            2,
+            50,
+            &["README.md".to_string(), "docs/guide.md".to_string()],
+            "Update documentation",
+            "This PR updates the project documentation with comprehensive guides for new contributors and updated API references.",
+        );
+        // Should be rejected for docs-only AND no install infrastructure
+        assert!(!result.accepted);
     }
 }

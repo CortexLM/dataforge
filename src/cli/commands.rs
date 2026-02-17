@@ -61,7 +61,7 @@ pub enum Commands {
 
     /// Run SWE mining pipeline against real GitHub history and export SWE datasets.
     #[command(name = "swe")]
-    Swe(SweArgs),
+    Swe(Box<SweArgs>),
 }
 
 /// SWE pipeline entrypoint arguments.
@@ -166,6 +166,23 @@ pub struct SweMineArgs {
     #[arg(long)]
     pub mining_image: Option<String>,
 
+    /// Data source for PR discovery: "gharchive" (default) or "github-search".
+    #[arg(long, default_value = "gharchive")]
+    pub source: String,
+
+    /// Enable pre-export workspace validation in a fresh Docker container.
+    /// Verifies install, fail_to_pass, pass_to_pass, and patch application.
+    #[arg(long, default_value = "true")]
+    pub validate_workspace: bool,
+
+    /// Override enrichment concurrency (default: 10).
+    #[arg(long)]
+    pub concurrency_enrich: Option<usize>,
+
+    /// Override deep processing concurrency (default: 8).
+    #[arg(long)]
+    pub concurrency_deep: Option<usize>,
+
     /// Output JSON summary.
     #[arg(short = 'j', long)]
     pub json: bool,
@@ -201,6 +218,18 @@ pub struct SweBenchmarkArgs {
     /// Output directory for benchmark task artifacts.
     #[arg(short = 'o', long, default_value = "./benchmark-output")]
     pub output: String,
+
+    /// Data source for PR discovery: "gharchive" (default) or "github-search".
+    #[arg(long, default_value = "gharchive")]
+    pub source: String,
+
+    /// Override enrichment concurrency (default: 10).
+    #[arg(long)]
+    pub concurrency_enrich: Option<usize>,
+
+    /// Override deep processing concurrency (default: 8).
+    #[arg(long)]
+    pub concurrency_deep: Option<usize>,
 }
 
 /// Arguments for `swe_forge swe validate`.
@@ -420,7 +449,7 @@ pub async fn run_with_cli(cli: Cli) -> anyhow::Result<()> {
             run_evaluate_command(args).await?;
         }
         Commands::Swe(args) => {
-            run_swe_command(args).await?;
+            run_swe_command(*args).await?;
         }
     }
     Ok(())
@@ -809,6 +838,9 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
         hf_upload,
         cache: cache.clone(),
         mining_image: args.mining_image.clone(),
+        validate_workspace: args.validate_workspace,
+        concurrency_enrich: args.concurrency_enrich,
+        concurrency_deep: args.concurrency_deep,
     };
 
     let orchestrator = SweOrchestrator::new(llm_client, config);
@@ -930,6 +962,9 @@ async fn run_swe_benchmark_command(args: SweBenchmarkArgs) -> anyhow::Result<()>
         hf_upload: None,
         cache,
         mining_image: None,
+        validate_workspace: false,
+        concurrency_enrich: args.concurrency_enrich,
+        concurrency_deep: args.concurrency_deep,
     };
 
     let orchestrator = SweOrchestrator::new(llm_client, config);
@@ -1885,14 +1920,15 @@ mod tests {
         let cli = Cli::try_parse_from(args).expect("should parse");
 
         match cli.command {
-            Commands::Swe(SweArgs {
-                command: SweSubcommand::Validate(s),
-            }) => {
-                assert_eq!(s.input, "./workspace-dir");
-                assert_eq!(s.model, "anthropic/claude-3-opus");
-                assert!(s.validate_docker);
-            }
-            _ => panic!("Expected swe validate command"),
+            Commands::Swe(boxed_args) => match boxed_args.command {
+                SweSubcommand::Validate(s) => {
+                    assert_eq!(s.input, "./workspace-dir");
+                    assert_eq!(s.model, "anthropic/claude-3-opus");
+                    assert!(s.validate_docker);
+                }
+                _ => panic!("Expected swe validate subcommand"),
+            },
+            _ => panic!("Expected swe command"),
         }
     }
 
