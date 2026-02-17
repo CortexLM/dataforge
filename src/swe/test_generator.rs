@@ -425,6 +425,30 @@ impl TestGenerator {
                                 }
                             }
 
+                            // Validate test scripts before accepting
+                            if let Some(issue) = validate_test_scripts(&all_files) {
+                                if validation_retries < MAX_VALIDATION_RETRIES {
+                                    validation_retries += 1;
+                                    tracing::warn!(
+                                        task_id = %task.id,
+                                        retry = validation_retries,
+                                        issue = %issue,
+                                        "Test script validation failed"
+                                    );
+                                    messages.push(Message::tool_result(
+                                        &tc.id,
+                                        format!(
+                                            "REJECTED: {issue}\n\nFix the issues and resubmit."
+                                        ),
+                                    ));
+                                    continue;
+                                }
+                                tracing::warn!(
+                                    task_id = %task.id,
+                                    "Test script validation failed after max retries, accepting anyway"
+                                );
+                            }
+
                             tracing::info!(
                                 task_id = %task.id, turn = turn,
                                 f2p = submit.fail_to_pass.len(),
@@ -709,6 +733,66 @@ fn reject_string_matching_tests(files: &[TestFile]) -> Option<String> {
         Some(format!(
             "Your tests use forbidden source-reading patterns:\n- {}",
             violations.join("\n- ")
+        ))
+    }
+}
+
+/// Validate generated test scripts for structural issues.
+///
+/// Checks that shell scripts have a valid shebang line and that test files
+/// referenced in shell commands actually exist in the submitted file set.
+/// Returns `Some(reason)` if validation fails, `None` if all checks pass.
+fn validate_test_scripts(files: &[TestFile]) -> Option<String> {
+    let mut issues = Vec::new();
+    let known_paths: std::collections::HashSet<&str> =
+        files.iter().map(|f| f.path.as_str()).collect();
+
+    for file in files {
+        let is_shell = file.path.ends_with(".sh") || file.path.ends_with(".bash");
+
+        if is_shell {
+            let trimmed = file.content.trim_start();
+            if !trimmed.starts_with("#!") {
+                issues.push(format!(
+                    "Shell script '{}' is missing a shebang line (e.g. #!/bin/bash)",
+                    file.path
+                ));
+            }
+
+            if file.content.trim().is_empty() {
+                issues.push(format!("Shell script '{}' is empty", file.path));
+            }
+        }
+
+        for line in file.content.lines() {
+            let trimmed = line.trim();
+            // Detect references to test files like `python tests/test_foo.py`
+            // or `bash tests/run.sh` that aren't in the submitted set
+            for token in trimmed.split_whitespace() {
+                if (token.starts_with("tests/") || token.starts_with("./tests/"))
+                    && (token.ends_with(".py")
+                        || token.ends_with(".js")
+                        || token.ends_with(".ts")
+                        || token.ends_with(".sh"))
+                {
+                    let normalized = token.strip_prefix("./").unwrap_or(token);
+                    if !known_paths.contains(normalized) {
+                        issues.push(format!(
+                            "File '{}' references '{}' which was not submitted",
+                            file.path, normalized
+                        ));
+                    }
+                }
+            }
+        }
+    }
+
+    if issues.is_empty() {
+        None
+    } else {
+        Some(format!(
+            "Test script validation issues:\n- {}",
+            issues.join("\n- ")
         ))
     }
 }

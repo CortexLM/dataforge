@@ -20,7 +20,7 @@ use std::sync::Arc;
 use tracing::{info, warn};
 
 /// Default model to use for generation.
-const DEFAULT_MODEL: &str = "openai/gpt-5.2-codex:nitro";
+const DEFAULT_MODEL: &str = "moonshotai/kimi-k2.5:nitro";
 
 /// Default output directory for generated datasets.
 const DEFAULT_OUTPUT_DIR: &str = "./generated-datasets";
@@ -32,7 +32,7 @@ const DEFAULT_SWE_OUTPUT_DIR: &str = "./generated-swe";
 #[command(about = "Generate SWE-derived benchmark datasets for LLM evaluation")]
 #[command(version)]
 #[command(
-    long_about = "swe_forge generates SWE-derived terminal/CLI benchmark tasks from mined GitHub PRs.\n\nTasks are validated and exported as workspace artifacts (workspace.yaml + prompt.md).\n\nExample usage:\n  swe_forge generate --count 5 --model openai/gpt-5.2-codex:nitro --output ./generated-datasets"
+    long_about = "swe_forge generates SWE-derived terminal/CLI benchmark tasks from mined GitHub PRs.\n\nTasks are validated and exported as workspace artifacts (workspace.yaml + prompt.md).\n\nExample usage:\n  swe_forge generate --count 5 --model moonshotai/kimi-k2.5:nitro --output ./generated-datasets"
 )]
 pub struct Cli {
     /// The subcommand to execute.
@@ -1802,7 +1802,7 @@ mod tests {
     fn test_generation_output_serialization() {
         let output = GenerationOutput {
             status: "success".to_string(),
-            model: "openai/gpt-5.2-codex:nitro".to_string(),
+            model: "moonshotai/kimi-k2.5:nitro".to_string(),
             tasks: vec![GeneratedTaskOutput {
                 task_id: "swe_forge-task-001".to_string(),
                 category: "debugging".to_string(),
@@ -1820,7 +1820,7 @@ mod tests {
 
         // Verify key fields are present in output
         assert!(json.contains("\"status\": \"success\""));
-        assert!(json.contains("\"model\": \"openai/gpt-5.2-codex:nitro\""));
+        assert!(json.contains("\"model\": \"moonshotai/kimi-k2.5:nitro\""));
         assert!(json.contains("\"task_id\": \"swe_forge-task-001\""));
         assert!(json.contains("\"category\": \"debugging\""));
         assert!(json.contains("\"total_duration_ms\": 5000"));
@@ -1893,7 +1893,7 @@ mod tests {
     fn test_evaluation_output_serialization() {
         let output = EvaluationOutput {
             status: "success".to_string(),
-            model: "openai/gpt-5.2-codex:nitro".to_string(),
+            model: "moonshotai/kimi-k2.5:nitro".to_string(),
             total_tasks: 3,
             successful_tasks: 2,
             success_rate: 0.667,
@@ -1935,7 +1935,7 @@ mod tests {
 
         // Verify key fields are present in output
         assert!(json.contains("\"status\": \"success\""));
-        assert!(json.contains("\"model\": \"openai/gpt-5.2-codex:nitro\""));
+        assert!(json.contains("\"model\": \"moonshotai/kimi-k2.5:nitro\""));
         assert!(json.contains("\"total_tasks\": 3"));
         assert!(json.contains("\"successful_tasks\": 2"));
         assert!(json.contains("\"success_rate\": 0.667"));

@@ -6,9 +6,12 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
+use std::time::Duration;
+
 use crate::export::{DatasetConfig, DatasetManager, HfUploadConfig};
 use crate::llm::LlmProvider;
 use crate::swe::pipeline::{DatasetHandle, ExportConfig, SwePipelineConfig};
+use crate::swe::progress::{ProgressCounters, ProgressMonitor};
 use crate::swe::{SwePipelineRunResult, SweTask};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -182,6 +185,10 @@ impl SweOrchestrator {
             Some(Arc::new(DatasetManager::new(ds_config).await?))
         };
 
+        // Start background progress monitor (logs every 30 seconds)
+        let progress_counters = ProgressCounters::new();
+        let monitor = ProgressMonitor::start(progress_counters, max_tasks, Duration::from_secs(30));
+
         let pipeline = crate::swe::pipeline::SwePipeline::new(&pipeline_config, self.llm.clone())?;
         let run: SwePipelineRunResult = pipeline
             .run_full(
@@ -191,6 +198,8 @@ impl SweOrchestrator {
                 dataset_handle.clone(),
             )
             .await?;
+
+        monitor.stop().await;
 
         // Finalize dataset: flush remaining shard, write combined parquet, upload splits
         if let Some(ref ds) = dataset_handle {
