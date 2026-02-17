@@ -781,6 +781,8 @@ fn export_task_to_disk(task: &SweTask, output_dir: &str) -> anyhow::Result<()> {
     let tests_dir = dir.join("tests");
     fs::create_dir_all(&tests_dir)?;
 
+    let mut written_basenames: HashSet<String> = HashSet::new();
+
     if let Some(test_files_json) = task.meta.get("test_files") {
         if let Ok(files) =
             serde_json::from_str::<Vec<crate::swe::test_generator::TestFile>>(test_files_json)
@@ -800,10 +802,13 @@ fn export_task_to_disk(task: &SweTask, output_dir: &str) -> anyhow::Result<()> {
                     seen_names.insert(basename.clone());
                     basename
                 };
+                written_basenames.insert(unique_name.clone());
                 fs::write(tests_dir.join(&unique_name), &tf.content)?;
             }
         }
     }
+
+    validate_test_file_references(task, &written_basenames);
 
     for (i, cmd) in task.fail_to_pass.iter().enumerate() {
         let filename = format!("fail_to_pass_{}.sh", i + 1);
@@ -845,5 +850,240 @@ fn append_pr_to_file(pr_file: &Option<String>, repo: &str, task_id: &str) {
     let line = serde_json::json!({"repo": repo, "pr": pr_number});
     if let Ok(mut f) = fs::OpenOptions::new().create(true).append(true).open(path) {
         let _ = writeln!(f, "{}", line);
+    }
+}
+
+/// Extract test file paths referenced in a shell command string.
+///
+/// Recognises common patterns:
+/// - `tests/foo.py`, `src/test_bar.ts` (path-like tokens ending in test-file extensions)
+/// - `python -m unittest tests.module` (dotted module notation)
+fn extract_test_paths_from_command(cmd: &str) -> Vec<String> {
+    let test_extensions = [".py", ".ts", ".js", ".java", ".rs", ".go", ".rb", ".sh"];
+    let mut paths = Vec::new();
+
+    for token in cmd.split_whitespace() {
+        let clean = token.trim_matches(|c: char| c == '\'' || c == '"' || c == ';');
+        if clean.contains('*') || clean.contains('?') {
+            continue;
+        }
+        if test_extensions.iter().any(|ext| clean.ends_with(ext)) {
+            paths.push(clean.to_string());
+        }
+    }
+
+    if cmd.contains("python -m unittest") || cmd.contains("python3 -m unittest") {
+        for token in cmd.split_whitespace() {
+            let clean = token.trim_matches(|c: char| c == '\'' || c == '"' || c == ';');
+            if clean.contains('.') && !clean.starts_with('-') && !clean.contains('/') {
+                let as_path = clean.replace('.', "/") + ".py";
+                if !paths.contains(&as_path) {
+                    paths.push(as_path);
+                }
+            }
+        }
+    }
+
+    paths
+}
+
+/// Validate that test file paths referenced in `fail_to_pass` and `pass_to_pass`
+/// commands correspond to files present in `meta.test_files`. Logs warnings for
+/// any missing references so operators can fix the task before evaluation.
+fn validate_test_file_references(task: &SweTask, written_basenames: &HashSet<String>) {
+    let test_file_paths: HashSet<String> = task
+        .meta
+        .get("test_files")
+        .and_then(|json| {
+            serde_json::from_str::<Vec<crate::swe::test_generator::TestFile>>(json).ok()
+        })
+        .unwrap_or_default()
+        .iter()
+        .map(|tf| tf.path.clone())
+        .collect();
+
+    let all_cmds = task.fail_to_pass.iter().chain(task.pass_to_pass.iter());
+
+    for cmd in all_cmds {
+        let referenced = extract_test_paths_from_command(cmd);
+        for ref_path in &referenced {
+            let basename = std::path::Path::new(ref_path)
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| ref_path.clone());
+
+            let found_in_meta = test_file_paths.contains(ref_path)
+                || test_file_paths.iter().any(|p| {
+                    std::path::Path::new(p)
+                        .file_name()
+                        .map(|n| n.to_string_lossy() == basename)
+                        .unwrap_or(false)
+                });
+
+            let found_on_disk = written_basenames.contains(&basename);
+
+            if !found_in_meta && !found_on_disk {
+                tracing::warn!(
+                    task_id = %task.id,
+                    command = %cmd,
+                    missing_file = %ref_path,
+                    "Test command references file not found in meta.test_files or exported tests"
+                );
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::swe::SweTask;
+
+    #[test]
+    fn extract_paths_pytest_single() {
+        let cmd = "python -m pytest tests/test_foo.py -q";
+        let paths = extract_test_paths_from_command(cmd);
+        assert_eq!(paths, vec!["tests/test_foo.py"]);
+    }
+
+    #[test]
+    fn extract_paths_pytest_multiple() {
+        let cmd = "python -m pytest tests/test_a.py tests/test_b.py -q";
+        let paths = extract_test_paths_from_command(cmd);
+        assert_eq!(paths, vec!["tests/test_a.py", "tests/test_b.py"]);
+    }
+
+    #[test]
+    fn extract_paths_unittest_dotted() {
+        let cmd = "python -m unittest tests.test_reshape_tensor";
+        let paths = extract_test_paths_from_command(cmd);
+        assert_eq!(paths, vec!["tests/test_reshape_tensor.py"]);
+    }
+
+    #[test]
+    fn extract_paths_jest_ts() {
+        let cmd = "yarn workspace @studio/pkg test --testPathPattern Foo.test.ts";
+        let paths = extract_test_paths_from_command(cmd);
+        assert_eq!(paths, vec!["Foo.test.ts"]);
+    }
+
+    #[test]
+    fn extract_paths_java() {
+        let cmd = "javac *.java && java -cp .:app RectangleBehaviorTest.java";
+        let paths = extract_test_paths_from_command(cmd);
+        assert_eq!(paths, vec!["RectangleBehaviorTest.java"]);
+    }
+
+    #[test]
+    fn extract_paths_cd_env_pytest() {
+        let cmd = "cd subdir && PYTHONPATH=repo python -m pytest tests/test_x.py -q";
+        let paths = extract_test_paths_from_command(cmd);
+        assert_eq!(paths, vec!["tests/test_x.py"]);
+    }
+
+    #[test]
+    fn extract_paths_no_test_files() {
+        let cmd = "python -m compileall -q python-src";
+        let paths = extract_test_paths_from_command(cmd);
+        assert!(paths.is_empty());
+    }
+
+    #[test]
+    fn extract_paths_vitest() {
+        let cmd = "pnpm --filter landing exec vitest --run src/components/test.test.ts";
+        let paths = extract_test_paths_from_command(cmd);
+        assert_eq!(paths, vec!["src/components/test.test.ts"]);
+    }
+
+    #[test]
+    fn validate_warns_on_missing_file() {
+        let mut task = SweTask::new("test-task-1", "owner/repo");
+        task.fail_to_pass = vec!["python -m pytest tests/test_missing.py -q".to_string()];
+        task.meta.insert(
+            "test_files".to_string(),
+            serde_json::to_string(&vec![crate::swe::test_generator::TestFile {
+                path: "tests/test_other.py".to_string(),
+                content: "pass".to_string(),
+            }])
+            .unwrap(),
+        );
+        let written: HashSet<String> = ["test_other.py".to_string()].into_iter().collect();
+        validate_test_file_references(&task, &written);
+    }
+
+    #[test]
+    fn validate_no_warn_when_file_present() {
+        let mut task = SweTask::new("test-task-2", "owner/repo");
+        task.fail_to_pass = vec!["python -m pytest tests/test_foo.py -q".to_string()];
+        task.meta.insert(
+            "test_files".to_string(),
+            serde_json::to_string(&vec![crate::swe::test_generator::TestFile {
+                path: "tests/test_foo.py".to_string(),
+                content: "pass".to_string(),
+            }])
+            .unwrap(),
+        );
+        let written: HashSet<String> = ["test_foo.py".to_string()].into_iter().collect();
+        validate_test_file_references(&task, &written);
+    }
+
+    #[test]
+    fn export_task_creates_expected_files() {
+        let tmp = std::env::temp_dir().join("swe_forge_test_export");
+        let _ = fs::remove_dir_all(&tmp);
+
+        let mut task = SweTask::new("test-export-1", "owner/repo");
+        task.prompt = "Fix the bug".to_string();
+        task.fail_to_pass = vec!["python -m pytest tests/test_fix.py -q".to_string()];
+        task.pass_to_pass = vec!["python -m compileall -q src".to_string()];
+        task.meta.insert(
+            "test_files".to_string(),
+            serde_json::to_string(&vec![crate::swe::test_generator::TestFile {
+                path: "tests/test_fix.py".to_string(),
+                content: "import unittest\nclass T(unittest.TestCase):\n    def test_a(self): pass"
+                    .to_string(),
+            }])
+            .unwrap(),
+        );
+
+        let result = export_task_to_disk(&task, tmp.to_str().unwrap());
+        assert!(result.is_ok(), "export_task_to_disk failed: {:?}", result);
+
+        let task_dir = tmp.join("test-export-1");
+        assert!(task_dir.join("prompt.md").exists());
+        assert!(task_dir.join("workspace.yaml").exists());
+        assert!(task_dir.join("checks.txt").exists());
+        assert!(task_dir.join("tests/test_fix.py").exists());
+        assert!(task_dir.join("tests/fail_to_pass_1.sh").exists());
+        assert!(task_dir.join("tests/pass_to_pass_1.sh").exists());
+
+        let checks = fs::read_to_string(task_dir.join("checks.txt")).unwrap();
+        assert!(checks.contains("python -m pytest tests/test_fix.py -q"));
+        assert!(checks.contains("python -m compileall -q src"));
+
+        let _ = fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn infer_added_lines_returns_pr_value() {
+        let pr = EnrichedPullRequest {
+            repository: "owner/repo".to_string(),
+            number: 1,
+            title: "test".to_string(),
+            body: String::new(),
+            base_sha: String::new(),
+            merge_sha: String::new(),
+            language: "python".to_string(),
+            files_changed: 1,
+            added_lines: 42,
+            removed_lines: 10,
+            changed_files: Vec::new(),
+            stars: 100,
+            issue_number: None,
+            actor: String::new(),
+            linked_issues: Vec::new(),
+            metadata: HashMap::new(),
+        };
+        assert_eq!(infer_added_lines(&pr), 42);
     }
 }

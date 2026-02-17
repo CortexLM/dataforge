@@ -85,7 +85,7 @@ From the 23 candidates, tasks were selected to maximize:
 
 | # | Task ID | Language | Quality | Status | Notes |
 |---|---------|----------|---------|--------|-------|
-| 1 | `ep-eaglepoint-ai/bd_datasets_002-245` | TypeScript/Jest | 4/5 | ✅ Selected | Large refactor with Jest tests; 2212-line patch |
+| 1 | `ep-eaglepoint-ai/bd_datasets_002-245` | Python/pytest | 4/5 | ✅ Selected | Large refactor with Python tests; 2212-line patch |
 | 2 | `stellatogrp/cvxro-56` | Python | 4/5 | ✅ Selected | Tensor reshape in optimization library; pytest |
 | 3 | `TrooHQ/troo-core-30` | Python/Django | 4/5 | ✅ Selected | Station locations API; Django test framework |
 | 4 | `eclipse-hawkbit/hawkbit-2923` | Java | 2/5 | ❌ Rejected | Tests only check annotation presence, not behavior |
@@ -174,15 +174,16 @@ From the 23 candidates, tasks were selected to maximize:
 
 #### `ep-eaglepoint-ai/bd_datasets_002-245`
 - **Repository**: ep-eaglepoint-ai/bd_datasets_002
-- **Language**: TypeScript
+- **Language**: Python
 - **Difficulty Score**: 3
 - **Quality Score**: 0.80
 - **Quality Rating**: 4/5
 - **Patch Size**: 2,212 lines
 - **Description**: Major refactoring of dataset processing pipeline
-- **Test Strategy**: Jest tests covering refactored modules, data transformations, error handling
+- **Test Strategy**: Python pytest tests covering refactored modules, domain objects, data transformations, and comprehensive requirements
 - **Strengths**: Large, complex change; comprehensive test coverage
 - **Weaknesses**: Very large patch may be difficult for solvers
+- **Fix Applied**: Original tests were TypeScript/Jest but the repo is Python; replaced with Python pytest tests matching the actual codebase language
 
 #### `stellatogrp/cvxro-56`
 - **Repository**: stellatogrp/cvxro
@@ -290,6 +291,18 @@ Four improvements were implemented in the swe-forge pipeline to address systemic
 - **Auto-select Docker image** based on task language instead of always using `python:3.12-slim`
 - **Added `docker_write_file` helper** and test file copying from `meta.test_files` JSON into containers
 
+### 5.6 Test File Path Validation (`src/swe/pipeline.rs`)
+
+**Problem**: Test commands in `fail_to_pass` and `pass_to_pass` could reference files that don't exist in `meta.test_files`, causing silent test failures during evaluation. Two concrete issues were found:
+1. `batocera-linux/batocera.linux-15418` used `python -m unittest tests/test_yquake2_riscv_config.py` — invalid file-path syntax for `unittest` (requires dotted module notation). Fixed to use `pytest` instead.
+2. `ep-eaglepoint-ai/bd_datasets_002-245` had TypeScript/Jest tests but the repository is Python — replaced with Python pytest tests.
+
+**Solution**:
+- Added `extract_test_paths_from_command()` — parses shell commands to find referenced test file paths (handles pytest, unittest dotted notation, Jest, vitest, Java, etc.; skips glob patterns)
+- Added `validate_test_file_references()` — cross-checks files referenced in test commands against `meta.test_files` and exported basenames; logs `tracing::warn!` for missing references
+- Called from `export_task_to_disk()` after writing test files
+- Added 12 unit tests covering path extraction for all supported test runners and validation logic
+
 ---
 
 ## 6. Dataset Statistics
@@ -304,8 +317,8 @@ Four improvements were implemented in the swe-forge pipeline to address systemic
 | Medium | 3 |
 | Hard | 3 |
 | **Language Distribution** | |
-| Python | 4 |
-| TypeScript/JavaScript | 4 |
+| Python | 5 |
+| TypeScript/JavaScript | 3 |
 | Java | 1 |
 | **Quality Scores** | |
 | Mean quality score | 0.50 |
