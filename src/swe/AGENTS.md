@@ -33,8 +33,8 @@ Core SWE mining pipeline. Fetches merged pull requests from GH Archive, enriches
 - `TestGenerator` / `TestFile` — Agentic test generation
 - `QualityScorer` / `QualityAssessment` — LLM quality gate
 - `HarnessConfig` / `HarnessResult` / `HarnessSummary` — Evaluation harness
-- `SwePipeline` / `SwePipelineEvent` — Streaming pipeline
-- `SweOrchestrator` / `SweOrchestratorConfig` — Orchestrator
+- `SwePipeline` / `SwePipelineEvent` / `SwePipelineRunResult` / `BenchmarkMetrics` — Streaming pipeline
+- `SweOrchestrator` / `SweOrchestratorConfig` / `SweRunResult` — Orchestrator
 - `ProgressMonitor` / `ProgressCounters` / `ProgressSnapshot` — Pipeline progress tracking
 
 ## Concurrency Limits

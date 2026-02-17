@@ -12,7 +12,7 @@ swe-forge is a single Rust binary crate (`src/main.rs`) with a library (`src/lib
 src/
 ├── main.rs                  # CLI entry point (tokio async runtime)
 ├── lib.rs                   # Public module declarations
-├── cli/                     # Clap-based CLI (commands: generate, evaluate, swe mine/harness/validate/export/load)
+├── cli/                     # Clap-based CLI (commands: generate, evaluate, swe mine/harness/validate/export/load/benchmark)
 ├── swe/                     # Core mining pipeline (GH Archive → enrich → filter → classify → extract → test gen → export)
 │   ├── gharchive.rs         # GH Archive HTTP ingestion (gzip → JSON events)
 │   ├── enricher.rs          # GitHub API PR enrichment (title, body, diff, files)
@@ -39,7 +39,7 @@ src/
 ├── export/                  # Parquet dataset export + HuggingFace Hub upload
 ├── difficulty/              # Difficulty levels, resource limits, scoring
 ├── anti_hardcoding/         # Canary strings, sealed parameters, contamination detection
-├── runner/                  # Agent runner infrastructure (sandbox, verifier, agent adapters) [not compiled — not in lib.rs]
+├── runner/                  # Agent runner infrastructure (sandbox, verifier, agent adapters) [not compiled — not declared in lib.rs]
 ├── utils/                   # JSON extraction from LLM responses
 └── error.rs                 # Typed error hierarchy (thiserror)
 ```
@@ -65,7 +65,7 @@ GH Archive (hourly dumps, 8x concurrent)
 | Language | Rust (edition 2021, stable toolchain) |
 | Async runtime | Tokio (full features) |
 | CLI framework | Clap 4 (derive mode) |
-| HTTP client | reqwest 0.13 (rustls) |
+| HTTP client | reqwest 0.13 (rustls, multipart) |
 | Docker | bollard 0.16 (SSL) |
 | Serialization | serde + serde_json + serde_yaml |
 | Database | SQLx 0.7 (Postgres + SQLite, migrations) |

@@ -22,6 +22,7 @@ Clap-based CLI interface. Defines all commands, argument parsing, and command di
 | `swe-forge swe validate` | Validate generated SWE workspaces |
 | `swe-forge swe export` | Export SWE workspaces to dataset format |
 | `swe-forge swe load` | Load a dataset from HuggingFace or local parquet for inspection |
+| `swe-forge swe benchmark` | Run a benchmark on N PRs and output pipeline metrics as JSON |
 
 ## Rules
 

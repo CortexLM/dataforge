@@ -24,11 +24,11 @@ Agent runner infrastructure for benchmark evaluation. Spawns external AI agents 
 
 ## Key Types
 
-- `AgentRunner` / `RunConfig` — Run an agent against a task
-- `RunResult` / `RunStatus` — Execution result with status and traces
-- `Sandbox` / `SandboxConfig` / `SandboxError` — Isolated environment
-- `Verifier` / `VerificationResult` / `CheckResult` — Output verification
-- `AgentAdapter` (trait) / `AgentType` — Agent abstraction
+- `AgentRunner` / `RunConfig` / `RunnerError` — Run an agent against a task
+- `RunResult` / `RunStatus` / `ExecutionTrace` / `TraceStep` / `TokenUsage` — Execution result with status and traces
+- `Sandbox` / `SandboxConfig` / `SandboxError` / `VolumeMount` — Isolated environment
+- `Verifier` / `VerifierError` / `VerificationResult` / `CheckResult` / `CheckSpec` / `PartialCredit` / `PartialCreditSpec` — Output verification
+- `AgentAdapter` (trait) / `AgentType` / `AgentConfig` / `AgentOutput` / `AgentError` — Agent abstraction
 
 ## Data Flow
 
