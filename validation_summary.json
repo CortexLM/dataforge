@@ -85,7 +85,7 @@
       "difficulty_score": 3,
       "quality_rating": 4,
       "quality_score": 0.80,
-      "language": "typescript",
+      "language": "python",
       "patch_lines": 2212,
       "fail_to_pass_count": 1,
       "pass_to_pass_count": 1,
@@ -129,8 +129,8 @@
       "hard": 3
     },
     "language_distribution": {
-      "python": 4,
-      "typescript": 3,
+      "python": 5,
+      "typescript": 2,
       "javascript": 1,
       "java": 1
     },
@@ -151,9 +151,9 @@
     }
   },
   "code_changes": {
-    "files_modified": 6,
-    "total_lines_added": 165,
-    "total_lines_removed": 13,
+    "files_modified": 7,
+    "total_lines_added": 265,
+    "total_lines_removed": 18,
     "changes": [
       {
         "file": "src/swe/filters.rs",
@@ -169,7 +169,7 @@
       },
       {
         "file": "src/swe/pipeline.rs",
-        "description": "Pass changed_files to keep_candidate for docs-only filtering"
+        "description": "Pass changed_files to keep_candidate; added extract_test_paths_from_command and validate_test_file_references for test file path validation with 12 unit tests"
       },
       {
         "file": "src/swe/harness.rs",
@@ -178,6 +178,10 @@
       {
         "file": "src/swe/docker_sandbox.rs",
         "description": "Increased clone depth from 50 to 500"
+      },
+      {
+        "file": "validated-dataset (multiple files)",
+        "description": "Fixed ep-eaglepoint-ai language mismatch (TypeScript->Python tests); fixed batocera-linux unittest command syntax (unittest->pytest)"
       }
     ]
   },
