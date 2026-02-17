@@ -205,7 +205,7 @@ impl DatasetManager {
                         )
                         .await;
 
-                    for (diff, _) in &by_diff {
+                    for diff in by_diff.keys() {
                         let split_path = self.config.output_dir.join(format!("{}.parquet", diff));
                         if let Ok(bytes) = std::fs::read(&split_path) {
                             let _ = uploader

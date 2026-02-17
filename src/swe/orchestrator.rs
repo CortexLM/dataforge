@@ -172,7 +172,7 @@ impl SweOrchestrator {
         fs::create_dir_all(&self.config.output_dir)?;
 
         // Create dataset manager for parquet + optional HF upload
-        let dataset_handle: Option<DatasetHandle> = if self.config.hf_upload.is_some() || true {
+        let dataset_handle: Option<DatasetHandle> = {
             let ds_config = DatasetConfig {
                 output_dir: std::path::PathBuf::from(&self.config.output_dir),
                 hf_config: self.config.hf_upload.clone(),
@@ -180,8 +180,6 @@ impl SweOrchestrator {
                 dataset_name: "SWE-Forge Benchmark".to_string(),
             };
             Some(Arc::new(DatasetManager::new(ds_config).await?))
-        } else {
-            None
         };
 
         let pipeline = crate::swe::pipeline::SwePipeline::new(&pipeline_config, self.llm.clone())?;
