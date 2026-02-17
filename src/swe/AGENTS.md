@@ -10,7 +10,7 @@ Core SWE mining pipeline. Fetches merged pull requests from GH Archive, enriches
 |------|---------------|
 | `mod.rs` | `SweTask` struct, `SweTaskStatus` enum, re-exports |
 | `gharchive.rs` | HTTP client for GH Archive hourly event dumps (gzip → JSON) |
-| `enricher.rs` | GitHub API enrichment (PR metadata, diff, files, 3x concurrent) |
+| `enricher.rs` | GitHub API enrichment (PR metadata, diff, files) |
 | `filters.rs` | Pre-filter (merged PRs, no bots, org repos, language, stars) |
 | `extractor.rs` | Git clone + `git diff` patch extraction |
 | `test_generator.rs` | Agentic multi-turn LLM test generation (up to 200 turns, `shell` + `submit_tests` tools) |
@@ -19,7 +19,9 @@ Core SWE mining pipeline. Fetches merged pull requests from GH Archive, enriches
 | `harness.rs` | Docker-isolated evaluation harness (sanity check → agent run → verify) |
 | `docker_sandbox.rs` | Docker sandbox for test generation phase |
 | `orchestrator.rs` | End-to-end pipeline orchestrator with `DifficultyTargets` |
-| `pipeline.rs` | Streaming pipeline with chunk processing (batches of 30) |
+| `pipeline.rs` | Streaming pipeline with semaphore-based concurrency |
+| `github_search.rs` | `GitHubSearchClient` — GitHub Search API as alternative PR source (30 req/min) |
+| `workspace_validator.rs` | `WorkspaceValidator` — pre-export Docker-based validation (install, tests, patch application) |
 | `pr_cache.rs` | SQLite-backed PR deduplication cache |
 | `progress.rs` | `ProgressMonitor` — background progress logging for long-running pipeline runs |
 
@@ -36,21 +38,22 @@ Core SWE mining pipeline. Fetches merged pull requests from GH Archive, enriches
 - `SwePipeline` / `SwePipelineEvent` / `SwePipelineRunResult` / `BenchmarkMetrics` — Streaming pipeline
 - `SweOrchestrator` / `SweOrchestratorConfig` / `SweRunResult` — Orchestrator
 - `ProgressMonitor` / `ProgressCounters` / `ProgressSnapshot` — Pipeline progress tracking
+- `GitHubSearchClient` / `SearchConfig` — GitHub Search API client
+- `WorkspaceValidator` / `ValidationOutcome` — Pre-export workspace validation
 
 ## Concurrency Limits
 
 | Stage | Concurrency | Rate Limit |
 |-------|-------------|------------|
 | GH Archive fetch | 8 | None |
-| GitHub enrichment | 3 | 5000 req/h |
-| LLM pre-classification | 10 | OpenRouter |
-| Patch extraction | 3 | None |
-| Test generation | 3 | OpenRouter |
+| GitHub enrichment | 10 | 5000 req/h |
+| LLM pre-classification | 25 | OpenRouter |
+| Deep processing (extract + test gen) | 8 | OpenRouter |
 
 ## Rules
 
 - Never leak `fail_to_pass` / `pass_to_pass` into `prompt.md` — use `prompt_rewriter.rs`
 - Always check `pr_cache` before processing a PR to avoid duplicates
-- Process candidates in chunks of 30 to respect GitHub rate limits
+- Pipeline uses semaphore-based concurrency — no chunk barriers
 - All LLM calls must use function calling (`tools` + `tool_choice: "required"`)
 - Harness statuses: `resolved`, `unresolved`, `agent_error`, `test_error`, `setup_error`, `sanity_fail`
