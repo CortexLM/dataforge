@@ -143,6 +143,26 @@ async fn docker_rm(container: &str) {
         .await;
 }
 
+async fn docker_write_file(container: &str, path: &str, content: &str) -> Result<()> {
+    use tokio::io::AsyncWriteExt;
+    let tee_cmd = format!("cat > '/repo/{}'", path);
+    let mut child = Command::new("docker")
+        .args(["exec", "-i", "-w", "/repo", container, "bash", "-c", &tee_cmd])
+        .stdin(std::process::Stdio::piped())
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::piped())
+        .spawn()?;
+    if let Some(ref mut stdin) = child.stdin {
+        stdin.write_all(content.as_bytes()).await?;
+        stdin.shutdown().await?;
+    }
+    let output = child.wait_with_output().await?;
+    if !output.status.success() {
+        anyhow::bail!("write failed: {}", String::from_utf8_lossy(&output.stderr));
+    }
+    Ok(())
+}
+
 fn container_name(task_id: &str) -> String {
     let safe = task_id.replace('/', "-").replace(' ', "_");
     format!("swe-harness-{safe}")
@@ -186,6 +206,14 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
     let agent_dir_abs =
         std::fs::canonicalize(&config.agent_dir).unwrap_or_else(|_| config.agent_dir.clone());
 
+    // Auto-select Docker image based on task language unless overridden
+    let docker_image = if config.docker_image == "python:3.12-slim" && task.language != "unknown" {
+        super::docker_sandbox::image_for_language(&task.language).to_string()
+    } else {
+        config.docker_image.clone()
+    };
+    info!(task_id = %task.id, language = %task.language, image = %docker_image, "Selected Docker image");
+
     // Remove stale container if exists
     docker_rm(&cname).await;
 
@@ -202,7 +230,7 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
             &format!("{}:/agent:ro", agent_dir_abs.display()),
             "-w",
             "/repo",
-            &config.docker_image,
+            &docker_image,
             "sleep",
             "7200",
         ])
@@ -243,7 +271,7 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
 
     // Clone repo
     let clone_cmd = format!(
-        "git clone --depth 100 https://github.com/{}.git /repo 2>&1",
+        "git clone --depth 500 https://github.com/{}.git /repo 2>&1",
         task.repo
     );
     let (code, _, err) = docker_exec(&cname, &clone_cmd, 180).await;
@@ -261,8 +289,27 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
         )
         .await;
         if code != 0 {
-            result.error = Some(format!("Checkout failed: {}", truncate(&err, 500)));
-            return result;
+            info!(task_id = %task.id, "Shallow clone missed commit, fetching full history...");
+            let (fcode, _, _ferr) = docker_exec(
+                &cname,
+                "cd /repo && git fetch --unshallow 2>&1",
+                300,
+            )
+            .await;
+            if fcode != 0 {
+                result.error = Some(format!("Checkout failed (even after unshallow): {}", truncate(&err, 500)));
+                return result;
+            }
+            let (code2, _, err2) = docker_exec(
+                &cname,
+                &format!("cd /repo && git checkout {} --force 2>&1", task.base_commit),
+                60,
+            )
+            .await;
+            if code2 != 0 {
+                result.error = Some(format!("Checkout failed: {}", truncate(&err2, 500)));
+                return result;
+            }
         }
     }
 
@@ -287,6 +334,21 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
     .await;
     if code != 0 {
         warn!(task_id = %task.id, "Agent requirements install returned non-zero (continuing)");
+    }
+
+    // Copy test files into container
+    if let Some(test_files_json) = task.meta.get("test_files") {
+        if let Ok(files) = serde_json::from_str::<Vec<super::test_generator::TestFile>>(test_files_json) {
+            for tf in &files {
+                let mkdir_cmd = format!("mkdir -p \"$(dirname '/repo/{}')\"", tf.path);
+                docker_exec(&cname, &mkdir_cmd, 10).await;
+                let write_result = docker_write_file(&cname, &tf.path, &tf.content).await;
+                if let Err(e) = write_result {
+                    warn!(task_id = %task.id, path = %tf.path, "Failed to copy test file: {}", e);
+                }
+            }
+            info!(task_id = %task.id, "Copied {} test files into container", files.len());
+        }
     }
 
     // 2. SANITY CHECK: fail_to_pass must fail, pass_to_pass must pass

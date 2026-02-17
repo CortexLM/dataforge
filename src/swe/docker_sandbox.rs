@@ -105,7 +105,7 @@ impl DockerSandbox {
 
         // Clone the repository
         let clone_cmd = format!(
-            "git clone --depth 50 https://github.com/{}.git /repo 2>&1",
+            "git clone --depth 500 https://github.com/{}.git /repo 2>&1",
             repo
         );
         let clone = sandbox.exec(&clone_cmd, 180_000).await;

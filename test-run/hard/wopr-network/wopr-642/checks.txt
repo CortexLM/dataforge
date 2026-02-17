@@ -1,0 +1,2 @@
+npm test -- --run tests/unit/core-byok-only.test.ts
+npm test -- --run tests/unit/events.test.ts

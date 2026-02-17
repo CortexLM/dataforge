@@ -1,0 +1,39 @@
+id: batocera-linux/batocera.linux-15418
+repo: batocera-linux/batocera.linux
+base_commit: c07a96709fee746b754b01e8037fcb83edbfa5b9
+merge_commit: a4e4398441fe003ab3d616e72c069a1ca41c992f
+language: python
+difficulty_score: 1
+created_at: 2026-02-17T11:06:01.166929859Z
+patch: "diff --git a/package/batocera/core/batocera-system/Config.in b/package/batocera/core/batocera-system/Config.in\nindex 28ebc525e77..a28849978df 100644\n--- a/package/batocera/core/batocera-system/Config.in\n+++ b/package/batocera/core/batocera-system/Config.in\n@@ -1134,7 +1134,7 @@ config BR2_PACKAGE_BATOCERA_PORTS_SYSTEMS\n \t# Quake 2\n \tselect BR2_PACKAGE_LIBRETRO_VITAQUAKE2    if BR2_PACKAGE_BATOCERA_GLES3\n \tselect BR2_PACKAGE_VKQUAKE2\t\t          if BR2_PACKAGE_BATOCERA_VULKAN && BR2_PACKAGE_XORG7\n-\tselect BR2_PACKAGE_YQUAKE2\t\t# ALL\n+\tselect BR2_PACKAGE_YQUAKE2\t\t    if !BR2_riscv\n \tselect BR2_PACKAGE_YQUAKE2_XATRIX\tif BR2_PACKAGE_YQUAKE2\t# Mission Packs\n \tselect BR2_PACKAGE_YQUAKE2_ROGUE\tif BR2_PACKAGE_YQUAKE2\n \tselect BR2_PACKAGE_YQUAKE2_ZAERO\tif BR2_PACKAGE_YQUAKE2\n"
+test_patch: ''
+fail_to_pass:
+- python -m unittest tests/test_yquake2_riscv_config.py
+pass_to_pass:
+- python -m compileall -q python-src
+install_config:
+  install: pip install -e .
+  python: '3.11'
+  test_cmd: pytest
+meta:
+  added_lines: '1'
+  difficulty: easy
+  files_changed: '1'
+  pr_title: no yquake2 for riscv boards... yet
+  removed_lines: '1'
+  source: gh-archive-pr
+  test_files: '[{"path":"tests/test_yquake2_riscv_config.py","content":"import re\nimport unittest\nfrom pathlib import Path\n\nCONFIG_PATH = Path(\"package/batocera/core/batocera-system/Config.in\")\n\n\ndef parse_selects(path: Path) -> dict[str, list[str | None]]:\n    selects: dict[str, list[str | None]] = {}\n    for raw_line in path.read_text().splitlines():\n        line = raw_line.split(\"#\", 1)[0].strip()\n        if not line:\n            continue\n        match = re.match(r\"^select\\s+(\\S+)(?:\\s+if\\s+(.+))?$\", line)\n        if match:\n            symbol = match.group(1)\n            condition = match.group(2)\n            selects.setdefault(symbol, []).append(condition)\n    return selects\n\n\ndef eval_expr(expr: str | None, symbols: dict[str, bool]) -> bool:\n    if expr is None:\n        return True\n    normalized = expr.replace(\"&&\", \" and \").replace(\"||\", \" or \")\n    normalized = re.sub(r\"!(?!=)\", \" not \", normalized)\n\n    def replace_symbol(match: re.Match[str]) -> str:\n        token = match.group(0)\n        if token in {\"and\", \"or\", \"not\"}:\n            return token\n        return f\"symbols.get(''{token}'', False)\"\n\n    normalized = re.sub(r\"\\b[A-Za-z0-9_]+\\b\", replace_symbol, normalized)\n    return bool(eval(normalized, {\"symbols\": symbols}))\n\n\ndef is_selected(symbol: str, selects: dict[str, list[str | None]], symbols: dict[str, bool]) -> bool:\n    if symbol not in selects:\n        return False\n    return any(eval_expr(condition, symbols) for condition in selects[symbol])\n\n\ndef compute_config(selects: dict[str, list[str | None]], base_symbols: dict[str, bool]) -> dict[str, bool]:\n    symbols = dict(base_symbols)\n    symbols[\"BR2_PACKAGE_YQUAKE2\"] = is_selected(\"BR2_PACKAGE_YQUAKE2\", selects, symbols)\n    return symbols\n\n\nclass TestYQuake2RiscvSelection(unittest.TestCase):\n    def test_yquake2_selection_respects_riscv_flag(self) -> None:\n        selects = parse_selects(CONFIG_PATH)\n\n        non_riscv_config = compute_config(selects, {\"BR2_riscv\": False})\n        self.assertTrue(non_riscv_config[\"BR2_PACKAGE_YQUAKE2\"])\n\n        riscv_config = compute_config(selects, {\"BR2_riscv\": True})\n        self.assertFalse(riscv_config[\"BR2_PACKAGE_YQUAKE2\"])\n\n    def test_yquake2_mission_packs_follow_selection(self) -> None:\n        selects = parse_selects(CONFIG_PATH)\n\n        non_riscv_config = compute_config(selects, {\"BR2_riscv\": False})\n        self.assertTrue(is_selected(\"BR2_PACKAGE_YQUAKE2_XATRIX\", selects, non_riscv_config))\n\n        riscv_config = compute_config(selects, {\"BR2_riscv\": True})\n        self.assertFalse(is_selected(\"BR2_PACKAGE_YQUAKE2_XATRIX\", selects, riscv_config))\n\n\nif __name__ == \"__main__\":\n    unittest.main()\n"}]'
+  test_generation: agentic-docker
+prompt: |-
+  batocera-linux/batocera.linux (#15418): no yquake2 for riscv boards... yet
+
+  Disable or withhold the yquake2 package/build for RISC-V boards so it is not offered or built on those platforms until support is ready.
+original_pr_body: |-
+  batocera-linux/batocera.linux (#15418): no yquake2 for riscv boards... yet
+
+  (no description)
+quality_score: 0.2
+quality_passed: true
+docker_passed: false
+workspace_path: null
+status: ready

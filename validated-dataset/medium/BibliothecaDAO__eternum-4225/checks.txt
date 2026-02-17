@@ -1,0 +1,2 @@
+pnpm --filter landing exec vitest --run src/components/providers/starknet-connectors.test.ts
+pnpm --filter landing exec vitest --run src/lib/pagination.test.ts

@@ -1,0 +1,36 @@
+id: Altinn/altinn-studio-17755
+repo: Altinn/altinn-studio
+base_commit: 8c3cfb740da0ba520c3805ac5d991e4b5e4faac1
+merge_commit: 2023cc20d356c66b7dfbf76fda5a223d8ea90e7d
+language: typescript
+difficulty_score: 2
+created_at: 2026-02-17T12:33:28.552769332Z
+patch: "diff --git a/src/Designer/frontend/libs/studio-content-library/src/pages/CodeLists/CodeListsPage/CodeListDataEditor/Publishing.tsx b/src/Designer/frontend/libs/studio-content-library/src/pages/CodeLists/CodeListsPage/CodeListDataEditor/Publishing.tsx\nindex 637d32a5b4e..e1aa1bc0247 100644\n--- a/src/Designer/frontend/libs/studio-content-library/src/pages/CodeLists/CodeListsPage/CodeListDataEditor/Publishing.tsx\n+++ b/src/Designer/frontend/libs/studio-content-library/src/pages/CodeLists/CodeListsPage/CodeListDataEditor/Publishing.tsx\n@@ -1,6 +1,6 @@\n import React, { useMemo } from 'react';\n import { StudioButton, StudioTag } from '@studio/components';\n-import { PublishedElements } from '../../../../utils/PublishedElements/PublishedElements';\n+import { PublishedElements } from '@studio/pure-functions';\n import { useTranslation } from 'react-i18next';\n \n export type PublishingProps = {\ndiff --git a/src/Designer/frontend/libs/studio-content-library/src/utils/PublishedElements/PublishedElements.test.ts b/src/Designer/frontend/libs/studio-pure-functions/src/PublishedElements/PublishedElements.test.ts\nsimilarity index 100%\nrename from src/Designer/frontend/libs/studio-content-library/src/utils/PublishedElements/PublishedElements.test.ts\nrename to src/Designer/frontend/libs/studio-pure-functions/src/PublishedElements/PublishedElements.test.ts\ndiff --git a/src/Designer/frontend/libs/studio-content-library/src/utils/PublishedElements/PublishedElements.ts b/src/Designer/frontend/libs/studio-pure-functions/src/PublishedElements/PublishedElements.ts\nsimilarity index 96%\nrename from src/Designer/frontend/libs/studio-content-library/src/utils/PublishedElements/PublishedElements.ts\nrename to src/Designer/frontend/libs/studio-pure-functions/src/PublishedElements/PublishedElements.ts\nindex d341e6737ee..56d88d23a39 100644\n--- a/src/Designer/frontend/libs/studio-content-library/src/utils/PublishedElements/PublishedElements.ts\n+++ b/src/Designer/frontend/libs/studio-pure-functions/src/PublishedElements/PublishedElements.ts\n@@ -1,5 +1,5 @@\n import { Guard } from '@studio/guard';\n-import { FileNameUtils } from '@studio/pure-functions';\n+import { FileNameUtils } from '../FileNameUtils';\n \n export class PublishedElements {\n   readonly #fileNames: readonly string[];\ndiff --git a/src/Designer/frontend/libs/studio-pure-functions/src/PublishedElements/index.ts b/src/Designer/frontend/libs/studio-pure-functions/src/PublishedElements/index.ts\nnew file mode 100644\nindex 00000000000..ec7f2e25372\n--- /dev/null\n+++ b/src/Designer/frontend/libs/studio-pure-functions/src/PublishedElements/index.ts\n@@ -0,0 +1 @@\n+export * from './PublishedElements';\ndiff --git a/src/Designer/frontend/libs/studio-pure-functions/src/index.ts b/src/Designer/frontend/libs/studio-pure-functions/src/index.ts\nindex 29bb24d016f..33a400cbf48 100644\n--- a/src/Designer/frontend/libs/studio-pure-functions/src/index.ts\n+++ b/src/Designer/frontend/libs/studio-pure-functions/src/index.ts\n@@ -5,6 +5,7 @@ export * from './FileNameUtils';\n export * from './FileUtils';\n export * from './NumberUtils';\n export * from './ObjectUtils';\n+export * from './PublishedElements';\n export * from './ReadonlyMapUtils';\n export * from './ScopedStorage';\n export * from './StringUtils';\n"
+test_patch: ''
+fail_to_pass:
+- yarn workspace @studio/pure-functions test --watch=false --testPathPattern PublishedElements.export.test.ts
+pass_to_pass:
+- yarn workspace @studio/pure-functions test --watch=false --testPathPattern FileNameUtils.test.ts
+install_config:
+  install: npm install
+  node: '20'
+  test_cmd: npm test
+meta:
+  added_lines: '4'
+  difficulty: medium
+  files_changed: '5'
+  pr_title: 'refactor: Move PublishedElements class to the pure-functions library'
+  removed_lines: '2'
+  source: gh-archive-pr
+  test_files: '[{"path":"src/Designer/frontend/libs/studio-pure-functions/src/PublishedElements/PublishedElements.export.test.ts","content":"import { PublishedElements } from ''@studio/pure-functions'';\n\nconst elementName = ''widgets'';\nconst otherElement = ''gadgets'';\n\nconst fileNames = [\n  ''_index.json'',\n  `${elementName}/1.json`,\n  `${elementName}/2.json`,\n  `${elementName}/10.json`,\n  `${elementName}/_index.json`,\n  `${elementName}/_latest.json`,\n  `${elementName}/README.md`,\n  `${otherElement}/1.json`,\n  `${otherElement}/_latest.json`,\n  `${otherElement}/_index.json`,\n  `${otherElement}/2.JSON`,\n];\n\ndescribe(''PublishedElements (from pure-functions export)'', () => {\n  it(''detects published elements and latest versions with mixed file types'', () => {\n    const publishedElements = new PublishedElements(fileNames);\n\n    expect(publishedElements.isPublished(elementName)).toBe(true);\n    expect(publishedElements.latestVersionOrNull(elementName)).toBe(10);\n\n    expect(publishedElements.isPublished(otherElement)).toBe(true);\n    expect(publishedElements.latestVersionOrNull(otherElement)).toBe(2);\n  });\n\n  it(''returns null and false when required versions are missing'', () => {\n    const publishedElements = new PublishedElements([\n      ''_index.json'',\n      ''widgets/1.json'',\n      ''widgets/_index.json'',\n    ]);\n\n    expect(publishedElements.isPublished(''widgets'')).toBe(false);\n    expect(publishedElements.latestVersionOrNull(''widgets'')).toBeNull();\n  });\n});\n"}]'
+  test_generation: agentic-docker
+prompt: |-
+  Altinn/altinn-studio (#17755): refactor: Move PublishedElements class to the pure-functions library
+
+  Expose the PublishedElements utilities for use outside the content library so they can be used in the layout editor. Ensure the functionality remains pure and accessible from the pure-functions library, with no change to user-facing behavior.
+original_pr_body: "Altinn/altinn-studio (#17755): refactor: Move PublishedElements class to the pure-functions library\n\n## Description\r\nThis pull request moves the `PublishedElements` class from `content-library` to `pure-functions`. This is necessary because we need these utilities in the layout editor, and not only internally in the content library. Both the exposed funcions of the `PublishedElements` class are pure, satisfying the constraints of the `pure-functions` library.\r\n\r\n## Verification\r\n- [x] Related issues are connected (if applicable)\r\n- [x] **Your** code builds clean without any errors or warnings\r\n- [x] Manual testing done (required)\r\n- Adding automated tests not necessary; refactoring only\r\n\n\n<!-- This is an auto-generated comment: release notes by coderabbit.ai -->\n\n## Summary by CodeRabbit\n\n* **Refactor**\n  * Reorganised internal module imports and exposed PublishedElements functionality through updated package exports. No changes to user-facing functionality or behaviour.\n\n<!-- end of auto-generated comment: release notes by coderabbit.ai -->"
+quality_score: 0.5
+quality_passed: true
+docker_passed: false
+workspace_path: null
+status: ready

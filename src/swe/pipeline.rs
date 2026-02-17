@@ -360,6 +360,7 @@ impl SwePipeline {
                         enriched.stars,
                         enriched.files_changed,
                         added_lines,
+                        &enriched.changed_files,
                     );
                     filtered_count.fetch_add(1, Ordering::Relaxed);
                     if !filter_result.accepted {

@@ -1,0 +1,42 @@
+id: BibliothecaDAO/eternum-4225
+repo: BibliothecaDAO/eternum
+base_commit: 27abb2e474b2136a5d316bcdcd2b9116b7834682
+merge_commit: 499269a1e16fbb418387f6f48600f9d538c91510
+language: javascript
+difficulty_score: 2
+created_at: 2026-02-17T11:13:22.678084107Z
+patch: "diff --git a/client/apps/landing/src/components/providers/starknet-connectors.test.ts b/client/apps/landing/src/components/providers/starknet-connectors.test.ts\nnew file mode 100644\nindex 0000000000..d68556d57b\n--- /dev/null\n+++ b/client/apps/landing/src/components/providers/starknet-connectors.test.ts\n@@ -0,0 +1,22 @@\n+import { describe, expect, it } from \"vitest\";\n+\n+import { buildStarknetConnectors, getInjectedConnectorsOptions } from \"./starknet-connectors\";\n+\n+describe(\"starknet connector configuration\", () => {\n+  it(\"keeps recommended wallet providers enabled\", () => {\n+    const options = getInjectedConnectorsOptions();\n+\n+    expect(options.includeRecommended).toBe(\"always\");\n+    expect(options.recommended.map((connector) => connector.id)).toEqual(expect.arrayContaining([\"argentX\", \"braavos\"]));\n+  });\n+\n+  it(\"includes non-cartridge connectors when cartridge-only mode is disabled\", () => {\n+    const cartridgeConnector = { id: \"controller\" } as any;\n+    const externalConnector = { id: \"metamask\" } as any;\n+\n+    expect(buildStarknetConnectors(cartridgeConnector, [externalConnector], false)).toEqual([\n+      cartridgeConnector,\n+      externalConnector,\n+    ]);\n+  });\n+});\ndiff --git a/client/apps/landing/src/components/providers/starknet-connectors.ts b/client/apps/landing/src/components/providers/starknet-connectors.ts\nnew file mode 100644\nindex 0000000000..6bf94762e7\n--- /dev/null\n+++ b/client/apps/landing/src/components/providers/starknet-connectors.ts\n@@ -0,0 +1,15 @@\n+import { argent, braavos, type Connector, type UseInjectedConnectorsProps } from \"@starknet-react/core\";\n+\n+type InjectedConnectorOptions = Required<Pick<UseInjectedConnectorsProps, \"recommended\" | \"includeRecommended\" | \"order\">>;\n+\n+export const getInjectedConnectorsOptions = (): InjectedConnectorOptions => ({\n+  recommended: [argent(), braavos()],\n+  includeRecommended: \"always\",\n+  order: \"random\",\n+});\n+\n+export const buildStarknetConnectors = (\n+  cartridgeConnector: Connector,\n+  injectedConnectors: Connector[],\n+  onlyCartridge = false,\n+): Connector[] => [cartridgeConnector, ...(onlyCartridge ? [] : injectedConnectors)];\ndiff --git a/client/apps/landing/src/components/providers/starknet-provider.tsx b/client/apps/landing/src/components/providers/starknet-provider.tsx\nindex b341fe2184..9e79699dc1 100644\n--- a/client/apps/landing/src/components/providers/starknet-provider.tsx\n+++ b/client/apps/landing/src/components/providers/starknet-provider.tsx\n@@ -1,10 +1,11 @@\n import ControllerConnector from \"@cartridge/connector/controller\";\n import { mainnet, sepolia } from \"@starknet-react/chains\";\n-import { StarknetConfig, argent, braavos, jsonRpcProvider, useInjectedConnectors, voyager } from \"@starknet-react/core\";\n+import { StarknetConfig, jsonRpcProvider, useInjectedConnectors, voyager } from \"@starknet-react/core\";\n import React, { useCallback } from \"react\";\n import { constants, shortString } from \"starknet\";\n import { env } from \"../../../env\";\n import { getResourceAddresses } from \"../ui/utils/addresses\";\n+import { buildStarknetConnectors, getInjectedConnectorsOptions } from \"./starknet-connectors\";\n \n const KATANA_CHAIN_ID = shortString.encodeShortString(\"KATANA\");\n const resourceAddresses = getResourceAddresses();\n@@ -33,14 +34,7 @@ const cartridgeController = new ControllerConnector({\n });\n \n export function StarknetProvider({ children, onlyCartridge }: { children: React.ReactNode; onlyCartridge?: boolean }) {\n-  const { connectors } = useInjectedConnectors({\n-    // Show these connectors if the user has no connector installed.\n-    recommended: [argent(), braavos()],\n-    // Hide recommended connectors if the user has any connector installed.\n-    includeRecommended: \"onlyIfNoConnectors\",\n-    // Randomize the order of the connectors.\n-    order: \"random\",\n-  });\n+  const { connectors } = useInjectedConnectors(getInjectedConnectorsOptions());\n   const rpc = useCallback(() => {\n     return { nodeUrl: env.VITE_PUBLIC_NODE_URL };\n   }, []);\n@@ -50,7 +44,7 @@ export function StarknetProvider({ children, onlyCartridge }: { children: React.\n     <StarknetConfig\n       chains={[mainnet, sepolia]}\n       provider={jsonRpcProvider({ rpc })}\n-      connectors={[cartridgeController, ...(onlyCartridge ? [] : [...connectors])]}\n+      connectors={buildStarknetConnectors(cartridgeController, connectors, onlyCartridge)}\n       explorer={voyager}\n       autoConnect={true}\n     >\n"
+test_patch: ''
+fail_to_pass:
+- pnpm --filter landing exec vitest --run src/components/providers/starknet-connectors.test.ts
+pass_to_pass:
+- pnpm --filter landing exec vitest --run src/lib/pagination.test.ts
+install_config:
+  install: npm install
+  node: '20'
+  test_cmd: npm test
+meta:
+  added_lines: '41'
+  difficulty: medium
+  files_changed: '3'
+  pr_title: 'landing: re-enable non-cartridge wallet providers'
+  removed_lines: '10'
+  source: gh-archive-pr
+  test_files: '[{"path":"client/apps/landing/src/components/providers/starknet-connectors.test.ts","content":"import { describe, expect, it } from \"vitest\";\n\nimport { buildStarknetConnectors, getInjectedConnectorsOptions } from \"./starknet-connectors\";\n\ndescribe(\"starknet-connectors\", () => {\n  it(\"keeps recommended wallet providers available when injected wallets exist\", () => {\n    const options = getInjectedConnectorsOptions();\n\n    expect(options.includeRecommended).toBe(\"always\");\n    expect(options.order).toBe(\"random\");\n    expect(options.recommended.map((connector) => connector.id)).toEqual(\n      expect.arrayContaining([\"argentX\", \"braavos\"]),\n    );\n  });\n\n  it(\"returns only the cartridge connector when cartridge-only mode is enabled\", () => {\n    const cartridgeConnector = { id: \"controller\" } as any;\n    const injected = [{ id: \"alpha\" } as any, { id: \"beta\" } as any];\n\n    const connectors = buildStarknetConnectors(cartridgeConnector, injected, true);\n\n    expect(connectors).toEqual([cartridgeConnector]);\n    expect(connectors).not.toContain(injected[0]);\n  });\n\n  it(\"includes non-cartridge connectors when cartridge-only mode is disabled\", () => {\n    const cartridgeConnector = { id: \"controller\" } as any;\n    const injected = [{ id: \"alpha\" } as any, { id: \"beta\" } as any];\n\n    const connectors = buildStarknetConnectors(cartridgeConnector, injected, false);\n\n    expect(connectors).toEqual([cartridgeConnector, ...injected]);\n    expect(connectors).toContain(injected[1]);\n  });\n});\n"}]'
+  test_generation: agentic-docker
+prompt: |-
+  BibliothecaDAO/eternum (#4225): landing: re-enable non-cartridge wallet providers
+
+  Enable recommended Starknet wallet providers (ArgentX and Braavos) in the landing app even when injected wallets are present. Ensure non-Cartridge wallet connectors are available when the configuration does not restrict to Cartridge-only. Add coverage to prevent regressions of these behaviors.
+original_pr_body: |-
+  BibliothecaDAO/eternum (#4225): landing: re-enable non-cartridge wallet providers
+
+  This PR re-enables additional wallet providers in the landing app by keeping recommended Starknet wallets (ArgentX and Braavos) enabled even when injected wallets are present.
+  It extracts connector option and connector-list composition into `starknet-connectors.ts` and updates `StarknetProvider` to use that shared logic.
+  It also adds regression tests to ensure recommended providers remain enabled and non-Cartridge connectors are included when `onlyCartridge` is false.
+  Verified with `pnpm --dir client/apps/landing dlx vitest run src/components/providers/starknet-connectors.test.ts`.
+quality_score: 0.5
+quality_passed: true
+docker_passed: false
+workspace_path: null
+status: ready

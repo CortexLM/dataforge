@@ -1,0 +1,39 @@
+id: hermetoproject/hermeto-1294
+repo: hermetoproject/hermeto
+base_commit: 14930d913a5b4e968d77d9a47ccb66704ecc0650
+merge_commit: 0c4cf39f30a55f2f54ebad6cc47f0658de62e9f5
+language: python
+difficulty_score: 2
+created_at: 2026-02-17T11:17:01.127189549Z
+patch: "diff --git a/hermeto/core/package_managers/pip/main.py b/hermeto/core/package_managers/pip/main.py\nindex cbefe4cb0..36443950c 100644\n--- a/hermeto/core/package_managers/pip/main.py\n+++ b/hermeto/core/package_managers/pip/main.py\n@@ -57,15 +57,12 @@ def fetch_pip_source(request: Request) -> RequestOutput:\n     \"\"\"Resolve and fetch pip dependencies for the given request.\"\"\"\n     components: list[Component] = []\n     project_files: list[ProjectFile] = []\n-    environment_variables: list[EnvironmentVariable] = []\n+    environment_variables: list[EnvironmentVariable] = [\n+        EnvironmentVariable(name=\"PIP_FIND_LINKS\", value=\"${output_dir}/deps/pip\"),\n+        EnvironmentVariable(name=\"PIP_NO_INDEX\", value=\"true\"),\n+    ]\n     packages_containing_rust_code = []\n \n-    if request.pip_packages:\n-        environment_variables = [\n-            EnvironmentVariable(name=\"PIP_FIND_LINKS\", value=\"${output_dir}/deps/pip\"),\n-            EnvironmentVariable(name=\"PIP_NO_INDEX\", value=\"true\"),\n-        ]\n-\n     for package in request.pip_packages:\n         package_path = request.source_dir.join_within_root(package.path)\n         info = _resolve_pip(\n@@ -281,7 +278,7 @@ def _checksum_must_match_or_path_unlink(\n     if dpi:\n         if dpi.req_file_checksums:\n             download_info[\"missing_req_file_checksum\"] = False\n-        if dpi.has_checksums_to_match:\n+        if dpi.checksums_to_match:\n             _checksum_must_match_or_path_unlink(dpi.path, dpi.checksums_to_match)\n         if dpi.package_type == \"sdist\":\n             _check_metadata_in_sdist(dpi.path)\ndiff --git a/hermeto/core/package_managers/pip/package_distributions.py b/hermeto/core/package_managers/pip/package_distributions.py\nindex de51fa93f..c1464ec92 100644\n--- a/hermeto/core/package_managers/pip/package_distributions.py\n+++ b/hermeto/core/package_managers/pip/package_distributions.py\n@@ -84,15 +84,6 @@ def should_download(self) -> bool:\n             or len(self.req_file_checksums) == 0\n         )\n \n-    @property\n-    def has_checksums_to_match(self) -> bool:\n-        \"\"\"Determine if we have checksums to match against.\n-\n-        This decides whether or not we\n-        call `hermeto.core.checksum.must_match_any_checksum()`\n-        \"\"\"\n-        return len(self.checksums_to_match) > 0\n-\n     @property\n     def download_info(self) -> dict[str, Any]:\n         \"\"\"Only necessary attributes to process download information.\"\"\"\ndiff --git a/tests/unit/package_managers/pip/test_main.py b/tests/unit/package_managers/pip/test_main.py\nindex 5e03cacc6..ccca8baf5 100644\n--- a/tests/unit/package_managers/pip/test_main.py\n+++ b/tests/unit/package_managers/pip/test_main.py\n@@ -1283,11 +1283,6 @@ def test_replace_external_requirements(\n @pytest.mark.parametrize(\n     \"packages, n_pip_packages\",\n     [\n-        pytest.param(\n-            [{\"type\": \"gomod\"}],\n-            0,\n-            id=\"not_python_project\",\n-        ),\n         pytest.param(\n             [{\"type\": \"pip\", \"requirements_files\": [\"requirements.txt\"]}],\n             1,\n@@ -1444,10 +1439,7 @@ def test_fetch_pip_source(\n         ),\n     ]\n \n-    if n_pip_packages == 0:\n-        expect_packages = []\n-        expect_files = []\n-    elif n_pip_packages == 1:\n+    if n_pip_packages == 1:\n         expect_packages = expect_components_package_a\n         expect_files = [replaced_file_a]\n     elif n_pip_packages == 2:\n@@ -1458,15 +1450,15 @@ def test_fetch_pip_source(\n \n     assert output.components == expect_packages\n     assert output.build_config.project_files == expect_files\n-    assert len(output.build_config.environment_variables) == (2 if n_pip_packages > 0 else 0)\n+    assert len(output.build_config.environment_variables) == 2\n \n-    if n_pip_packages >= 1:\n+    if n_pip_packages == 1:\n         mock_resolve_pip.assert_any_call(\n             source_dir, output_dir, [Path(\"requirements.txt\")], None, None\n         )\n         mock_replace_requirements.assert_any_call(\"/package_a/requirements.txt\")\n         mock_replace_requirements.assert_any_call(\"/package_a/requirements-build.txt\")\n-    if n_pip_packages >= 2:\n+    if n_pip_packages == 2:\n         mock_resolve_pip.assert_any_call(\n             source_dir.join_within_root(\"foo\"), output_dir, None, [], None\n         )\n"
+test_patch: ''
+fail_to_pass:
+- python -m pytest tests/unit/package_managers/pip/test_fetch_pip_source_env.py -q
+pass_to_pass:
+- python -m pytest tests/unit/package_managers/pip/test_main.py::test_fetch_pip_source -q
+install_config:
+  install: pip install -e .
+  python: '3.11'
+  test_cmd: pytest
+meta:
+  added_lines: '9'
+  difficulty: medium
+  files_changed: '3'
+  pr_title: pip minor improvements
+  removed_lines: '29'
+  source: gh-archive-pr
+  test_files: '[{"path":"tests/unit/package_managers/pip/test_fetch_pip_source_env.py","content":"import pytest\n\nfrom hermeto.core.models.input import Request\nfrom hermeto.core.models.output import EnvironmentVariable\nfrom hermeto.core.package_managers.pip import main as pip\nfrom hermeto.core.rooted_path import RootedPath\n\n\ndef test_fetch_pip_source_sets_env_vars_without_pip_packages(tmp_path):\n    source_dir = RootedPath(tmp_path)\n    output_dir = RootedPath(tmp_path / \"output\")\n    app_dir = tmp_path / \"app\"\n    app_dir.mkdir()\n\n    request = Request(\n        source_dir=source_dir,\n        output_dir=output_dir,\n        packages=[{\"type\": \"npm\", \"path\": \"app\"}],\n    )\n\n    output = pip.fetch_pip_source(request)\n\n    assert output.build_config.environment_variables == [\n        EnvironmentVariable(name=\"PIP_FIND_LINKS\", value=\"${output_dir}/deps/pip\"),\n        EnvironmentVariable(name=\"PIP_NO_INDEX\", value=\"true\"),\n    ]\n    assert output.components == []\n"}]'
+  test_generation: agentic-docker
+prompt: |-
+  hermetoproject/hermeto (#1294): pip minor improvements
+
+  Implement minor improvements to pip-related functionality. Ensure any user-visible behavior is updated accordingly and remains stable.
+original_pr_body: |-
+  hermetoproject/hermeto (#1294): pip minor improvements
+
+  Stale branch in my fork.
+quality_score: 0.5
+quality_passed: true
+docker_passed: false
+workspace_path: null
+status: ready
