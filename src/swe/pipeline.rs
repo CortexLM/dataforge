@@ -7,7 +7,7 @@ use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::io::Write;
 use std::path::Path;
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -73,6 +73,9 @@ pub struct BenchmarkMetrics {
     pub difficulty_medium: usize,
     pub difficulty_hard: usize,
     pub accepted_count: usize,
+    pub validation_attempted: usize,
+    pub validation_passed: usize,
+    pub validation_failed: usize,
     pub total_processing_time_ms: u64,
     pub avg_per_pr_time_ms: f64,
     pub throughput_prs_per_sec: f64,
@@ -101,6 +104,11 @@ pub enum SwePipelineEvent {
         score: f64,
         passed: bool,
     },
+    WorkspaceValidated {
+        task_id: String,
+        passed: bool,
+        reason: Option<String>,
+    },
     PipelineCompleted {
         emitted: usize,
     },
@@ -123,6 +131,12 @@ pub struct SwePipelineConfig {
     pub cache: super::OptionalCache,
     /// Override Docker image for mining containers (auto-select by language if None).
     pub mining_image: Option<String>,
+    /// Enable pre-export workspace validation in a fresh Docker container.
+    pub validate_workspace: bool,
+    /// Override enrichment concurrency (default: 10).
+    pub concurrency_enrich: Option<usize>,
+    /// Override deep processing concurrency (default: 8).
+    pub concurrency_deep: Option<usize>,
 }
 
 impl Default for SwePipelineConfig {
@@ -139,6 +153,9 @@ impl Default for SwePipelineConfig {
             difficulty_targets: None,
             cache: super::OptionalCache::none(),
             mining_image: None,
+            validate_workspace: true,
+            concurrency_enrich: None,
+            concurrency_deep: None,
         }
     }
 }
@@ -290,9 +307,10 @@ impl SwePipeline {
         // === POOL-BASED PIPELINE ===
         // Each event flows independently through: enrich -> filter -> pre-classify -> deep process.
         // Semaphores control concurrency at each stage. No chunk barriers.
-        let enrich_sem = Arc::new(Semaphore::new(5));
-        let preclassify_sem = Arc::new(Semaphore::new(15));
-        let deep_sem = Arc::new(Semaphore::new(5));
+        let enrich_sem = Arc::new(Semaphore::new(config.concurrency_enrich.unwrap_or(10)));
+        let preclassify_sem = Arc::new(Semaphore::new(25));
+        let deep_sem = Arc::new(Semaphore::new(config.concurrency_deep.unwrap_or(8)));
+        let cancelled = Arc::new(AtomicBool::new(false));
 
         let enricher = &self.enricher;
         let filter = &self.filter;
@@ -341,8 +359,12 @@ impl SwePipeline {
         let difficulty_medium_m = Arc::new(AtomicUsize::new(0));
         let difficulty_hard_m = Arc::new(AtomicUsize::new(0));
         let accepted_count_m = Arc::new(AtomicUsize::new(0));
+        let validation_attempted_m = Arc::new(AtomicUsize::new(0));
+        let validation_passed_m = Arc::new(AtomicUsize::new(0));
+        let validation_failed_m = Arc::new(AtomicUsize::new(0));
         let quality_scores_m: Arc<Mutex<Vec<f64>>> = Arc::new(Mutex::new(Vec::new()));
         let languages_m: Arc<Mutex<HashMap<String, usize>>> = Arc::new(Mutex::new(HashMap::new()));
+        let validate_workspace = config.validate_workspace;
 
         let total_prefiltered = events.len();
 
@@ -385,8 +407,13 @@ impl SwePipeline {
                 let difficulty_medium_m = difficulty_medium_m.clone();
                 let difficulty_hard_m = difficulty_hard_m.clone();
                 let accepted_count_m = accepted_count_m.clone();
+                let validation_attempted_m = validation_attempted_m.clone();
+                let validation_passed_m = validation_passed_m.clone();
+                let validation_failed_m = validation_failed_m.clone();
                 let quality_scores_m = quality_scores_m.clone();
                 let languages_m = languages_m.clone();
+                let cancelled = cancelled.clone();
+                let mining_image = config.mining_image.clone();
                 async move {
                     // Helper: check if all quotas are met (multi-target mode)
                     let all_targets_met = |per_diff: &HashMap<String, usize>, dt: &Option<DifficultyTargets>| -> bool {
@@ -397,6 +424,11 @@ impl SwePipeline {
                             None => false,
                         }
                     };
+
+                    // Early exit: cancellation token
+                    if cancelled.load(Ordering::Relaxed) {
+                        return;
+                    }
 
                     // Early exit: single-difficulty mode
                     if dt.is_none() && completed.load(Ordering::Relaxed) >= max_tasks && once {
@@ -432,6 +464,20 @@ impl SwePipeline {
                     };
 
                     if enriched.title == "Untitled change" || enriched.merge_sha.is_empty() {
+                        return;
+                    }
+
+                    // Reject PRs with no code changes
+                    if enriched.files_changed == 0 || (enriched.added_lines == 0 && enriched.removed_lines == 0) {
+                        tracing::debug!(
+                            repo = %enriched.repository, pr = enriched.number,
+                            "Skipped: no code changes (files={}, added={}, removed={})",
+                            enriched.files_changed, enriched.added_lines, enriched.removed_lines,
+                        );
+                        return;
+                    }
+
+                    if cancelled.load(Ordering::Relaxed) {
                         return;
                     }
 
@@ -756,6 +802,47 @@ impl SwePipeline {
                     );
 
                     if passed && difficulty_ok {
+                        // --- Pre-export workspace validation ---
+                        if validate_workspace {
+                            validation_attempted_m.fetch_add(1, Ordering::Relaxed);
+                            let validator = crate::swe::workspace_validator::WorkspaceValidator::new(
+                                mining_image.clone(),
+                            );
+                            match validator.validate(&task).await {
+                                Ok(crate::swe::workspace_validator::ValidationOutcome::Passed) => {
+                                    validation_passed_m.fetch_add(1, Ordering::Relaxed);
+                                    tracing::info!(
+                                        task_id = %task.id,
+                                        "Workspace validation PASSED"
+                                    );
+                                }
+                                Ok(crate::swe::workspace_validator::ValidationOutcome::Rejected { reason }) => {
+                                    validation_failed_m.fetch_add(1, Ordering::Relaxed);
+                                    tracing::warn!(
+                                        task_id = %task.id,
+                                        reason = %reason,
+                                        "Workspace validation REJECTED"
+                                    );
+                                    let _ = cache.mark_rejected(
+                                        &task.repo,
+                                        task.id.rsplit('-').next()
+                                            .and_then(|s| s.parse::<u64>().ok()).unwrap_or(0),
+                                        &format!("validation: {}", reason),
+                                    ).await;
+                                    return;
+                                }
+                                Err(err) => {
+                                    validation_failed_m.fetch_add(1, Ordering::Relaxed);
+                                    tracing::warn!(
+                                        task_id = %task.id,
+                                        error = %err,
+                                        "Workspace validation ERROR"
+                                    );
+                                    return;
+                                }
+                            }
+                        }
+
                         accepted_count_m.fetch_add(1, Ordering::Relaxed);
                         {
                             let mut langs = languages_m.lock().await;
@@ -871,10 +958,12 @@ impl SwePipeline {
                     .all(|(level, &quota)| counts.get(level).copied().unwrap_or(0) >= quota);
                 if all_met && once {
                     tracing::info!("All difficulty targets met, stopping pool");
+                    cancelled.store(true, Ordering::Relaxed);
                     break;
                 }
             } else if completed.load(Ordering::Relaxed) >= max_tasks && once {
                 tracing::info!("Reached max_tasks={}, stopping pool", max_tasks);
+                cancelled.store(true, Ordering::Relaxed);
                 break;
             }
         }
@@ -946,6 +1035,9 @@ impl SwePipeline {
             difficulty_medium: difficulty_medium_m.load(Ordering::Relaxed),
             difficulty_hard: difficulty_hard_m.load(Ordering::Relaxed),
             accepted_count: accepted_count_m.load(Ordering::Relaxed),
+            validation_attempted: validation_attempted_m.load(Ordering::Relaxed),
+            validation_passed: validation_passed_m.load(Ordering::Relaxed),
+            validation_failed: validation_failed_m.load(Ordering::Relaxed),
             total_processing_time_ms,
             avg_per_pr_time_ms,
             throughput_prs_per_sec,
