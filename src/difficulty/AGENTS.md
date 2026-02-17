@@ -12,7 +12,7 @@ Difficulty classification system. Defines difficulty levels (Easy/Medium/Hard), 
 
 ## Key Types
 
-- `DifficultyLevel` — `Easy`, `Medium`, `Hard` (serde: `snake_case`)
+- `DifficultyLevel` — `Easy`, `Medium`, `Hard` (serde: `lowercase`)
 
 ## Difficulty Ranges
 

@@ -25,7 +25,7 @@ src/
 │   ├── docker_sandbox.rs    # Docker sandbox for test generation
 │   ├── orchestrator.rs      # End-to-end pipeline orchestrator
 │   ├── pipeline.rs          # Streaming pipeline with chunk processing
-│   └── pr_cache.rs          # JSONL-based PR deduplication cache
+│   └── pr_cache.rs          # SQLite-backed PR deduplication cache
 ├── llm/                     # LLM integration layer
 │   ├── litellm.rs           # OpenAI-compatible API client (function calling, tools)
 │   ├── providers/            # Provider implementations (OpenRouter)
@@ -36,7 +36,6 @@ src/
 ├── execution/               # Docker execution layer (bollard crate, container lifecycle)
 ├── docker/                  # Dockerfile/docker-compose generation
 ├── export/                  # Parquet dataset export + HuggingFace Hub upload
-├── runner/                  # Agent runner for benchmark evaluation
 ├── difficulty/              # Difficulty levels, resource limits, scoring
 ├── anti_hardcoding/         # Canary strings, sealed parameters, contamination detection
 ├── utils/                   # JSON extraction from LLM responses
@@ -120,7 +119,7 @@ cargo run -- swe harness --help
 
 Git hooks are in `.githooks/` and activated via `git config core.hooksPath .githooks`.
 
-- **pre-commit**: Runs `cargo fmt --all -- --check` and `cargo clippy --all-targets -- -D warnings`
+- **pre-commit**: Runs `cargo fmt --all -- --check` and `cargo clippy --all-targets --all-features -- -D warnings`
 - **pre-push**: Runs format check + clippy + `cargo test --lib` + `cargo build`
 - Both hooks can be skipped with `SKIP_GIT_HOOKS=1`
 

@@ -20,7 +20,7 @@ Core SWE mining pipeline. Fetches merged pull requests from GH Archive, enriches
 | `docker_sandbox.rs` | Docker sandbox for test generation phase |
 | `orchestrator.rs` | End-to-end pipeline orchestrator with `DifficultyTargets` |
 | `pipeline.rs` | Streaming pipeline with chunk processing (batches of 30) |
-| `pr_cache.rs` | JSONL-based PR deduplication cache |
+| `pr_cache.rs` | SQLite-backed PR deduplication cache |
 
 ## Key Types
 
