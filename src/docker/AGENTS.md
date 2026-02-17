@@ -16,10 +16,12 @@ Docker environment generation — produces Dockerfiles, docker-compose.yaml, and
 ## Key Types
 
 - `DockerEnvironment` — Complete Docker setup (Dockerfile + compose + container config)
-- `DockerfileBuilder` / `DockerfileConfig` — Dockerfile generation
+- `DockerfileBuilder` / `DockerfileConfig` — Dockerfile generation with `multi_lang` base image support
 - `ComposeBuilder` / `ComposeConfig` / `ComposeService` — docker-compose generation
-- `ResourceLimits` — Memory, CPU, PID limits per difficulty
+- `ResourceLimits` — CPU, memory, storage, PIDs, network mode per difficulty (3 tiers: easy/medium/hard)
+- `VolumeMount` — Host/container path mapping with read-only option
 - `ContainerConfig` — Name, image, limits, env vars, volumes, network mode
+- `NetworkMode` — `None`, `Internal`, `Bridge` (difficulty-dependent)
 - Base images: `BASE_PYTHON`, `BASE_NODE`, `BASE_RUST`, `BASE_UBUNTU`, `BASE_MULTI_LANG`
 
 ## Rules

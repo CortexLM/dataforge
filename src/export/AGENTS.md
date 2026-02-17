@@ -17,7 +17,8 @@ Dataset export module. Writes SWE task data to Apache Parquet format and uploads
 
 - `DatasetManager` / `DatasetConfig` / `DatasetSummary`
 - `HfUploader` / `HfUploadConfig`
-- `write_parquet(tasks, path)` / `read_parquet(path)` — core I/O functions
+- `write_parquet(tasks, path)` / `read_parquet(path)` / `write_parquet_bytes(tasks)` — core I/O functions
+- `download_dataset(url, path)` / `load_dataset(path)` — dataset retrieval utilities
 
 ## Rules
 

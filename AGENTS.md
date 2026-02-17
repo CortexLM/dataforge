@@ -25,7 +25,8 @@ src/
 │   ├── docker_sandbox.rs    # Docker sandbox for test generation
 │   ├── orchestrator.rs      # End-to-end pipeline orchestrator
 │   ├── pipeline.rs          # Streaming pipeline with chunk processing
-│   └── pr_cache.rs          # SQLite-backed PR deduplication cache
+│   ├── pr_cache.rs          # SQLite-backed PR deduplication cache
+│   └── progress.rs          # Background progress monitor for long-running pipeline runs
 ├── llm/                     # LLM integration layer
 │   ├── litellm.rs           # OpenAI-compatible API client (function calling, tools)
 │   ├── providers/            # Provider implementations (OpenRouter)
@@ -133,7 +134,7 @@ Git hooks are in `.githooks/` and activated via `git config core.hooksPath .gith
 
 3. **Never leak test plans into agent prompts** — The `prompt_rewriter.rs` module strips test-specific information from PR bodies before generating `prompt.md`. Any new prompt generation code must ensure `fail_to_pass` and `pass_to_pass` test commands are never visible to the agent being evaluated.
 
-4. **Docker containers must have resource limits** — All container creation must use `apply_resource_limits()` from `src/docker/resources.rs`. Difficulty-based limits are enforced: memory (512MB–4GB), CPU (1–4 cores), timeouts (5–30 min). Never create containers without limits.
+4. **Docker containers must have resource limits** — All container creation must use `apply_resource_limits()` from `src/docker/resources.rs`. Difficulty-based limits are enforced: memory (512MB–2GB), CPU (1–4 cores), PIDs (100–500). Never create containers without limits.
 
 5. **Respect GitHub API rate limits (5000 req/h)** — The pipeline processes candidates in chunks of 30. Each candidate needs ~2 API calls for enrichment. Never add unbounded concurrent GitHub API calls. Use the existing concurrency limits (enrichment: 3x, pre-classification: 10x, deep processing: 3x).
 

@@ -23,6 +23,8 @@ Task validation and Docker-based verification agents. These agents validate gene
 - `DifficultyScoring` — Difficulty assessment with scoring criteria
 - `HiddenSolution` — Solution hidden from the agent during evaluation
 - `VerificationSpec` — Specification for verifying task outputs
+- `AutomatedCheck` / `CheckType` — Automated verification checks
+- `PartialCreditItem` — Partial credit scoring for incomplete solutions
 
 ## Rules
 

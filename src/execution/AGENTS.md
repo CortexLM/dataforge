@@ -19,7 +19,7 @@ Docker execution layer using the `bollard` crate. Manages container lifecycle (c
 - `ContainerStatus` — State enum tracking container lifecycle
 - `ExecResult` — stdout, stderr, exit code from container exec
 - `DockerClient` — Thin wrapper for Docker API operations
-- `ExecutionLimits` — Memory, CPU, timeout, network limits per difficulty
+- `ExecutionLimits` — Memory, CPU, disk, max processes, timeout per difficulty (5 tiers: easy/medium/hard/expert/nightmare)
 
 ## Rules
 

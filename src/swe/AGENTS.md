@@ -21,6 +21,7 @@ Core SWE mining pipeline. Fetches merged pull requests from GH Archive, enriches
 | `orchestrator.rs` | End-to-end pipeline orchestrator with `DifficultyTargets` |
 | `pipeline.rs` | Streaming pipeline with chunk processing (batches of 30) |
 | `pr_cache.rs` | SQLite-backed PR deduplication cache |
+| `progress.rs` | `ProgressMonitor` — background progress logging for long-running pipeline runs |
 
 ## Key Types
 
@@ -34,6 +35,7 @@ Core SWE mining pipeline. Fetches merged pull requests from GH Archive, enriches
 - `HarnessConfig` / `HarnessResult` / `HarnessSummary` — Evaluation harness
 - `SwePipeline` / `SwePipelineEvent` — Streaming pipeline
 - `SweOrchestrator` / `SweOrchestratorConfig` — Orchestrator
+- `ProgressMonitor` / `ProgressCounters` / `ProgressSnapshot` — Pipeline progress tracking
 
 ## Concurrency Limits
 
