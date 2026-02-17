@@ -33,6 +33,6 @@ LLM integration layer providing an OpenAI-compatible API client with function ca
 
 - Always use `tools` + `tool_choice: "required"` for structured output — never parse free-form text
 - Provider trait objects must be `Send + Sync` (used as `Arc<dyn LlmProvider>`)
-- Default model: `openai/gpt-5.2-codex:nitro` (set in `src/cli/commands.rs`)
+- Default model: `moonshotai/kimi-k2.5:nitro` (set in `src/cli/commands.rs`)
 - Cost tracking is optional but should be used when available
 - Cache keys are content hashes (`sha2`) — not message indices

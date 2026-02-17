@@ -25,7 +25,7 @@ Clap-based CLI interface. Defines all commands, argument parsing, and command di
 ## Rules
 
 - Use `anyhow::Result` for command handler return types
-- Default model constant: `DEFAULT_MODEL = "openai/gpt-5.2-codex:nitro"`
+- Default model constant: `DEFAULT_MODEL = "moonshotai/kimi-k2.5:nitro"`
 - Default output dirs: `./generated-datasets` (generate), `./generated-swe` (swe mine)
 - Global `--log-level` arg controls tracing filter
 - API keys come from env vars or CLI args (env var takes precedence)

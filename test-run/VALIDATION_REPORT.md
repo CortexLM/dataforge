@@ -2,7 +2,7 @@
 
 **Generated**: 2026-02-17  
 **Tool**: swe-forge (Rust-based SWE-bench dataset generator)  
-**Model**: openai/gpt-5.2-codex:nitro (via OpenRouter)  
+**Model**: moonshotai/kimi-k2.5:nitro (via OpenRouter)  
 **Total Tasks**: 9 (3 easy, 3 medium, 3 hard)
 
 ---
