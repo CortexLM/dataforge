@@ -1,0 +1,2 @@
+python3 -m pytest -q tests/test_recipe_update.py
+python3 -m pytest -q tests/test_recipe_structure.py
