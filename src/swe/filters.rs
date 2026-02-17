@@ -8,6 +8,9 @@ pub struct FilterConfig {
     pub min_added_lines: usize,
     pub max_added_lines: usize,
     pub allowed_languages: Vec<String>,
+    /// Minimum combined length of PR title + body (in characters) to accept a candidate.
+    /// PRs with empty or very short descriptions are unlikely to produce good benchmark tasks.
+    pub min_description_length: usize,
 }
 
 impl Default for FilterConfig {
@@ -26,6 +29,7 @@ impl Default for FilterConfig {
                 "rust".to_string(),
                 "java".to_string(),
             ],
+            min_description_length: 30,
         }
     }
 }
@@ -51,6 +55,18 @@ impl SweepFilter {
         Self::new(FilterConfig::default())
     }
 
+    /// Evaluate whether a PR candidate should be kept for further processing.
+    ///
+    /// # Arguments
+    ///
+    /// * `language` - Primary language of the repository
+    /// * `stars` - Repository star count (0 means unknown)
+    /// * `files_changed` - Number of files changed in the PR
+    /// * `added_lines` - Number of lines added
+    /// * `changed_files` - List of changed file paths
+    /// * `title` - PR title
+    /// * `body` - PR body/description
+    #[allow(clippy::too_many_arguments)]
     pub fn keep_candidate(
         &self,
         language: &str,
@@ -58,6 +74,8 @@ impl SweepFilter {
         files_changed: usize,
         added_lines: usize,
         changed_files: &[String],
+        title: &str,
+        body: &str,
     ) -> FilterResult {
         let mut reasons = Vec::new();
         let mut score = 1.0f64;
@@ -117,6 +135,16 @@ impl SweepFilter {
         if !changed_files.is_empty() && Self::is_docs_only_change(changed_files) {
             reasons.push("all changed files are documentation/config only".to_string());
             score -= 0.3;
+        }
+
+        // Reject PRs with empty or very short descriptions
+        let description_len = title.trim().len() + body.trim().len();
+        if description_len < self.config.min_description_length {
+            reasons.push(format!(
+                "PR description too short ({description_len} chars, minimum {})",
+                self.config.min_description_length
+            ));
+            score -= 0.4;
         }
 
         let accepted = reasons.is_empty();

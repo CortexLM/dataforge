@@ -361,6 +361,8 @@ impl SwePipeline {
                         enriched.files_changed,
                         added_lines,
                         &enriched.changed_files,
+                        &enriched.title,
+                        &enriched.body,
                     );
                     filtered_count.fetch_add(1, Ordering::Relaxed);
                     if !filter_result.accepted {
@@ -534,12 +536,7 @@ impl SwePipeline {
                         .await
                     {
                         Ok(rewritten) => {
-                            task.prompt = format!(
-                                "{repo} (#{pr}): {title}\n\n{rewritten}",
-                                repo = enriched.repository,
-                                pr = enriched.number,
-                                title = enriched.title,
-                            );
+                            task.prompt = rewritten;
                         }
                         Err(err) => {
                             tracing::warn!(task_id = %task.id, error = %err, "Prompt rewrite failed");
