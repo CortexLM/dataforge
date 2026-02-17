@@ -296,14 +296,8 @@ async fn fetch_pr_files_info(
         if let Some(path) = file.get("filename").and_then(Value::as_str) {
             info.file_paths.push(path.to_string());
         }
-        info.added_lines += file
-            .get("additions")
-            .and_then(Value::as_u64)
-            .unwrap_or(0) as usize;
-        info.removed_lines += file
-            .get("deletions")
-            .and_then(Value::as_u64)
-            .unwrap_or(0) as usize;
+        info.added_lines += file.get("additions").and_then(Value::as_u64).unwrap_or(0) as usize;
+        info.removed_lines += file.get("deletions").and_then(Value::as_u64).unwrap_or(0) as usize;
     }
     Ok(info)
 }
