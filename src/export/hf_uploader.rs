@@ -110,10 +110,7 @@ impl HfUploader {
             HF_API_BASE, self.config.repo_id
         );
 
-        let encoded = base64::Engine::encode(
-            &base64::engine::general_purpose::STANDARD,
-            content,
-        );
+        let encoded = base64::Engine::encode(&base64::engine::general_purpose::STANDARD, content);
 
         let body = CommitRequest {
             summary: commit_message.to_string(),
@@ -140,7 +137,10 @@ impl HfUploader {
                 repo = %self.config.repo_id,
                 "Uploaded file to HF"
             );
-            self.uploaded_files.lock().await.push(path_in_repo.to_string());
+            self.uploaded_files
+                .lock()
+                .await
+                .push(path_in_repo.to_string());
             Ok(())
         } else {
             let status = resp.status();
@@ -157,7 +157,8 @@ impl HfUploader {
         commit_message: &str,
     ) -> anyhow::Result<()> {
         let content = std::fs::read(local_path)?;
-        self.upload_file(path_in_repo, &content, commit_message).await
+        self.upload_file(path_in_repo, &content, commit_message)
+            .await
     }
 
     /// Upload multiple files in a single commit (more efficient).
@@ -178,10 +179,8 @@ impl HfUploader {
         let actions: Vec<CommitAction> = files
             .iter()
             .map(|(path, content)| {
-                let encoded = base64::Engine::encode(
-                    &base64::engine::general_purpose::STANDARD,
-                    content,
-                );
+                let encoded =
+                    base64::Engine::encode(&base64::engine::general_purpose::STANDARD, content);
                 CommitAction {
                     action: "file".to_string(),
                     path: path.to_string(),

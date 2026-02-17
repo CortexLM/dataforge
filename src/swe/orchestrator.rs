@@ -44,15 +44,24 @@ impl DifficultyTargets {
             })?;
             let level = level.trim().to_lowercase();
             if !matches!(level.as_str(), "easy" | "medium" | "hard") {
-                anyhow::bail!("Unknown difficulty level '{}'. Use easy, medium, or hard.", level);
+                anyhow::bail!(
+                    "Unknown difficulty level '{}'. Use easy, medium, or hard.",
+                    level
+                );
             }
             let count: usize = count.trim().parse().map_err(|_| {
-                anyhow::anyhow!("Invalid count '{}' for difficulty '{}'", count.trim(), level)
+                anyhow::anyhow!(
+                    "Invalid count '{}' for difficulty '{}'",
+                    count.trim(),
+                    level
+                )
             })?;
             targets.insert(level, count);
         }
         if targets.is_empty() {
-            anyhow::bail!("No valid difficulty targets found. Use format: easy:50,medium:50,hard:50");
+            anyhow::bail!(
+                "No valid difficulty targets found. Use format: easy:50,medium:50,hard:50"
+            );
         }
         Ok(Self { targets })
     }
@@ -120,19 +129,20 @@ impl SweOrchestrator {
     pub async fn mine(&self) -> anyhow::Result<SweRunResult> {
         let is_multi = self.config.difficulty_targets.is_some();
 
-        let (max_tasks, candidate_multiplier) = if let Some(ref targets) = self.config.difficulty_targets {
-            let total = targets.total_tasks();
-            let has_hard = targets.targets.contains_key("hard");
-            let mult = if has_hard { 200 } else { 100 };
-            tracing::info!(?targets, total, "Starting multi-difficulty mining");
-            (total, mult)
-        } else if self.config.difficulty_filter.as_deref() == Some("hard") {
-            (self.config.max_tasks, 200)
-        } else if self.config.difficulty_filter.is_some() {
-            (self.config.max_tasks, 100)
-        } else {
-            (self.config.max_tasks, 50)
-        };
+        let (max_tasks, candidate_multiplier) =
+            if let Some(ref targets) = self.config.difficulty_targets {
+                let total = targets.total_tasks();
+                let has_hard = targets.targets.contains_key("hard");
+                let mult = if has_hard { 200 } else { 100 };
+                tracing::info!(?targets, total, "Starting multi-difficulty mining");
+                (total, mult)
+            } else if self.config.difficulty_filter.as_deref() == Some("hard") {
+                (self.config.max_tasks, 200)
+            } else if self.config.difficulty_filter.is_some() {
+                (self.config.max_tasks, 100)
+            } else {
+                (self.config.max_tasks, 50)
+            };
 
         let pipeline_config = SwePipelineConfig {
             min_stars: self.config.min_stars,
@@ -142,7 +152,11 @@ impl SweOrchestrator {
             once: self.config.once,
             validate_docker: self.config.validate_docker,
             skip_prs: self.config.skip_prs.clone(),
-            difficulty_filter: if is_multi { None } else { self.config.difficulty_filter.clone() },
+            difficulty_filter: if is_multi {
+                None
+            } else {
+                self.config.difficulty_filter.clone()
+            },
             difficulty_targets: self.config.difficulty_targets.clone(),
             cache: self.config.cache.clone(),
             mining_image: self.config.mining_image.clone(),
@@ -158,7 +172,7 @@ impl SweOrchestrator {
         fs::create_dir_all(&self.config.output_dir)?;
 
         // Create dataset manager for parquet + optional HF upload
-        let dataset_handle: Option<DatasetHandle> = if self.config.hf_upload.is_some() || true {
+        let dataset_handle: Option<DatasetHandle> = {
             let ds_config = DatasetConfig {
                 output_dir: std::path::PathBuf::from(&self.config.output_dir),
                 hf_config: self.config.hf_upload.clone(),
@@ -166,13 +180,16 @@ impl SweOrchestrator {
                 dataset_name: "SWE-Forge Benchmark".to_string(),
             };
             Some(Arc::new(DatasetManager::new(ds_config).await?))
-        } else {
-            None
         };
 
         let pipeline = crate::swe::pipeline::SwePipeline::new(&pipeline_config, self.llm.clone())?;
         let run: SwePipelineRunResult = pipeline
-            .run_full(&pipeline_config, None, Some(export_config), dataset_handle.clone())
+            .run_full(
+                &pipeline_config,
+                None,
+                Some(export_config),
+                dataset_handle.clone(),
+            )
             .await?;
 
         // Finalize dataset: flush remaining shard, write combined parquet, upload splits
@@ -199,7 +216,11 @@ impl SweOrchestrator {
             let mut per_level: HashMap<String, usize> = HashMap::new();
             for task in &tasks {
                 if task.quality_passed {
-                    let level = task.meta.get("difficulty").cloned().unwrap_or_else(|| "unknown".to_string());
+                    let level = task
+                        .meta
+                        .get("difficulty")
+                        .cloned()
+                        .unwrap_or_else(|| "unknown".to_string());
                     *per_level.entry(level).or_insert(0) += 1;
                 }
             }
@@ -218,5 +239,3 @@ impl SweOrchestrator {
         })
     }
 }
-
-
