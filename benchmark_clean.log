@@ -1,0 +1,505 @@
+2026-02-17T17:22:47.542556Z  INFO swe_forge::cli::commands: Using OpenRouter for benchmark model=moonshotai/kimi-k2.5:nitro
+2026-02-17T17:22:47.552638Z  INFO swe_forge::swe::pr_cache: PR cache opened path="benchmark_cache.db"
+2026-02-17T17:22:48.854126Z  INFO swe_forge::swe::gharchive: Fetched GH Archive hour hour=2026-02-17-16 events=140099
+2026-02-17T17:22:49.774646Z  INFO swe_forge::swe::gharchive: Fetched GH Archive hour hour=2026-02-17-14 events=146719
+2026-02-17T17:22:50.725400Z  INFO swe_forge::swe::gharchive: Fetched GH Archive hour hour=2026-02-17-12 events=155083
+2026-02-17T17:22:51.514992Z  INFO swe_forge::swe::gharchive: Fetched GH Archive hour hour=2026-02-17-13 events=154242
+2026-02-17T17:22:52.600477Z  INFO swe_forge::swe::gharchive: Fetched GH Archive hour hour=2026-02-17-11 events=144011
+2026-02-17T17:22:53.722190Z  INFO swe_forge::swe::gharchive: Fetched GH Archive hour hour=2026-02-17-8 events=143572
+2026-02-17T17:22:54.898898Z  INFO swe_forge::swe::gharchive: Fetched GH Archive hour hour=2026-02-17-10 events=146523
+2026-02-17T17:22:55.865059Z  INFO swe_forge::swe::gharchive: Fetched GH Archive hour hour=2026-02-17-15 events=139373
+2026-02-17T17:22:56.287566Z  INFO swe_forge::swe::gharchive: Fetched GH Archive hour hour=2026-02-17-9 events=144919
+2026-02-17T17:22:57.388968Z  INFO swe_forge::swe::gharchive: Fetched GH Archive hour hour=2026-02-17-5 events=144711
+2026-02-17T17:22:58.530798Z  INFO swe_forge::swe::gharchive: Fetched GH Archive hour hour=2026-02-17-7 events=146021
+2026-02-17T17:22:58.602080Z  INFO swe_forge::swe::gharchive: Fetched GH Archive hour hour=2026-02-17-6 events=147153
+2026-02-17T17:23:00.938956Z  INFO swe_forge::swe::pipeline: GH Archive fetch complete, kept only merged PRs total_raw=1752426 merged_events=35498 hours_back=12
+2026-02-17T17:23:01.093967Z  INFO swe_forge::swe::pipeline: Pre-filtered events (excluded bots, non-org repos) before=5000 after=1394
+2026-02-17T17:23:02.127211Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=grafana/loki pr=20831 diff_bytes=12807
+2026-02-17T17:23:02.458788Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=0xMiden/crypto pr=833 diff_bytes=6442
+2026-02-17T17:23:02.779114Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=Kong/deck pr=1841 diff_bytes=5090
+2026-02-17T17:23:03.065962Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=SOLUTIO-NEST/web pr=27 diff_bytes=2903
+2026-02-17T17:23:03.401843Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=jmix-framework/jmix pr=5079 diff_bytes=18176
+2026-02-17T17:23:05.500025Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=SOLUTIO-NEST/web-27 repo=SOLUTIO-NEST/web
+2026-02-17T17:23:06.399790Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=0xMiden/crypto-833 repo=0xMiden/crypto
+2026-02-17T17:23:07.018858Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=jmix-framework/jmix-5079 repo=jmix-framework/jmix
+2026-02-17T17:23:07.541691Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=Kong/deck-1841 repo=Kong/deck
+2026-02-17T17:23:07.863998Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=grafana/loki-20831 repo=grafana/loki
+2026-02-17T17:23:11.424647Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-Kong-deck-987541 image="golang:1.22" repo="Kong/deck"
+2026-02-17T17:23:14.451872Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-0xMiden-crypto-986399 image="rust:1.75-slim" repo="0xMiden/crypto"
+2026-02-17T17:23:16.508655Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-SOLUTIO-NEST-web-985500 image="node:20-slim" repo="SOLUTIO-NEST/web"
+2026-02-17T17:23:17.553232Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=30
+2026-02-17T17:23:20.071426Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-jmix-framework-jmix-987018 image="eclipse-temurin:21-jdk" repo="jmix-framework/jmix"
+2026-02-17T17:23:24.807457Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-grafana-loki-987864 image="golang:1.22" repo="grafana/loki"
+2026-02-17T17:23:47.553414Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=60
+2026-02-17T17:24:17.553455Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=90
+2026-02-17T17:24:47.553572Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=120
+2026-02-17T17:25:17.554123Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=150
+2026-02-17T17:25:47.554137Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=180
+2026-02-17T17:26:17.553731Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=210
+2026-02-17T17:26:47.554129Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=240
+2026-02-17T17:27:17.553988Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=270
+2026-02-17T17:27:33.563667Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=SOLUTIO-NEST/web-27 retry=1 reason=fail_to_pass test 'npm test' still FAILS after the PR patch is applied (exit=1, stderr=
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/PrivacyPolicyModal.test.tsx > PrivacyPolicyModal > calls onClose when the close button is clicked
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name `/X/i`
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "개인정보 수집·이용 동의서":
+  <h2
+    class=). This means your test does not actually test what the PR changes.
+2026-02-17T17:27:47.554195Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=300
+2026-02-17T17:28:17.553454Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=330
+2026-02-17T17:28:32.342438Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=SOLUTIO-NEST/web-27 retry=2 reason=fail_to_pass test 'npm test' still FAILS after the PR patch is applied (exit=1, stderr=
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/PrivacyPolicyModal.test.tsx > PrivacyPolicyModal > calls onClose when the close button is clicked
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name `/X/i`
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "개인정보 수집·이용 동의서":
+  <h2
+    class=). This means your test does not actually test what the PR changes.
+2026-02-17T17:28:47.553550Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=360
+2026-02-17T17:28:55.061891Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=grafana/loki-20831 retry=1 reason=fail_to_pass test 'cd /repo && go test -mod=vendor ./pkg/limits/frontend/... -run "TestCacheLimitsClientExists|TestCacheLimitsClient_CacheHit|TestCacheLimitsClient_CacheMiss|TestCacheLimitsClient_RejectedNotCached|TestRandDuration|TestEncodeStreamToBuf|TestConfigCacheTTLFields" -v' still FAILS after the PR patch is applied (exit=1, stderr=go: cloud.google.com/go in vendor/modules.txt requires go >= 1.24.0 (running go 1.22.12; GOTOOLCHAIN=local)
+). This means your test does not actually test what the PR changes.
+2026-02-17T17:29:17.553786Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=390
+2026-02-17T17:29:27.113906Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=SOLUTIO-NEST/web-27 retry=3 reason=fail_to_pass test 'npm test' still FAILS after the PR patch is applied (exit=1, stderr=
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/PrivacyPolicyModal.test.tsx > PrivacyPolicyModal > calls onClose when the close button is clicked
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name `/X/i`
+
+Here are the accessible roles:
+
+  heading:
+
+  Name "개인정보 수집·이용 동의서":
+  <h2
+    class=). This means your test does not actually test what the PR changes.
+2026-02-17T17:29:47.554133Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=420
+2026-02-17T17:29:50.179756Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=grafana/loki-20831 retry=2 reason=fail_to_pass test 'cd /repo && go build -mod=vendor ./pkg/limits/frontend/pr_test.go 2>&1 || go test -mod=vendor ./pkg/limits/frontend/... -run "TestCacheLimitsClientExists|TestCacheLimitsClient_CacheHit|TestCacheLimitsClient_CacheMiss|TestCacheLimitsClient_RejectedNotCached|TestRandDuration|TestEncodeStreamToBuf|TestConfigCacheTTLFields" -v' still FAILS after the PR patch is applied (exit=1, stderr=go: cloud.google.com/go in vendor/modules.txt requires go >= 1.24.0 (running go 1.22.12; GOTOOLCHAIN=local)
+). This means your test does not actually test what the PR changes.
+2026-02-17T17:29:54.021421Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=SOLUTIO-NEST/web-27
+2026-02-17T17:30:17.554166Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=450
+2026-02-17T17:30:33.948257Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=SOLUTIO-NEST/web-27
+2026-02-17T17:30:47.553560Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=480
+2026-02-17T17:30:51.468178Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=SOLUTIO-NEST/web-27
+2026-02-17T17:31:08.535448Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=grafana/loki-20831 retry=3 reason=fail_to_pass test 'cd /repo && go test -tags=test ./pkg/limits/frontend/... -run "TestCacheLimitsClientExists|TestCacheLimitsClient_CacheHit|TestCacheLimitsClient_CacheMiss|TestCacheLimitsClient_RejectedNotCached|TestRandDuration|TestEncodeStreamToBuf|TestConfigCacheTTLFields" -v' still FAILS after the PR patch is applied (exit=1, stderr=go: errors parsing go.mod:
+go.mod:5: unknown directive: ignore
+). This means your test does not actually test what the PR changes.
+2026-02-17T17:31:17.553989Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=510
+2026-02-17T17:31:47.553324Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=540
+2026-02-17T17:31:56.885020Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=grafana/loki-20831
+2026-02-17T17:32:17.553647Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=570
+2026-02-17T17:32:47.553589Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=600
+2026-02-17T17:32:47.919554Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=SOLUTIO-NEST/web-27
+2026-02-17T17:32:59.154908Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=grafana/loki-20831
+2026-02-17T17:33:17.553833Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=630
+2026-02-17T17:33:32.950071Z  INFO swe_forge::swe::test_generator: Dual-commit validation PASSED task_id=SOLUTIO-NEST/web-27
+2026-02-17T17:33:32.950099Z  INFO swe_forge::swe::test_generator: Agent submitted tests task_id=SOLUTIO-NEST/web-27 turn=111 f2p=1 p2p=1 files=2
+2026-02-17T17:33:33.517194Z  INFO swe_forge::swe::quality: Starting difficulty classification... task_id=SOLUTIO-NEST/web-27
+2026-02-17T17:33:40.809923Z  INFO swe_forge::swe::quality: Difficulty classification done task_id=SOLUTIO-NEST/web-27 difficulty=easy score=0.2 quality_good=true
+2026-02-17T17:33:40.809991Z  INFO swe_forge::swe::pipeline: Task processed task_id=SOLUTIO-NEST/web-27 difficulty=easy score=0.2 passed=false
+2026-02-17T17:33:41.181779Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=Decomp-Robot/dtk-template pr=1 diff_bytes=37513
+2026-02-17T17:33:43.734225Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=grafana/loki-20831
+2026-02-17T17:33:45.802026Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=Decomp-Robot/dtk-template-1 repo=Decomp-Robot/dtk-template
+2026-02-17T17:33:47.553857Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=660
+2026-02-17T17:33:53.000312Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-Decomp-Robot-dtk-template-625802 image="python:3.12-slim" repo="Decomp-Robot/dtk-template"
+2026-02-17T17:33:54.052136Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=grafana/loki-20831
+2026-02-17T17:33:56.768600Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=grafana/loki-20831
+2026-02-17T17:34:03.745539Z  INFO swe_forge::swe::test_generator: Dual-commit validation PASSED task_id=grafana/loki-20831
+2026-02-17T17:34:03.745553Z  INFO swe_forge::swe::test_generator: Agent submitted tests task_id=grafana/loki-20831 turn=145 f2p=1 p2p=1 files=0
+2026-02-17T17:34:05.503961Z  INFO swe_forge::swe::quality: Starting difficulty classification... task_id=grafana/loki-20831
+2026-02-17T17:34:11.099467Z  INFO swe_forge::swe::quality: Difficulty classification done task_id=grafana/loki-20831 difficulty=medium score=0.45 quality_good=false
+2026-02-17T17:34:11.099491Z  INFO swe_forge::swe::pipeline: Task processed task_id=grafana/loki-20831 difficulty=medium score=0.45 passed=false
+2026-02-17T17:34:11.449409Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=NeuralTrust/TrustGate pr=297 diff_bytes=1374
+2026-02-17T17:34:14.638134Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=NeuralTrust/TrustGate-297 repo=NeuralTrust/TrustGate
+2026-02-17T17:34:17.553681Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=690
+2026-02-17T17:34:18.832768Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-NeuralTrust-TrustGate-654638 image="golang:1.22" repo="NeuralTrust/TrustGate"
+2026-02-17T17:34:47.553468Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=720
+2026-02-17T17:34:51.309508Z  INFO swe_forge::swe::test_generator: Dual-commit validation PASSED task_id=Kong/deck-1841
+2026-02-17T17:34:51.309554Z  INFO swe_forge::swe::test_generator: Agent submitted tests task_id=Kong/deck-1841 turn=68 f2p=4 p2p=2 files=1
+2026-02-17T17:34:52.164841Z  INFO swe_forge::swe::quality: Starting difficulty classification... task_id=Kong/deck-1841
+2026-02-17T17:34:56.263638Z  INFO swe_forge::swe::quality: Difficulty classification done task_id=Kong/deck-1841 difficulty=medium score=0.55 quality_good=true
+2026-02-17T17:34:56.263658Z  INFO swe_forge::swe::pipeline: Task processed task_id=Kong/deck-1841 difficulty=medium score=0.55 passed=true
+2026-02-17T17:34:56.269270Z  INFO swe_forge::swe::pipeline: Exported task to disk (real-time) task_id=Kong/deck-1841 output=./benchmark-output
+2026-02-17T17:34:56.269284Z  INFO swe_forge::swe::pipeline: Task accepted into pool completed=1 max_tasks=100
+2026-02-17T17:34:56.765761Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=softeerbootcamp-7th/WEB-Team4-Refit pr=448 diff_bytes=1888
+2026-02-17T17:34:58.302275Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=softeerbootcamp-7th/WEB-Team4-Refit-448 repo=softeerbootcamp-7th/WEB-Team4-Refit
+2026-02-17T17:35:06.301480Z  WARN swe_forge::swe::pipeline: Test generation failed task_id=0xMiden/crypto-833 error=API error (400): This endpoint's maximum context length is 262144 tokens. However, you requested about 268760 tokens (252377 of text input, 383 of tool input, 16000 in the output). Please reduce the length of either one, or use the "middle-out" transform to compress your prompt automatically.
+2026-02-17T17:35:06.681469Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=fluxcd/helm-controller pr=1411 diff_bytes=3338
+2026-02-17T17:35:08.996815Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-softeerbootcamp-7th-WEB-Team4-Refit-698302 image="node:20-slim" repo="softeerbootcamp-7th/WEB-Team4-Refit"
+2026-02-17T17:35:09.186223Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=fluxcd/helm-controller-1411 repo=fluxcd/helm-controller
+2026-02-17T17:35:13.238944Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-fluxcd-helm-controller-709186 image="golang:1.22" repo="fluxcd/helm-controller"
+2026-02-17T17:35:17.553683Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=750
+2026-02-17T17:35:47.553421Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=780
+2026-02-17T17:36:17.553793Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=810
+2026-02-17T17:36:47.553639Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=840
+2026-02-17T17:37:17.554147Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=870
+2026-02-17T17:37:47.554174Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=900
+2026-02-17T17:38:17.553663Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=930
+2026-02-17T17:38:47.554067Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=960
+2026-02-17T17:39:17.553550Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=990
+2026-02-17T17:39:47.554023Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1020
+2026-02-17T17:40:17.553872Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1050
+2026-02-17T17:40:47.553808Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1080
+2026-02-17T17:41:17.553333Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1110
+2026-02-17T17:41:47.553691Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1140
+2026-02-17T17:42:17.553471Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1170
+2026-02-17T17:42:47.553738Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1200
+2026-02-17T17:43:17.553740Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1230
+2026-02-17T17:43:47.554004Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1260
+2026-02-17T17:44:14.112360Z  INFO swe_forge::swe::test_generator: Dual-commit validation PASSED task_id=NeuralTrust/TrustGate-297
+2026-02-17T17:44:14.112438Z  INFO swe_forge::swe::test_generator: Agent submitted tests task_id=NeuralTrust/TrustGate-297 turn=104 f2p=2 p2p=2 files=5
+2026-02-17T17:44:15.536420Z  INFO swe_forge::swe::quality: Starting difficulty classification... task_id=NeuralTrust/TrustGate-297
+2026-02-17T17:44:17.554025Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1290
+2026-02-17T17:44:22.478493Z  INFO swe_forge::swe::quality: Difficulty classification done task_id=NeuralTrust/TrustGate-297 difficulty=medium score=0.62 quality_good=true
+2026-02-17T17:44:22.478518Z  INFO swe_forge::swe::pipeline: Task processed task_id=NeuralTrust/TrustGate-297 difficulty=medium score=0.62 passed=true
+2026-02-17T17:44:22.479141Z  INFO swe_forge::swe::pipeline: Exported task to disk (real-time) task_id=NeuralTrust/TrustGate-297 output=./benchmark-output
+2026-02-17T17:44:22.479152Z  INFO swe_forge::swe::pipeline: Task accepted into pool completed=2 max_tasks=100
+2026-02-17T17:44:22.836249Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=langchain-ai/langchain pr=35212 diff_bytes=10695
+2026-02-17T17:44:24.969987Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=langchain-ai/langchain-35212 repo=langchain-ai/langchain
+2026-02-17T17:44:35.212912Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-langchain-ai-langchain-264970 image="python:3.12-slim" repo="langchain-ai/langchain"
+2026-02-17T17:44:47.553248Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1320
+2026-02-17T17:45:17.554104Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1350
+2026-02-17T17:45:47.553711Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1380
+2026-02-17T17:46:17.553924Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1410
+2026-02-17T17:46:47.553247Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1440
+2026-02-17T17:47:17.554069Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1470
+2026-02-17T17:47:38.068440Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=jmix-framework/jmix-5079 retry=1 reason=fail_to_pass test './gradlew :multitenancy-flowui:test --tests "io.jmix.multitenancyflowui.impl.SameTenantRoleHierarchyCandidatePredicateTest" --no-daemon' still FAILS after the PR patch is applied (exit=1, stderr=/repo/jmix-data/eclipselink/src/main/java/io/jmix/eclipselink/impl/JmixEclipseLinkQuery.java:34: error: package io.jmix.data.persistence does not exist
+import io.jmix.data.persistence.DbmsFeatures;
+                               ^
+/repo/jmix-data/eclipselink/src/main/java/io/jmix/eclipselink/impl/JmixEclipseLinkQuery.java:35: error: package io.jmix.data.persistence does not exist
+import io.jmix.data.persistence.DbmsSpecifics;
+                               ^
+/repo/jmix-data/eclipselink/src/main/). This means your test does not actually test what the PR changes.
+2026-02-17T17:47:47.553384Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1500
+2026-02-17T17:48:17.553279Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1530
+2026-02-17T17:48:39.493290Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=fluxcd/helm-controller-1411 retry=1 reason=fail_to_pass test 'cd /repo/api && GOTOOLCHAIN=auto go test ./v2 -run "TestInSyncReleaseStaleInstallFailedCondition\|TestInSyncReleaseStaleUpgradeFailedCondition\|TestInSyncReleaseConditionsPreservedWhenAlreadyTrue\|TestInSyncReleaseOtherFailureReasonsNotChanged\|TestInSyncReleaseWithNoHistory\|TestConditionTypesDefined" -v' still FAILS after the PR patch is applied (exit=1, stderr=# github.com/fluxcd/helm-controller/api/v2
+v2/condition_reconcile_test.go:25:2: no required module provides package github.com/fluxcd/pkg/runtime/conditions; to add it:
+	go get github.com/fluxcd/pkg/runtime/conditions
+). This means your test does not actually test what the PR changes.
+2026-02-17T17:48:47.553622Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1560
+2026-02-17T17:49:11.131642Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=jmix-framework/jmix-5079 retry=2 reason=fail_to_pass test './gradlew :multitenancy-flowui:compileTestJava --no-daemon -q' still FAILS after the PR patch is applied (exit=1, stderr=/repo/jmix-data/eclipselink/src/main/java/io/jmix/eclipselink/impl/JmixEclipseLinkQuery.java:34: error: package io.jmix.data.persistence does not exist
+import io.jmix.data.persistence.DbmsFeatures;
+                               ^
+/repo/jmix-data/eclipselink/src/main/java/io/jmix/eclipselink/impl/JmixEclipseLinkQuery.java:35: error: package io.jmix.data.persistence does not exist
+import io.jmix.data.persistence.DbmsSpecifics;
+                               ^
+/repo/jmix-data/eclipselink/src/main/). This means your test does not actually test what the PR changes.
+2026-02-17T17:49:17.553544Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1590
+2026-02-17T17:49:47.553784Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1620
+2026-02-17T17:50:17.553529Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1650
+2026-02-17T17:50:27.357084Z  INFO swe_forge::swe::test_generator: Dual-commit validation PASSED task_id=jmix-framework/jmix-5079
+2026-02-17T17:50:27.357124Z  INFO swe_forge::swe::test_generator: Agent submitted tests task_id=jmix-framework/jmix-5079 turn=162 f2p=2 p2p=2 files=2
+2026-02-17T17:50:28.196495Z  INFO swe_forge::swe::quality: Starting difficulty classification... task_id=jmix-framework/jmix-5079
+2026-02-17T17:50:33.484921Z  INFO swe_forge::swe::quality: Difficulty classification done task_id=jmix-framework/jmix-5079 difficulty=medium score=0.6 quality_good=true
+2026-02-17T17:50:33.484943Z  INFO swe_forge::swe::pipeline: Task processed task_id=jmix-framework/jmix-5079 difficulty=medium score=0.6 passed=true
+2026-02-17T17:50:33.485590Z  INFO swe_forge::swe::pipeline: Exported task to disk (real-time) task_id=jmix-framework/jmix-5079 output=./benchmark-output
+2026-02-17T17:50:33.485601Z  INFO swe_forge::swe::pipeline: Task accepted into pool completed=3 max_tasks=100
+2026-02-17T17:50:33.833883Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=salesforcecli/mcp pr=393 diff_bytes=18191
+2026-02-17T17:50:36.259091Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=salesforcecli/mcp-393 repo=salesforcecli/mcp
+2026-02-17T17:50:45.620681Z  WARN swe_forge::swe::docker_sandbox: Checkout failed (continuing on HEAD) container=swe-mine-salesforcecli-mcp-636259 commit="bd5652886d43b55c72719ff9bf4a8d2788feef19" stderr=
+2026-02-17T17:50:45.620696Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-salesforcecli-mcp-636259 image="node:20-slim" repo="salesforcecli/mcp"
+2026-02-17T17:50:47.553573Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1680
+2026-02-17T17:51:12.246219Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=fluxcd/helm-controller-1411 retry=2 reason=fail_to_pass test 'cd /repo/api && GOTOOLCHAIN=auto go test ./v2 -v -count=1' still FAILS after the PR patch is applied (exit=1, stderr=# github.com/fluxcd/helm-controller/api/v2
+v2/condition_reconcile_test.go:25:2: no required module provides package github.com/fluxcd/pkg/runtime/conditions; to add it:
+	go get github.com/fluxcd/pkg/runtime/conditions
+). This means your test does not actually test what the PR changes.
+2026-02-17T17:51:17.554055Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1710
+2026-02-17T17:51:47.554052Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1740
+2026-02-17T17:52:17.554013Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1770
+2026-02-17T17:52:47.553300Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1800
+2026-02-17T17:53:17.554027Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1830
+2026-02-17T17:53:41.812360Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T17:53:41.871535Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=langchain-ai/langchain-35212 retry=1 reason=PR patch could not be applied to the base commit. The test cannot be validated.
+2026-02-17T17:53:47.554138Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1860
+2026-02-17T17:54:17.553387Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1890
+2026-02-17T17:54:47.553330Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1920
+2026-02-17T17:54:49.067501Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=fluxcd/helm-controller-1411 retry=3 reason=fail_to_pass test 'cd /repo/api && GOTOOLCHAIN=auto go test ./v2 -run "TestInSyncRelease" -v -count=1' still FAILS after the PR patch is applied (exit=1, stderr=# github.com/fluxcd/helm-controller/api/v2
+v2/condition_reconcile_test.go:25:2: no required module provides package github.com/fluxcd/pkg/runtime/conditions; to add it:
+	go get github.com/fluxcd/pkg/runtime/conditions
+). This means your test does not actually test what the PR changes.
+2026-02-17T17:54:49.833052Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=softeerbootcamp-7th/WEB-Team4-Refit-448 retry=1 reason=fail_to_pass test 'cd /repo/backend && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew test --tests "com.shyashyashya.refit.unit.interview.dto.InterviewDtoIndustryFieldsTest" --no-daemon' still FAILS after the PR patch is applied (exit=1, stderr=
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> No tests found for given includes: [com.shyashyashya.refit.unit.interview.dto.InterviewDtoIndustryFieldsTest](--tests filter)
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 4s
+). This means your test does not actually test what the PR changes.
+2026-02-17T17:55:17.553886Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1950
+2026-02-17T17:55:25.757181Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=softeerbootcamp-7th/WEB-Team4-Refit-448 retry=2 reason=fail_to_pass test 'cd /repo/backend && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew test --tests "com.shyashyashya.refit.unit.interview.dto.InterviewDtoIndustryFieldsTest" --no-daemon' still FAILS after the PR patch is applied (exit=1, stderr=/repo/backend/src/test/java/com/shyashyashya/refit/integration/interview/InterviewIntegrationTest.java:59: error: error while writing InterviewIntegrationTest.??_??_?: bad filename RelativeFile[com/shyashyashya/refit/integration/interview/InterviewIntegrationTest$??_??_?.class]
+    class ??_??_? {
+    ^
+1 error
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':compileTestJava'.
+> Compilation failed; see the compiler output below.
+  /repo/backend/src/test/j). This means your test does not actually test what the PR changes.
+2026-02-17T17:55:47.553530Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=1980
+2026-02-17T17:55:53.588796Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=softeerbootcamp-7th/WEB-Team4-Refit-448 retry=3 reason=fail_to_pass test 'cd /repo/backend && JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew test --tests "com.shyashyashya.refit.unit.interview.dto.InterviewDtoIndustryFieldsTest" --no-daemon' still FAILS after the PR patch is applied (exit=1, stderr=
+4 tests completed, 2 failed
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> There were failing tests. See the report at: file:///repo/backend/build/reports/tests/test/index.html
+
+* Try:
+> Run with --scan to get full insights.
+
+BUILD FAILED in 4s
+). This means your test does not actually test what the PR changes.
+2026-02-17T17:55:58.651041Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T17:55:58.704155Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=langchain-ai/langchain-35212 retry=2 reason=PR patch could not be applied to the base commit. The test cannot be validated.
+2026-02-17T17:56:14.035570Z  INFO swe_forge::swe::test_generator: Dual-commit validation PASSED task_id=Decomp-Robot/dtk-template-1
+2026-02-17T17:56:14.035620Z  INFO swe_forge::swe::test_generator: Agent submitted tests task_id=Decomp-Robot/dtk-template-1 turn=129 f2p=2 p2p=1 files=3
+2026-02-17T17:56:14.226978Z  INFO swe_forge::swe::quality: Starting difficulty classification... task_id=Decomp-Robot/dtk-template-1
+2026-02-17T17:56:17.553691Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2010
+2026-02-17T17:56:19.242014Z  INFO swe_forge::swe::quality: Difficulty classification done task_id=Decomp-Robot/dtk-template-1 difficulty=medium score=0.6 quality_good=true
+2026-02-17T17:56:19.242035Z  INFO swe_forge::swe::pipeline: Task processed task_id=Decomp-Robot/dtk-template-1 difficulty=medium score=0.6 passed=true
+2026-02-17T17:56:19.242909Z  INFO swe_forge::swe::pipeline: Exported task to disk (real-time) task_id=Decomp-Robot/dtk-template-1 output=./benchmark-output
+2026-02-17T17:56:19.242921Z  INFO swe_forge::swe::pipeline: Task accepted into pool completed=4 max_tasks=100
+2026-02-17T17:56:19.621716Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=cisagov/manage.get.gov pr=4685 diff_bytes=12368
+2026-02-17T17:56:20.438487Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=fluxcd/helm-controller-1411
+2026-02-17T17:56:23.174300Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=cisagov/manage.get.gov-4685 repo=cisagov/manage.get.gov
+2026-02-17T17:56:28.990066Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=softeerbootcamp-7th/WEB-Team4-Refit-448
+2026-02-17T17:56:32.306930Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-cisagov-manage.get.gov-983174 image="python:3.12-slim" repo="cisagov/manage.get.gov"
+2026-02-17T17:56:47.553310Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2040
+2026-02-17T17:56:49.171027Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=fluxcd/helm-controller-1411
+2026-02-17T17:56:57.634855Z  INFO swe_forge::swe::test_generator: Dual-commit validation PASSED task_id=softeerbootcamp-7th/WEB-Team4-Refit-448
+2026-02-17T17:56:57.634892Z  INFO swe_forge::swe::test_generator: Agent submitted tests task_id=softeerbootcamp-7th/WEB-Team4-Refit-448 turn=188 f2p=1 p2p=1 files=3
+2026-02-17T17:56:58.360799Z  INFO swe_forge::swe::quality: Starting difficulty classification... task_id=softeerbootcamp-7th/WEB-Team4-Refit-448
+2026-02-17T17:57:02.458666Z  INFO swe_forge::swe::quality: Difficulty classification done task_id=softeerbootcamp-7th/WEB-Team4-Refit-448 difficulty=medium score=0.4 quality_good=true
+2026-02-17T17:57:02.458689Z  INFO swe_forge::swe::pipeline: Task processed task_id=softeerbootcamp-7th/WEB-Team4-Refit-448 difficulty=medium score=0.4 passed=true
+2026-02-17T17:57:02.460464Z  INFO swe_forge::swe::pipeline: Exported task to disk (real-time) task_id=softeerbootcamp-7th/WEB-Team4-Refit-448 output=./benchmark-output
+2026-02-17T17:57:02.460480Z  INFO swe_forge::swe::pipeline: Task accepted into pool completed=5 max_tasks=100
+2026-02-17T17:57:02.829834Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=National-Assembly-of-Jurists/Daadaar pr=96 diff_bytes=2916
+2026-02-17T17:57:03.258695Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=fluxcd/helm-controller-1411
+2026-02-17T17:57:05.515615Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=National-Assembly-of-Jurists/Daadaar-96 repo=National-Assembly-of-Jurists/Daadaar
+2026-02-17T17:57:14.498938Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=fluxcd/helm-controller-1411
+2026-02-17T17:57:16.276499Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-National-Assembly-of-Jurists-Daadaar-25515 image="node:20-slim" repo="National-Assembly-of-Jurists/Daadaar"
+2026-02-17T17:57:17.553995Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2070
+2026-02-17T17:57:37.334424Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T17:57:37.382322Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=salesforcecli/mcp-393 retry=1 reason=PR patch could not be applied to the base commit. The test cannot be validated.
+2026-02-17T17:57:44.197200Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=fluxcd/helm-controller-1411
+2026-02-17T17:57:47.553779Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2100
+2026-02-17T17:57:53.569290Z  INFO swe_forge::swe::test_generator: Dual-commit validation PASSED task_id=fluxcd/helm-controller-1411
+2026-02-17T17:57:53.569363Z  INFO swe_forge::swe::test_generator: Agent submitted tests task_id=fluxcd/helm-controller-1411 turn=145 f2p=1 p2p=1 files=2
+2026-02-17T17:57:55.079080Z  INFO swe_forge::swe::quality: Starting difficulty classification... task_id=fluxcd/helm-controller-1411
+2026-02-17T17:58:00.992634Z  INFO swe_forge::swe::quality: Difficulty classification done task_id=fluxcd/helm-controller-1411 difficulty=medium score=0.55 quality_good=true
+2026-02-17T17:58:00.992656Z  INFO swe_forge::swe::pipeline: Task processed task_id=fluxcd/helm-controller-1411 difficulty=medium score=0.55 passed=true
+2026-02-17T17:58:00.994340Z  INFO swe_forge::swe::pipeline: Exported task to disk (real-time) task_id=fluxcd/helm-controller-1411 output=./benchmark-output
+2026-02-17T17:58:00.994349Z  INFO swe_forge::swe::pipeline: Task accepted into pool completed=6 max_tasks=100
+2026-02-17T17:58:01.505545Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=scylladb/scylla-cluster-tests pr=13598 diff_bytes=279484
+2026-02-17T17:58:04.863766Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=scylladb/scylla-cluster-tests-13598 repo=scylladb/scylla-cluster-tests
+2026-02-17T17:58:14.816018Z  WARN swe_forge::swe::docker_sandbox: Checkout failed (continuing on HEAD) container=swe-mine-scylladb-scylla-cluster-tests-84863 commit="d002e7bf162abb4650ffabf34ac6fd6717e0aed2" stderr=
+2026-02-17T17:58:14.816035Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-scylladb-scylla-cluster-tests-84863 image="python:3.12-slim" repo="scylladb/scylla-cluster-tests"
+2026-02-17T17:58:17.554159Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2130
+2026-02-17T17:58:47.553317Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2160
+2026-02-17T17:59:17.553873Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2190
+2026-02-17T17:59:47.553809Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2220
+2026-02-17T18:00:17.553516Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2250
+2026-02-17T18:00:32.024325Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:00:32.069494Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=salesforcecli/mcp-393 retry=2 reason=PR patch could not be applied to the base commit. The test cannot be validated.
+2026-02-17T18:00:47.553244Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2280
+2026-02-17T18:01:03.116131Z  WARN swe_forge::swe::test_generator: Rejecting string-matching tests task_id=National-Assembly-of-Jurists/Daadaar-96 retry=1
+2026-02-17T18:01:17.553752Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2310
+2026-02-17T18:01:19.983988Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:01:20.030846Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=salesforcecli/mcp-393 retry=3 reason=PR patch could not be applied to the base commit. The test cannot be validated.
+2026-02-17T18:01:47.553833Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2340
+2026-02-17T18:01:49.046503Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:01:49.109832Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=langchain-ai/langchain-35212 retry=3 reason=PR patch could not be applied to the base commit. The test cannot be validated.
+2026-02-17T18:02:08.903525Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:02:08.952492Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=salesforcecli/mcp-393
+2026-02-17T18:02:17.553731Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2370
+2026-02-17T18:02:41.399865Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:02:41.447604Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=salesforcecli/mcp-393
+2026-02-17T18:02:47.553343Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2400
+2026-02-17T18:02:48.437534Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:02:48.498313Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=scylladb/scylla-cluster-tests-13598 retry=1 reason=PR patch could not be applied to the base commit. The test cannot be validated.
+2026-02-17T18:02:56.586356Z  WARN swe_forge::swe::test_generator: Rejecting string-matching tests task_id=National-Assembly-of-Jurists/Daadaar-96 retry=2
+2026-02-17T18:03:10.159340Z  WARN swe_forge::swe::test_generator: Rejecting string-matching tests task_id=National-Assembly-of-Jurists/Daadaar-96 retry=3
+2026-02-17T18:03:17.553428Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2430
+2026-02-17T18:03:33.367733Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:03:33.419890Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=salesforcecli/mcp-393
+2026-02-17T18:03:47.553800Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2460
+2026-02-17T18:03:56.547368Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:03:56.602521Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=scylladb/scylla-cluster-tests-13598 retry=2 reason=PR patch could not be applied to the base commit. The test cannot be validated.
+2026-02-17T18:04:10.836717Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:04:10.901277Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=langchain-ai/langchain-35212
+2026-02-17T18:04:17.553861Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2490
+2026-02-17T18:04:25.828381Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:04:25.867952Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=salesforcecli/mcp-393
+2026-02-17T18:04:36.180777Z  WARN swe_forge::swe::test_generator: String-matching tests after max retries, REJECTING task_id=National-Assembly-of-Jurists/Daadaar-96
+2026-02-17T18:04:47.553291Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2520
+2026-02-17T18:04:55.558328Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:04:55.611500Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=salesforcecli/mcp-393
+2026-02-17T18:05:02.003940Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:05:02.063068Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=scylladb/scylla-cluster-tests-13598 retry=3 reason=PR patch could not be applied to the base commit. The test cannot be validated.
+2026-02-17T18:05:15.787405Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:05:15.838704Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=salesforcecli/mcp-393
+2026-02-17T18:05:17.554159Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2550
+2026-02-17T18:05:22.675266Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:05:22.721910Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=scylladb/scylla-cluster-tests-13598
+2026-02-17T18:05:38.959801Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:05:39.001763Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=salesforcecli/mcp-393
+2026-02-17T18:05:47.553994Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2580
+2026-02-17T18:05:53.861815Z  WARN swe_forge::swe::test_generator: String-matching tests after max retries, REJECTING task_id=National-Assembly-of-Jurists/Daadaar-96
+2026-02-17T18:05:59.164733Z  WARN swe_forge::swe::pipeline: Test generation failed task_id=salesforcecli/mcp-393 error=Agentic test generation failed for salesforcecli/mcp-393: exhausted 200 turns without submitting
+2026-02-17T18:05:59.532260Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=run-house/kubetorch pr=2243 diff_bytes=14858
+2026-02-17T18:06:05.679732Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:06:05.734624Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=scylladb/scylla-cluster-tests-13598
+2026-02-17T18:06:12.077114Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=run-house/kubetorch-2243 repo=run-house/kubetorch
+2026-02-17T18:06:17.554188Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2610
+2026-02-17T18:06:22.098521Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-run-house-kubetorch-572077 image="python:3.12-slim" repo="run-house/kubetorch"
+2026-02-17T18:06:37.192354Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:06:37.250076Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=langchain-ai/langchain-35212
+2026-02-17T18:06:44.304748Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:06:44.354509Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=scylladb/scylla-cluster-tests-13598
+2026-02-17T18:06:47.553268Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2640
+2026-02-17T18:07:10.681228Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:07:10.744904Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=scylladb/scylla-cluster-tests-13598
+2026-02-17T18:07:17.553755Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2670
+2026-02-17T18:07:25.965110Z  WARN swe_forge::swe::test_generator: String-matching tests after max retries, REJECTING task_id=National-Assembly-of-Jurists/Daadaar-96
+2026-02-17T18:07:39.528848Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:07:39.577239Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=scylladb/scylla-cluster-tests-13598
+2026-02-17T18:07:47.553467Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2700
+2026-02-17T18:08:15.032678Z  WARN swe_forge::swe::test_generator: String-matching tests after max retries, REJECTING task_id=National-Assembly-of-Jurists/Daadaar-96
+2026-02-17T18:08:17.553319Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2730
+2026-02-17T18:08:19.531797Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:08:19.581157Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=scylladb/scylla-cluster-tests-13598
+2026-02-17T18:08:34.590541Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:08:34.646478Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=scylladb/scylla-cluster-tests-13598
+2026-02-17T18:08:47.553816Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2760
+2026-02-17T18:09:00.988836Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:09:01.046160Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=scylladb/scylla-cluster-tests-13598
+2026-02-17T18:09:11.673733Z  WARN swe_forge::swe::test_generator: String-matching tests after max retries, REJECTING task_id=National-Assembly-of-Jurists/Daadaar-96
+2026-02-17T18:09:17.554108Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2790
+2026-02-17T18:09:23.671919Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:09:23.726556Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=scylladb/scylla-cluster-tests-13598
+2026-02-17T18:09:29.018454Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:09:29.076564Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=langchain-ai/langchain-35212
+2026-02-17T18:09:47.553908Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2820
+2026-02-17T18:09:49.005654Z  WARN swe_forge::swe::pipeline: Test generation failed task_id=scylladb/scylla-cluster-tests-13598 error=Agentic test generation failed for scylladb/scylla-cluster-tests-13598: exhausted 200 turns without submitting
+2026-02-17T18:09:49.328693Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=2026TUKCOMCD/Dalum pr=108 diff_bytes=8172
+2026-02-17T18:09:51.999251Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=2026TUKCOMCD/Dalum-108 repo=2026TUKCOMCD/Dalum
+2026-02-17T18:10:02.313370Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-2026TUKCOMCD-Dalum-791999 image="eclipse-temurin:21-jdk" repo="2026TUKCOMCD/Dalum"
+2026-02-17T18:10:17.553605Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2850
+2026-02-17T18:10:24.297121Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:10:24.335890Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=langchain-ai/langchain-35212
+2026-02-17T18:10:47.553483Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2880
+2026-02-17T18:11:17.553492Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2910
+2026-02-17T18:11:27.012165Z  WARN swe_forge::swe::test_generator: String-matching tests after max retries, REJECTING task_id=National-Assembly-of-Jurists/Daadaar-96
+2026-02-17T18:11:47.553251Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2940
+2026-02-17T18:11:56.319820Z  WARN swe_forge::swe::pipeline: Test generation failed task_id=cisagov/manage.get.gov-4685 error=Failed to parse LLM response: Failed to parse API response: error decoding response body
+2026-02-17T18:11:56.714652Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=pixeltable/pixeltable pr=1144 diff_bytes=8669
+2026-02-17T18:11:58.827911Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=pixeltable/pixeltable-1144 repo=pixeltable/pixeltable
+2026-02-17T18:11:59.038562Z  WARN swe_forge::swe::test_generator: String-matching tests after max retries, REJECTING task_id=National-Assembly-of-Jurists/Daadaar-96
+2026-02-17T18:12:10.781068Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-pixeltable-pixeltable-918827 image="python:3.12-slim" repo="pixeltable/pixeltable"
+2026-02-17T18:12:17.553481Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=2970
+2026-02-17T18:12:30.424270Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:12:30.478485Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=langchain-ai/langchain-35212
+2026-02-17T18:12:31.921128Z  WARN swe_forge::swe::test_generator: String-matching tests after max retries, REJECTING task_id=National-Assembly-of-Jurists/Daadaar-96
+2026-02-17T18:12:47.553197Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3000
+2026-02-17T18:13:17.553913Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3030
+2026-02-17T18:13:47.553593Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3060
+2026-02-17T18:14:10.489076Z  WARN swe_forge::swe::test_generator: String-matching tests after max retries, REJECTING task_id=National-Assembly-of-Jurists/Daadaar-96
+2026-02-17T18:14:17.553344Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3090
+2026-02-17T18:14:47.553506Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3120
+2026-02-17T18:15:15.199758Z  WARN swe_forge::swe::test_generator: String-matching tests after max retries, REJECTING task_id=National-Assembly-of-Jurists/Daadaar-96
+2026-02-17T18:15:17.553472Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3150
+2026-02-17T18:15:32.350833Z  INFO swe_forge::swe::test_generator: Dual-commit validation PASSED task_id=run-house/kubetorch-2243
+2026-02-17T18:15:32.350887Z  INFO swe_forge::swe::test_generator: Agent submitted tests task_id=run-house/kubetorch-2243 turn=113 f2p=1 p2p=1 files=2
+2026-02-17T18:15:32.653486Z  INFO swe_forge::swe::quality: Starting difficulty classification... task_id=run-house/kubetorch-2243
+2026-02-17T18:15:37.033261Z  WARN swe_forge::swe::test_generator: String-matching tests after max retries, REJECTING task_id=National-Assembly-of-Jurists/Daadaar-96
+2026-02-17T18:15:37.608284Z  INFO swe_forge::swe::quality: Difficulty classification done task_id=run-house/kubetorch-2243 difficulty=medium score=0.5 quality_good=true
+2026-02-17T18:15:37.608305Z  INFO swe_forge::swe::pipeline: Task processed task_id=run-house/kubetorch-2243 difficulty=medium score=0.5 passed=true
+2026-02-17T18:15:37.612085Z  INFO swe_forge::swe::pipeline: Exported task to disk (real-time) task_id=run-house/kubetorch-2243 output=./benchmark-output
+2026-02-17T18:15:37.612097Z  INFO swe_forge::swe::pipeline: Task accepted into pool completed=7 max_tasks=100
+2026-02-17T18:15:37.934798Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=carbon-design-system/carbon pr=21548 diff_bytes=2377
+2026-02-17T18:15:40.468353Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=carbon-design-system/carbon-21548 repo=carbon-design-system/carbon
+2026-02-17T18:15:45.930097Z  WARN swe_forge::swe::pipeline: Test generation failed task_id=National-Assembly-of-Jurists/Daadaar-96 error=Agentic test generation failed for National-Assembly-of-Jurists/Daadaar-96: exhausted 200 turns without submitting
+2026-02-17T18:15:46.297262Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=eclipse-swtchart/swtchart pr=560 diff_bytes=1188
+2026-02-17T18:15:47.550846Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=eclipse-swtchart/swtchart-560 repo=eclipse-swtchart/swtchart
+2026-02-17T18:15:47.553860Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3180
+2026-02-17T18:15:52.685108Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:15:52.748841Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=langchain-ai/langchain-35212
+2026-02-17T18:16:07.373934Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-eclipse-swtchart-swtchart-147550 image="eclipse-temurin:21-jdk" repo="eclipse-swtchart/swtchart"
+2026-02-17T18:16:15.221951Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-carbon-design-system-carbon-140468 image="node:20-slim" repo="carbon-design-system/carbon"
+2026-02-17T18:16:17.553933Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3210
+2026-02-17T18:16:36.338263Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=2026TUKCOMCD/Dalum-108 retry=1 reason=fail_to_pass test 'cd /repo/Dalum-BE && ./gradlew test --tests "dalum.dalum.global.s3.S3ServiceTest" --no-daemon' still FAILS after the PR patch is applied (exit=1, stderr=Note: /repo/Dalum-BE/src/test/java/dalum/dalum/global/s3/S3ServiceTest.java uses or overrides a deprecated API.
+Note: Recompile with -Xlint:deprecation for details.
+OpenJDK 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+
+4 tests completed, 4 failed
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':test'.
+> There were failing tests. See the report at: file:///repo/Dalum-BE/build/repo). This means your test does not actually test what the PR changes.
+2026-02-17T18:16:47.553524Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3240
+2026-02-17T18:17:17.553405Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3270
+2026-02-17T18:17:47.554181Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3300
+2026-02-17T18:17:50.520765Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=pixeltable/pixeltable-1144 retry=1 reason=fail_to_pass test 'pytest tests/test_video_crop.py -v --no-header' still FAILS after the PR patch is applied (exit=1, stderr=). This means your test does not actually test what the PR changes.
+2026-02-17T18:18:02.815931Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:18:02.876664Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=langchain-ai/langchain-35212
+2026-02-17T18:18:17.553396Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3330
+2026-02-17T18:18:47.553541Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3360
+2026-02-17T18:19:01.513615Z  INFO swe_forge::swe::test_generator: Dual-commit validation PASSED task_id=2026TUKCOMCD/Dalum-108
+2026-02-17T18:19:01.513643Z  INFO swe_forge::swe::test_generator: Agent submitted tests task_id=2026TUKCOMCD/Dalum-108 turn=95 f2p=2 p2p=2 files=3
+2026-02-17T18:19:01.807304Z  INFO swe_forge::swe::quality: Starting difficulty classification... task_id=2026TUKCOMCD/Dalum-108
+2026-02-17T18:19:09.440255Z  INFO swe_forge::swe::quality: Difficulty classification done task_id=2026TUKCOMCD/Dalum-108 difficulty=medium score=0.55 quality_good=true
+2026-02-17T18:19:09.440277Z  INFO swe_forge::swe::pipeline: Task processed task_id=2026TUKCOMCD/Dalum-108 difficulty=medium score=0.55 passed=true
+2026-02-17T18:19:09.440936Z  INFO swe_forge::swe::pipeline: Exported task to disk (real-time) task_id=2026TUKCOMCD/Dalum-108 output=./benchmark-output
+2026-02-17T18:19:09.440946Z  INFO swe_forge::swe::pipeline: Task accepted into pool completed=8 max_tasks=100
+2026-02-17T18:19:09.748373Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=elastic/kibana pr=253314 diff_bytes=2658
+2026-02-17T18:19:15.119219Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=elastic/kibana-253314 repo=elastic/kibana
+2026-02-17T18:19:17.553374Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3390
+2026-02-17T18:19:31.993673Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:19:32.047567Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=langchain-ai/langchain-35212
+2026-02-17T18:19:35.509341Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=pixeltable/pixeltable-1144 retry=2 reason=fail_to_pass test 'pytest tests/test_video_crop.py::TestVideoCrop::test_crop_basic_xywh -x -v --no-header' still FAILS after the PR patch is applied (exit=1, stderr=). This means your test does not actually test what the PR changes.
+2026-02-17T18:19:47.554029Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3420
+2026-02-17T18:20:06.874113Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-elastic-kibana-355119 image="node:20-slim" repo="elastic/kibana"
+2026-02-17T18:20:17.554060Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3450
+2026-02-17T18:20:33.760450Z  INFO swe_forge::swe::test_generator: Dual-commit validation PASSED task_id=eclipse-swtchart/swtchart-560
+2026-02-17T18:20:33.760488Z  INFO swe_forge::swe::test_generator: Agent submitted tests task_id=eclipse-swtchart/swtchart-560 turn=67 f2p=1 p2p=1 files=5
+2026-02-17T18:20:34.104189Z  INFO swe_forge::swe::quality: Starting difficulty classification... task_id=eclipse-swtchart/swtchart-560
+2026-02-17T18:20:35.833080Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:20:35.889298Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=langchain-ai/langchain-35212
+2026-02-17T18:20:39.399383Z  INFO swe_forge::swe::quality: Difficulty classification done task_id=eclipse-swtchart/swtchart-560 difficulty=easy score=0.15 quality_good=false
+2026-02-17T18:20:39.399409Z  INFO swe_forge::swe::pipeline: Task processed task_id=eclipse-swtchart/swtchart-560 difficulty=easy score=0.15 passed=false
+2026-02-17T18:20:39.713857Z  INFO swe_forge::swe::extractor: Fetched real PR diff from GitHub API repo=LemmyNet/lemmy pr=6340 diff_bytes=3831
+2026-02-17T18:20:41.860574Z  INFO swe_forge::swe::test_generator: Starting agentic test generation (Docker) task_id=LemmyNet/lemmy-6340 repo=LemmyNet/lemmy
+2026-02-17T18:20:47.553517Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3480
+2026-02-17T18:20:49.427751Z  INFO swe_forge::swe::docker_sandbox: Docker sandbox ready container=swe-mine-LemmyNet-lemmy-441860 image="rust:1.75-slim" repo="LemmyNet/lemmy"
+2026-02-17T18:21:15.033116Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed, asking LLM to retry task_id=pixeltable/pixeltable-1144 retry=3 reason=fail_to_pass test 'pytest tests/test_video_crop.py::TestVideoCrop::test_crop_basic_xywh -x -v --no-header' still FAILS after the PR patch is applied (exit=1, stderr=). This means your test does not actually test what the PR changes.
+2026-02-17T18:21:17.553459Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3510
+2026-02-17T18:21:47.554054Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3540
+2026-02-17T18:21:47.647161Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:21:47.710502Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=langchain-ai/langchain-35212
+2026-02-17T18:21:54.464975Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=pixeltable/pixeltable-1144
+2026-02-17T18:22:17.554193Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3570
+2026-02-17T18:22:47.553318Z  INFO swe_forge::swe::progress: Pipeline progress filtered=0 extracted=0 scored=0 accepted=0 max_tasks=100 progress_pct="0.0%" elapsed_secs=3600
+2026-02-17T18:22:48.300540Z  WARN swe_forge::swe::test_generator: Patch apply failed, rejecting task stderr=
+2026-02-17T18:22:48.346565Z  WARN swe_forge::swe::test_generator: Dual-commit validation failed after max retries, REJECTING task_id=langchain-ai/langchain-35212

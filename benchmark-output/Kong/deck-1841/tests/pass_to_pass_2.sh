@@ -1,0 +1,3 @@
+#!/bin/bash
+# This test must PASS on base commit AND after fix
+cd /repo && GOTOOLCHAIN=go1.25.6 go build ./...

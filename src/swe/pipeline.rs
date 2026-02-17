@@ -9,6 +9,7 @@ use std::io::Write;
 use std::path::Path;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::time::Instant;
 
 use chrono::{DateTime, Utc};
 use futures::stream::FuturesUnordered;
@@ -43,6 +44,41 @@ pub struct ExportConfig {
 /// Optional dataset manager handle for real-time parquet + HF upload.
 /// Wrapped in Arc so it can be shared across async tasks.
 pub type DatasetHandle = Arc<crate::export::DatasetManager>;
+
+/// Aggregate metrics collected during a full pipeline run for benchmarking analysis.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BenchmarkMetrics {
+    pub total_raw_events: usize,
+    pub total_merged_events: usize,
+    pub total_prefiltered: usize,
+    pub enriched_count: usize,
+    pub enrichment_failed: usize,
+    pub filter_passed: usize,
+    pub filter_rejected: usize,
+    pub filter_rejection_reasons: HashMap<String, usize>,
+    pub preclassify_count: usize,
+    pub preclassify_easy: usize,
+    pub preclassify_medium: usize,
+    pub preclassify_hard: usize,
+    pub extraction_attempted: usize,
+    pub extraction_succeeded: usize,
+    pub extraction_failed: usize,
+    pub test_gen_attempted: usize,
+    pub test_gen_succeeded: usize,
+    pub test_gen_failed: usize,
+    pub quality_scored: usize,
+    pub quality_passed: usize,
+    pub quality_failed: usize,
+    pub difficulty_easy: usize,
+    pub difficulty_medium: usize,
+    pub difficulty_hard: usize,
+    pub accepted_count: usize,
+    pub total_processing_time_ms: u64,
+    pub avg_per_pr_time_ms: f64,
+    pub throughput_prs_per_sec: f64,
+    pub avg_quality_score: f64,
+    pub languages: HashMap<String, usize>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum SwePipelineEvent {
@@ -114,6 +150,7 @@ pub struct SwePipelineRunResult {
     pub extracted: usize,
     pub scored: usize,
     pub finished_at: DateTime<Utc>,
+    pub benchmark_metrics: Option<BenchmarkMetrics>,
 }
 
 pub struct SwePipeline {
@@ -183,6 +220,8 @@ impl SwePipeline {
         export_config: Option<Arc<ExportConfig>>,
         dataset_handle: Option<DatasetHandle>,
     ) -> anyhow::Result<SwePipelineRunResult> {
+        let pipeline_start = Instant::now();
+
         emit(
             &event_tx,
             SwePipelineEvent::CollectionStarted {
@@ -195,11 +234,12 @@ impl SwePipeline {
         let hours_back = ((config.max_candidates / 50) + 1).clamp(6, 12) as u32;
         let mut events = self.archive.fetch_events(hours_back).await?;
 
-        let total_before_filter = events.len();
+        let total_raw_events = events.len();
         events.retain(|e| e.action.to_lowercase() == "merged");
+        let total_merged_events = events.len();
         tracing::info!(
-            total_raw = total_before_filter,
-            merged_events = events.len(),
+            total_raw = total_raw_events,
+            merged_events = total_merged_events,
             hours_back = hours_back,
             "GH Archive fetch complete, kept only merged PRs"
         );
@@ -278,6 +318,34 @@ impl SwePipeline {
         let export_cfg = export_config.clone();
         let ds_handle = dataset_handle.clone();
 
+        let enriched_count_m = Arc::new(AtomicUsize::new(0));
+        let enrichment_failed_m = Arc::new(AtomicUsize::new(0));
+        let filter_passed_m = Arc::new(AtomicUsize::new(0));
+        let filter_rejected_m = Arc::new(AtomicUsize::new(0));
+        let filter_rejection_reasons_m: Arc<Mutex<HashMap<String, usize>>> =
+            Arc::new(Mutex::new(HashMap::new()));
+        let preclassify_count_m = Arc::new(AtomicUsize::new(0));
+        let preclassify_easy_m = Arc::new(AtomicUsize::new(0));
+        let preclassify_medium_m = Arc::new(AtomicUsize::new(0));
+        let preclassify_hard_m = Arc::new(AtomicUsize::new(0));
+        let extraction_attempted_m = Arc::new(AtomicUsize::new(0));
+        let extraction_succeeded_m = Arc::new(AtomicUsize::new(0));
+        let extraction_failed_m = Arc::new(AtomicUsize::new(0));
+        let test_gen_attempted_m = Arc::new(AtomicUsize::new(0));
+        let test_gen_succeeded_m = Arc::new(AtomicUsize::new(0));
+        let test_gen_failed_m = Arc::new(AtomicUsize::new(0));
+        let quality_scored_m = Arc::new(AtomicUsize::new(0));
+        let quality_passed_m = Arc::new(AtomicUsize::new(0));
+        let quality_failed_m = Arc::new(AtomicUsize::new(0));
+        let difficulty_easy_m = Arc::new(AtomicUsize::new(0));
+        let difficulty_medium_m = Arc::new(AtomicUsize::new(0));
+        let difficulty_hard_m = Arc::new(AtomicUsize::new(0));
+        let accepted_count_m = Arc::new(AtomicUsize::new(0));
+        let quality_scores_m: Arc<Mutex<Vec<f64>>> = Arc::new(Mutex::new(Vec::new()));
+        let languages_m: Arc<Mutex<HashMap<String, usize>>> = Arc::new(Mutex::new(HashMap::new()));
+
+        let total_prefiltered = events.len();
+
         let mut pool: FuturesUnordered<_> = events
             .into_iter()
             .map(|event| {
@@ -295,6 +363,30 @@ impl SwePipeline {
                 let export_cfg = export_cfg.clone();
                 let ds_handle = ds_handle.clone();
                 let cache = cache.clone();
+                let enriched_count_m = enriched_count_m.clone();
+                let enrichment_failed_m = enrichment_failed_m.clone();
+                let filter_passed_m = filter_passed_m.clone();
+                let filter_rejected_m = filter_rejected_m.clone();
+                let filter_rejection_reasons_m = filter_rejection_reasons_m.clone();
+                let preclassify_count_m = preclassify_count_m.clone();
+                let preclassify_easy_m = preclassify_easy_m.clone();
+                let preclassify_medium_m = preclassify_medium_m.clone();
+                let preclassify_hard_m = preclassify_hard_m.clone();
+                let extraction_attempted_m = extraction_attempted_m.clone();
+                let extraction_succeeded_m = extraction_succeeded_m.clone();
+                let extraction_failed_m = extraction_failed_m.clone();
+                let test_gen_attempted_m = test_gen_attempted_m.clone();
+                let test_gen_succeeded_m = test_gen_succeeded_m.clone();
+                let test_gen_failed_m = test_gen_failed_m.clone();
+                let quality_scored_m = quality_scored_m.clone();
+                let quality_passed_m = quality_passed_m.clone();
+                let quality_failed_m = quality_failed_m.clone();
+                let difficulty_easy_m = difficulty_easy_m.clone();
+                let difficulty_medium_m = difficulty_medium_m.clone();
+                let difficulty_hard_m = difficulty_hard_m.clone();
+                let accepted_count_m = accepted_count_m.clone();
+                let quality_scores_m = quality_scores_m.clone();
+                let languages_m = languages_m.clone();
                 async move {
                     // Helper: check if all quotas are met (multi-target mode)
                     let all_targets_met = |per_diff: &HashMap<String, usize>, dt: &Option<DifficultyTargets>| -> bool {
@@ -328,8 +420,14 @@ impl SwePipeline {
                     let enriched = {
                         let _permit = enrich_sem.acquire().await.unwrap();
                         match enricher.enrich(&event).await {
-                            Ok(e) => e,
-                            Err(_) => return,
+                            Ok(e) => {
+                                enriched_count_m.fetch_add(1, Ordering::Relaxed);
+                                e
+                            }
+                            Err(_) => {
+                                enrichment_failed_m.fetch_add(1, Ordering::Relaxed);
+                                return;
+                            }
                         }
                     };
 
@@ -365,7 +463,21 @@ impl SwePipeline {
                         &enriched.body,
                     );
                     filtered_count.fetch_add(1, Ordering::Relaxed);
-                    if !filter_result.accepted {
+                    if filter_result.accepted {
+                        filter_passed_m.fetch_add(1, Ordering::Relaxed);
+                    } else {
+                        filter_rejected_m.fetch_add(1, Ordering::Relaxed);
+                        {
+                            let mut reasons_map = filter_rejection_reasons_m.lock().await;
+                            for reason in &filter_result.reasons {
+                                let category = reason
+                                    .split_whitespace()
+                                    .next()
+                                    .unwrap_or("unknown")
+                                    .to_lowercase();
+                                *reasons_map.entry(category).or_insert(0) += 1;
+                            }
+                        }
                         return;
                     }
 
@@ -387,6 +499,13 @@ impl SwePipeline {
                             repo = %enriched.repository, pr = enriched.number,
                             triage = %cached, "Using cached classification"
                         );
+                        preclassify_count_m.fetch_add(1, Ordering::Relaxed);
+                        match cached.as_str() {
+                            "easy" => { preclassify_easy_m.fetch_add(1, Ordering::Relaxed); }
+                            "medium" => { preclassify_medium_m.fetch_add(1, Ordering::Relaxed); }
+                            "hard" => { preclassify_hard_m.fetch_add(1, Ordering::Relaxed); }
+                            _ => {}
+                        }
                         Some(cached)
                     } else if dt.is_some() || df.is_some() {
                         let _permit = preclassify_sem.acquire().await.unwrap();
@@ -404,6 +523,13 @@ impl SwePipeline {
                         };
                         match quality.classify(&classify_input, filter_val).await {
                             Ok(pre) => {
+                                preclassify_count_m.fetch_add(1, Ordering::Relaxed);
+                                match pre.difficulty.as_str() {
+                                    "easy" => { preclassify_easy_m.fetch_add(1, Ordering::Relaxed); }
+                                    "medium" => { preclassify_medium_m.fetch_add(1, Ordering::Relaxed); }
+                                    "hard" => { preclassify_hard_m.fetch_add(1, Ordering::Relaxed); }
+                                    _ => {}
+                                }
                                 // Save triage to cache
                                 let _ = cache.upsert(&super::PrCacheEntry {
                                     repo: enriched.repository.clone(),
@@ -488,6 +614,7 @@ impl SwePipeline {
                         return;
                     }
 
+                    extraction_attempted_m.fetch_add(1, Ordering::Relaxed);
                     let patch = match extractor.extract_patch(&PatchExtractionInput {
                         repository: &enriched.repository,
                         pull_number: enriched.number,
@@ -497,8 +624,12 @@ impl SwePipeline {
                         base_commit: Some(&enriched.base_sha),
                         merge_commit: Some(&enriched.merge_sha),
                     }).await {
-                        Ok(p) => p,
+                        Ok(p) => {
+                            extraction_succeeded_m.fetch_add(1, Ordering::Relaxed);
+                            p
+                        }
                         Err(err) => {
+                            extraction_failed_m.fetch_add(1, Ordering::Relaxed);
                             tracing::warn!(repo = %enriched.repository, pr = enriched.number, error = %err, "Extraction failed");
                             return;
                         }
@@ -548,10 +679,17 @@ impl SwePipeline {
                         .insert("pr_title".to_string(), enriched.title.clone());
 
                     if !task.has_tests() {
+                        test_gen_attempted_m.fetch_add(1, Ordering::Relaxed);
                         let language = task.language.clone();
-                        if let Err(err) = test_generator.ensure_tests(&mut task, &language).await {
-                            tracing::warn!(task_id = %task.id, error = %err, "Test generation failed");
-                            return;
+                        match test_generator.ensure_tests(&mut task, &language).await {
+                            Ok(_) => {
+                                test_gen_succeeded_m.fetch_add(1, Ordering::Relaxed);
+                            }
+                            Err(err) => {
+                                test_gen_failed_m.fetch_add(1, Ordering::Relaxed);
+                                tracing::warn!(task_id = %task.id, error = %err, "Test generation failed");
+                                return;
+                            }
                         }
                     }
 
@@ -564,8 +702,22 @@ impl SwePipeline {
                     };
 
                     scored_count.fetch_add(1, Ordering::Relaxed);
+                    quality_scored_m.fetch_add(1, Ordering::Relaxed);
 
                     let (score, passed) = (assessment.score, assessment.passed);
+                    quality_scores_m.lock().await.push(score);
+                    if passed {
+                        quality_passed_m.fetch_add(1, Ordering::Relaxed);
+                    } else {
+                        quality_failed_m.fetch_add(1, Ordering::Relaxed);
+                    }
+                    match assessment.difficulty_level.as_str() {
+                        "easy" => { difficulty_easy_m.fetch_add(1, Ordering::Relaxed); }
+                        "medium" => { difficulty_medium_m.fetch_add(1, Ordering::Relaxed); }
+                        "hard" => { difficulty_hard_m.fetch_add(1, Ordering::Relaxed); }
+                        _ => {}
+                    }
+
                     task.quality_score = Some(score);
                     task.quality_passed = passed;
                     task.difficulty_score = match assessment.difficulty_level.as_str() {
@@ -604,6 +756,11 @@ impl SwePipeline {
                     );
 
                     if passed && difficulty_ok {
+                        accepted_count_m.fetch_add(1, Ordering::Relaxed);
+                        {
+                            let mut langs = languages_m.lock().await;
+                            *langs.entry(task.language.clone()).or_insert(0) += 1;
+                        }
                         task.status = crate::swe::SweTaskStatus::Ready;
 
                         if dt.is_some() {
@@ -732,6 +889,70 @@ impl SwePipeline {
         let extracted = extracted_count.load(Ordering::Relaxed);
         let scored = scored_count.load(Ordering::Relaxed);
 
+        let elapsed = pipeline_start.elapsed();
+        let total_processing_time_ms = elapsed.as_millis() as u64;
+        let enriched_total = enriched_count_m.load(Ordering::Relaxed);
+        let avg_per_pr_time_ms = if enriched_total > 0 {
+            total_processing_time_ms as f64 / enriched_total as f64
+        } else {
+            0.0
+        };
+        let elapsed_secs = elapsed.as_secs_f64();
+        let throughput_prs_per_sec = if elapsed_secs > 0.0 {
+            enriched_total as f64 / elapsed_secs
+        } else {
+            0.0
+        };
+        let quality_scores = quality_scores_m.lock().await;
+        let avg_quality_score = if quality_scores.is_empty() {
+            0.0
+        } else {
+            quality_scores.iter().sum::<f64>() / quality_scores.len() as f64
+        };
+        drop(quality_scores);
+
+        let filter_rejection_reasons = match Arc::try_unwrap(filter_rejection_reasons_m) {
+            Ok(mu) => mu.into_inner(),
+            Err(arc) => arc.lock().await.clone(),
+        };
+        let languages = match Arc::try_unwrap(languages_m) {
+            Ok(mu) => mu.into_inner(),
+            Err(arc) => arc.lock().await.clone(),
+        };
+
+        let benchmark_metrics = BenchmarkMetrics {
+            total_raw_events,
+            total_merged_events,
+            total_prefiltered,
+            enriched_count: enriched_total,
+            enrichment_failed: enrichment_failed_m.load(Ordering::Relaxed),
+            filter_passed: filter_passed_m.load(Ordering::Relaxed),
+            filter_rejected: filter_rejected_m.load(Ordering::Relaxed),
+            filter_rejection_reasons,
+            preclassify_count: preclassify_count_m.load(Ordering::Relaxed),
+            preclassify_easy: preclassify_easy_m.load(Ordering::Relaxed),
+            preclassify_medium: preclassify_medium_m.load(Ordering::Relaxed),
+            preclassify_hard: preclassify_hard_m.load(Ordering::Relaxed),
+            extraction_attempted: extraction_attempted_m.load(Ordering::Relaxed),
+            extraction_succeeded: extraction_succeeded_m.load(Ordering::Relaxed),
+            extraction_failed: extraction_failed_m.load(Ordering::Relaxed),
+            test_gen_attempted: test_gen_attempted_m.load(Ordering::Relaxed),
+            test_gen_succeeded: test_gen_succeeded_m.load(Ordering::Relaxed),
+            test_gen_failed: test_gen_failed_m.load(Ordering::Relaxed),
+            quality_scored: quality_scored_m.load(Ordering::Relaxed),
+            quality_passed: quality_passed_m.load(Ordering::Relaxed),
+            quality_failed: quality_failed_m.load(Ordering::Relaxed),
+            difficulty_easy: difficulty_easy_m.load(Ordering::Relaxed),
+            difficulty_medium: difficulty_medium_m.load(Ordering::Relaxed),
+            difficulty_hard: difficulty_hard_m.load(Ordering::Relaxed),
+            accepted_count: accepted_count_m.load(Ordering::Relaxed),
+            total_processing_time_ms,
+            avg_per_pr_time_ms,
+            throughput_prs_per_sec,
+            avg_quality_score,
+            languages,
+        };
+
         emit(
             &event_tx,
             SwePipelineEvent::PipelineCompleted {
@@ -746,6 +967,7 @@ impl SwePipeline {
             extracted,
             scored,
             finished_at: Utc::now(),
+            benchmark_metrics: Some(benchmark_metrics),
         })
     }
 }

@@ -1,0 +1,6 @@
+cd /repo && GOTOOLCHAIN=go1.25.6 go test -v ./cmd -run "TestJSONOutput_DroppedOperationsInitialization"
+cd /repo && GOTOOLCHAIN=go1.25.6 go test -v ./cmd -run "TestJSONOutput_EntityChangesWithDroppedOperations"
+cd /repo && GOTOOLCHAIN=go1.25.6 go test -v ./cmd -run "TestJSONOutput_AppendDroppedOperations"
+cd /repo && GOTOOLCHAIN=go1.25.6 go test -v ./cmd -run "TestJSONOutput_JSONMarshalingWithDroppedOperations"
+cd /repo && GOTOOLCHAIN=go1.25.6 go test -v ./cmd -run "TestDetermineSelectorTag"
+cd /repo && GOTOOLCHAIN=go1.25.6 go build ./...

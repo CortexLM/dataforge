@@ -425,6 +425,114 @@ cargo clippy         # Lint
 RUST_LOG=debug cargo run -- swe mine --max-tasks 1 --once  # Debug run
 ```
 
+## Benchmark Results
+
+Benchmark run on **2026-02-17** processing 100 candidate PRs from GH Archive through the full pipeline (GH Archive → enrichment → filtering → LLM classification → patch extraction → Docker-based agentic test generation → quality scoring → export). Model: `moonshotai/kimi-k2.5:nitro` via OpenRouter.
+
+### Pipeline Funnel
+
+| Stage | Count | Ratio |
+|-------|------:|------:|
+| Raw GH Archive events (12 hours) | 1,752,426 | 100% |
+| Merged PR events | 35,498 | 2.03% |
+| Pre-filtered candidates (sampled) | 5,000 | — |
+| After bot/org filter | 1,394 | 27.88% of sampled |
+| Enriched & patch extracted | 21 | 1.51% of filtered |
+| Test generation started | 21 | 100% of extracted |
+| Dual-commit validation passed | 11 | 52.38% of test gen |
+| Quality scored | 11 | 100% of validated |
+| Quality passed (accepted) | 8 | 72.73% of scored |
+| Quality failed (rejected) | 3 | 27.27% of scored |
+
+Overall yield: **8 accepted tasks from 1.75M raw events** (0.00046%).
+
+### Difficulty Distribution
+
+| Difficulty | Count | Percentage | Score Range |
+|------------|------:|-----------:|-------------|
+| Easy | 2 | 18.2% | 0.15 – 0.20 |
+| Medium | 9 | 81.8% | 0.40 – 0.62 |
+| Hard | 0 | 0.0% | — |
+
+All 8 accepted tasks were classified as **medium** difficulty. The 2 easy tasks (scores 0.15 and 0.20) were rejected by the quality gate.
+
+### Quality Metrics
+
+| Metric | Value |
+|--------|------:|
+| Average quality score | 0.47 |
+| Median quality score | 0.55 |
+| Min quality score | 0.15 |
+| Max quality score | 0.62 |
+| Passing threshold | ≥ 0.30 |
+| Quality pass rate | 72.7% |
+
+### Throughput & Timing
+
+| Metric | Value |
+|--------|------:|
+| Total wall-clock time | 3,600 s (60 min) |
+| PRs extracted per hour | 21.0 |
+| PRs fully processed per hour | 11.0 |
+| PRs accepted per hour | 8.0 |
+| Avg processing time per PR | 171.4 s |
+| Avg time to acceptance | 450.0 s |
+
+The primary bottleneck is Docker-based agentic test generation, which clones each repository, runs multi-turn LLM exploration (up to 200 turns), and performs dual-commit validation with retries.
+
+### Language Distribution (Accepted Tasks)
+
+| Language | Count | Percentage |
+|----------|------:|-----------:|
+| Go | 3 | 37.5% |
+| Java | 2 | 25.0% |
+| Python | 2 | 25.0% |
+| TypeScript | 1 | 12.5% |
+
+### Accepted Tasks
+
+| Task ID | Language | Difficulty | Quality Score |
+|---------|----------|------------|-------------:|
+| Kong/deck-1841 | Go | medium | 0.55 |
+| NeuralTrust/TrustGate-297 | Go | medium | 0.62 |
+| jmix-framework/jmix-5079 | Java | medium | 0.60 |
+| Decomp-Robot/dtk-template-1 | Python | medium | 0.60 |
+| softeerbootcamp-7th/WEB-Team4-Refit-448 | TypeScript | medium | 0.40 |
+| fluxcd/helm-controller-1411 | Go | medium | 0.55 |
+| run-house/kubetorch-2243 | Python | medium | 0.50 |
+| 2026TUKCOMCD/Dalum-108 | Java | medium | 0.55 |
+
+### Test Generation Failure Analysis
+
+| Failure Reason | Count | Percentage |
+|----------------|------:|-----------:|
+| Dual-commit validation failed | 3 | 30% |
+| Patch apply failed | 1 | 10% |
+| String-matching tests rejected | 1 | 10% |
+| Still in progress at timeout | 5 | 50% |
+
+Out of 21 PRs that entered test generation, 11 passed dual-commit validation (52.4%). The most common failure mode was timeout — 5 PRs were still being processed when the 60-minute benchmark window ended. These include large repositories (elastic/kibana, LemmyNet/lemmy) where Docker cloning and test execution take significant time.
+
+### Running the Benchmark
+
+```bash
+export OPENROUTER_API_KEY="sk-or-v1-..."
+export GITHUB_TOKEN="ghp_..."
+
+# Run benchmark on 100 candidate PRs
+cargo run --release -- swe benchmark --count 100 --cache-db benchmark_cache.db -o ./benchmark-output
+
+# Run with custom settings
+cargo run --release -- swe benchmark \
+  --count 50 \
+  --min-stars 100 \
+  --languages python,rust \
+  --model anthropic/claude-sonnet-4 \
+  -o ./benchmark-output
+```
+
+The benchmark command outputs the full `SweRunResult` as JSON to stdout, including the `benchmark_metrics` object with all pipeline counters.
+
 ## Credits
 
 Built on top of [SweInfinite](https://github.com/unconst/SweInfinite) by [@unconst](https://github.com/unconst). The original architecture for mining GitHub PRs and generating SWE-bench-style datasets was designed by the SweInfinite team. swe-forge extends it with:

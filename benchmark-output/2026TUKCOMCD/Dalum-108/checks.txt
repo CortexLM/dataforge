@@ -1,0 +1,4 @@
+cd /repo/Dalum-BE && ./gradlew test --tests "dalum.dalum.global.s3.S3ServiceTest" --no-daemon
+cd /repo/Dalum-BE && ./gradlew test --tests "dalum.dalum.domain.dupe_product.controller.DupeProductControllerTest" --no-daemon
+cd /repo/Dalum-BE && ./gradlew test --tests "dalum.dalum.domain.like_product.service.LikeProductServiceTest" --no-daemon
+cd /repo/Dalum-BE && ./gradlew test --tests "dalum.dalum.domain.search_log.service.SearchLogServiceTest" --no-daemon
