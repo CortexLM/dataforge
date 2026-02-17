@@ -12,7 +12,7 @@ swe-forge is a single Rust binary crate (`src/main.rs`) with a library (`src/lib
 src/
 ├── main.rs                  # CLI entry point (tokio async runtime)
 ├── lib.rs                   # Public module declarations
-├── cli/                     # Clap-based CLI (commands: generate, evaluate, swe mine/harness/validate/export)
+├── cli/                     # Clap-based CLI (commands: generate, evaluate, swe mine/harness/validate/export/load)
 ├── swe/                     # Core mining pipeline (GH Archive → enrich → filter → classify → extract → test gen → export)
 │   ├── gharchive.rs         # GH Archive HTTP ingestion (gzip → JSON events)
 │   ├── enricher.rs          # GitHub API PR enrichment (title, body, diff, files)
@@ -38,6 +38,7 @@ src/
 ├── export/                  # Parquet dataset export + HuggingFace Hub upload
 ├── difficulty/              # Difficulty levels, resource limits, scoring
 ├── anti_hardcoding/         # Canary strings, sealed parameters, contamination detection
+├── runner/                  # Agent runner infrastructure (sandbox, verifier, agent adapters) [not compiled — not in lib.rs]
 ├── utils/                   # JSON extraction from LLM responses
 └── error.rs                 # Typed error hierarchy (thiserror)
 ```
@@ -60,7 +61,7 @@ GH Archive (hourly dumps, 8x concurrent)
 
 | Component | Technology |
 |-----------|-----------|
-| Language | Rust (edition 2021, nightly toolchain) |
+| Language | Rust (edition 2021, stable toolchain) |
 | Async runtime | Tokio (full features) |
 | CLI framework | Clap 4 (derive mode) |
 | HTTP client | reqwest 0.13 (rustls) |
@@ -72,7 +73,7 @@ GH Archive (hourly dumps, 8x concurrent)
 | Templating | Tera 1.20 |
 | Error handling | thiserror 2.0 + anyhow 1.0 |
 | Logging | tracing + tracing-subscriber (env-filter) |
-| Linker | mold (via `.cargo/config.toml`) |
+| Linker | cc (via `.cargo/config.toml`) |
 | LLM provider | OpenRouter (OpenAI-compatible function calling) |
 
 ## Build & Test Commands
@@ -111,8 +112,9 @@ cargo run -- swe harness --help
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENROUTER_API_KEY` | Yes (runtime) | OpenRouter API key for LLM calls |
-| `GITHUB_TOKEN` | Yes (runtime) | GitHub PAT for PR enrichment |
+| `OPENROUTER_API_KEY` | Yes (runtime) | OpenRouter API key for LLM calls (fallback: `LITELLM_API_KEY`) |
+| `GITHUB_TOKEN` | Yes (runtime) | GitHub PAT for PR enrichment (fallback: `GITHUB_PERSONAL_ACCESS_TOKEN`) |
+| `HF_TOKEN` | No | HuggingFace API token for dataset upload (used with `--hf-repo`) |
 | `RUST_LOG` | No | Log level: `error`, `warn`, `info`, `debug`, `trace` |
 
 ## Git Hooks
