@@ -1,0 +1,10 @@
+{
+  "task_id": "stellatogrp/cvxro-56",
+  "repo": "stellatogrp/cvxro",
+  "status": "setup_error",
+  "sanity_check": false,
+  "agent_duration_secs": 0.0,
+  "total_duration_secs": 0.0,
+  "difficulty": "hard",
+  "error": "Checkout failed (even after unshallow): "
+}

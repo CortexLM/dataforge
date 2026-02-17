@@ -205,8 +205,11 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
 
     // 1. SETUP: start container
     info!(task_id = %task.id, "Starting container {}", cname);
-    let agent_dir_abs =
-        std::fs::canonicalize(&config.agent_dir).unwrap_or_else(|_| config.agent_dir.clone());
+    let agent_dir_abs = if let Ok(docker_dir) = std::env::var("DOCKER_AGENT_DIR") {
+        PathBuf::from(docker_dir)
+    } else {
+        std::fs::canonicalize(&config.agent_dir).unwrap_or_else(|_| config.agent_dir.clone())
+    };
 
     // Auto-select Docker image based on task language unless overridden
     let docker_image = if config.docker_image == "python:3.12-slim" && task.language != "unknown" {
@@ -219,6 +222,8 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
     // Remove stale container if exists
     docker_rm(&cname).await;
 
+    let openrouter_key = std::env::var("OPENROUTER_API_KEY").unwrap_or_default();
+    let openrouter_env = format!("OPENROUTER_API_KEY={}", openrouter_key);
     let start_output = Command::new("docker")
         .args([
             "run",
@@ -228,6 +233,8 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
             "--network=host",
             "--memory=4g",
             "--cpus=4",
+            "-e",
+            &openrouter_env,
             "-v",
             &format!("{}:/agent:ro", agent_dir_abs.display()),
             "-w",
@@ -256,11 +263,11 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
         }
     }
 
-    // Install system tools
+    // Install system tools (always include python3 + pip for the agent)
     let (code, _, err) = docker_exec(
         &cname,
-        "apt-get update -qq && apt-get install -y -qq git curl build-essential > /dev/null 2>&1",
-        120,
+        "apt-get update -qq && apt-get install -y -qq git curl build-essential python3 python3-pip python3-venv > /dev/null 2>&1 && (command -v python >/dev/null 2>&1 || ln -sf $(command -v python3) /usr/local/bin/python)",
+        180,
     )
     .await;
     if code != 0 {
@@ -329,7 +336,7 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
     // Install agent requirements
     let (code, _, _) = docker_exec(
         &cname,
-        "test -f /agent/requirements.txt && pip install -q -r /agent/requirements.txt 2>&1 || true",
+        "test -f /agent/requirements.txt && pip install --break-system-packages -q -r /agent/requirements.txt 2>&1 || true",
         180,
     )
     .await;

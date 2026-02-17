@@ -1,0 +1,9 @@
+{
+  "task_id": "TrooHQ/troo-core-30",
+  "repo": "TrooHQ/troo-core",
+  "status": "sanity_fail",
+  "sanity_check": false,
+  "agent_duration_secs": 0.0,
+  "total_duration_secs": 15.557615656,
+  "difficulty": "hard"
+}
