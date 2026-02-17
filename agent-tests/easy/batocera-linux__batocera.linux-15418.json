@@ -1,0 +1,9 @@
+{
+  "task_id": "batocera-linux/batocera.linux-15418",
+  "repo": "batocera-linux/batocera.linux",
+  "status": "resolved",
+  "sanity_check": true,
+  "agent_duration_secs": 176.674031517,
+  "total_duration_secs": 214.271420528,
+  "difficulty": "easy"
+}

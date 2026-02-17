@@ -1,0 +1,9 @@
+{
+  "task_id": "Altinn/altinn-studio-17755",
+  "repo": "Altinn/altinn-studio",
+  "status": "sanity_fail",
+  "sanity_check": false,
+  "agent_duration_secs": 0.0,
+  "total_duration_secs": 22.359248844,
+  "difficulty": "medium"
+}

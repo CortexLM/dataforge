@@ -1,0 +1,9 @@
+{
+  "task_id": "BibliothecaDAO/eternum-4225",
+  "repo": "BibliothecaDAO/eternum",
+  "status": "sanity_fail",
+  "sanity_check": false,
+  "agent_duration_secs": 0.0,
+  "total_duration_secs": 48.207589202,
+  "difficulty": "medium"
+}
