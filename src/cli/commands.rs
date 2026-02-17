@@ -89,6 +89,9 @@ pub enum SweSubcommand {
 
     /// Load a dataset from HuggingFace or local parquet for inspection/evaluation.
     Load(SweLoadArgs),
+
+    /// Run a benchmark on N PRs and output detailed pipeline metrics as JSON.
+    Benchmark(SweBenchmarkArgs),
 }
 
 /// Arguments for `swe_forge swe mine`.
@@ -166,6 +169,38 @@ pub struct SweMineArgs {
     /// Output JSON summary.
     #[arg(short = 'j', long)]
     pub json: bool,
+}
+
+/// Arguments for `swe_forge swe benchmark`.
+#[derive(Parser, Debug)]
+pub struct SweBenchmarkArgs {
+    /// Number of candidate PRs to process through the pipeline.
+    #[arg(short = 'n', long, default_value = "100")]
+    pub count: usize,
+
+    /// Minimum repo stars for a PR to be accepted.
+    #[arg(long, default_value = "20")]
+    pub min_stars: u32,
+
+    /// Comma-separated allowed languages (e.g. python,rust,go).
+    #[arg(long)]
+    pub languages: Option<String>,
+
+    /// LLM model to use for classification and scoring.
+    #[arg(short = 'm', long, default_value = DEFAULT_MODEL)]
+    pub model: String,
+
+    /// OpenRouter API key (can also be set via OPENROUTER_API_KEY env var).
+    #[arg(long, env = "OPENROUTER_API_KEY")]
+    pub api_key: Option<String>,
+
+    /// SQLite cache database for PR deduplication and triage caching.
+    #[arg(long, default_value = "benchmark_cache.db")]
+    pub cache_db: String,
+
+    /// Output directory for benchmark task artifacts.
+    #[arg(short = 'o', long, default_value = "./benchmark-output")]
+    pub output: String,
 }
 
 /// Arguments for `swe_forge swe validate`.
@@ -402,6 +437,7 @@ async fn run_swe_command(args: SweArgs) -> anyhow::Result<()> {
         SweSubcommand::Export(args) => run_swe_export_command(args).await,
         SweSubcommand::Harness(args) => run_swe_harness_command(args).await,
         SweSubcommand::Load(args) => run_swe_load_command(args).await,
+        SweSubcommand::Benchmark(args) => run_swe_benchmark_command(args).await,
     }
 }
 
@@ -840,6 +876,68 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
             }
         }
     }
+
+    Ok(())
+}
+
+async fn run_swe_benchmark_command(args: SweBenchmarkArgs) -> anyhow::Result<()> {
+    if std::env::var("GITHUB_TOKEN").is_err()
+        && std::env::var("GITHUB_PERSONAL_ACCESS_TOKEN").is_err()
+    {
+        anyhow::bail!(
+            "GITHUB_TOKEN is required but not set.\n\
+             Set the GITHUB_TOKEN environment variable before running this command."
+        );
+    }
+
+    let languages = parse_language_filter(args.languages.as_deref().unwrap_or_default());
+    let api_key = args
+        .api_key
+        .clone()
+        .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
+        .or_else(|| std::env::var("LITELLM_API_KEY").ok());
+
+    if api_key.is_none() {
+        anyhow::bail!(
+            "OPENROUTER_API_KEY is required but not set.\n\
+             Provide it via --api-key <KEY> or set the OPENROUTER_API_KEY environment variable."
+        );
+    }
+
+    let llm_client: Arc<dyn crate::llm::LlmProvider> = {
+        let key = api_key.unwrap();
+        info!(model = %args.model, "Using OpenRouter for benchmark");
+        Arc::new(OpenRouterProvider::with_model(key, args.model.clone()))
+    };
+
+    let output_dir = args.output.clone();
+    fs::create_dir_all(&output_dir)?;
+
+    let pr_cache = crate::swe::PrCache::open(&args.cache_db).await?;
+    let cache = crate::swe::OptionalCache::some(pr_cache);
+
+    let config = SweOrchestratorConfig {
+        output_dir: output_dir.clone(),
+        min_stars: args.min_stars,
+        languages,
+        max_tasks: args.count,
+        once: true,
+        validate_docker: false,
+        skip_prs: HashSet::new(),
+        pr_file: None,
+        difficulty_filter: None,
+        difficulty_targets: None,
+        hf_upload: None,
+        cache,
+        mining_image: None,
+    };
+
+    let orchestrator = SweOrchestrator::new(llm_client, config);
+    let result = orchestrator.mine().await?;
+
+    let json_output = serde_json::to_string_pretty(&result)
+        .map_err(|e| anyhow::anyhow!("Failed to serialize benchmark JSON: {}", e))?;
+    println!("{}", json_output);
 
     Ok(())
 }

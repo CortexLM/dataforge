@@ -1,0 +1,4 @@
+cd /repo && GOTOOLCHAIN=auto go test ./pkg/infra/database/... -run TestAdvisoryLockErrorHandling -v
+cd /repo && GOTOOLCHAIN=auto go test ./pkg/version/... -run TestVersionUpdate -v
+cd /repo && GOTOOLCHAIN=auto go test ./pkg/app/plugin/... -v
+cd /repo && GOTOOLCHAIN=auto go build ./...
