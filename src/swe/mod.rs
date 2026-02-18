@@ -46,6 +46,67 @@ pub use workspace_validator::{ValidationOutcome, WorkspaceValidator};
 /// Default output directory for generated SWE workspaces.
 pub const DEFAULT_SWE_OUTPUT_DIR: &str = "./generated-swe";
 
+/// Validate a git ref (commit SHA, branch name) to prevent shell injection.
+///
+/// Accepts hex-only SHAs (short or full) and standard git ref names
+/// (alphanumeric, `/`, `.`, `-`, `_`). Rejects shell metacharacters.
+pub fn validate_git_ref(s: &str) -> Result<(), anyhow::Error> {
+    if s.is_empty() {
+        return Ok(());
+    }
+    if s.len() > 256 {
+        anyhow::bail!("git ref too long ({} chars, max 256)", s.len());
+    }
+    for ch in s.chars() {
+        if !matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '/' | '.' | '-' | '_' | '~' | '^') {
+            anyhow::bail!(
+                "invalid character '{}' in git ref '{}': only alphanumeric, /, ., -, _, ~, ^ allowed",
+                ch,
+                s
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Validate a GitHub repository name (`owner/repo`) to prevent shell injection.
+///
+/// Accepts the standard GitHub `owner/repo` format where both parts contain
+/// only alphanumeric characters, hyphens, underscores, and dots.
+pub fn validate_repo_name(s: &str) -> Result<(), anyhow::Error> {
+    if s.is_empty() {
+        anyhow::bail!("repository name is empty");
+    }
+    if s.len() > 256 {
+        anyhow::bail!("repository name too long ({} chars, max 256)", s.len());
+    }
+    let parts: Vec<&str> = s.split('/').collect();
+    if parts.len() != 2 {
+        anyhow::bail!(
+            "invalid repository name '{}': expected 'owner/repo' format",
+            s
+        );
+    }
+    for part in &parts {
+        if part.is_empty() {
+            anyhow::bail!(
+                "invalid repository name '{}': owner and repo must be non-empty",
+                s
+            );
+        }
+        for ch in part.chars() {
+            if !matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.') {
+                anyhow::bail!(
+                    "invalid character '{}' in repository name '{}': only alphanumeric, -, _, . allowed",
+                    ch,
+                    s
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
 /// DataForge-compatible task format for SWE mined items.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SweTask {
@@ -211,5 +272,74 @@ impl SweTask {
             }
         }
         map
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn validate_git_ref_accepts_hex_sha() {
+        assert!(validate_git_ref("abc123def456").is_ok());
+        assert!(validate_git_ref("a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2").is_ok());
+    }
+
+    #[test]
+    fn validate_git_ref_accepts_empty() {
+        assert!(validate_git_ref("").is_ok());
+    }
+
+    #[test]
+    fn validate_git_ref_accepts_branch_names() {
+        assert!(validate_git_ref("main").is_ok());
+        assert!(validate_git_ref("feature/my-branch").is_ok());
+        assert!(validate_git_ref("HEAD~1").is_ok());
+        assert!(validate_git_ref("v1.2.3").is_ok());
+    }
+
+    #[test]
+    fn validate_git_ref_rejects_shell_injection() {
+        assert!(validate_git_ref("abc123; rm -rf /").is_err());
+        assert!(validate_git_ref("$(whoami)").is_err());
+        assert!(validate_git_ref("`id`").is_err());
+        assert!(validate_git_ref("abc | cat /etc/passwd").is_err());
+        assert!(validate_git_ref("abc && echo pwned").is_err());
+    }
+
+    #[test]
+    fn validate_git_ref_rejects_too_long() {
+        let long_ref = "a".repeat(257);
+        assert!(validate_git_ref(&long_ref).is_err());
+    }
+
+    #[test]
+    fn validate_repo_name_accepts_valid() {
+        assert!(validate_repo_name("owner/repo").is_ok());
+        assert!(validate_repo_name("my-org/my-repo").is_ok());
+        assert!(validate_repo_name("user123/project.js").is_ok());
+        assert!(validate_repo_name("Org_Name/Repo_Name").is_ok());
+    }
+
+    #[test]
+    fn validate_repo_name_rejects_shell_injection() {
+        assert!(validate_repo_name("owner/repo; rm -rf /").is_err());
+        assert!(validate_repo_name("$(whoami)/repo").is_err());
+        assert!(validate_repo_name("owner/repo && echo pwned").is_err());
+    }
+
+    #[test]
+    fn validate_repo_name_rejects_invalid_format() {
+        assert!(validate_repo_name("").is_err());
+        assert!(validate_repo_name("noslash").is_err());
+        assert!(validate_repo_name("too/many/slashes").is_err());
+        assert!(validate_repo_name("/repo").is_err());
+        assert!(validate_repo_name("owner/").is_err());
+    }
+
+    #[test]
+    fn validate_repo_name_rejects_too_long() {
+        let long_name = format!("{}/{}", "a".repeat(128), "b".repeat(128));
+        assert!(validate_repo_name(&long_name).is_err());
     }
 }

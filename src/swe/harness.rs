@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 use tracing::{info, warn};
 
-use super::SweTask;
+use super::{validate_git_ref, validate_repo_name, SweTask};
 
 // ---------------------------------------------------------------------------
 // Config
@@ -202,6 +202,18 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
         error: None,
         container_id: Some(cname.clone()),
     };
+
+    // 0. INPUT VALIDATION: reject shell-unsafe repo names and commit refs
+    if let Err(e) = validate_repo_name(&task.repo) {
+        result.error = Some(format!("Invalid repo name: {e}"));
+        return result;
+    }
+    if !task.base_commit.is_empty() {
+        if let Err(e) = validate_git_ref(&task.base_commit) {
+            result.error = Some(format!("Invalid base commit: {e}"));
+            return result;
+        }
+    }
 
     // 1. SETUP: start container
     info!(task_id = %task.id, "Starting container {}", cname);

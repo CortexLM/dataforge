@@ -324,16 +324,26 @@ impl LiteLlmClient {
     /// * `api_base` - Base URL for the LiteLLM API (e.g., "http://localhost:4000")
     /// * `api_key` - Optional API key for authentication
     /// * `default_model` - Default model to use when none is specified
-    pub fn new(api_base: String, api_key: Option<String>, default_model: String) -> Self {
-        Self {
+    ///
+    /// # Errors
+    ///
+    /// Returns `LlmError::RequestFailed` if the HTTP client cannot be built.
+    pub fn new(
+        api_base: String,
+        api_key: Option<String>,
+        default_model: String,
+    ) -> Result<Self, LlmError> {
+        Ok(Self {
             api_base,
             api_key,
             default_model,
             http_client: Client::builder()
                 .timeout(Duration::from_secs(300))
                 .build()
-                .expect("Failed to build HTTP client"),
-        }
+                .map_err(|e| {
+                    LlmError::RequestFailed(format!("Failed to build HTTP client: {e}"))
+                })?,
+        })
     }
 
     /// Create a new LiteLLM client pre-configured for OpenRouter.
@@ -347,16 +357,22 @@ impl LiteLlmClient {
     /// A client configured with:
     /// - api_base: "https://openrouter.ai/api/v1"
     /// - default_model: "anthropic/claude-opus-4.5"
-    pub fn new_with_defaults(api_key: String) -> Self {
-        Self {
+    ///
+    /// # Errors
+    ///
+    /// Returns `LlmError::RequestFailed` if the HTTP client cannot be built.
+    pub fn new_with_defaults(api_key: String) -> Result<Self, LlmError> {
+        Ok(Self {
             api_base: "https://openrouter.ai/api/v1".to_string(),
             api_key: Some(api_key),
             default_model: "anthropic/claude-opus-4.5".to_string(),
             http_client: Client::builder()
                 .timeout(Duration::from_secs(300))
                 .build()
-                .expect("Failed to build HTTP client"),
-        }
+                .map_err(|e| {
+                    LlmError::RequestFailed(format!("Failed to build HTTP client: {e}"))
+                })?,
+        })
     }
 
     /// Create a new LiteLLM client from environment variables.
@@ -382,7 +398,9 @@ impl LiteLlmClient {
             http_client: Client::builder()
                 .timeout(Duration::from_secs(300))
                 .build()
-                .expect("Failed to build HTTP client"),
+                .map_err(|e| {
+                    LlmError::RequestFailed(format!("Failed to build HTTP client: {e}"))
+                })?,
         })
     }
 
@@ -929,7 +947,8 @@ mod tests {
             "http://localhost:4000".to_string(),
             Some("test-key".to_string()),
             "gpt-4".to_string(),
-        );
+        )
+        .unwrap();
 
         assert_eq!(client.api_base(), "http://localhost:4000");
         assert_eq!(client.default_model(), "gpt-4");
@@ -942,14 +961,15 @@ mod tests {
             "http://localhost:4000".to_string(),
             None,
             "gpt-4".to_string(),
-        );
+        )
+        .unwrap();
 
         assert!(!client.has_api_key());
     }
 
     #[test]
     fn test_litellm_client_new_with_defaults() {
-        let client = LiteLlmClient::new_with_defaults("test-api-key".to_string());
+        let client = LiteLlmClient::new_with_defaults("test-api-key".to_string()).unwrap();
 
         assert_eq!(client.api_base(), "https://openrouter.ai/api/v1");
         assert_eq!(client.default_model(), "anthropic/claude-opus-4.5");
@@ -963,7 +983,8 @@ mod tests {
             "http://localhost:65535".to_string(), // Use a port that's unlikely to have a server
             None,
             "gpt-4".to_string(),
-        );
+        )
+        .unwrap();
 
         let request = GenerationRequest::new("gpt-4", vec![Message::user("test")]);
         let result = client.generate(request).await;
@@ -1002,7 +1023,8 @@ mod tests {
             "http://localhost:65535".to_string(),
             None,
             "gpt-4".to_string(),
-        );
+        )
+        .unwrap();
         let cache = PromptCache::new(100);
 
         // Create a request with a system prompt

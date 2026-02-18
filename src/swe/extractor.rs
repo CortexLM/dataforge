@@ -4,7 +4,7 @@
 use anyhow::Result;
 
 use crate::swe::docker_sandbox::DockerSandbox;
-use crate::swe::SweTask;
+use crate::swe::{validate_git_ref, SweTask};
 
 fn github_token() -> Option<String> {
     std::env::var("GITHUB_TOKEN")
@@ -188,6 +188,13 @@ impl PatchExtractor {
 
     /// Clone the repo inside a Docker container and extract the diff.
     async fn fetch_diff_from_docker(&self, input: &PatchExtractionInput<'_>) -> Result<String> {
+        if let Some(base) = input.base_commit {
+            validate_git_ref(base)?;
+        }
+        if let Some(merge) = input.merge_commit {
+            validate_git_ref(merge)?;
+        }
+
         let base_commit = input.base_commit.unwrap_or("");
         let sandbox =
             DockerSandbox::start(input.repository, base_commit, input.language, None).await?;

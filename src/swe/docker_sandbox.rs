@@ -8,6 +8,7 @@ use std::process::Stdio;
 use tokio::process::Command;
 
 use crate::swe::tool_server::TOOL_SERVER_PY;
+use crate::swe::{validate_git_ref, validate_repo_name};
 
 /// Shell command output from inside the container.
 pub struct SandboxOutput {
@@ -37,6 +38,9 @@ impl DockerSandbox {
         language: &str,
         image_override: Option<&str>,
     ) -> Result<Self> {
+        validate_repo_name(repo)?;
+        validate_git_ref(base_commit)?;
+
         let image = image_override.unwrap_or_else(|| image_for_language(language));
         let safe_name = repo.replace('/', "-").replace(' ', "_");
         let ts_suffix = std::time::SystemTime::now()
