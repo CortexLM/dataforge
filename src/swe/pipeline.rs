@@ -307,9 +307,13 @@ impl SwePipeline {
         // === POOL-BASED PIPELINE ===
         // Each event flows independently through: enrich -> filter -> pre-classify -> deep process.
         // Semaphores control concurrency at each stage. No chunk barriers.
+        let deep_concurrency = config.concurrency_deep.unwrap_or(8);
         let enrich_sem = Arc::new(Semaphore::new(config.concurrency_enrich.unwrap_or(10)));
-        let preclassify_sem = Arc::new(Semaphore::new(25));
-        let deep_sem = Arc::new(Semaphore::new(config.concurrency_deep.unwrap_or(8)));
+        let preclassify_sem = Arc::new(Semaphore::new(10));
+        let deep_sem = Arc::new(Semaphore::new(deep_concurrency));
+        // Backpressure: limit how many classified candidates can queue for deep processing.
+        // Pre-classification blocks when this is full, preventing wasted LLM tokens.
+        let deep_backlog_sem = Arc::new(Semaphore::new(deep_concurrency * 3));
         let cancelled = Arc::new(AtomicBool::new(false));
 
         let enricher = &self.enricher;
@@ -374,6 +378,7 @@ impl SwePipeline {
                 let enrich_sem = enrich_sem.clone();
                 let preclassify_sem = preclassify_sem.clone();
                 let deep_sem = deep_sem.clone();
+                let deep_backlog_sem = deep_backlog_sem.clone();
                 let df = difficulty_filter.clone();
                 let dt = difficulty_targets.clone();
                 let completed = completed.clone();
@@ -535,6 +540,9 @@ impl SwePipeline {
                     }
 
                     // --- Stage 3: Pre-classify difficulty ---
+                    // Acquire backpressure permit: blocks if deep processing queue is full,
+                    // preventing pre-classification from racing far ahead.
+                    let _backlog_permit = deep_backlog_sem.acquire().await.unwrap();
                     // Check cache first to avoid redundant LLM calls
                     let cached_triage = cache.triage_difficulty(
                         &enriched.repository, enriched.number

@@ -20,7 +20,7 @@ use crate::llm::{
 const OPENROUTER_BASE_URL: &str = "https://openrouter.ai/api/v1";
 
 /// Default model to use if none specified.
-const DEFAULT_MODEL: &str = "moonshotai/kimi-k2.5:nitro";
+const DEFAULT_MODEL: &str = "openai/gpt-5.2-codex:nitro";
 
 /// Maximum number of retry attempts for transient failures.
 const MAX_RETRIES: u32 = 3;
@@ -49,7 +49,7 @@ pub struct OpenRouterProvider {
 impl OpenRouterProvider {
     /// Create a new OpenRouter provider with the given API key.
     ///
-    /// Uses the default model (`moonshotai/kimi-k2.5:nitro`) and base URL.
+    /// Uses the default model (`openai/gpt-5.2-codex:nitro`) and base URL.
     ///
     /// # Arguments
     ///
@@ -695,7 +695,7 @@ mod tests {
     #[test]
     fn test_api_request_serialization_with_reasoning_effort() {
         let request = ApiRequest {
-            model: "moonshotai/kimi-k2.5:nitro".to_string(),
+            model: "openai/gpt-5.2-codex:nitro".to_string(),
             messages: vec![Message::user("Hello")],
             temperature: Some(0.7),
             max_tokens: Some(16000),

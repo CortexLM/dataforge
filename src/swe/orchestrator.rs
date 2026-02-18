@@ -146,7 +146,7 @@ impl SweOrchestrator {
             if let Some(ref targets) = self.config.difficulty_targets {
                 let total = targets.total_tasks();
                 let has_hard = targets.targets.contains_key("hard");
-                let mult = if has_hard { 200 } else { 100 };
+                let mult = if has_hard { 50 } else { 30 };
                 tracing::info!(?targets, total, "Starting multi-difficulty mining");
                 (total, mult)
             } else if self.config.difficulty_filter.as_deref() == Some("hard") {

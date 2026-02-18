@@ -35,10 +35,10 @@
 //!
 //! // Add providers
 //! let provider = Arc::new(OpenRouterProvider::new("api-key".to_string()));
-//! router.add_provider(provider, "moonshotai/kimi-k2.5:nitro");
+//! router.add_provider(provider, "openai/gpt-5.2-codex:nitro");
 //!
 //! // Add model capabilities for cost optimization
-//! router.add_model_capabilities(ModelCapabilities::new("moonshotai/kimi-k2.5:nitro")
+//! router.add_model_capabilities(ModelCapabilities::new("openai/gpt-5.2-codex:nitro")
 //!     .with_pricing(0.5, 1.5)
 //!     .with_coding_score(0.8));
 //! ```
