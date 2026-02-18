@@ -549,7 +549,6 @@ struct ApiMessage {
 
 /// A tool call returned by the model.
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct ApiToolCall {
     #[serde(default)]
     id: String,
@@ -560,7 +559,6 @@ struct ApiToolCall {
 
 /// Function details within a tool call response.
 #[derive(Debug, Deserialize)]
-#[allow(dead_code)]
 struct ApiToolCallFunction {
     #[serde(default)]
     name: String,

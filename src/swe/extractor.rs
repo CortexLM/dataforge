@@ -265,7 +265,6 @@ impl PatchExtractor {
 #[derive(Default)]
 struct PatchBlock {
     patch: String,
-    lines: usize,
 }
 
 fn count_line_delta(raw: &str) -> (usize, usize) {
@@ -369,10 +368,8 @@ fn append_to_partition(
 ) {
     if is_test_file(file_path) {
         tests.patch.push_str(block);
-        tests.lines = tests.lines.saturating_add(block.lines().count());
     } else {
         solution.patch.push_str(block);
-        solution.lines = solution.lines.saturating_add(block.lines().count());
     }
 }
 
