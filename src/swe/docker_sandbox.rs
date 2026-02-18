@@ -5,10 +5,35 @@
 
 use anyhow::Result;
 use std::process::Stdio;
+use std::sync::atomic::{AtomicU16, Ordering};
 use tokio::process::Command;
 
 use crate::swe::tool_server::TOOL_SERVER_PY;
 use crate::swe::{validate_file_path, validate_git_ref, validate_repo_name};
+
+/// Global atomic port counter to guarantee unique ports across all concurrent containers.
+static NEXT_PORT: AtomicU16 = AtomicU16::new(10_000);
+
+/// Allocate a unique port for a tool server.
+///
+/// Uses an atomic counter to guarantee no two concurrent sandboxes get the same port.
+/// Wraps around from 60_000 back to 10_000.
+fn allocate_port() -> u16 {
+    loop {
+        let current = NEXT_PORT.load(Ordering::Relaxed);
+        let next = if current >= 60_000 {
+            10_000
+        } else {
+            current + 1
+        };
+        if NEXT_PORT
+            .compare_exchange(current, next, Ordering::Relaxed, Ordering::Relaxed)
+            .is_ok()
+        {
+            return current;
+        }
+    }
+}
 
 /// Shell command output from inside the container.
 pub struct SandboxOutput {
@@ -22,6 +47,8 @@ pub struct DockerSandbox {
     container_name: String,
     /// Unique port for the tool server (needed because --network=host shares port space).
     tool_port: u16,
+    /// Whether the tool server started successfully.
+    tool_server_ok: bool,
 }
 
 /// Pick a Docker image appropriate for the given language.
@@ -51,8 +78,7 @@ impl DockerSandbox {
             .as_millis()
             % 1_000_000;
         let container_name = format!("swe-mine-{}-{}", safe_name, ts_suffix);
-        // Derive unique tool server port from timestamp (range 10000-59999)
-        let tool_port = 10_000 + (ts_suffix as u16 % 50_000);
+        let tool_port = allocate_port();
 
         // Remove stale container if it exists
         if let Err(e) = Command::new("docker")
@@ -90,9 +116,10 @@ impl DockerSandbox {
             );
         }
 
-        let sandbox = Self {
+        let mut sandbox = Self {
             container_name,
             tool_port,
+            tool_server_ok: false,
         };
 
         // Install git (only hard dependency; agent installs everything else)
@@ -103,10 +130,11 @@ impl DockerSandbox {
             )
             .await;
         if install.exit_code != 0 {
-            tracing::warn!(
-                container = %sandbox.container_name,
-                stderr = %install.stderr,
-                "git install failed (continuing)"
+            sandbox.destroy().await;
+            anyhow::bail!(
+                "git install failed in container '{}': {}",
+                sandbox.container_name,
+                install.stderr
             );
         }
 
@@ -131,17 +159,23 @@ impl DockerSandbox {
                 )
                 .await;
             if checkout.exit_code != 0 {
-                tracing::warn!(
-                    container = %sandbox.container_name,
-                    commit = base_commit,
-                    stderr = %checkout.stderr,
-                    "Checkout failed (continuing on HEAD)"
+                sandbox.destroy().await;
+                anyhow::bail!(
+                    "Checkout of commit {} failed in container '{}': {}",
+                    base_commit,
+                    sandbox.container_name,
+                    truncate(&checkout.stderr, 500)
                 );
             }
         }
 
         // Inject and start the tool server
-        sandbox.start_tool_server().await;
+        sandbox.tool_server_ok = sandbox.start_tool_server().await;
+        if sandbox.tool_server_ok {
+            tracing::debug!(container = %sandbox.container_name, port = sandbox.tool_port, "Tool server started");
+        } else {
+            tracing::debug!(container = %sandbox.container_name, "Tool server unavailable, shell fallback will be used");
+        }
 
         tracing::info!(
             container = %sandbox.container_name,
@@ -154,53 +188,103 @@ impl DockerSandbox {
     }
 
     /// Write and start the Python tool server inside the container.
-    async fn start_tool_server(&self) {
-        // Write the server script
-        let mkdir = self.exec("mkdir -p /tools", 10_000).await;
-        if mkdir.exit_code != 0 {
-            tracing::warn!(container = %self.container_name, "Failed to create /tools dir");
-            return;
-        }
+    ///
+    /// Returns `true` if the tool server started successfully, `false` otherwise.
+    /// On failure, the caller should fall back to shell-based tool execution.
+    async fn start_tool_server(&self) -> bool {
+        for retry in 0..2 {
+            if retry > 0 {
+                tracing::debug!(
+                    container = %self.container_name,
+                    retry = retry,
+                    "Retrying tool server startup"
+                );
+                // Kill any leftover process from previous attempt
+                self.exec(
+                    "pkill -f 'python3.*server.py' 2>/dev/null; rm -f /tools/server.log",
+                    5_000,
+                )
+                .await;
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            }
 
-        // Use write_file to inject the server script
-        if let Err(e) = self
-            .write_file_abs("/tools/server.py", TOOL_SERVER_PY)
-            .await
-        {
-            tracing::warn!(container = %self.container_name, error = %e, "Failed to write tool server");
-            return;
-        }
+            // Write the server script
+            let mkdir = self.exec("mkdir -p /tools", 10_000).await;
+            if mkdir.exit_code != 0 {
+                tracing::debug!(container = %self.container_name, "Failed to create /tools dir");
+                continue;
+            }
 
-        // Start server in background with unique port (--network=host shares port space)
-        let start_cmd = format!(
-            "nohup python3 -u /tools/server.py --port {} --cwd /repo > /tools/server.log 2>&1 &",
-            self.tool_port
-        );
-        let start = self.exec(&start_cmd, 5_000).await;
-        if start.exit_code != 0 {
-            tracing::warn!(
+            if let Err(e) = self
+                .write_file_abs("/tools/server.py", TOOL_SERVER_PY)
+                .await
+            {
+                tracing::debug!(container = %self.container_name, error = %e, "Failed to write tool server");
+                continue;
+            }
+
+            // Verify the script was written correctly
+            let verify = self
+                .exec("wc -c < /tools/server.py 2>/dev/null", 5_000)
+                .await;
+            let written_bytes: usize = verify.stdout.trim().parse().unwrap_or(0);
+            if written_bytes < TOOL_SERVER_PY.len() / 2 {
+                tracing::debug!(
+                    container = %self.container_name,
+                    expected = TOOL_SERVER_PY.len(),
+                    actual = written_bytes,
+                    "Tool server script truncated, retrying"
+                );
+                continue;
+            }
+
+            // Start server in background with unique port (--network=host shares port space)
+            let start_cmd = format!(
+                "nohup python3 -u /tools/server.py --port {} --cwd /repo > /tools/server.log 2>&1 &",
+                self.tool_port
+            );
+            let start = self.exec(&start_cmd, 5_000).await;
+            if start.exit_code != 0 {
+                tracing::debug!(
+                    container = %self.container_name,
+                    stderr = %start.stderr,
+                    "Tool server start command failed"
+                );
+                continue;
+            }
+
+            // Health check: 12 attempts × 500ms = 6s total
+            for attempt in 0..12 {
+                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                if self.tool_server_health().await {
+                    tracing::debug!(
+                        container = %self.container_name,
+                        attempt = attempt,
+                        retry = retry,
+                        "Tool server healthy"
+                    );
+                    return true;
+                }
+            }
+
+            // Log server output for debugging on this retry
+            let log = self.exec("cat /tools/server.log 2>/dev/null", 5_000).await;
+            tracing::debug!(
                 container = %self.container_name,
-                stderr = %start.stderr,
-                "Tool server start may have failed"
+                retry = retry,
+                server_log = %log.stdout,
+                "Tool server health check failed after 6s"
             );
         }
 
-        // Health check: use python3 urllib (curl is not installed in slim images)
-        for attempt in 0..6 {
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
-            let health = self.tool_server_health().await;
-            if health {
-                tracing::debug!(container = %self.container_name, attempt = attempt, "Tool server healthy");
-                return;
-            }
-        }
-        // Log server output for debugging
+        // All retries exhausted
         let log = self.exec("cat /tools/server.log 2>/dev/null", 5_000).await;
         tracing::warn!(
             container = %self.container_name,
             server_log = %log.stdout,
-            "Tool server health check failed after 3s, tools may not work"
+            "Tool server failed to start after retries, falling back to shell tools"
         );
+        false
     }
 
     /// Check if the tool server is healthy via python3 urllib inside the container.
@@ -227,6 +311,11 @@ impl DockerSandbox {
         )
         .await;
         matches!(result, Ok(Ok(status)) if status.success())
+    }
+
+    /// Whether the tool server is available for HTTP-based tool requests.
+    pub fn has_tool_server(&self) -> bool {
+        self.tool_server_ok
     }
 
     /// Call a tool on the HTTP tool server running inside the container.
@@ -589,5 +678,22 @@ mod tests {
         };
         assert!(output.stdout.is_empty());
         assert_eq!(output.exit_code, 0);
+    }
+
+    #[test]
+    fn test_allocate_port_returns_valid_range() {
+        let port = allocate_port();
+        assert!(port >= 10_000);
+        assert!(port <= 60_000);
+    }
+
+    #[test]
+    fn test_allocate_port_sequential_unique() {
+        let p1 = allocate_port();
+        let p2 = allocate_port();
+        let p3 = allocate_port();
+        assert_ne!(p1, p2);
+        assert_ne!(p2, p3);
+        assert_ne!(p1, p3);
     }
 }

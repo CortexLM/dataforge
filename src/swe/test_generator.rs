@@ -871,44 +871,36 @@ impl TestGenerator {
                 }
             }
             "read_file" | "list_dir" | "grep_files" | "search_files" | "apply_patch" => {
-                let result = sandbox
-                    .tool_request(tc.function.name.as_str(), &tc.function.arguments)
-                    .await;
-                let output = if !result.stdout.is_empty() {
-                    // Parse JSON response from tool server
-                    match serde_json::from_str::<serde_json::Value>(result.stdout.trim()) {
-                        Ok(v) => {
-                            if let Some(err) = v.get("error").and_then(|e| e.as_str()) {
-                                err.to_string()
-                            } else if let Some(out) = v.get("output").and_then(|o| o.as_str()) {
-                                let mut s = out.to_string();
-                                if let Some(total) = v.get("total_lines").and_then(|t| t.as_u64()) {
-                                    if v.get("truncated")
-                                        .and_then(|t| t.as_bool())
-                                        .unwrap_or(false)
-                                    {
-                                        s.push_str(&format!("\n\n[Showing {}/{} lines. Use offset/limit to see more.]",
-                                            v.get("shown_lines").and_then(|s| s.as_u64()).unwrap_or(0), total));
-                                    } else {
-                                        s.push_str(&format!("\n\n[{} total lines]", total));
-                                    }
-                                }
-                                s
-                            } else {
-                                result.stdout.clone()
-                            }
-                        }
-                        Err(_) => result.stdout.clone(),
+                let tool_name = tc.function.name.as_str();
+                let args_json = &tc.function.arguments;
+
+                let output = if sandbox.has_tool_server() {
+                    let result = sandbox.tool_request(tool_name, args_json).await;
+                    let server_down = result.exit_code != 0
+                        && result.stdout.is_empty()
+                        && (result.stderr.contains("Connection refused")
+                            || result.stderr.contains("URLError")
+                            || result.stderr.contains("Tool request error"));
+                    if server_down {
+                        tracing::debug!(
+                            task_id = task_id,
+                            turn = turn,
+                            tool = tool_name,
+                            "Tool server unavailable, falling back to shell"
+                        );
+                        shell_fallback(sandbox, tool_name, args_json).await
+                    } else {
+                        parse_tool_response(&result)
                     }
-                } else if !result.stderr.is_empty() {
-                    format!("Error: {}", truncate_utf8(&result.stderr, 1500))
                 } else {
-                    "No output".to_string()
+                    shell_fallback(sandbox, tool_name, args_json).await
                 };
+
                 tracing::debug!(
-                    task_id = task_id, turn = turn,
-                    tool = %tc.function.name,
-                    "Agent tool call via HTTP server"
+                    task_id = task_id,
+                    turn = turn,
+                    tool = tool_name,
+                    "Agent tool call"
                 );
                 ToolResult::ShellOutput(truncate_utf8(&output, 4000).to_string())
             }
@@ -925,6 +917,155 @@ enum ToolResult {
     ShellOutput(String),
     Submit(SubmitArgs),
     Error(String),
+}
+
+/// Parse a JSON response from the tool server into a user-friendly string.
+fn parse_tool_response(result: &crate::swe::docker_sandbox::SandboxOutput) -> String {
+    if !result.stdout.is_empty() {
+        match serde_json::from_str::<serde_json::Value>(result.stdout.trim()) {
+            Ok(v) => {
+                if let Some(err) = v.get("error").and_then(|e| e.as_str()) {
+                    err.to_string()
+                } else if let Some(out) = v.get("output").and_then(|o| o.as_str()) {
+                    let mut s = out.to_string();
+                    if let Some(total) = v.get("total_lines").and_then(|t| t.as_u64()) {
+                        if v.get("truncated")
+                            .and_then(|t| t.as_bool())
+                            .unwrap_or(false)
+                        {
+                            s.push_str(&format!(
+                                "\n\n[Showing {}/{} lines. Use offset/limit to see more.]",
+                                v.get("shown_lines").and_then(|sl| sl.as_u64()).unwrap_or(0),
+                                total
+                            ));
+                        } else {
+                            s.push_str(&format!("\n\n[{} total lines]", total));
+                        }
+                    }
+                    s
+                } else {
+                    result.stdout.clone()
+                }
+            }
+            Err(_) => result.stdout.clone(),
+        }
+    } else if !result.stderr.is_empty() {
+        format!("Error: {}", truncate_utf8(&result.stderr, 1500))
+    } else {
+        "No output".to_string()
+    }
+}
+
+/// Execute a tool via direct shell commands when the HTTP tool server is unavailable.
+async fn shell_fallback(sandbox: &DockerSandbox, tool_name: &str, args_json: &str) -> String {
+    let args: serde_json::Value = match serde_json::from_str(args_json) {
+        Ok(v) => v,
+        Err(e) => return format!("Invalid tool args: {}", e),
+    };
+
+    match tool_name {
+        "read_file" => {
+            let file_path = args.get("file_path").and_then(|v| v.as_str()).unwrap_or("");
+            if file_path.is_empty() {
+                return "Error: missing file_path".to_string();
+            }
+            let offset = args.get("offset").and_then(|v| v.as_u64()).unwrap_or(0);
+            let limit = args.get("limit").and_then(|v| v.as_u64());
+            let cmd = match limit {
+                Some(lim) => format!(
+                    "awk 'NR>{} && NR<={}{{print NR\": \"$0}}' '{}'",
+                    offset,
+                    offset + lim,
+                    file_path
+                ),
+                None => format!("awk '{{print NR\": \"$0}}' '{}'", file_path),
+            };
+            let result = sandbox.exec(&cmd, 10_000).await;
+            if result.exit_code != 0 {
+                format!("Error reading file: {}", result.stderr)
+            } else if result.stdout.is_empty() {
+                "(empty file)".to_string()
+            } else {
+                result.stdout
+            }
+        }
+        "list_dir" => {
+            let dir = args
+                .get("directory_path")
+                .and_then(|v| v.as_str())
+                .unwrap_or(".");
+            let cmd = format!("ls -la '{}'", dir);
+            let result = sandbox.exec(&cmd, 10_000).await;
+            if result.exit_code != 0 {
+                format!("Error listing directory: {}", result.stderr)
+            } else {
+                result.stdout
+            }
+        }
+        "grep_files" => {
+            let pattern = args.get("pattern").and_then(|v| v.as_str()).unwrap_or("");
+            if pattern.is_empty() {
+                return "Error: missing pattern".to_string();
+            }
+            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
+            let include = args.get("include").and_then(|v| v.as_str());
+            let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(100);
+            let include_arg = match include {
+                Some(glob) => format!(" --include='{}'", glob),
+                None => String::new(),
+            };
+            let cmd = format!(
+                "grep -rn --color=never{} '{}' '{}' | head -n {}",
+                include_arg, pattern, path, limit
+            );
+            let result = sandbox.exec(&cmd, 30_000).await;
+            if result.stdout.is_empty() {
+                "No matches found.".to_string()
+            } else {
+                result.stdout
+            }
+        }
+        "search_files" => {
+            let pattern = args.get("pattern").and_then(|v| v.as_str()).unwrap_or("");
+            if pattern.is_empty() {
+                return "Error: missing pattern".to_string();
+            }
+            let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
+            let cmd = format!(
+                "find '{}' -name '{}' -not -path '*/.git/*' -not -path '*/node_modules/*' | sort",
+                path, pattern
+            );
+            let result = sandbox.exec(&cmd, 30_000).await;
+            if result.stdout.is_empty() {
+                format!("No files matching '{}'", pattern)
+            } else {
+                result.stdout
+            }
+        }
+        "apply_patch" => {
+            let patch = args.get("patch").and_then(|v| v.as_str()).unwrap_or("");
+            if patch.is_empty() {
+                return "Error: missing patch".to_string();
+            }
+            match sandbox.write_file(".swe_forge_tool_patch.tmp", patch).await {
+                Ok(_) => {
+                    let result = sandbox
+                        .exec(
+                            "git apply --allow-empty .swe_forge_tool_patch.tmp 2>&1 && rm -f .swe_forge_tool_patch.tmp",
+                            30_000,
+                        )
+                        .await;
+                    if result.exit_code == 0 {
+                        "Patch applied successfully.".to_string()
+                    } else {
+                        format!("git apply failed: {}", result.stdout)
+                    }
+                }
+                Err(e) => format!("Failed to write patch file: {}", e),
+            }
+        }
+        _ => format!("Unknown tool: {}", tool_name),
+    }
 }
 
 /// Scan test files for string-matching anti-patterns and return a rejection reason if found.
