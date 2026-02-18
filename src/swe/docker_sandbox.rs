@@ -158,9 +158,9 @@ impl DockerSandbox {
             return;
         }
 
-        // Start server in background
+        // Start server in background (use -u for unbuffered stdout so log is readable)
         let start = self
-            .exec("nohup python3 /tools/server.py --cwd /repo > /tools/server.log 2>&1 &", 5_000)
+            .exec("nohup python3 -u /tools/server.py --cwd /repo > /tools/server.log 2>&1 &", 5_000)
             .await;
         if start.exit_code != 0 {
             tracing::warn!(
@@ -170,18 +170,40 @@ impl DockerSandbox {
             );
         }
 
-        // Wait for health check (up to 3 seconds)
-        for _ in 0..6 {
-            let health = self
-                .exec("curl -sf http://localhost:8080/health 2>/dev/null || python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health')\" 2>/dev/null", 2_000)
-                .await;
-            if health.exit_code == 0 {
-                tracing::debug!(container = %self.container_name, "Tool server healthy");
+        // Health check: use python3 urllib (curl is not installed in slim images)
+        for attempt in 0..6 {
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+            let health = self.tool_server_health().await;
+            if health {
+                tracing::debug!(container = %self.container_name, attempt = attempt, "Tool server healthy");
                 return;
             }
-            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
         }
-        tracing::warn!(container = %self.container_name, "Tool server health check failed, tools may not work");
+        // Log server output for debugging
+        let log = self.exec("cat /tools/server.log 2>/dev/null", 5_000).await;
+        tracing::warn!(
+            container = %self.container_name,
+            server_log = %log.stdout,
+            "Tool server health check failed after 3s, tools may not work"
+        );
+    }
+
+    /// Check if the tool server is healthy via python3 urllib inside the container.
+    async fn tool_server_health(&self) -> bool {
+        let result = tokio::time::timeout(
+            std::time::Duration::from_millis(2_000),
+            Command::new("docker")
+                .args([
+                    "exec", "-w", "/repo", &self.container_name,
+                    "python3", "-c",
+                    "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')",
+                ])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status(),
+        )
+        .await;
+        matches!(result, Ok(Ok(status)) if status.success())
     }
 
     /// Call a tool on the HTTP tool server running inside the container.
