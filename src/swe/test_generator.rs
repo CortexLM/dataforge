@@ -23,10 +23,26 @@ CONTEXT: You write tests that verify whether a coding agent correctly reproduced
 - fail_to_pass: tests that FAIL on the base commit (before PR), PASS after the PR is applied.
 - pass_to_pass: tests that PASS on both the base commit and after the PR.
 
-You have three tools:
-- `shell`: execute a command in the cloned repository (at the BASE commit, before the PR).
+You have these tools:
+
+FILE EXPLORATION (prefer these over shell for reading code -- they are structured and token-efficient):
+- `read_file`: read a file with line numbers, supports offset/limit pagination.
+- `list_dir`: list directory contents, supports recursive listing.
+- `grep_files`: search file contents with regex (uses ripgrep/grep). Returns matching lines with line numbers.
+- `search_files`: find files by glob pattern (e.g. "*.py", "**/*.test.js").
+
+FILE MODIFICATION:
 - `write_file`: create or overwrite a file in the repository (for writing test files).
+- `apply_patch`: apply a unified diff patch to modify existing files.
+
+EXECUTION:
+- `shell`: execute a shell command in the cloned repository (for installing deps, running tests, etc.).
+
+SUBMISSION:
 - `submit_tests`: return your final validated test commands AND the test files you wrote.
+
+IMPORTANT: Use `read_file`, `list_dir`, `grep_files`, `search_files` instead of shell commands
+like `cat`, `ls`, `grep`, `find` when exploring code. They return cleaner, more compact output.
 
 ENVIRONMENT: You are running in a bare `python:3.12-slim` Docker container with ONLY `git` and `python3` pre-installed.
 You MUST install all required tools, runtimes, and dependencies yourself via `shell` before doing anything else.
@@ -179,6 +195,123 @@ fn submit_tool() -> ToolDefinition {
     )
 }
 
+fn read_file_tool() -> ToolDefinition {
+    ToolDefinition::function(
+        "read_file",
+        "Read file contents with line numbers. Supports offset/limit for pagination. More token-efficient than `cat`.",
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "file_path": {
+                    "type": "string",
+                    "description": "Path to the file to read (relative to repo root or absolute)"
+                },
+                "offset": {
+                    "type": "integer",
+                    "description": "Line offset to start from (0-based, default: 0)"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of lines to read (omit for all)"
+                }
+            },
+            "required": ["file_path"]
+        }),
+    )
+}
+
+fn list_dir_tool() -> ToolDefinition {
+    ToolDefinition::function(
+        "list_dir",
+        "List directory contents. Cleaner output than `ls`. Skips .git, node_modules, __pycache__, etc.",
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "directory_path": {
+                    "type": "string",
+                    "description": "Path to directory (default: '.' = repo root)"
+                },
+                "recursive": {
+                    "type": "boolean",
+                    "description": "List recursively (default: false)"
+                },
+                "include_hidden": {
+                    "type": "boolean",
+                    "description": "Include hidden files (default: false)"
+                }
+            },
+            "required": []
+        }),
+    )
+}
+
+fn grep_files_tool() -> ToolDefinition {
+    ToolDefinition::function(
+        "grep_files",
+        "Search file contents with regex pattern. Returns matching lines with file paths and line numbers.",
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "pattern": {
+                    "type": "string",
+                    "description": "Regex pattern to search for"
+                },
+                "include": {
+                    "type": "string",
+                    "description": "Glob pattern to filter files (e.g. '*.py', '*.js')"
+                },
+                "path": {
+                    "type": "string",
+                    "description": "Directory to search in (default: repo root)"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max number of matching lines (default: 100)"
+                }
+            },
+            "required": ["pattern"]
+        }),
+    )
+}
+
+fn search_files_tool() -> ToolDefinition {
+    ToolDefinition::function(
+        "search_files",
+        "Find files matching a glob pattern. Skips .git, node_modules, etc.",
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "pattern": {
+                    "type": "string",
+                    "description": "Glob pattern (e.g. '*.py', '**/*.test.js', 'src/**/*.rs')"
+                },
+                "path": {
+                    "type": "string",
+                    "description": "Base directory to search from (default: repo root)"
+                }
+            },
+            "required": ["pattern"]
+        }),
+    )
+}
+
+fn apply_patch_tool() -> ToolDefinition {
+    ToolDefinition::function(
+        "apply_patch",
+        "Apply a unified diff patch to modify files. Use standard unified diff format (--- a/file, +++ b/file, @@ hunks).",
+        serde_json::json!({
+            "type": "object",
+            "properties": {
+                "patch": {
+                    "type": "string",
+                    "description": "Unified diff content to apply"
+                }
+            },
+            "required": ["patch"]
+        }),
+    )
+}
+
 #[derive(Debug, serde::Deserialize)]
 struct ShellArgs {
     command: String,
@@ -287,7 +420,16 @@ impl TestGenerator {
             patch = patch_preview,
         );
 
-        let tools = vec![shell_tool(), write_file_tool(), submit_tool()];
+        let tools = vec![
+            read_file_tool(),
+            list_dir_tool(),
+            grep_files_tool(),
+            search_files_tool(),
+            shell_tool(),
+            write_file_tool(),
+            apply_patch_tool(),
+            submit_tool(),
+        ];
         let mut messages = vec![Message::system(SYSTEM_PROMPT), Message::user(user_msg)];
         let mut written_files: Vec<TestFile> = Vec::new();
         let mut validation_retries = 0;
@@ -557,6 +699,18 @@ impl TestGenerator {
             }
         }
 
+        // Reset repo to clean state before applying patch (agent may have modified files)
+        sandbox
+            .exec("cd /repo && git checkout -- . 2>/dev/null && git clean -fd 2>/dev/null", 30_000)
+            .await;
+
+        // Re-write test files (they were cleaned by git checkout)
+        for tf in test_files {
+            if let Err(e) = sandbox.write_file(&tf.path, &tf.content).await {
+                tracing::warn!(path = %tf.path, error = %e, "Failed to re-write test file after reset");
+            }
+        }
+
         // Write the PR patch and apply it
         if let Err(e) = sandbox.write_file(".swe_forge_pr.patch", patch).await {
             tracing::warn!(error = %e, "Failed to write patch file");
@@ -564,19 +718,21 @@ impl TestGenerator {
         }
 
         let apply_result = sandbox
-            .exec("git apply --allow-empty .swe_forge_pr.patch 2>&1", 30_000)
+            .exec("cd /repo && git apply --allow-empty .swe_forge_pr.patch 2>&1", 30_000)
             .await;
 
         if apply_result.exit_code != 0 {
             let apply_3way = sandbox
-                .exec("git apply --3way .swe_forge_pr.patch 2>&1", 30_000)
+                .exec("cd /repo && git apply --3way .swe_forge_pr.patch 2>&1", 30_000)
                 .await;
             if apply_3way.exit_code != 0 {
                 tracing::warn!(
+                    stdout = %apply_3way.stdout,
                     stderr = %apply_3way.stderr,
+                    exit = apply_3way.exit_code,
                     "Patch apply failed, rejecting task"
                 );
-                sandbox.exec("git checkout -- . 2>/dev/null", 10_000).await;
+                sandbox.exec("cd /repo && git checkout -- . 2>/dev/null", 10_000).await;
                 return ValidationResult::Rejected(
                     "PR patch could not be applied to the base commit. The test cannot be validated.".to_string()
                 );
@@ -587,8 +743,8 @@ impl TestGenerator {
         for cmd in &submit.fail_to_pass {
             let result = sandbox.exec(cmd, 60_000).await;
             if result.exit_code != 0 {
-                sandbox.exec("git checkout -- . 2>/dev/null", 10_000).await;
-                sandbox.exec("git clean -fd 2>/dev/null", 10_000).await;
+                sandbox.exec("cd /repo && git checkout -- . 2>/dev/null", 10_000).await;
+                sandbox.exec("cd /repo && git clean -fd 2>/dev/null", 10_000).await;
                 for tf in test_files {
                     let _ = sandbox.write_file(&tf.path, &tf.content).await;
                 }
@@ -606,8 +762,8 @@ impl TestGenerator {
         for cmd in &submit.pass_to_pass {
             let result = sandbox.exec(cmd, 60_000).await;
             if result.exit_code != 0 {
-                sandbox.exec("git checkout -- . 2>/dev/null", 10_000).await;
-                sandbox.exec("git clean -fd 2>/dev/null", 10_000).await;
+                sandbox.exec("cd /repo && git checkout -- . 2>/dev/null", 10_000).await;
+                sandbox.exec("cd /repo && git clean -fd 2>/dev/null", 10_000).await;
                 for tf in test_files {
                     let _ = sandbox.write_file(&tf.path, &tf.content).await;
                 }
@@ -622,8 +778,8 @@ impl TestGenerator {
         }
 
         // Revert to base commit for cleanliness
-        sandbox.exec("git checkout -- . 2>/dev/null", 10_000).await;
-        sandbox.exec("git clean -fd 2>/dev/null", 10_000).await;
+        sandbox.exec("cd /repo && git checkout -- . 2>/dev/null", 10_000).await;
+        sandbox.exec("cd /repo && git clean -fd 2>/dev/null", 10_000).await;
         for tf in test_files {
             let _ = sandbox.write_file(&tf.path, &tf.content).await;
         }
@@ -684,6 +840,45 @@ impl TestGenerator {
                     }
                     Err(e) => ToolResult::Error(format!("Failed to write {}: {}", args.path, e)),
                 }
+            }
+            "read_file" | "list_dir" | "grep_files" | "search_files" | "apply_patch" => {
+                let result = sandbox
+                    .tool_request(tc.function.name.as_str(), &tc.function.arguments)
+                    .await;
+                let output = if !result.stdout.is_empty() {
+                    // Parse JSON response from tool server
+                    match serde_json::from_str::<serde_json::Value>(&result.stdout.trim()) {
+                        Ok(v) => {
+                            if let Some(err) = v.get("error").and_then(|e| e.as_str()) {
+                                err.to_string()
+                            } else if let Some(out) = v.get("output").and_then(|o| o.as_str()) {
+                                let mut s = out.to_string();
+                                if let Some(total) = v.get("total_lines").and_then(|t| t.as_u64()) {
+                                    if v.get("truncated").and_then(|t| t.as_bool()).unwrap_or(false) {
+                                        s.push_str(&format!("\n\n[Showing {}/{} lines. Use offset/limit to see more.]",
+                                            v.get("shown_lines").and_then(|s| s.as_u64()).unwrap_or(0), total));
+                                    } else {
+                                        s.push_str(&format!("\n\n[{} total lines]", total));
+                                    }
+                                }
+                                s
+                            } else {
+                                result.stdout.clone()
+                            }
+                        }
+                        Err(_) => result.stdout.clone(),
+                    }
+                } else if !result.stderr.is_empty() {
+                    format!("Error: {}", truncate_utf8(&result.stderr, 1500))
+                } else {
+                    "No output".to_string()
+                };
+                tracing::debug!(
+                    task_id = task_id, turn = turn,
+                    tool = %tc.function.name,
+                    "Agent tool call via HTTP server"
+                );
+                ToolResult::ShellOutput(truncate_utf8(&output, 4000).to_string())
             }
             "submit_tests" => match serde_json::from_str::<SubmitArgs>(&tc.function.arguments) {
                 Ok(s) => ToolResult::Submit(s),

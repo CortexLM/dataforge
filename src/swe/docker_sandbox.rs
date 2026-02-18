@@ -7,6 +7,8 @@ use anyhow::Result;
 use std::process::Stdio;
 use tokio::process::Command;
 
+use crate::swe::tool_server::TOOL_SERVER_PY;
+
 /// Shell command output from inside the container.
 pub struct SandboxOutput {
     pub stdout: String,
@@ -128,6 +130,9 @@ impl DockerSandbox {
             }
         }
 
+        // Inject and start the tool server
+        sandbox.start_tool_server().await;
+
         tracing::info!(
             container = %sandbox.container_name,
             image = image,
@@ -136,6 +141,109 @@ impl DockerSandbox {
         );
 
         Ok(sandbox)
+    }
+
+    /// Write and start the Python tool server inside the container.
+    async fn start_tool_server(&self) {
+        // Write the server script
+        let mkdir = self.exec("mkdir -p /tools", 10_000).await;
+        if mkdir.exit_code != 0 {
+            tracing::warn!(container = %self.container_name, "Failed to create /tools dir");
+            return;
+        }
+
+        // Use write_file to inject the server script
+        if let Err(e) = self.write_file_abs("/tools/server.py", TOOL_SERVER_PY).await {
+            tracing::warn!(container = %self.container_name, error = %e, "Failed to write tool server");
+            return;
+        }
+
+        // Start server in background
+        let start = self
+            .exec("nohup python3 /tools/server.py --cwd /repo > /tools/server.log 2>&1 &", 5_000)
+            .await;
+        if start.exit_code != 0 {
+            tracing::warn!(
+                container = %self.container_name,
+                stderr = %start.stderr,
+                "Tool server start may have failed"
+            );
+        }
+
+        // Wait for health check (up to 3 seconds)
+        for _ in 0..6 {
+            let health = self
+                .exec("curl -sf http://localhost:8080/health 2>/dev/null || python3 -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/health')\" 2>/dev/null", 2_000)
+                .await;
+            if health.exit_code == 0 {
+                tracing::debug!(container = %self.container_name, "Tool server healthy");
+                return;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+        }
+        tracing::warn!(container = %self.container_name, "Tool server health check failed, tools may not work");
+    }
+
+    /// Call a tool on the HTTP tool server running inside the container.
+    /// Pipes the JSON args via stdin to avoid shell escaping issues.
+    pub async fn tool_request(&self, tool_name: &str, args_json: &str) -> SandboxOutput {
+        let script = format!(
+            "import sys, urllib.request, json\n\
+             data = sys.stdin.read()\n\
+             req = urllib.request.Request(\
+               'http://localhost:8080/{}', \
+               data=data.encode(), \
+               headers={{'Content-Type': 'application/json'}})\n\
+             try:\n\
+               resp = urllib.request.urlopen(req, timeout=60)\n\
+               print(resp.read().decode())\n\
+             except Exception as e:\n\
+               print(json.dumps({{'error': str(e)}}))",
+            tool_name
+        );
+
+        let result = tokio::time::timeout(
+            std::time::Duration::from_millis(65_000),
+            async {
+                let mut child = Command::new("docker")
+                    .args([
+                        "exec", "-i", "-w", "/repo",
+                        &self.container_name,
+                        "python3", "-c", &script,
+                    ])
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .stderr(Stdio::piped())
+                    .spawn()?;
+
+                if let Some(ref mut stdin) = child.stdin {
+                    use tokio::io::AsyncWriteExt;
+                    stdin.write_all(args_json.as_bytes()).await?;
+                    stdin.shutdown().await?;
+                }
+
+                child.wait_with_output().await
+            }
+        )
+        .await;
+
+        match result {
+            Ok(Ok(output)) => SandboxOutput {
+                stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+                stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+                exit_code: output.status.code().unwrap_or(-1),
+            },
+            Ok(Err(e)) => SandboxOutput {
+                stdout: String::new(),
+                stderr: format!("Tool request error: {}", e),
+                exit_code: -1,
+            },
+            Err(_) => SandboxOutput {
+                stdout: String::new(),
+                stderr: "Tool request timed out after 65s".to_string(),
+                exit_code: -1,
+            },
+        }
     }
 
     /// Execute a shell command inside the container.
@@ -176,6 +284,38 @@ impl DockerSandbox {
                 exit_code: -1,
             },
         }
+    }
+
+    /// Write a file to an absolute path inside the container.
+    async fn write_file_abs(&self, abs_path: &str, content: &str) -> Result<()> {
+        let mkdir_cmd = format!("mkdir -p \"$(dirname '{}')\"", abs_path);
+        self.exec(&mkdir_cmd, 10_000).await;
+
+        let tee_cmd = format!("cat > '{}'", abs_path);
+        let mut child = Command::new("docker")
+            .args([
+                "exec", "-i", "-w", "/repo", &self.container_name, "bash", "-c", &tee_cmd,
+            ])
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()?;
+
+        if let Some(ref mut stdin) = child.stdin {
+            use tokio::io::AsyncWriteExt;
+            stdin.write_all(content.as_bytes()).await?;
+            stdin.shutdown().await?;
+        }
+
+        let output = child.wait_with_output().await?;
+        if !output.status.success() {
+            anyhow::bail!(
+                "Failed to write file '{}' in container: {}",
+                abs_path,
+                String::from_utf8_lossy(&output.stderr)
+            );
+        }
+        Ok(())
     }
 
     /// Write a file inside the container by piping content via stdin.
