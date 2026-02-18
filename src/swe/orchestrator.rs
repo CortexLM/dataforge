@@ -208,15 +208,20 @@ impl SweOrchestrator {
 
         // Start background progress monitor (logs every 30 seconds)
         let progress_counters = ProgressCounters::new();
-        let monitor = ProgressMonitor::start(progress_counters, max_tasks, Duration::from_secs(30));
+        let monitor = ProgressMonitor::start(
+            progress_counters.clone(),
+            max_tasks,
+            Duration::from_secs(30),
+        );
 
         let pipeline = crate::swe::pipeline::SwePipeline::new(&pipeline_config, self.llm.clone())?;
         let run: SwePipelineRunResult = pipeline
-            .run_full(
+            .run_full_with_progress(
                 &pipeline_config,
                 None,
                 Some(export_config),
                 dataset_handle.clone(),
+                Some(progress_counters),
             )
             .await?;
 

@@ -243,6 +243,19 @@ impl SwePipeline {
         export_config: Option<Arc<ExportConfig>>,
         dataset_handle: Option<DatasetHandle>,
     ) -> anyhow::Result<SwePipelineRunResult> {
+        self.run_full_with_progress(config, event_tx, export_config, dataset_handle, None)
+            .await
+    }
+
+    /// Full pipeline run with shared progress counters for the background monitor.
+    pub async fn run_full_with_progress(
+        &self,
+        config: &SwePipelineConfig,
+        event_tx: Option<Sender<SwePipelineEvent>>,
+        export_config: Option<Arc<ExportConfig>>,
+        dataset_handle: Option<DatasetHandle>,
+        progress: Option<super::ProgressCounters>,
+    ) -> anyhow::Result<SwePipelineRunResult> {
         let pipeline_start = Instant::now();
 
         emit(
@@ -378,6 +391,7 @@ impl SwePipeline {
         let quality_scores_m: Arc<Mutex<Vec<f64>>> = Arc::new(Mutex::new(Vec::new()));
         let languages_m: Arc<Mutex<HashMap<String, usize>>> = Arc::new(Mutex::new(HashMap::new()));
         let validate_workspace = config.validate_workspace;
+        let progress = progress.map(Arc::new);
 
         let total_prefiltered = events.len();
 
@@ -388,6 +402,7 @@ impl SwePipeline {
                 let preclassify_sem = preclassify_sem.clone();
                 let deep_sem = deep_sem.clone();
                 let deep_backlog_sem = deep_backlog_sem.clone();
+                let progress = progress.clone();
                 let df = difficulty_filter.clone();
                 let dt = difficulty_targets.clone();
                 let completed = completed.clone();
@@ -468,6 +483,9 @@ impl SwePipeline {
                         match enricher.enrich(&event).await {
                             Ok(e) => {
                                 enriched_count_m.fetch_add(1, Ordering::Relaxed);
+                                if let Some(ref p) = progress {
+                                    p.enriched.fetch_add(1, Ordering::Relaxed);
+                                }
                                 e
                             }
                             Err(_) => {
@@ -523,6 +541,9 @@ impl SwePipeline {
                         &enriched.body,
                     );
                     filtered_count.fetch_add(1, Ordering::Relaxed);
+                    if let Some(ref p) = progress {
+                        p.filtered.fetch_add(1, Ordering::Relaxed);
+                    }
                     if filter_result.accepted {
                         filter_passed_m.fetch_add(1, Ordering::Relaxed);
                     } else {
@@ -563,6 +584,9 @@ impl SwePipeline {
                             triage = %cached, "Using cached classification"
                         );
                         preclassify_count_m.fetch_add(1, Ordering::Relaxed);
+                        if let Some(ref p) = progress {
+                            p.preclassified.fetch_add(1, Ordering::Relaxed);
+                        }
                         match cached.as_str() {
                             "easy" => { preclassify_easy_m.fetch_add(1, Ordering::Relaxed); }
                             "medium" => { preclassify_medium_m.fetch_add(1, Ordering::Relaxed); }
@@ -587,6 +611,9 @@ impl SwePipeline {
                         match quality.classify(&classify_input, filter_val).await {
                             Ok(pre) => {
                                 preclassify_count_m.fetch_add(1, Ordering::Relaxed);
+                                if let Some(ref p) = progress {
+                                    p.preclassified.fetch_add(1, Ordering::Relaxed);
+                                }
                                 match pre.difficulty.as_str() {
                                     "easy" => { preclassify_easy_m.fetch_add(1, Ordering::Relaxed); }
                                     "medium" => { preclassify_medium_m.fetch_add(1, Ordering::Relaxed); }
@@ -774,6 +801,9 @@ impl SwePipeline {
 
                     scored_count.fetch_add(1, Ordering::Relaxed);
                     quality_scored_m.fetch_add(1, Ordering::Relaxed);
+                    if let Some(ref p) = progress {
+                        p.scored.fetch_add(1, Ordering::Relaxed);
+                    }
 
                     let (score, passed) = (assessment.score, assessment.passed);
                     quality_scores_m.lock().await.push(score);
@@ -869,6 +899,9 @@ impl SwePipeline {
                         }
 
                         accepted_count_m.fetch_add(1, Ordering::Relaxed);
+                        if let Some(ref p) = progress {
+                            p.accepted.fetch_add(1, Ordering::Relaxed);
+                        }
                         {
                             let mut langs = languages_m.lock().await;
                             *langs.entry(task.language.clone()).or_insert(0) += 1;
@@ -921,6 +954,9 @@ impl SwePipeline {
 
                             completed.fetch_add(1, Ordering::Relaxed);
                             extracted_count.fetch_add(1, Ordering::Relaxed);
+                            if let Some(ref p) = progress {
+                                p.extracted.fetch_add(1, Ordering::Relaxed);
+                            }
                             tasks_mu.lock().await.push(task);
                             tracing::info!(
                                 difficulty = %level,
@@ -960,6 +996,9 @@ impl SwePipeline {
                                 }
 
                                 extracted_count.fetch_add(1, Ordering::Relaxed);
+                                if let Some(ref p) = progress {
+                                    p.extracted.fetch_add(1, Ordering::Relaxed);
+                                }
                                 tasks_mu.lock().await.push(task);
                                 tracing::info!(
                                     completed = prev + 1,
