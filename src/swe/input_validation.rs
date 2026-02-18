@@ -21,6 +21,12 @@ pub fn validate_repo_name(repo: &str) -> Result<()> {
             repo
         );
     }
+    if parts[1].contains('/') {
+        anyhow::bail!(
+            "repository name must have exactly one '/' separator (owner/repo), got '{}'",
+            repo
+        );
+    }
     for ch in repo.chars() {
         if !ch.is_alphanumeric() && ch != '/' && ch != '-' && ch != '_' && ch != '.' {
             anyhow::bail!(
@@ -112,6 +118,12 @@ mod tests {
     fn repo_name_empty_parts() {
         assert!(validate_repo_name("/repo").is_err());
         assert!(validate_repo_name("owner/").is_err());
+    }
+
+    #[test]
+    fn repo_name_multiple_slashes() {
+        assert!(validate_repo_name("owner/sub/repo").is_err());
+        assert!(validate_repo_name("a/b/c/d").is_err());
     }
 
     #[test]

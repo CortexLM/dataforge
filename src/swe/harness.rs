@@ -554,11 +554,7 @@ pub fn discover_tasks(input_dir: &Path) -> Result<Vec<PathBuf>> {
                 let p = entry.path();
                 if p.is_dir() {
                     walk(&p, paths);
-                } else if p
-                    .file_name()
-                    .map(|f| f == "workspace.yaml")
-                    .unwrap_or(false)
-                {
+                } else if p.file_name().is_some_and(|f| f == "workspace.yaml") {
                     paths.push(p);
                 }
             }

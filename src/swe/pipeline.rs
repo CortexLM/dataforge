@@ -3,7 +3,7 @@
 //! pre-classification, extraction, test generation, and quality scoring.
 //! Tasks and tests are exported to disk in real-time as they are accepted.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::io::Write;
 use std::path::Path;
@@ -56,7 +56,7 @@ pub struct BenchmarkMetrics {
     pub enrichment_failed: usize,
     pub filter_passed: usize,
     pub filter_rejected: usize,
-    pub filter_rejection_reasons: HashMap<String, usize>,
+    pub filter_rejection_reasons: BTreeMap<String, usize>,
     pub preclassify_count: usize,
     pub preclassify_easy: usize,
     pub preclassify_medium: usize,
@@ -81,7 +81,7 @@ pub struct BenchmarkMetrics {
     pub avg_per_pr_time_ms: f64,
     pub throughput_prs_per_sec: f64,
     pub avg_quality_score: f64,
-    pub languages: HashMap<String, usize>,
+    pub languages: BTreeMap<String, usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -332,8 +332,8 @@ impl SwePipeline {
         let enrichment_failed_m = Arc::new(AtomicUsize::new(0));
         let filter_passed_m = Arc::new(AtomicUsize::new(0));
         let filter_rejected_m = Arc::new(AtomicUsize::new(0));
-        let filter_rejection_reasons_m: Arc<Mutex<HashMap<String, usize>>> =
-            Arc::new(Mutex::new(HashMap::new()));
+        let filter_rejection_reasons_m: Arc<Mutex<BTreeMap<String, usize>>> =
+            Arc::new(Mutex::new(BTreeMap::new()));
         let preclassify_count_m = Arc::new(AtomicUsize::new(0));
         let preclassify_easy_m = Arc::new(AtomicUsize::new(0));
         let preclassify_medium_m = Arc::new(AtomicUsize::new(0));
@@ -355,7 +355,8 @@ impl SwePipeline {
         let validation_passed_m = Arc::new(AtomicUsize::new(0));
         let validation_failed_m = Arc::new(AtomicUsize::new(0));
         let quality_scores_m: Arc<Mutex<Vec<f64>>> = Arc::new(Mutex::new(Vec::new()));
-        let languages_m: Arc<Mutex<HashMap<String, usize>>> = Arc::new(Mutex::new(HashMap::new()));
+        let languages_m: Arc<Mutex<BTreeMap<String, usize>>> =
+            Arc::new(Mutex::new(BTreeMap::new()));
         let validate_workspace = config.validate_workspace;
 
         let total_prefiltered = events.len();
@@ -478,8 +479,7 @@ impl SwePipeline {
                         return;
                     }
 
-                    // Save enriched data to cache
-                    let _ = cache.upsert(&super::PrCacheEntry {
+                    if let Err(e) = cache.upsert(&super::PrCacheEntry {
                         repo: enriched.repository.clone(),
                         pr_number: enriched.number,
                         actor: Some(enriched.actor.clone()),
@@ -492,7 +492,9 @@ impl SwePipeline {
                         files_changed: Some(enriched.files_changed),
                         status: "enriched".to_string(),
                         ..Default::default()
-                    }).await;
+                    }).await {
+                        tracing::debug!(repo = %enriched.repository, pr = enriched.number, error = %e, "Cache upsert failed (non-fatal)");
+                    }
 
                     // --- Stage 2: Local filter ---
                     let added_lines = infer_added_lines(&enriched);
@@ -585,14 +587,15 @@ impl SwePipeline {
                                     "hard" => { preclassify_hard_m.fetch_add(1, Ordering::Relaxed); }
                                     _ => {}
                                 }
-                                // Save triage to cache
-                                let _ = cache.upsert(&super::PrCacheEntry {
+                                if let Err(e) = cache.upsert(&super::PrCacheEntry {
                                     repo: enriched.repository.clone(),
                                     pr_number: enriched.number,
                                     triage_difficulty: Some(pre.difficulty.clone()),
                                     status: "pre_classified".to_string(),
                                     ..Default::default()
-                                }).await;
+                                }).await {
+                                    tracing::debug!(repo = %enriched.repository, pr = enriched.number, error = %e, "Cache triage upsert failed (non-fatal)");
+                                }
                                 Some(pre.difficulty)
                             }
                             Err(_) => None, // on error, let it through
@@ -613,10 +616,12 @@ impl SwePipeline {
                                         repo = %enriched.repository, pr = enriched.number,
                                         triage = %triage, "Skipped: difficulty not in targets"
                                     );
-                                    let _ = cache.mark_rejected(
+                                    if let Err(e) = cache.mark_rejected(
                                         &enriched.repository, enriched.number,
                                         "difficulty not in targets",
-                                    ).await;
+                                    ).await {
+                                        tracing::debug!(repo = %enriched.repository, pr = enriched.number, error = %e, "Cache mark_rejected failed (non-fatal)");
+                                    }
                                     return;
                                 }
                                 if current >= quota {
@@ -639,10 +644,12 @@ impl SwePipeline {
                                     triage_difficulty = %triage, filter = %df_val,
                                     skipped = true, "Pre-classification triage"
                                 );
-                                let _ = cache.mark_rejected(
+                                if let Err(e) = cache.mark_rejected(
                                     &enriched.repository, enriched.number,
                                     &format!("triage={}, filter={}", triage, df_val),
-                                ).await;
+                                ).await {
+                                    tracing::debug!(repo = %enriched.repository, pr = enriched.number, error = %e, "Cache mark_rejected failed (non-fatal)");
+                                }
                                 return;
                             }
                             tracing::info!(
@@ -855,12 +862,14 @@ impl SwePipeline {
                                         reason = %reason,
                                         "Workspace validation REJECTED"
                                     );
-                                    let _ = cache.mark_rejected(
+                                    if let Err(e) = cache.mark_rejected(
                                         &task.repo,
                                         task.id.rsplit('-').next()
                                             .and_then(|s| s.parse::<u64>().ok()).unwrap_or(0),
                                         &format!("validation: {}", reason),
-                                    ).await;
+                                    ).await {
+                                        tracing::debug!(task_id = %task.id, error = %e, "Cache mark_rejected failed (non-fatal)");
+                                    }
                                     return;
                                 }
                                 Err(err) => {
@@ -908,7 +917,9 @@ impl SwePipeline {
                                         append_pr_to_file(&ecfg.pr_file, &task.repo, &task.id);
                                         let pr_num = task.id.rsplit('-').next()
                                             .and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
-                                        let _ = cache.mark_exported(&task.repo, pr_num).await;
+                                        if let Err(e) = cache.mark_exported(&task.repo, pr_num).await {
+                                            tracing::debug!(task_id = %task.id, error = %e, "Cache mark_exported failed (non-fatal)");
+                                        }
                                         tracing::info!(
                                             task_id = %task.id,
                                             difficulty = %level,
@@ -952,7 +963,9 @@ impl SwePipeline {
                                             append_pr_to_file(&ecfg.pr_file, &task.repo, &task.id);
                                             let pr_num = task.id.rsplit('-').next()
                                                 .and_then(|s| s.parse::<u64>().ok()).unwrap_or(0);
-                                            let _ = cache.mark_exported(&task.repo, pr_num).await;
+                                            if let Err(e) = cache.mark_exported(&task.repo, pr_num).await {
+                                                tracing::debug!(task_id = %task.id, error = %e, "Cache mark_exported failed (non-fatal)");
+                                            }
                                             tracing::info!(
                                                 task_id = %task.id,
                                                 output = %ecfg.output_dir,
@@ -1144,8 +1157,7 @@ fn export_task_to_disk(task: &SweTask, output_dir: &str) -> anyhow::Result<()> {
                 // Flatten to basename only -- avoid nested tests/tests/ duplication
                 let basename = std::path::Path::new(&tf.path)
                     .file_name()
-                    .map(|n| n.to_string_lossy().to_string())
-                    .unwrap_or_else(|| tf.path.clone());
+                    .map_or_else(|| tf.path.clone(), |n| n.to_string_lossy().to_string());
                 let unique_name = if seen_names.contains(&basename) {
                     let prefixed = format!("{}_{}", seen_names.len(), basename);
                     seen_names.insert(prefixed.clone());
@@ -1261,15 +1273,13 @@ fn validate_test_file_references(task: &SweTask, written_basenames: &HashSet<Str
         for ref_path in &referenced {
             let basename = std::path::Path::new(ref_path)
                 .file_name()
-                .map(|n| n.to_string_lossy().to_string())
-                .unwrap_or_else(|| ref_path.clone());
+                .map_or_else(|| ref_path.clone(), |n| n.to_string_lossy().to_string());
 
             let found_in_meta = test_file_paths.contains(ref_path)
                 || test_file_paths.iter().any(|p| {
                     std::path::Path::new(p)
                         .file_name()
-                        .map(|n| n.to_string_lossy() == basename)
-                        .unwrap_or(false)
+                        .is_some_and(|n| n.to_string_lossy() == basename)
                 });
 
             let found_on_disk = written_basenames.contains(&basename);
