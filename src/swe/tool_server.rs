@@ -307,7 +307,7 @@ def main():
 
     HTTPServer.allow_reuse_address = True
     try:
-        server = HTTPServer(("0.0.0.0", port), ToolHandler)
+        server = HTTPServer(("127.0.0.1", port), ToolHandler)
     except OSError as e:
         print(f"FATAL: Cannot bind to port {port}: {e}", flush=True)
         sys.exit(1)
