@@ -741,6 +741,10 @@ impl SwePipeline {
                     task.meta
                         .insert("pr_title".to_string(), enriched.title.clone());
 
+                    if cancelled.load(Ordering::Relaxed) {
+                        return;
+                    }
+
                     if !task.has_tests() {
                         test_gen_attempted_m.fetch_add(1, Ordering::Relaxed);
                         let language = task.language.clone();
@@ -754,6 +758,10 @@ impl SwePipeline {
                                 return;
                             }
                         }
+                    }
+
+                    if cancelled.load(Ordering::Relaxed) {
+                        return;
                     }
 
                     let assessment = match quality.assess(&task).await {
