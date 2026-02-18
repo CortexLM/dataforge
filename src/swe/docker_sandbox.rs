@@ -19,6 +19,8 @@ pub struct SandboxOutput {
 /// An ephemeral Docker container for isolated repository operations.
 pub struct DockerSandbox {
     container_name: String,
+    /// Unique port for the tool server (needed because --network=host shares port space).
+    tool_port: u16,
 }
 
 /// Pick a Docker image appropriate for the given language.
@@ -37,15 +39,14 @@ impl DockerSandbox {
     ) -> Result<Self> {
         let image = image_override.unwrap_or_else(|| image_for_language(language));
         let safe_name = repo.replace('/', "-").replace(' ', "_");
-        let container_name = format!(
-            "swe-mine-{}-{}",
-            safe_name,
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .unwrap_or_default()
-                .as_millis()
-                % 1_000_000
-        );
+        let ts_suffix = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis()
+            % 1_000_000;
+        let container_name = format!("swe-mine-{}-{}", safe_name, ts_suffix);
+        // Derive unique tool server port from timestamp (range 10000-59999)
+        let tool_port = 10_000 + (ts_suffix as u16 % 50_000);
 
         // Remove stale container if it exists
         let _ = Command::new("docker")
@@ -80,7 +81,7 @@ impl DockerSandbox {
             );
         }
 
-        let sandbox = Self { container_name };
+        let sandbox = Self { container_name, tool_port };
 
         // Install git (only hard dependency; agent installs everything else)
         let install = sandbox
@@ -158,10 +159,12 @@ impl DockerSandbox {
             return;
         }
 
-        // Start server in background (use -u for unbuffered stdout so log is readable)
-        let start = self
-            .exec("nohup python3 -u /tools/server.py --cwd /repo > /tools/server.log 2>&1 &", 5_000)
-            .await;
+        // Start server in background with unique port (--network=host shares port space)
+        let start_cmd = format!(
+            "nohup python3 -u /tools/server.py --port {} --cwd /repo > /tools/server.log 2>&1 &",
+            self.tool_port
+        );
+        let start = self.exec(&start_cmd, 5_000).await;
         if start.exit_code != 0 {
             tracing::warn!(
                 container = %self.container_name,
@@ -190,13 +193,16 @@ impl DockerSandbox {
 
     /// Check if the tool server is healthy via python3 urllib inside the container.
     async fn tool_server_health(&self) -> bool {
+        let check_cmd = format!(
+            "import urllib.request; urllib.request.urlopen('http://localhost:{}/health')",
+            self.tool_port
+        );
         let result = tokio::time::timeout(
             std::time::Duration::from_millis(2_000),
             Command::new("docker")
                 .args([
                     "exec", "-w", "/repo", &self.container_name,
-                    "python3", "-c",
-                    "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')",
+                    "python3", "-c", &check_cmd,
                 ])
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
@@ -213,7 +219,7 @@ impl DockerSandbox {
             "import sys, urllib.request, json\n\
              data = sys.stdin.read()\n\
              req = urllib.request.Request(\
-               'http://localhost:8080/{}', \
+               'http://localhost:{}/{}', \
                data=data.encode(), \
                headers={{'Content-Type': 'application/json'}})\n\
              try:\n\
@@ -221,7 +227,7 @@ impl DockerSandbox {
                print(resp.read().decode())\n\
              except Exception as e:\n\
                print(json.dumps({{'error': str(e)}}))",
-            tool_name
+            self.tool_port, tool_name
         );
 
         let result = tokio::time::timeout(
