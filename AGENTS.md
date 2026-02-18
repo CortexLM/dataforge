@@ -67,12 +67,12 @@ GH Archive (hourly dumps, 8x concurrent)
 | Language | Rust (edition 2021, stable toolchain) |
 | Async runtime | Tokio (full features) |
 | CLI framework | Clap 4 (derive mode) |
-| HTTP client | reqwest 0.13 (rustls, multipart) |
+| HTTP client | reqwest 0.13 (json, rustls, multipart) |
 | Docker | bollard 0.16 (SSL) |
 | Serialization | serde + serde_json + serde_yaml |
 | Database | SQLx 0.7 (Postgres + SQLite, migrations) |
 | Data export | Apache Arrow 54 + Parquet 54 |
-| Caching | Redis 0.24 (tokio-comp) |
+| Caching | Redis 0.24 (tokio-comp, connection-manager) |
 | Templating | Tera 1.20 |
 | Error handling | thiserror 2.0 + anyhow 1.0 |
 | Logging | tracing + tracing-subscriber (env-filter) |
