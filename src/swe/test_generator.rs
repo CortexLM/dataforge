@@ -761,7 +761,9 @@ impl TestGenerator {
                     .exec("cd /repo && git clean -fd 2>/dev/null", 10_000)
                     .await;
                 for tf in test_files {
-                    let _ = sandbox.write_file(&tf.path, &tf.content).await;
+                    if let Err(e) = sandbox.write_file(&tf.path, &tf.content).await {
+                        tracing::warn!(path = %tf.path, error = %e, "Failed to restore test file after f2p rejection");
+                    }
                 }
                 return ValidationResult::Rejected(format!(
                     "fail_to_pass test '{}' still FAILS after the PR patch is applied (exit={}, stderr={}). \
@@ -784,7 +786,9 @@ impl TestGenerator {
                     .exec("cd /repo && git clean -fd 2>/dev/null", 10_000)
                     .await;
                 for tf in test_files {
-                    let _ = sandbox.write_file(&tf.path, &tf.content).await;
+                    if let Err(e) = sandbox.write_file(&tf.path, &tf.content).await {
+                        tracing::warn!(path = %tf.path, error = %e, "Failed to restore test file after p2p rejection");
+                    }
                 }
                 return ValidationResult::Rejected(format!(
                     "pass_to_pass test '{}' FAILS after the PR patch (exit={}, stderr={}). \
@@ -804,7 +808,9 @@ impl TestGenerator {
             .exec("cd /repo && git clean -fd 2>/dev/null", 10_000)
             .await;
         for tf in test_files {
-            let _ = sandbox.write_file(&tf.path, &tf.content).await;
+            if let Err(e) = sandbox.write_file(&tf.path, &tf.content).await {
+                tracing::warn!(path = %tf.path, error = %e, "Failed to restore test file after validation");
+            }
         }
 
         ValidationResult::Accepted

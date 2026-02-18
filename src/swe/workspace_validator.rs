@@ -211,7 +211,9 @@ impl WorkspaceValidator {
         if let Some(test_files_json) = task.meta.get("test_files") {
             if let Ok(files) = serde_json::from_str::<Vec<TestFile>>(test_files_json) {
                 for tf in &files {
-                    let _ = sandbox.write_file(&tf.path, &tf.content).await;
+                    if let Err(e) = sandbox.write_file(&tf.path, &tf.content).await {
+                        tracing::warn!(path = %tf.path, error = %e, "Failed to re-write test file after patch");
+                    }
                 }
             }
         }
