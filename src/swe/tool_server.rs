@@ -2,7 +2,7 @@
 /// Adapted from baseagent (https://github.com/PlatformNetwork/baseagent).
 ///
 /// Provides structured, token-efficient tools: read_file, list_dir,
-/// grep_files, search_files, apply_patch. Runs on port 8080.
+/// grep_files, search_files, apply_patch. Default port 8080, overridden via `--port` flag.
 pub const TOOL_SERVER_PY: &str = r#####"#!/usr/bin/env python3
 """HTTP tool server for swe-forge Docker containers.
 Adapted from baseagent tools. Provides structured file exploration tools
