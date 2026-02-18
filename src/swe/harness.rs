@@ -273,10 +273,7 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
     }
 
     // Clone repo (full clone for reliable checkout)
-    let clone_cmd = format!(
-        "git clone https://github.com/{}.git /repo 2>&1",
-        task.repo
-    );
+    let clone_cmd = format!("git clone https://github.com/{}.git /repo 2>&1", task.repo);
     let (code, _, err) = docker_exec(&cname, &clone_cmd, 600).await;
     if code != 0 {
         result.error = Some(format!("Clone failed: {}", truncate(&err, 500)));

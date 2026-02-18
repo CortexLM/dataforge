@@ -81,7 +81,10 @@ impl DockerSandbox {
             );
         }
 
-        let sandbox = Self { container_name, tool_port };
+        let sandbox = Self {
+            container_name,
+            tool_port,
+        };
 
         // Install git (only hard dependency; agent installs everything else)
         let install = sandbox
@@ -99,10 +102,7 @@ impl DockerSandbox {
         }
 
         // Clone the repository (full clone for reliable checkout)
-        let clone_cmd = format!(
-            "git clone https://github.com/{}.git /repo 2>&1",
-            repo
-        );
+        let clone_cmd = format!("git clone https://github.com/{}.git /repo 2>&1", repo);
         let clone = sandbox.exec(&clone_cmd, 600_000).await;
         if clone.exit_code != 0 {
             sandbox.destroy().await;
@@ -154,7 +154,10 @@ impl DockerSandbox {
         }
 
         // Use write_file to inject the server script
-        if let Err(e) = self.write_file_abs("/tools/server.py", TOOL_SERVER_PY).await {
+        if let Err(e) = self
+            .write_file_abs("/tools/server.py", TOOL_SERVER_PY)
+            .await
+        {
             tracing::warn!(container = %self.container_name, error = %e, "Failed to write tool server");
             return;
         }
@@ -201,8 +204,13 @@ impl DockerSandbox {
             std::time::Duration::from_millis(2_000),
             Command::new("docker")
                 .args([
-                    "exec", "-w", "/repo", &self.container_name,
-                    "python3", "-c", &check_cmd,
+                    "exec",
+                    "-w",
+                    "/repo",
+                    &self.container_name,
+                    "python3",
+                    "-c",
+                    &check_cmd,
                 ])
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
@@ -230,29 +238,31 @@ impl DockerSandbox {
             self.tool_port, tool_name
         );
 
-        let result = tokio::time::timeout(
-            std::time::Duration::from_millis(65_000),
-            async {
-                let mut child = Command::new("docker")
-                    .args([
-                        "exec", "-i", "-w", "/repo",
-                        &self.container_name,
-                        "python3", "-c", &script,
-                    ])
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped())
-                    .spawn()?;
+        let result = tokio::time::timeout(std::time::Duration::from_millis(65_000), async {
+            let mut child = Command::new("docker")
+                .args([
+                    "exec",
+                    "-i",
+                    "-w",
+                    "/repo",
+                    &self.container_name,
+                    "python3",
+                    "-c",
+                    &script,
+                ])
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()?;
 
-                if let Some(ref mut stdin) = child.stdin {
-                    use tokio::io::AsyncWriteExt;
-                    stdin.write_all(args_json.as_bytes()).await?;
-                    stdin.shutdown().await?;
-                }
-
-                child.wait_with_output().await
+            if let Some(ref mut stdin) = child.stdin {
+                use tokio::io::AsyncWriteExt;
+                stdin.write_all(args_json.as_bytes()).await?;
+                stdin.shutdown().await?;
             }
-        )
+
+            child.wait_with_output().await
+        })
         .await;
 
         match result {
@@ -322,7 +332,14 @@ impl DockerSandbox {
         let tee_cmd = format!("cat > '{}'", abs_path);
         let mut child = Command::new("docker")
             .args([
-                "exec", "-i", "-w", "/repo", &self.container_name, "bash", "-c", &tee_cmd,
+                "exec",
+                "-i",
+                "-w",
+                "/repo",
+                &self.container_name,
+                "bash",
+                "-c",
+                &tee_cmd,
             ])
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
@@ -416,7 +433,6 @@ impl DockerSandbox {
     pub fn name(&self) -> &str {
         &self.container_name
     }
-
 }
 
 /// Ensure the sandbox is destroyed when dropped (best-effort sync cleanup).

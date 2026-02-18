@@ -192,7 +192,7 @@ impl PatchExtractor {
         let sandbox =
             DockerSandbox::start(input.repository, base_commit, input.language, None).await?;
 
-        let diff_ref = match (input.base_commit, input.merge_commit) {
+        let diff_cmd = match (input.base_commit, input.merge_commit) {
             (Some(base), Some(merge)) if !base.is_empty() && !merge.is_empty() => {
                 // Fetch the merge commit (shallow clone may not have it)
                 sandbox
@@ -201,7 +201,7 @@ impl PatchExtractor {
                         60_000,
                     )
                     .await;
-                format!("{base}..{merge}")
+                format!("git diff --no-color --unified=3 {} {} 2>&1", base, merge)
             }
             (_, Some(merge)) if !merge.is_empty() => {
                 sandbox
@@ -210,17 +210,12 @@ impl PatchExtractor {
                         60_000,
                     )
                     .await;
-                merge.to_string()
+                format!("git diff --no-color --unified=3 HEAD {} 2>&1", merge)
             }
-            _ => "HEAD".to_string(),
+            _ => "git diff --no-color --unified=3 HEAD~1 HEAD 2>&1".to_string(),
         };
 
-        let result = sandbox
-            .exec(
-                &format!("git show --no-color --unified=3 {} 2>&1", diff_ref),
-                60_000,
-            )
-            .await;
+        let result = sandbox.exec(&diff_cmd, 60_000).await;
 
         sandbox.destroy().await;
 
