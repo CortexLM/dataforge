@@ -8,7 +8,7 @@ use std::process::Stdio;
 use tokio::process::Command;
 
 use crate::swe::tool_server::TOOL_SERVER_PY;
-use crate::swe::{validate_git_ref, validate_repo_name};
+use crate::swe::{validate_file_path, validate_git_ref, validate_repo_name};
 
 /// Shell command output from inside the container.
 pub struct SandboxOutput {
@@ -39,7 +39,9 @@ impl DockerSandbox {
         image_override: Option<&str>,
     ) -> Result<Self> {
         validate_repo_name(repo)?;
-        validate_git_ref(base_commit)?;
+        if !base_commit.is_empty() {
+            validate_git_ref(base_commit)?;
+        }
 
         let image = image_override.unwrap_or_else(|| image_for_language(language));
         let safe_name = repo.replace('/', "-").replace(' ', "_");
@@ -227,6 +229,16 @@ impl DockerSandbox {
     /// Call a tool on the HTTP tool server running inside the container.
     /// Pipes the JSON args via stdin to avoid shell escaping issues.
     pub async fn tool_request(&self, tool_name: &str, args_json: &str) -> SandboxOutput {
+        for ch in tool_name.chars() {
+            if !matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_') {
+                return SandboxOutput {
+                    stdout: String::new(),
+                    stderr: format!("Invalid tool name: {}", tool_name),
+                    exit_code: -1,
+                };
+            }
+        }
+
         let script = format!(
             "import sys, urllib.request, json\n\
              data = sys.stdin.read()\n\
@@ -329,7 +341,49 @@ impl DockerSandbox {
     }
 
     /// Write a file to an absolute path inside the container.
+    ///
+    /// Only allows paths under known safe prefixes (`/tools/`).
     async fn write_file_abs(&self, abs_path: &str, content: &str) -> Result<()> {
+        if !abs_path.starts_with("/tools/") {
+            anyhow::bail!(
+                "write_file_abs only allows paths under /tools/, got '{}'",
+                abs_path
+            );
+        }
+        for ch in abs_path.chars() {
+            if matches!(
+                ch,
+                '\'' | '"'
+                    | '`'
+                    | '$'
+                    | '!'
+                    | '&'
+                    | '|'
+                    | ';'
+                    | '('
+                    | ')'
+                    | '{'
+                    | '}'
+                    | '<'
+                    | '>'
+                    | '\\'
+                    | '\0'
+                    | '\n'
+                    | '\r'
+            ) {
+                anyhow::bail!(
+                    "invalid character in absolute path '{}': shell metacharacters not allowed",
+                    abs_path
+                );
+            }
+        }
+        if abs_path.contains("..") {
+            anyhow::bail!(
+                "absolute path '{}' contains '..' (path traversal not allowed)",
+                abs_path
+            );
+        }
+
         let mkdir_cmd = format!("mkdir -p \"$(dirname '{}')\"", abs_path);
         self.exec(&mkdir_cmd, 10_000).await;
 
@@ -369,6 +423,8 @@ impl DockerSandbox {
 
     /// Write a file inside the container by piping content via stdin.
     pub async fn write_file(&self, path: &str, content: &str) -> Result<()> {
+        validate_file_path(path)?;
+
         // First ensure the parent directory exists
         let mkdir_cmd = format!("mkdir -p \"$(dirname '/repo/{}')\"", path);
         self.exec(&mkdir_cmd, 10_000).await;
@@ -410,6 +466,8 @@ impl DockerSandbox {
 
     /// Read a file from inside the container.
     pub async fn read_file(&self, path: &str) -> Result<String> {
+        validate_file_path(path)?;
+
         let cmd = format!("cat '/repo/{}'", path);
         let result = self.exec(&cmd, 10_000).await;
         if result.exit_code != 0 {

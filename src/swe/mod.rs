@@ -49,13 +49,23 @@ pub const DEFAULT_SWE_OUTPUT_DIR: &str = "./generated-swe";
 /// Validate a git ref (commit SHA, branch name) to prevent shell injection.
 ///
 /// Accepts hex-only SHAs (short or full) and standard git ref names
-/// (alphanumeric, `/`, `.`, `-`, `_`). Rejects shell metacharacters.
+/// (alphanumeric, `/`, `.`, `-`, `_`). Rejects shell metacharacters,
+/// `..` sequences (path traversal), and refs starting with `-` (flag injection).
 pub fn validate_git_ref(s: &str) -> Result<(), anyhow::Error> {
     if s.is_empty() {
-        return Ok(());
+        anyhow::bail!("git ref is empty");
     }
     if s.len() > 256 {
         anyhow::bail!("git ref too long ({} chars, max 256)", s.len());
+    }
+    if s.starts_with('-') {
+        anyhow::bail!(
+            "git ref '{}' must not start with '-' (could be interpreted as a flag)",
+            s
+        );
+    }
+    if s.contains("..") {
+        anyhow::bail!("git ref '{}' must not contain '..' (path traversal)", s);
     }
     for ch in s.chars() {
         if !matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '/' | '.' | '-' | '_' | '~' | '^') {
@@ -72,7 +82,8 @@ pub fn validate_git_ref(s: &str) -> Result<(), anyhow::Error> {
 /// Validate a GitHub repository name (`owner/repo`) to prevent shell injection.
 ///
 /// Accepts the standard GitHub `owner/repo` format where both parts contain
-/// only alphanumeric characters, hyphens, underscores, and dots.
+/// only alphanumeric characters, hyphens, underscores, and dots. Parts must
+/// not start with `.` or `-` to prevent path traversal and flag injection.
 pub fn validate_repo_name(s: &str) -> Result<(), anyhow::Error> {
     if s.is_empty() {
         anyhow::bail!("repository name is empty");
@@ -94,6 +105,12 @@ pub fn validate_repo_name(s: &str) -> Result<(), anyhow::Error> {
                 s
             );
         }
+        if part.starts_with('.') || part.starts_with('-') {
+            anyhow::bail!(
+                "invalid repository name '{}': parts must not start with '.' or '-'",
+                s
+            );
+        }
         for ch in part.chars() {
             if !matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.') {
                 anyhow::bail!(
@@ -102,6 +119,60 @@ pub fn validate_repo_name(s: &str) -> Result<(), anyhow::Error> {
                     s
                 );
             }
+        }
+    }
+    Ok(())
+}
+
+/// Validate a file path used in shell commands inside Docker containers.
+///
+/// Rejects paths containing shell metacharacters, single/double quotes,
+/// null bytes, and `..` traversal sequences. This prevents shell injection
+/// when paths are interpolated into commands like `cat > '/repo/{path}'`.
+pub fn validate_file_path(path: &str) -> Result<(), anyhow::Error> {
+    if path.is_empty() {
+        anyhow::bail!("file path is empty");
+    }
+    if path.len() > 4096 {
+        anyhow::bail!("file path too long ({} chars, max 4096)", path.len());
+    }
+    if path.contains('\0') {
+        anyhow::bail!("file path contains null byte");
+    }
+    if path.contains("..") {
+        anyhow::bail!(
+            "file path '{}' contains '..' (path traversal not allowed)",
+            path
+        );
+    }
+    if path.starts_with('/') {
+        anyhow::bail!("file path '{}' must be relative (no leading '/')", path);
+    }
+    for ch in path.chars() {
+        if matches!(
+            ch,
+            '\'' | '"'
+                | '`'
+                | '$'
+                | '!'
+                | '&'
+                | '|'
+                | ';'
+                | '('
+                | ')'
+                | '{'
+                | '}'
+                | '<'
+                | '>'
+                | '\\'
+                | '\n'
+                | '\r'
+        ) {
+            anyhow::bail!(
+                "invalid character '{}' in file path '{}': shell metacharacters not allowed",
+                ch,
+                path
+            );
         }
     }
     Ok(())
@@ -286,8 +357,8 @@ mod tests {
     }
 
     #[test]
-    fn validate_git_ref_accepts_empty() {
-        assert!(validate_git_ref("").is_ok());
+    fn validate_git_ref_rejects_empty() {
+        assert!(validate_git_ref("").is_err());
     }
 
     #[test]
@@ -305,6 +376,18 @@ mod tests {
         assert!(validate_git_ref("`id`").is_err());
         assert!(validate_git_ref("abc | cat /etc/passwd").is_err());
         assert!(validate_git_ref("abc && echo pwned").is_err());
+    }
+
+    #[test]
+    fn validate_git_ref_rejects_double_dot() {
+        assert!(validate_git_ref("main..HEAD").is_err());
+        assert!(validate_git_ref("../../etc/passwd").is_err());
+    }
+
+    #[test]
+    fn validate_git_ref_rejects_leading_dash() {
+        assert!(validate_git_ref("--exec=whoami").is_err());
+        assert!(validate_git_ref("-n").is_err());
     }
 
     #[test]
@@ -338,8 +421,53 @@ mod tests {
     }
 
     #[test]
+    fn validate_repo_name_rejects_leading_dot_or_dash() {
+        assert!(validate_repo_name(".hidden/repo").is_err());
+        assert!(validate_repo_name("owner/.repo").is_err());
+        assert!(validate_repo_name("-flag/repo").is_err());
+        assert!(validate_repo_name("owner/-repo").is_err());
+        assert!(validate_repo_name("..traversal/repo").is_err());
+    }
+
+    #[test]
     fn validate_repo_name_rejects_too_long() {
         let long_name = format!("{}/{}", "a".repeat(128), "b".repeat(128));
         assert!(validate_repo_name(&long_name).is_err());
+    }
+
+    #[test]
+    fn validate_file_path_accepts_valid() {
+        assert!(validate_file_path("tests/test_foo.py").is_ok());
+        assert!(validate_file_path("src/main.rs").is_ok());
+        assert!(validate_file_path("a/b/c/d.txt").is_ok());
+        assert!(validate_file_path("file.txt").is_ok());
+    }
+
+    #[test]
+    fn validate_file_path_rejects_traversal() {
+        assert!(validate_file_path("../etc/passwd").is_err());
+        assert!(validate_file_path("a/../../etc/passwd").is_err());
+        assert!(validate_file_path("..").is_err());
+    }
+
+    #[test]
+    fn validate_file_path_rejects_shell_metacharacters() {
+        assert!(validate_file_path("file'; rm -rf /; echo '").is_err());
+        assert!(validate_file_path("file$(whoami)").is_err());
+        assert!(validate_file_path("file`id`").is_err());
+        assert!(validate_file_path("file|cat").is_err());
+        assert!(validate_file_path("file;ls").is_err());
+        assert!(validate_file_path("file&echo").is_err());
+    }
+
+    #[test]
+    fn validate_file_path_rejects_empty_and_absolute() {
+        assert!(validate_file_path("").is_err());
+        assert!(validate_file_path("/etc/passwd").is_err());
+    }
+
+    #[test]
+    fn validate_file_path_rejects_null_byte() {
+        assert!(validate_file_path("file\0.txt").is_err());
     }
 }

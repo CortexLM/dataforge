@@ -599,12 +599,19 @@ impl LlmProvider for LiteLlmClient {
             request.model.clone()
         };
 
-        let tools = request
-            .tools
-            .map(|t| serde_json::to_value(&t).unwrap_or(serde_json::Value::Null));
-        let tool_choice = request
-            .tool_choice
-            .map(|tc| serde_json::to_value(&tc).unwrap_or(serde_json::Value::Null));
+        let tools =
+            match request.tools {
+                Some(t) => Some(serde_json::to_value(&t).map_err(|e| {
+                    LlmError::RequestFailed(format!("Failed to serialize tools: {e}"))
+                })?),
+                None => None,
+            };
+        let tool_choice = match request.tool_choice {
+            Some(tc) => Some(serde_json::to_value(&tc).map_err(|e| {
+                LlmError::RequestFailed(format!("Failed to serialize tool_choice: {e}"))
+            })?),
+            None => None,
+        };
 
         let api_request = ApiRequest {
             model: model.clone(),

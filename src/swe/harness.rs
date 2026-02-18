@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 use tracing::{info, warn};
 
-use super::{validate_git_ref, validate_repo_name, SweTask};
+use super::{validate_file_path, validate_git_ref, validate_repo_name, SweTask};
 
 // ---------------------------------------------------------------------------
 // Config
@@ -144,6 +144,8 @@ async fn docker_rm(container: &str) {
 }
 
 async fn docker_write_file(container: &str, path: &str, content: &str) -> Result<()> {
+    validate_file_path(path)?;
+
     use tokio::io::AsyncWriteExt;
     let tee_cmd = format!("cat > '/repo/{}'", path);
     let mut child = Command::new("docker")

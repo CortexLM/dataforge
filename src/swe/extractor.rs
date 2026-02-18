@@ -189,10 +189,14 @@ impl PatchExtractor {
     /// Clone the repo inside a Docker container and extract the diff.
     async fn fetch_diff_from_docker(&self, input: &PatchExtractionInput<'_>) -> Result<String> {
         if let Some(base) = input.base_commit {
-            validate_git_ref(base)?;
+            if !base.is_empty() {
+                validate_git_ref(base)?;
+            }
         }
         if let Some(merge) = input.merge_commit {
-            validate_git_ref(merge)?;
+            if !merge.is_empty() {
+                validate_git_ref(merge)?;
+            }
         }
 
         let base_commit = input.base_commit.unwrap_or("");
