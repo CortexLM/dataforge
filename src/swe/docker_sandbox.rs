@@ -20,15 +20,8 @@ pub struct DockerSandbox {
 }
 
 /// Pick a Docker image appropriate for the given language.
-pub fn image_for_language(language: &str) -> &'static str {
-    match language.to_lowercase().as_str() {
-        "python" => "python:3.12-slim",
-        "javascript" | "typescript" | "js" | "ts" => "node:20-slim",
-        "go" | "golang" => "golang:1.22",
-        "rust" => "rust:1.75-slim",
-        "java" | "kotlin" => "eclipse-temurin:21-jdk",
-        _ => "ubuntu:22.04",
-    }
+pub fn image_for_language(_language: &str) -> &'static str {
+    "python:3.12-slim"
 }
 
 impl DockerSandbox {
@@ -87,10 +80,10 @@ impl DockerSandbox {
 
         let sandbox = Self { container_name };
 
-        // Install basic system tools
+        // Install git (only hard dependency; agent installs everything else)
         let install = sandbox
             .exec(
-                "apt-get update -qq && apt-get install -y -qq git curl build-essential > /dev/null 2>&1",
+                "apt-get update -qq && apt-get install -y -qq git > /dev/null 2>&1",
                 120_000,
             )
             .await;
@@ -98,16 +91,16 @@ impl DockerSandbox {
             tracing::warn!(
                 container = %sandbox.container_name,
                 stderr = %install.stderr,
-                "System deps install failed (continuing)"
+                "git install failed (continuing)"
             );
         }
 
-        // Clone the repository
+        // Clone the repository (full clone for reliable checkout)
         let clone_cmd = format!(
-            "git clone --depth 500 https://github.com/{}.git /repo 2>&1",
+            "git clone https://github.com/{}.git /repo 2>&1",
             repo
         );
-        let clone = sandbox.exec(&clone_cmd, 180_000).await;
+        let clone = sandbox.exec(&clone_cmd, 600_000).await;
         if clone.exit_code != 0 {
             sandbox.destroy().await;
             anyhow::bail!(
@@ -117,7 +110,7 @@ impl DockerSandbox {
             );
         }
 
-        // Checkout base commit (with unshallow fallback)
+        // Checkout base commit
         if !base_commit.is_empty() {
             let checkout = sandbox
                 .exec(
@@ -126,35 +119,12 @@ impl DockerSandbox {
                 )
                 .await;
             if checkout.exit_code != 0 {
-                tracing::info!(
+                tracing::warn!(
                     container = %sandbox.container_name,
                     commit = base_commit,
-                    "Shallow clone missed commit, fetching full history..."
+                    stderr = %checkout.stderr,
+                    "Checkout failed (continuing on HEAD)"
                 );
-                let unshallow = sandbox
-                    .exec("cd /repo && git fetch --unshallow 2>&1", 300_000)
-                    .await;
-                if unshallow.exit_code != 0 {
-                    tracing::warn!(
-                        container = %sandbox.container_name,
-                        stderr = %unshallow.stderr,
-                        "Unshallow fetch failed"
-                    );
-                }
-                let retry = sandbox
-                    .exec(
-                        &format!("cd /repo && git checkout {} --force 2>&1", base_commit),
-                        60_000,
-                    )
-                    .await;
-                if retry.exit_code != 0 {
-                    tracing::warn!(
-                        container = %sandbox.container_name,
-                        commit = base_commit,
-                        stderr = %retry.stderr,
-                        "Checkout failed even after unshallow (continuing on HEAD)"
-                    );
-                }
             }
         }
 
@@ -279,69 +249,6 @@ impl DockerSandbox {
         &self.container_name
     }
 
-    /// Auto-detect and run the install command based on project files.
-    ///
-    /// Checks for common dependency management files and runs the appropriate
-    /// install command. Returns the working install command if one succeeds,
-    /// or `None` if all attempts fail.
-    pub async fn auto_detect_install(&self, language: &str) -> Option<String> {
-        let candidates = match language.to_lowercase().as_str() {
-            "python" => vec![
-                ("setup.py", "pip install -e . 2>&1"),
-                ("pyproject.toml", "pip install -e . 2>&1"),
-                ("requirements.txt", "pip install -r requirements.txt 2>&1"),
-                ("setup.py", "python setup.py develop 2>&1"),
-            ],
-            "javascript" | "typescript" | "js" | "ts" => vec![
-                ("package.json", "npm install 2>&1"),
-                ("yarn.lock", "yarn install 2>&1"),
-                ("pnpm-lock.yaml", "pnpm install 2>&1"),
-            ],
-            "go" | "golang" => vec![("go.mod", "go mod download 2>&1")],
-            "rust" => vec![("Cargo.toml", "cargo fetch 2>&1")],
-            "java" | "kotlin" => vec![
-                ("pom.xml", "./mvnw -q -DskipTests package 2>&1"),
-                ("build.gradle", "./gradlew build -x test 2>&1"),
-                ("build.gradle.kts", "./gradlew build -x test 2>&1"),
-            ],
-            _ => vec![],
-        };
-
-        for (marker_file, install_cmd) in &candidates {
-            let check = self
-                .exec(&format!("test -f /repo/{}", marker_file), 5_000)
-                .await;
-            if check.exit_code == 0 {
-                tracing::debug!(
-                    container = %self.container_name,
-                    marker = marker_file,
-                    cmd = install_cmd,
-                    "Found dependency file, attempting install"
-                );
-                let result = self
-                    .exec(&format!("cd /repo && {}", install_cmd), 300_000)
-                    .await;
-                if result.exit_code == 0 {
-                    // Strip the trailing " 2>&1" for the clean command
-                    let clean_cmd = install_cmd.trim_end_matches(" 2>&1").to_string();
-                    tracing::info!(
-                        container = %self.container_name,
-                        cmd = %clean_cmd,
-                        "Auto-detected install command succeeded"
-                    );
-                    return Some(clean_cmd);
-                }
-                tracing::debug!(
-                    container = %self.container_name,
-                    cmd = install_cmd,
-                    exit = result.exit_code,
-                    "Install attempt failed, trying next"
-                );
-            }
-        }
-
-        None
-    }
 }
 
 /// Ensure the sandbox is destroyed when dropped (best-effort sync cleanup).
@@ -379,12 +286,9 @@ mod tests {
     fn test_image_for_language() {
         assert_eq!(image_for_language("python"), "python:3.12-slim");
         assert_eq!(image_for_language("Python"), "python:3.12-slim");
-        assert_eq!(image_for_language("javascript"), "node:20-slim");
-        assert_eq!(image_for_language("typescript"), "node:20-slim");
-        assert_eq!(image_for_language("go"), "golang:1.22");
-        assert_eq!(image_for_language("rust"), "rust:1.75-slim");
-        assert_eq!(image_for_language("java"), "eclipse-temurin:21-jdk");
-        assert_eq!(image_for_language("unknown"), "ubuntu:22.04");
+        assert_eq!(image_for_language("javascript"), "python:3.12-slim");
+        assert_eq!(image_for_language("go"), "python:3.12-slim");
+        assert_eq!(image_for_language("unknown"), "python:3.12-slim");
     }
 
     #[test]

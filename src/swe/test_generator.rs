@@ -28,15 +28,25 @@ You have three tools:
 - `write_file`: create or overwrite a file in the repository (for writing test files).
 - `submit_tests`: return your final validated test commands AND the test files you wrote.
 
+ENVIRONMENT: You are running in a bare `python:3.12-slim` Docker container with ONLY `git` and `python3` pre-installed.
+You MUST install all required tools, runtimes, and dependencies yourself via `shell` before doing anything else.
+
 WORKFLOW:
-1. Use `shell` to explore the repo: project structure, existing tests, build system, dependencies.
-2. Read the PR diff carefully: understand WHAT changed and WHY.
-3. Find existing test suites covering code ADJACENT to the PR changes -- add them as pass_to_pass.
-4. Write NEW test files that exercise the BEHAVIOR introduced by the PR.
-5. Run your tests via `shell` to validate: fail_to_pass MUST fail, pass_to_pass MUST pass on base.
-5b. VERIFY pass_to_pass: Run each pass_to_pass command via `shell` and confirm exit code 0.
+1. SETUP: Detect the project language and install what you need via `shell`:
+   - Python: `pip install -e .` or `pip install -r requirements.txt`
+   - JavaScript/TypeScript: `apt-get update && apt-get install -y nodejs npm && npm install`
+   - Go: `apt-get update && apt-get install -y golang`
+   - Rust: `apt-get update && apt-get install -y curl build-essential && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && . $HOME/.cargo/env && cargo fetch`
+   - Java: `apt-get update && apt-get install -y default-jdk`
+   - Or whatever the repo needs. Check the repo's README, Makefile, Dockerfile, etc.
+2. Use `shell` to explore the repo: project structure, existing tests, build system, dependencies.
+3. Read the PR diff carefully: understand WHAT changed and WHY.
+4. Find existing test suites covering code ADJACENT to the PR changes -- add them as pass_to_pass.
+5. Write NEW test files that exercise the BEHAVIOR introduced by the PR.
+6. Run your tests via `shell` to validate: fail_to_pass MUST fail, pass_to_pass MUST pass on base.
+6b. VERIFY pass_to_pass: Run each pass_to_pass command via `shell` and confirm exit code 0.
     If it fails, choose a different existing test or use a build command instead.
-6. Call `submit_tests` with everything.
+7. Call `submit_tests` with everything.
 
 MANDATORY RULES FOR TEST QUALITY:
 
@@ -241,53 +251,12 @@ impl TestGenerator {
         )
         .await?;
 
-        // Try to run install command before the agent loop
-        let working_install = self.try_install(&sandbox, task, language).await;
-        if let Some(ref cmd) = working_install {
-            task.install_config
-                .insert("install".to_string(), cmd.clone());
-        }
-
         let result = self.run_agent_loop(&sandbox, task, language).await;
 
         // Always destroy the container, even on error
         sandbox.destroy().await;
 
         result
-    }
-
-    /// Try the default install command and fallbacks. Returns the working command.
-    async fn try_install(
-        &self,
-        sandbox: &DockerSandbox,
-        task: &SweTask,
-        language: &str,
-    ) -> Option<String> {
-        // Try the task's configured install command first
-        if let Some(install_cmd) = task.install_config.get("install") {
-            if !install_cmd.is_empty() && !install_cmd.starts_with('#') {
-                let result = sandbox
-                    .exec(&format!("cd /repo && {} 2>&1", install_cmd), 300_000)
-                    .await;
-                if result.exit_code == 0 {
-                    tracing::info!(
-                        task_id = %task.id,
-                        cmd = %install_cmd,
-                        "Default install command succeeded"
-                    );
-                    return Some(install_cmd.clone());
-                }
-                tracing::debug!(
-                    task_id = %task.id,
-                    cmd = %install_cmd,
-                    exit = result.exit_code,
-                    "Default install command failed, trying auto-detect"
-                );
-            }
-        }
-
-        // Fall back to auto-detection
-        sandbox.auto_detect_install(language).await
     }
 
     async fn run_agent_loop(

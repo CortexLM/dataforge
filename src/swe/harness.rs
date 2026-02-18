@@ -211,12 +211,7 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
         std::fs::canonicalize(&config.agent_dir).unwrap_or_else(|_| config.agent_dir.clone())
     };
 
-    // Auto-select Docker image based on task language unless overridden
-    let docker_image = if config.docker_image == "python:3.12-slim" && task.language != "unknown" {
-        super::docker_sandbox::image_for_language(&task.language).to_string()
-    } else {
-        config.docker_image.clone()
-    };
+    let docker_image = config.docker_image.clone();
     info!(task_id = %task.id, language = %task.language, image = %docker_image, "Selected Docker image");
 
     // Remove stale container if exists
@@ -277,12 +272,12 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
         return result;
     }
 
-    // Clone repo
+    // Clone repo (full clone for reliable checkout)
     let clone_cmd = format!(
-        "git clone --depth 500 https://github.com/{}.git /repo 2>&1",
+        "git clone https://github.com/{}.git /repo 2>&1",
         task.repo
     );
-    let (code, _, err) = docker_exec(&cname, &clone_cmd, 180).await;
+    let (code, _, err) = docker_exec(&cname, &clone_cmd, 600).await;
     if code != 0 {
         result.error = Some(format!("Clone failed: {}", truncate(&err, 500)));
         return result;
@@ -297,26 +292,8 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
         )
         .await;
         if code != 0 {
-            info!(task_id = %task.id, "Shallow clone missed commit, fetching full history...");
-            let (fcode, _, _ferr) =
-                docker_exec(&cname, "cd /repo && git fetch --unshallow 2>&1", 300).await;
-            if fcode != 0 {
-                result.error = Some(format!(
-                    "Checkout failed (even after unshallow): {}",
-                    truncate(&err, 500)
-                ));
-                return result;
-            }
-            let (code2, _, err2) = docker_exec(
-                &cname,
-                &format!("cd /repo && git checkout {} --force 2>&1", task.base_commit),
-                60,
-            )
-            .await;
-            if code2 != 0 {
-                result.error = Some(format!("Checkout failed: {}", truncate(&err2, 500)));
-                return result;
-            }
+            result.error = Some(format!("Checkout failed: {}", truncate(&err, 500)));
+            return result;
         }
     }
 
