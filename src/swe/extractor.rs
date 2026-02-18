@@ -2,7 +2,6 @@
 //! Clone-based fallback runs inside a Docker container for isolation.
 
 use anyhow::Result;
-use std::process::Command;
 
 use crate::swe::docker_sandbox::DockerSandbox;
 use crate::swe::SweTask;
@@ -93,16 +92,16 @@ impl PatchExtractor {
     async fn extract_from_repo(&self, input: &PatchExtractionInput<'_>) -> Result<ExtractedPatch> {
         let namespace = input.repository.replace('/', "_");
 
-        let diff = match self.fetch_diff_from_api(input) {
+        let diff = match self.fetch_diff_from_docker(input).await {
             Ok(d) => d,
-            Err(api_err) => {
+            Err(docker_err) => {
                 tracing::debug!(
                     repo = %input.repository,
                     pr = input.pull_number,
-                    error = %api_err,
-                    "GitHub API diff failed, trying Docker clone"
+                    error = %docker_err,
+                    "Docker diff extraction failed, trying API fallback"
                 );
-                self.fetch_diff_from_docker(input).await?
+                self.fetch_diff_from_api(input).await?
             }
         };
 
@@ -144,7 +143,7 @@ impl PatchExtractor {
         })
     }
 
-    fn fetch_diff_from_api(&self, input: &PatchExtractionInput<'_>) -> Result<String> {
+    async fn fetch_diff_from_api(&self, input: &PatchExtractionInput<'_>) -> Result<String> {
         let token = github_token()
             .ok_or_else(|| anyhow::anyhow!("GITHUB_TOKEN not set for API diff fetch"))?;
 
@@ -153,33 +152,22 @@ impl PatchExtractor {
             input.repository, input.pull_number
         );
 
-        let output = Command::new("curl")
-            .args([
-                "-sS",
-                "-f",
-                "-H",
-                &format!("Authorization: Bearer {token}"),
-                "-H",
-                "Accept: application/vnd.github.v3.diff",
-                "-H",
-                "User-Agent: swe_forge/1.0",
-                "-H",
-                "X-GitHub-Api-Version: 2022-11-28",
-                "--max-time",
-                "30",
-                &url,
-            ])
-            .output()?;
+        let client = reqwest::Client::new();
+        let response = client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", token))
+            .header("Accept", "application/vnd.github.v3.diff")
+            .header("User-Agent", "swe_forge/1.0")
+            .header("X-GitHub-Api-Version", "2022-11-28")
+            .timeout(std::time::Duration::from_secs(30))
+            .send()
+            .await?;
 
-        if !output.status.success() {
-            anyhow::bail!(
-                "GitHub API diff request failed ({}): {}",
-                output.status,
-                String::from_utf8_lossy(&output.stderr)
-            );
+        if !response.status().is_success() {
+            anyhow::bail!("GitHub API diff request failed ({})", response.status());
         }
 
-        let diff = String::from_utf8_lossy(&output.stdout).to_string();
+        let diff = response.text().await?;
         if diff.trim().is_empty() {
             anyhow::bail!(
                 "empty diff from GitHub API for {}/{}",

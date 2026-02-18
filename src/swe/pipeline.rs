@@ -137,6 +137,10 @@ pub struct SwePipelineConfig {
     pub concurrency_enrich: Option<usize>,
     /// Override deep processing concurrency (default: 8).
     pub concurrency_deep: Option<usize>,
+    /// Override pre-classification concurrency (default: 25).
+    pub concurrency_preclassify: Option<usize>,
+    /// Override deep processing backlog multiplier (default: 5).
+    pub backlog_multiplier: Option<usize>,
 }
 
 impl Default for SwePipelineConfig {
@@ -156,6 +160,8 @@ impl Default for SwePipelineConfig {
             validate_workspace: true,
             concurrency_enrich: None,
             concurrency_deep: None,
+            concurrency_preclassify: None,
+            backlog_multiplier: None,
         }
     }
 }
@@ -309,11 +315,14 @@ impl SwePipeline {
         // Semaphores control concurrency at each stage. No chunk barriers.
         let deep_concurrency = config.concurrency_deep.unwrap_or(8);
         let enrich_sem = Arc::new(Semaphore::new(config.concurrency_enrich.unwrap_or(10)));
-        let preclassify_sem = Arc::new(Semaphore::new(10));
+        let preclassify_sem =
+            Arc::new(Semaphore::new(config.concurrency_preclassify.unwrap_or(25)));
         let deep_sem = Arc::new(Semaphore::new(deep_concurrency));
         // Backpressure: limit how many classified candidates can queue for deep processing.
         // Pre-classification blocks when this is full, preventing wasted LLM tokens.
-        let deep_backlog_sem = Arc::new(Semaphore::new(deep_concurrency * 3));
+        let deep_backlog_sem = Arc::new(Semaphore::new(
+            deep_concurrency * config.backlog_multiplier.unwrap_or(5),
+        ));
         let cancelled = Arc::new(AtomicBool::new(false));
 
         let enricher = &self.enricher;

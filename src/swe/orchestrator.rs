@@ -104,6 +104,10 @@ pub struct SweOrchestratorConfig {
     pub concurrency_enrich: Option<usize>,
     /// Override deep processing concurrency.
     pub concurrency_deep: Option<usize>,
+    /// Override pre-classification concurrency (default: 25).
+    pub concurrency_preclassify: Option<usize>,
+    /// Override deep processing backlog multiplier (default: 5).
+    pub backlog_multiplier: Option<usize>,
 }
 
 impl Default for SweOrchestratorConfig {
@@ -125,6 +129,8 @@ impl Default for SweOrchestratorConfig {
             validate_workspace: true,
             concurrency_enrich: None,
             concurrency_deep: None,
+            concurrency_preclassify: None,
+            backlog_multiplier: None,
         }
     }
 }
@@ -176,6 +182,8 @@ impl SweOrchestrator {
             validate_workspace: self.config.validate_workspace,
             concurrency_enrich: self.config.concurrency_enrich,
             concurrency_deep: self.config.concurrency_deep,
+            concurrency_preclassify: self.config.concurrency_preclassify,
+            backlog_multiplier: self.config.backlog_multiplier,
         };
 
         // Real-time export config: tasks are written to disk inside the pipeline worker loop

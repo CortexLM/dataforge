@@ -183,6 +183,14 @@ pub struct SweMineArgs {
     #[arg(long)]
     pub concurrency_deep: Option<usize>,
 
+    /// Override pre-classification concurrency (default: 25).
+    #[arg(long)]
+    pub concurrency_preclassify: Option<usize>,
+
+    /// Override deep processing backlog multiplier (default: 5).
+    #[arg(long)]
+    pub backlog_multiplier: Option<usize>,
+
     /// Output JSON summary.
     #[arg(short = 'j', long)]
     pub json: bool,
@@ -230,6 +238,14 @@ pub struct SweBenchmarkArgs {
     /// Override deep processing concurrency (default: 8).
     #[arg(long)]
     pub concurrency_deep: Option<usize>,
+
+    /// Override pre-classification concurrency (default: 25).
+    #[arg(long)]
+    pub concurrency_preclassify: Option<usize>,
+
+    /// Override deep processing backlog multiplier (default: 5).
+    #[arg(long)]
+    pub backlog_multiplier: Option<usize>,
 }
 
 /// Arguments for `swe_forge swe validate`.
@@ -841,6 +857,8 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
         validate_workspace: args.validate_workspace,
         concurrency_enrich: args.concurrency_enrich,
         concurrency_deep: args.concurrency_deep,
+        concurrency_preclassify: args.concurrency_preclassify,
+        backlog_multiplier: args.backlog_multiplier,
     };
 
     let orchestrator = SweOrchestrator::new(llm_client, config);
@@ -965,6 +983,8 @@ async fn run_swe_benchmark_command(args: SweBenchmarkArgs) -> anyhow::Result<()>
         validate_workspace: false,
         concurrency_enrich: args.concurrency_enrich,
         concurrency_deep: args.concurrency_deep,
+        concurrency_preclassify: args.concurrency_preclassify,
+        backlog_multiplier: args.backlog_multiplier,
     };
 
     let orchestrator = SweOrchestrator::new(llm_client, config);
