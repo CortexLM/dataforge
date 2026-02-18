@@ -1414,4 +1414,33 @@ mod tests {
         };
         assert_eq!(infer_added_lines(&pr), 42);
     }
+
+    #[test]
+    fn test_pipeline_config_default() {
+        let config = SwePipelineConfig::default();
+        assert_eq!(config.min_stars, 20);
+        assert_eq!(config.max_candidates, 50);
+        assert_eq!(config.max_tasks, 1);
+        assert!(config.once);
+        assert!(!config.validate_docker);
+        assert!(config.validate_workspace);
+        assert!(config.languages.is_empty());
+        assert!(config.difficulty_filter.is_none());
+        assert!(config.difficulty_targets.is_none());
+        assert!(config.concurrency_enrich.is_none());
+        assert!(config.concurrency_deep.is_none());
+        assert!(config.concurrency_preclassify.is_none());
+        assert!(config.backlog_multiplier.is_none());
+    }
+
+    #[test]
+    fn test_export_config_construction() {
+        let config = ExportConfig {
+            output_dir: "/tmp/test".to_string(),
+            pr_file: Some("prs.jsonl".to_string()),
+            per_difficulty_dirs: true,
+        };
+        assert_eq!(config.output_dir, "/tmp/test");
+        assert!(config.per_difficulty_dirs);
+    }
 }

@@ -270,3 +270,99 @@ impl SweOrchestrator {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_difficulty_targets_parse_valid() {
+        let dt = DifficultyTargets::parse("easy:10,medium:20,hard:30").unwrap();
+        assert_eq!(dt.targets.get("easy"), Some(&10));
+        assert_eq!(dt.targets.get("medium"), Some(&20));
+        assert_eq!(dt.targets.get("hard"), Some(&30));
+    }
+
+    #[test]
+    fn test_difficulty_targets_parse_with_spaces() {
+        let dt = DifficultyTargets::parse(" easy : 10 , medium : 20 ").unwrap();
+        assert_eq!(dt.targets.get("easy"), Some(&10));
+        assert_eq!(dt.targets.get("medium"), Some(&20));
+    }
+
+    #[test]
+    fn test_difficulty_targets_parse_single() {
+        let dt = DifficultyTargets::parse("hard:50").unwrap();
+        assert_eq!(dt.targets.len(), 1);
+        assert_eq!(dt.targets.get("hard"), Some(&50));
+    }
+
+    #[test]
+    fn test_difficulty_targets_parse_invalid_format() {
+        let result = DifficultyTargets::parse("easy10");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_difficulty_targets_parse_invalid_level() {
+        let result = DifficultyTargets::parse("extreme:10");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_difficulty_targets_parse_invalid_count() {
+        let result = DifficultyTargets::parse("easy:abc");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_difficulty_targets_parse_empty() {
+        let result = DifficultyTargets::parse("");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_difficulty_targets_total_tasks() {
+        let dt = DifficultyTargets::parse("easy:10,medium:20,hard:30").unwrap();
+        assert_eq!(dt.total_tasks(), 60);
+    }
+
+    #[test]
+    fn test_difficulty_targets_is_empty() {
+        let dt = DifficultyTargets::default();
+        assert!(dt.is_empty());
+
+        let dt2 = DifficultyTargets::parse("easy:1").unwrap();
+        assert!(!dt2.is_empty());
+    }
+
+    #[test]
+    fn test_swe_orchestrator_config_default() {
+        let config = SweOrchestratorConfig::default();
+        assert_eq!(config.min_stars, 20);
+        assert_eq!(config.max_tasks, 1);
+        assert!(config.once);
+        assert!(!config.validate_docker);
+        assert!(config.validate_workspace);
+        assert!(config.languages.is_empty());
+        assert!(config.difficulty_filter.is_none());
+        assert!(config.difficulty_targets.is_none());
+        assert!(config.concurrency_enrich.is_none());
+        assert!(config.concurrency_deep.is_none());
+    }
+
+    #[test]
+    fn test_swe_run_result_serialization() {
+        let result = SweRunResult {
+            tasks: vec![],
+            attempted: 10,
+            passed: 5,
+            skipped: 5,
+            finished_at: "2024-01-01T00:00:00Z".to_string(),
+            benchmark_metrics: None,
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        assert!(json.contains("\"attempted\":10"));
+        assert!(json.contains("\"passed\":5"));
+    }
+}

@@ -386,4 +386,52 @@ mod tests {
         assert_eq!(image_for_language("java"), "eclipse-temurin:21-jdk");
         assert_eq!(image_for_language("unknown"), "ubuntu:22.04");
     }
+
+    #[test]
+    fn test_truncate_short_string() {
+        let result = truncate("hello", 10);
+        assert_eq!(result, "hello");
+    }
+
+    #[test]
+    fn test_truncate_long_string() {
+        let result = truncate("hello world this is long", 10);
+        assert!(result.ends_with("..."));
+        assert!(result.len() <= 13);
+    }
+
+    #[test]
+    fn test_truncate_exact_boundary() {
+        let result = truncate("12345", 5);
+        assert_eq!(result, "12345");
+    }
+
+    #[test]
+    fn test_truncate_empty() {
+        let result = truncate("", 10);
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_sandbox_output_construction() {
+        let output = SandboxOutput {
+            stdout: "hello".to_string(),
+            stderr: "error".to_string(),
+            exit_code: 1,
+        };
+        assert_eq!(output.stdout, "hello");
+        assert_eq!(output.stderr, "error");
+        assert_eq!(output.exit_code, 1);
+    }
+
+    #[test]
+    fn test_sandbox_output_defaults() {
+        let output = SandboxOutput {
+            stdout: String::new(),
+            stderr: String::new(),
+            exit_code: 0,
+        };
+        assert!(output.stdout.is_empty());
+        assert_eq!(output.exit_code, 0);
+    }
 }

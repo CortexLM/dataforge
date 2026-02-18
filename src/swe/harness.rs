@@ -651,3 +651,152 @@ pub async fn run_harness(input_dir: &Path, config: &HarnessConfig) -> Result<Har
         results,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_harness_config_default() {
+        let config = HarnessConfig::default();
+        assert_eq!(config.agent_timeout_secs, 600);
+        assert_eq!(config.test_timeout_secs, 120);
+        assert_eq!(config.docker_image, "python:3.12-slim");
+        assert!(!config.keep_containers);
+        assert_eq!(config.parallel, 1);
+        assert_eq!(config.agent_cmd, "python -m baseagent");
+    }
+
+    #[test]
+    fn test_harness_status_display() {
+        assert_eq!(format!("{}", HarnessStatus::Resolved), "resolved");
+        assert_eq!(format!("{}", HarnessStatus::Unresolved), "unresolved");
+        assert_eq!(format!("{}", HarnessStatus::AgentError), "agent_error");
+        assert_eq!(format!("{}", HarnessStatus::TestError), "test_error");
+        assert_eq!(format!("{}", HarnessStatus::SetupError), "setup_error");
+        assert_eq!(format!("{}", HarnessStatus::SanityFail), "sanity_fail");
+    }
+
+    #[test]
+    fn test_container_name_basic() {
+        let name = container_name("owner/repo-123");
+        assert_eq!(name, "swe-harness-owner-repo-123");
+    }
+
+    #[test]
+    fn test_container_name_with_spaces() {
+        let name = container_name("owner/repo name");
+        assert_eq!(name, "swe-harness-owner-repo_name");
+    }
+
+    #[test]
+    fn test_container_name_slashes() {
+        let name = container_name("org/sub/repo");
+        assert_eq!(name, "swe-harness-org-sub-repo");
+    }
+
+    #[test]
+    fn test_truncate_short() {
+        let result = truncate("hello", 10);
+        assert_eq!(result, "hello");
+    }
+
+    #[test]
+    fn test_truncate_long() {
+        let result = truncate("hello world this is a long string", 10);
+        assert!(result.len() <= 25); // 10 + "... [truncated]"
+        assert!(result.ends_with("... [truncated]"));
+    }
+
+    #[test]
+    fn test_truncate_exact_boundary() {
+        let result = truncate("12345", 5);
+        assert_eq!(result, "12345");
+    }
+
+    #[test]
+    fn test_truncate_unicode() {
+        let result = truncate("héllo wörld", 5);
+        assert!(result.ends_with("... [truncated]"));
+    }
+
+    #[test]
+    fn test_discover_tasks_empty_dir() {
+        let tmp = std::env::temp_dir().join("swe_forge_test_discover_empty");
+        let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(&tmp).unwrap();
+
+        let paths = discover_tasks(&tmp).unwrap();
+        assert!(paths.is_empty());
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_discover_tasks_finds_workspace_yaml() {
+        let tmp = std::env::temp_dir().join("swe_forge_test_discover_yaml");
+        let _ = std::fs::remove_dir_all(&tmp);
+        let sub = tmp.join("task-1");
+        std::fs::create_dir_all(&sub).unwrap();
+        std::fs::write(sub.join("workspace.yaml"), "id: test").unwrap();
+
+        let paths = discover_tasks(&tmp).unwrap();
+        assert_eq!(paths.len(), 1);
+        assert!(paths[0].ends_with("workspace.yaml"));
+
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    #[test]
+    fn test_harness_result_serialization() {
+        let result = HarnessResult {
+            task_id: "test-1".to_string(),
+            repo: "owner/repo".to_string(),
+            status: HarnessStatus::Resolved,
+            sanity_check: true,
+            fail_to_pass: vec![],
+            pass_to_pass: vec![],
+            agent_duration_secs: 10.5,
+            total_duration_secs: 15.0,
+            agent_output: "output".to_string(),
+            error: None,
+            container_id: Some("cname".to_string()),
+        };
+        let json = serde_json::to_string(&result).unwrap();
+        assert!(json.contains("\"task_id\":\"test-1\""));
+        assert!(json.contains("\"resolved\""));
+    }
+
+    #[test]
+    fn test_harness_summary_serialization() {
+        let summary = HarnessSummary {
+            total: 5,
+            resolved: 3,
+            unresolved: 1,
+            agent_error: 0,
+            test_error: 0,
+            setup_error: 1,
+            sanity_fail: 0,
+            avg_agent_time_secs: 12.5,
+            results: vec![],
+        };
+        let json = serde_json::to_string(&summary).unwrap();
+        assert!(json.contains("\"total\":5"));
+        assert!(json.contains("\"resolved\":3"));
+    }
+
+    #[test]
+    fn test_test_result_serialization() {
+        let tr = TestResult {
+            command: "pytest test.py".to_string(),
+            exit_code: 0,
+            stdout: "ok".to_string(),
+            stderr: String::new(),
+            passed: true,
+            duration_ms: 1500,
+        };
+        let json = serde_json::to_string(&tr).unwrap();
+        assert!(json.contains("\"passed\":true"));
+        assert!(json.contains("\"duration_ms\":1500"));
+    }
+}
