@@ -28,7 +28,8 @@ src/
 │   ├── pr_cache.rs          # SQLite-backed PR deduplication cache
 │   ├── progress.rs          # Background progress monitor for long-running pipeline runs
 │   ├── github_search.rs     # GitHub Search API client (alternative PR source)
-│   └── workspace_validator.rs # Pre-export workspace validation (Docker-based)
+│   ├── workspace_validator.rs # Pre-export workspace validation (Docker-based)
+│   └── input_validation.rs  # Shell-safe input validation (repo names, git refs, paths)
 ├── llm/                     # LLM integration layer
 │   ├── litellm.rs           # OpenAI-compatible API client (function calling, tools)
 │   ├── providers/            # Provider implementations (OpenRouter)
@@ -135,7 +136,7 @@ Git hooks are in `.githooks/` and activated via `git config core.hooksPath .gith
 
 3. **Never leak test plans into agent prompts** — The `prompt_rewriter.rs` module strips test-specific information from PR bodies before generating `prompt.md`. Any new prompt generation code must ensure `fail_to_pass` and `pass_to_pass` test commands are never visible to the agent being evaluated.
 
-4. **Docker containers must have resource limits** — All container creation must use `apply_resource_limits()` from `src/docker/resources.rs`. Difficulty-based limits are enforced: memory (512MB–2GB), CPU (1–4 cores), PIDs (100–500). Never create containers without limits.
+4. **Docker containers must have resource limits** — All container creation must use `apply_resource_limits()` from `src/docker/resources.rs`. Difficulty-based limits are enforced across 3 tiers (easy/medium/hard) with PIDs (100–500). The `src/execution/resources.rs` module provides 5 tiers (easy/medium/hard/expert/nightmare) with memory (512MB–8GB), CPU (0.5–8 cores). Never create containers without limits.
 
 5. **Respect GitHub API rate limits (5000 req/h)** — The pipeline uses semaphore-based concurrency (no chunk barriers). Each candidate needs ~2 API calls for enrichment. Never add unbounded concurrent GitHub API calls. Use the existing concurrency limits (enrichment: 10x, pre-classification: 25x, deep processing: 8x).
 

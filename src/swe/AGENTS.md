@@ -24,6 +24,7 @@ Core SWE mining pipeline. Fetches merged pull requests from GH Archive, enriches
 | `workspace_validator.rs` | `WorkspaceValidator` — pre-export Docker-based validation (install, tests, patch application) |
 | `pr_cache.rs` | SQLite-backed PR deduplication cache |
 | `progress.rs` | `ProgressMonitor` — background progress logging for long-running pipeline runs |
+| `input_validation.rs` | Shell-safe input validation (repo names, git refs, container paths) |
 
 ## Key Types
 
