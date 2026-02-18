@@ -87,33 +87,8 @@ pub struct BenchmarkMetrics {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum SwePipelineEvent {
-    CollectionStarted {
-        requested: usize,
-    },
-    CandidateFiltered {
-        event_id: String,
-        accepted: bool,
-        reasons: Vec<String>,
-    },
-    TaskExtracted {
-        task_id: String,
-    },
-    TestGenerated {
-        task_id: String,
-    },
-    QualityScored {
-        task_id: String,
-        score: f64,
-        passed: bool,
-    },
-    WorkspaceValidated {
-        task_id: String,
-        passed: bool,
-        reason: Option<String>,
-    },
-    PipelineCompleted {
-        emitted: usize,
-    },
+    CollectionStarted { requested: usize },
+    PipelineCompleted { emitted: usize },
 }
 
 #[derive(Debug, Clone)]

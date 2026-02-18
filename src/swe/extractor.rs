@@ -4,21 +4,8 @@
 use anyhow::Result;
 
 use crate::swe::docker_sandbox::DockerSandbox;
+use crate::swe::input_validation::validate_git_ref;
 use crate::swe::SweTask;
-
-/// Validate a git ref (commit SHA, branch name, or ref range like `a..b`).
-/// Only allows alphanumeric chars, `-`, `_`, `.`, `/`, `~`, `^`, and `..`.
-fn validate_git_ref(git_ref: &str) -> Result<()> {
-    if git_ref.is_empty() {
-        anyhow::bail!("git ref must not be empty");
-    }
-    for ch in git_ref.chars() {
-        if !ch.is_alphanumeric() && !"-_.~/^".contains(ch) {
-            anyhow::bail!("git ref contains invalid character '{}': '{}'", ch, git_ref);
-        }
-    }
-    Ok(())
-}
 
 fn github_token() -> Option<String> {
     std::env::var("GITHUB_TOKEN")

@@ -19,6 +19,7 @@ pub mod filters;
 pub mod gharchive;
 pub mod github_search;
 pub mod harness;
+pub mod input_validation;
 pub mod orchestrator;
 pub mod pipeline;
 pub mod pr_cache;

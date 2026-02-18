@@ -7,78 +7,7 @@ use anyhow::Result;
 use std::process::Stdio;
 use tokio::process::Command;
 
-/// Validate a GitHub repository name (`owner/repo`).
-/// Rejects values containing shell metacharacters.
-fn validate_repo_name(repo: &str) -> Result<()> {
-    if repo.is_empty() {
-        anyhow::bail!("repository name must not be empty");
-    }
-    let parts: Vec<&str> = repo.splitn(2, '/').collect();
-    if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
-        anyhow::bail!(
-            "repository name must be in 'owner/repo' format, got '{}'",
-            repo
-        );
-    }
-    for ch in repo.chars() {
-        if !ch.is_alphanumeric() && ch != '/' && ch != '-' && ch != '_' && ch != '.' {
-            anyhow::bail!(
-                "repository name contains invalid character '{}': '{}'",
-                ch,
-                repo
-            );
-        }
-    }
-    Ok(())
-}
-
-/// Validate a git ref (commit SHA, branch name, or ref range like `a..b`).
-/// Only allows alphanumeric chars, `-`, `_`, `.`, `/`, `~`, `^`, and `..`.
-fn validate_git_ref(git_ref: &str) -> Result<()> {
-    if git_ref.is_empty() {
-        anyhow::bail!("git ref must not be empty");
-    }
-    for ch in git_ref.chars() {
-        if !ch.is_alphanumeric() && !"-_.~/^".contains(ch) {
-            anyhow::bail!("git ref contains invalid character '{}': '{}'", ch, git_ref);
-        }
-    }
-    Ok(())
-}
-
-/// Validate a file path for use inside a container.
-/// Rejects path traversal (`..`), absolute paths, and shell metacharacters.
-fn validate_container_path(path: &str) -> Result<()> {
-    if path.is_empty() {
-        anyhow::bail!("container path must not be empty");
-    }
-    if path.starts_with('/') {
-        anyhow::bail!("container path must be relative, got '{}'", path);
-    }
-    if path.contains("..") {
-        anyhow::bail!("container path must not contain '..': '{}'", path);
-    }
-    for ch in path.chars() {
-        if ch == '\''
-            || ch == '"'
-            || ch == '`'
-            || ch == '$'
-            || ch == ';'
-            || ch == '|'
-            || ch == '&'
-            || ch == '\n'
-            || ch == '\r'
-            || ch == '\0'
-        {
-            anyhow::bail!(
-                "container path contains shell metacharacter '{}': '{}'",
-                ch,
-                path
-            );
-        }
-    }
-    Ok(())
-}
+use super::input_validation::{validate_container_path, validate_git_ref, validate_repo_name};
 
 /// Shell command output from inside the container.
 pub struct SandboxOutput {
