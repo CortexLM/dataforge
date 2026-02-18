@@ -337,6 +337,10 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
             serde_json::from_str::<Vec<super::test_generator::TestFile>>(test_files_json)
         {
             for tf in &files {
+                if let Err(e) = validate_file_path(&tf.path) {
+                    warn!(task_id = %task.id, path = %tf.path, error = %e, "Skipping test file with invalid path");
+                    continue;
+                }
                 let mkdir_cmd = format!("mkdir -p \"$(dirname '/repo/{}')\"", tf.path);
                 docker_exec(&cname, &mkdir_cmd, 10).await;
                 let write_result = docker_write_file(&cname, &tf.path, &tf.content).await;
