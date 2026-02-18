@@ -74,22 +74,22 @@ impl DifficultyLevel {
     pub fn resource_limits(&self) -> ResourceLimits {
         match self {
             DifficultyLevel::Easy => ResourceLimits {
-                cpu_limit: 1.0,
-                memory_limit: "256m".to_string(),
+                cpu_limit: 0.0,
+                memory_limit: "32g".to_string(),
                 storage_limit: "1g".to_string(),
                 network: NetworkMode::Internal,
                 pids_limit: 100,
             },
             DifficultyLevel::Medium => ResourceLimits {
-                cpu_limit: 2.0,
-                memory_limit: "512m".to_string(),
+                cpu_limit: 0.0,
+                memory_limit: "32g".to_string(),
                 storage_limit: "5g".to_string(),
                 network: NetworkMode::Internal,
                 pids_limit: 256,
             },
             DifficultyLevel::Hard => ResourceLimits {
-                cpu_limit: 4.0,
-                memory_limit: "1g".to_string(),
+                cpu_limit: 0.0,
+                memory_limit: "32g".to_string(),
                 storage_limit: "10g".to_string(),
                 network: NetworkMode::External,
                 pids_limit: 512,
@@ -351,7 +351,8 @@ mod tests {
         let easy_limits = DifficultyLevel::Easy.resource_limits();
         let hard_limits = DifficultyLevel::Hard.resource_limits();
 
-        assert!(easy_limits.cpu_limit < hard_limits.cpu_limit);
+        assert_eq!(easy_limits.cpu_limit, 0.0);
+        assert_eq!(hard_limits.cpu_limit, 0.0);
         assert!(easy_limits.pids_limit < hard_limits.pids_limit);
     }
 

@@ -137,6 +137,10 @@ pub struct SwePipelineConfig {
     pub concurrency_enrich: Option<usize>,
     /// Override deep processing concurrency (default: 8).
     pub concurrency_deep: Option<usize>,
+    /// Override pre-classification concurrency (default: 25).
+    pub concurrency_preclassify: Option<usize>,
+    /// Override deep processing backlog multiplier (default: 5).
+    pub backlog_multiplier: Option<usize>,
 }
 
 impl Default for SwePipelineConfig {
@@ -156,6 +160,8 @@ impl Default for SwePipelineConfig {
             validate_workspace: true,
             concurrency_enrich: None,
             concurrency_deep: None,
+            concurrency_preclassify: None,
+            backlog_multiplier: None,
         }
     }
 }
@@ -309,11 +315,14 @@ impl SwePipeline {
         // Semaphores control concurrency at each stage. No chunk barriers.
         let deep_concurrency = config.concurrency_deep.unwrap_or(8);
         let enrich_sem = Arc::new(Semaphore::new(config.concurrency_enrich.unwrap_or(10)));
-        let preclassify_sem = Arc::new(Semaphore::new(10));
+        let preclassify_sem =
+            Arc::new(Semaphore::new(config.concurrency_preclassify.unwrap_or(25)));
         let deep_sem = Arc::new(Semaphore::new(deep_concurrency));
         // Backpressure: limit how many classified candidates can queue for deep processing.
         // Pre-classification blocks when this is full, preventing wasted LLM tokens.
-        let deep_backlog_sem = Arc::new(Semaphore::new(deep_concurrency * 3));
+        let deep_backlog_sem = Arc::new(Semaphore::new(
+            deep_concurrency * config.backlog_multiplier.unwrap_or(5),
+        ));
         let cancelled = Arc::new(AtomicBool::new(false));
 
         let enricher = &self.enricher;
@@ -732,6 +741,10 @@ impl SwePipeline {
                     task.meta
                         .insert("pr_title".to_string(), enriched.title.clone());
 
+                    if cancelled.load(Ordering::Relaxed) {
+                        return;
+                    }
+
                     if !task.has_tests() {
                         test_gen_attempted_m.fetch_add(1, Ordering::Relaxed);
                         let language = task.language.clone();
@@ -745,6 +758,10 @@ impl SwePipeline {
                                 return;
                             }
                         }
+                    }
+
+                    if cancelled.load(Ordering::Relaxed) {
+                        return;
                     }
 
                     let assessment = match quality.assess(&task).await {
@@ -1404,5 +1421,34 @@ mod tests {
             metadata: HashMap::new(),
         };
         assert_eq!(infer_added_lines(&pr), 42);
+    }
+
+    #[test]
+    fn test_pipeline_config_default() {
+        let config = SwePipelineConfig::default();
+        assert_eq!(config.min_stars, 20);
+        assert_eq!(config.max_candidates, 50);
+        assert_eq!(config.max_tasks, 1);
+        assert!(config.once);
+        assert!(!config.validate_docker);
+        assert!(config.validate_workspace);
+        assert!(config.languages.is_empty());
+        assert!(config.difficulty_filter.is_none());
+        assert!(config.difficulty_targets.is_none());
+        assert!(config.concurrency_enrich.is_none());
+        assert!(config.concurrency_deep.is_none());
+        assert!(config.concurrency_preclassify.is_none());
+        assert!(config.backlog_multiplier.is_none());
+    }
+
+    #[test]
+    fn test_export_config_construction() {
+        let config = ExportConfig {
+            output_dir: "/tmp/test".to_string(),
+            pr_file: Some("prs.jsonl".to_string()),
+            per_difficulty_dirs: true,
+        };
+        assert_eq!(config.output_dir, "/tmp/test");
+        assert!(config.per_difficulty_dirs);
     }
 }

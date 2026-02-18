@@ -35,8 +35,8 @@ impl SandboxConfig {
     pub fn new(image: impl Into<String>) -> Self {
         Self {
             image: image.into(),
-            memory_limit: 4 * 1024 * 1024 * 1024, // 4GB
-            cpu_limit: 2.0,
+            memory_limit: 32 * 1024 * 1024 * 1024, // 32GB
+            cpu_limit: 0.0,
             timeout: Duration::from_secs(1800), // 30 minutes
             network_mode: "bridge".to_string(),
             task_readonly: true,
@@ -187,15 +187,26 @@ impl Sandbox {
             "--rm".to_string(),
             "--name".to_string(),
             self.id.clone(),
-            // Resource limits
-            format!("--memory={}m", self.config.memory_limit / (1024 * 1024)),
-            format!("--cpus={}", self.config.cpu_limit),
+        ];
+
+        // Resource limits
+        let gb = self.config.memory_limit / (1024 * 1024 * 1024);
+        if gb > 0 {
+            args.push(format!("--memory={}g", gb));
+        } else {
+            args.push(format!("--memory={}m", self.config.memory_limit / (1024 * 1024)));
+        }
+        if self.config.cpu_limit > 0.0 {
+            args.push(format!("--cpus={}", self.config.cpu_limit));
+        }
+
+        args.extend([
             // Network
             format!("--network={}", self.config.network_mode),
             // Working directory
             "-w".to_string(),
             self.working_dir.to_string_lossy().to_string(),
-        ];
+        ]);
 
         // Add volume mounts
         args.push("-v".to_string());
@@ -318,7 +329,7 @@ mod tests {
     fn test_sandbox_config_defaults() {
         let config = SandboxConfig::default();
         assert_eq!(config.image, "python:3.11-slim");
-        assert_eq!(config.cpu_limit, 2.0);
+        assert_eq!(config.cpu_limit, 0.0);
         assert_eq!(config.network_mode, "bridge");
     }
 
@@ -357,6 +368,20 @@ mod tests {
 
         assert!(args.contains(&"--rm".to_string()));
         assert!(args.contains(&"test:latest".to_string()));
-        assert!(args.contains(&"--memory=1024m".to_string()));
+        assert!(args.contains(&"--memory=1g".to_string()));
+        assert!(args.contains(&"--cpus=1".to_string()));
+    }
+
+    #[test]
+    fn test_sandbox_docker_args_no_cpu() {
+        let config = SandboxConfig::new("test:latest")
+            .with_memory_mb(1024)
+            .with_cpu_limit(0.0);
+
+        let sandbox = Sandbox::new(config, "/tmp/output");
+        let args = sandbox.docker_run_args(&["bash".to_string()]);
+
+        assert!(args.contains(&"--memory=1g".to_string()));
+        assert!(!args.iter().any(|a| a.starts_with("--cpus=")));
     }
 }

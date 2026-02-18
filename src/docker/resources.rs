@@ -46,8 +46,8 @@ pub struct ResourceLimits {
 impl Default for ResourceLimits {
     fn default() -> Self {
         Self {
-            cpu_count: 2.0,
-            memory_bytes: 1024 * 1024 * 1024,      // 1 GB
+            cpu_count: 0.0,
+            memory_bytes: 32 * 1024 * 1024 * 1024, // 32 GB
             storage_bytes: 2 * 1024 * 1024 * 1024, // 2 GB
             pids_limit: 200,
             network_mode: NetworkMode::Internal,
@@ -75,17 +75,17 @@ impl ResourceLimits {
 
 /// Predefined resource limits for easy difficulty tasks.
 pub const EASY_LIMITS: ResourceLimits = ResourceLimits {
-    cpu_count: 1.0,
-    memory_bytes: 512 * 1024 * 1024,   // 512 MB
-    storage_bytes: 1024 * 1024 * 1024, // 1 GB
+    cpu_count: 0.0,
+    memory_bytes: 32 * 1024 * 1024 * 1024, // 32 GB
+    storage_bytes: 1024 * 1024 * 1024,     // 1 GB
     pids_limit: 100,
     network_mode: NetworkMode::None,
 };
 
 /// Predefined resource limits for medium difficulty tasks.
 pub const MEDIUM_LIMITS: ResourceLimits = ResourceLimits {
-    cpu_count: 2.0,
-    memory_bytes: 1024 * 1024 * 1024,      // 1 GB
+    cpu_count: 0.0,
+    memory_bytes: 32 * 1024 * 1024 * 1024, // 32 GB
     storage_bytes: 2 * 1024 * 1024 * 1024, // 2 GB
     pids_limit: 200,
     network_mode: NetworkMode::Internal,
@@ -93,8 +93,8 @@ pub const MEDIUM_LIMITS: ResourceLimits = ResourceLimits {
 
 /// Predefined resource limits for hard difficulty tasks.
 pub const HARD_LIMITS: ResourceLimits = ResourceLimits {
-    cpu_count: 4.0,
-    memory_bytes: 2 * 1024 * 1024 * 1024,  // 2 GB
+    cpu_count: 0.0,
+    memory_bytes: 32 * 1024 * 1024 * 1024, // 32 GB
     storage_bytes: 5 * 1024 * 1024 * 1024, // 5 GB
     pids_limit: 500,
     network_mode: NetworkMode::Internal,
@@ -231,31 +231,31 @@ mod tests {
     #[test]
     fn test_resource_limits_easy() {
         let limits = apply_resource_limits("easy");
-        assert_eq!(limits.cpu_count, 1.0);
-        assert_eq!(limits.memory_bytes, 512 * 1024 * 1024);
+        assert_eq!(limits.cpu_count, 0.0);
+        assert_eq!(limits.memory_bytes, 32 * 1024 * 1024 * 1024);
         assert_eq!(limits.network_mode, NetworkMode::None);
     }
 
     #[test]
     fn test_resource_limits_medium() {
         let limits = apply_resource_limits("medium");
-        assert_eq!(limits.cpu_count, 2.0);
-        assert_eq!(limits.memory_bytes, 1024 * 1024 * 1024);
+        assert_eq!(limits.cpu_count, 0.0);
+        assert_eq!(limits.memory_bytes, 32 * 1024 * 1024 * 1024);
         assert_eq!(limits.network_mode, NetworkMode::Internal);
     }
 
     #[test]
     fn test_resource_limits_hard() {
         let limits = apply_resource_limits("hard");
-        assert_eq!(limits.cpu_count, 4.0);
-        assert_eq!(limits.memory_bytes, 2 * 1024 * 1024 * 1024);
+        assert_eq!(limits.cpu_count, 0.0);
+        assert_eq!(limits.memory_bytes, 32 * 1024 * 1024 * 1024);
         assert_eq!(limits.network_mode, NetworkMode::Internal);
     }
 
     #[test]
     fn test_resource_limits_default() {
         let limits = apply_resource_limits("unknown");
-        assert_eq!(limits.cpu_count, 2.0); // Should default to medium
+        assert_eq!(limits.cpu_count, 0.0); // Should default to medium
     }
 
     #[test]
@@ -267,10 +267,10 @@ mod tests {
         assert_eq!(limits.memory_string(), "512M");
 
         let limits_gb = ResourceLimits {
-            memory_bytes: 2 * 1024 * 1024 * 1024,
+            memory_bytes: 32 * 1024 * 1024 * 1024,
             ..Default::default()
         };
-        assert_eq!(limits_gb.memory_string(), "2G");
+        assert_eq!(limits_gb.memory_string(), "32G");
     }
 
     #[test]
