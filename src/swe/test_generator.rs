@@ -12,7 +12,7 @@ use crate::llm::{
     GenerationRequest, LlmProvider, Message, ToolCallInfo, ToolChoice, ToolDefinition,
 };
 use crate::swe::docker_sandbox::DockerSandbox;
-use crate::swe::SweTask;
+use crate::swe::{validate_file_path, SweTask};
 
 const MAX_AGENT_TURNS: usize = 200;
 const MAX_VALIDATION_RETRIES: usize = 3;
@@ -956,7 +956,20 @@ fn parse_tool_response(result: &crate::swe::docker_sandbox::SandboxOutput) -> St
     }
 }
 
+/// Escape a string for safe inclusion inside a POSIX single-quoted shell argument.
+///
+/// Replaces each `'` with `'\''` (end quote, backslash-escaped literal quote,
+/// re-open quote). This is the standard POSIX technique for embedding single
+/// quotes inside single-quoted strings and prevents shell breakout.
+fn sanitize_shell_arg(s: &str) -> String {
+    s.replace('\'', "'\\''")
+}
+
 /// Execute a tool via direct shell commands when the HTTP tool server is unavailable.
+///
+/// All values interpolated into shell commands are either validated via
+/// [`validate_file_path`] (for filesystem paths) or escaped via
+/// [`sanitize_shell_arg`] (for patterns/globs that may contain special chars).
 async fn shell_fallback(sandbox: &DockerSandbox, tool_name: &str, args_json: &str) -> String {
     let args: serde_json::Value = match serde_json::from_str(args_json) {
         Ok(v) => v,
@@ -968,6 +981,9 @@ async fn shell_fallback(sandbox: &DockerSandbox, tool_name: &str, args_json: &st
             let file_path = args.get("file_path").and_then(|v| v.as_str()).unwrap_or("");
             if file_path.is_empty() {
                 return "Error: missing file_path".to_string();
+            }
+            if let Err(e) = validate_file_path(file_path) {
+                return format!("Error: invalid file_path: {}", e);
             }
             let offset = args.get("offset").and_then(|v| v.as_u64()).unwrap_or(0);
             let limit = args.get("limit").and_then(|v| v.as_u64());
@@ -994,7 +1010,12 @@ async fn shell_fallback(sandbox: &DockerSandbox, tool_name: &str, args_json: &st
                 .get("directory_path")
                 .and_then(|v| v.as_str())
                 .unwrap_or(".");
-            let cmd = format!("ls -la '{}'", dir);
+            if dir != "." {
+                if let Err(e) = validate_file_path(dir) {
+                    return format!("Error: invalid directory_path: {}", e);
+                }
+            }
+            let cmd = format!("ls -la '{}'", sanitize_shell_arg(dir));
             let result = sandbox.exec(&cmd, 10_000).await;
             if result.exit_code != 0 {
                 format!("Error listing directory: {}", result.stderr)
@@ -1008,15 +1029,23 @@ async fn shell_fallback(sandbox: &DockerSandbox, tool_name: &str, args_json: &st
                 return "Error: missing pattern".to_string();
             }
             let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
+            if path != "." {
+                if let Err(e) = validate_file_path(path) {
+                    return format!("Error: invalid path: {}", e);
+                }
+            }
             let include = args.get("include").and_then(|v| v.as_str());
             let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(100);
             let include_arg = match include {
-                Some(glob) => format!(" --include='{}'", glob),
+                Some(glob) => format!(" --include='{}'", sanitize_shell_arg(glob)),
                 None => String::new(),
             };
             let cmd = format!(
                 "grep -rn --color=never{} '{}' '{}' | head -n {}",
-                include_arg, pattern, path, limit
+                include_arg,
+                sanitize_shell_arg(pattern),
+                sanitize_shell_arg(path),
+                limit
             );
             let result = sandbox.exec(&cmd, 30_000).await;
             if result.stdout.is_empty() {
@@ -1031,9 +1060,15 @@ async fn shell_fallback(sandbox: &DockerSandbox, tool_name: &str, args_json: &st
                 return "Error: missing pattern".to_string();
             }
             let path = args.get("path").and_then(|v| v.as_str()).unwrap_or(".");
+            if path != "." {
+                if let Err(e) = validate_file_path(path) {
+                    return format!("Error: invalid path: {}", e);
+                }
+            }
             let cmd = format!(
                 "find '{}' -name '{}' -not -path '*/.git/*' -not -path '*/node_modules/*' | sort",
-                path, pattern
+                sanitize_shell_arg(path),
+                sanitize_shell_arg(pattern)
             );
             let result = sandbox.exec(&cmd, 30_000).await;
             if result.stdout.is_empty() {
