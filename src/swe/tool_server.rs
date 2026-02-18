@@ -2,7 +2,7 @@
 /// Adapted from baseagent (https://github.com/PlatformNetwork/baseagent).
 ///
 /// Provides structured, token-efficient tools: read_file, list_dir,
-/// grep_files, search_files, apply_patch. Runs on port 8080.
+/// grep_files, search_files, apply_patch. Default port 8080, overridden via `--port` flag.
 pub const TOOL_SERVER_PY: &str = r#####"#!/usr/bin/env python3
 """HTTP tool server for swe-forge Docker containers.
 Adapted from baseagent tools. Provides structured file exploration tools
@@ -305,7 +305,12 @@ def main():
         elif arg == "--cwd" and i < len(sys.argv) - 1:
             CWD = Path(sys.argv[i + 1])
 
-    server = HTTPServer(("0.0.0.0", port), ToolHandler)
+    HTTPServer.allow_reuse_address = True
+    try:
+        server = HTTPServer(("0.0.0.0", port), ToolHandler)
+    except OSError as e:
+        print(f"FATAL: Cannot bind to port {port}: {e}", flush=True)
+        sys.exit(1)
     print(f"Tool server listening on port {port}, cwd={CWD}", flush=True)
     server.serve_forever()
 
