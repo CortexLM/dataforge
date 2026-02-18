@@ -84,6 +84,26 @@ impl WorkspaceValidator {
         sandbox: &DockerSandbox,
         task: &SweTask,
     ) -> Result<ValidationOutcome, anyhow::Error> {
+        // --- Install language runtime if needed ---
+        let runtime_install = match task.language.to_lowercase().as_str() {
+            "go" | "golang" => Some("apt-get update -qq && apt-get install -y -qq golang > /dev/null 2>&1"),
+            "javascript" | "typescript" | "js" | "ts" => Some("apt-get update -qq && apt-get install -y -qq nodejs npm > /dev/null 2>&1"),
+            "rust" => Some("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y > /dev/null 2>&1 && . $HOME/.cargo/env"),
+            "java" => Some("apt-get update -qq && apt-get install -y -qq default-jdk maven > /dev/null 2>&1"),
+            _ => None,
+        };
+        if let Some(cmd) = runtime_install {
+            let rt_result = sandbox.exec(&format!("{} 2>&1", cmd), 300_000).await;
+            if rt_result.exit_code != 0 {
+                tracing::warn!(
+                    task_id = %task.id,
+                    language = %task.language,
+                    exit = rt_result.exit_code,
+                    "Runtime install failed during validation (continuing)"
+                );
+            }
+        }
+
         // --- Install ---
         if let Some(install_cmd) = task.install_config.get("install") {
             if !install_cmd.is_empty() && !install_cmd.starts_with('#') {
@@ -191,7 +211,9 @@ impl WorkspaceValidator {
         if let Some(test_files_json) = task.meta.get("test_files") {
             if let Ok(files) = serde_json::from_str::<Vec<TestFile>>(test_files_json) {
                 for tf in &files {
-                    let _ = sandbox.write_file(&tf.path, &tf.content).await;
+                    if let Err(e) = sandbox.write_file(&tf.path, &tf.content).await {
+                        tracing::warn!(path = %tf.path, error = %e, "Failed to re-write test file after patch");
+                    }
                 }
             }
         }

@@ -4,7 +4,7 @@
 use anyhow::Result;
 
 use crate::swe::docker_sandbox::DockerSandbox;
-use crate::swe::SweTask;
+use crate::swe::{validate_git_ref, SweTask};
 
 fn github_token() -> Option<String> {
     std::env::var("GITHUB_TOKEN")
@@ -188,11 +188,22 @@ impl PatchExtractor {
 
     /// Clone the repo inside a Docker container and extract the diff.
     async fn fetch_diff_from_docker(&self, input: &PatchExtractionInput<'_>) -> Result<String> {
+        if let Some(base) = input.base_commit {
+            if !base.is_empty() {
+                validate_git_ref(base)?;
+            }
+        }
+        if let Some(merge) = input.merge_commit {
+            if !merge.is_empty() {
+                validate_git_ref(merge)?;
+            }
+        }
+
         let base_commit = input.base_commit.unwrap_or("");
         let sandbox =
             DockerSandbox::start(input.repository, base_commit, input.language, None).await?;
 
-        let diff_ref = match (input.base_commit, input.merge_commit) {
+        let diff_cmd = match (input.base_commit, input.merge_commit) {
             (Some(base), Some(merge)) if !base.is_empty() && !merge.is_empty() => {
                 // Fetch the merge commit (shallow clone may not have it)
                 sandbox
@@ -201,7 +212,7 @@ impl PatchExtractor {
                         60_000,
                     )
                     .await;
-                format!("{base}..{merge}")
+                format!("git diff --no-color --unified=3 {} {} 2>&1", base, merge)
             }
             (_, Some(merge)) if !merge.is_empty() => {
                 sandbox
@@ -210,17 +221,12 @@ impl PatchExtractor {
                         60_000,
                     )
                     .await;
-                merge.to_string()
+                format!("git diff --no-color --unified=3 HEAD {} 2>&1", merge)
             }
-            _ => "HEAD".to_string(),
+            _ => "git diff --no-color --unified=3 HEAD~1 HEAD 2>&1".to_string(),
         };
 
-        let result = sandbox
-            .exec(
-                &format!("git show --no-color --unified=3 {} 2>&1", diff_ref),
-                60_000,
-            )
-            .await;
+        let result = sandbox.exec(&diff_cmd, 60_000).await;
 
         sandbox.destroy().await;
 
@@ -263,7 +269,6 @@ impl PatchExtractor {
 #[derive(Default)]
 struct PatchBlock {
     patch: String,
-    lines: usize,
 }
 
 fn count_line_delta(raw: &str) -> (usize, usize) {
@@ -367,10 +372,8 @@ fn append_to_partition(
 ) {
     if is_test_file(file_path) {
         tests.patch.push_str(block);
-        tests.lines = tests.lines.saturating_add(block.lines().count());
     } else {
         solution.patch.push_str(block);
-        solution.lines = solution.lines.saturating_add(block.lines().count());
     }
 }
 

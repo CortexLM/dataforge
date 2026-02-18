@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 use tracing::{info, warn};
 
-use super::SweTask;
+use super::{validate_file_path, validate_git_ref, validate_repo_name, SweTask};
 
 // ---------------------------------------------------------------------------
 // Config
@@ -137,13 +137,18 @@ async fn docker_exec(container: &str, cmd: &str, timeout_secs: u64) -> (i32, Str
 }
 
 async fn docker_rm(container: &str) {
-    let _ = Command::new("docker")
+    if let Err(e) = Command::new("docker")
         .args(["rm", "-f", container])
         .output()
-        .await;
+        .await
+    {
+        tracing::debug!(container = container, error = %e, "Failed to remove container (may not exist)");
+    }
 }
 
 async fn docker_write_file(container: &str, path: &str, content: &str) -> Result<()> {
+    validate_file_path(path)?;
+
     use tokio::io::AsyncWriteExt;
     let tee_cmd = format!("cat > '/repo/{}'", path);
     let mut child = Command::new("docker")
@@ -202,6 +207,18 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
         error: None,
         container_id: Some(cname.clone()),
     };
+
+    // 0. INPUT VALIDATION: reject shell-unsafe repo names and commit refs
+    if let Err(e) = validate_repo_name(&task.repo) {
+        result.error = Some(format!("Invalid repo name: {e}"));
+        return result;
+    }
+    if !task.base_commit.is_empty() {
+        if let Err(e) = validate_git_ref(&task.base_commit) {
+            result.error = Some(format!("Invalid base commit: {e}"));
+            return result;
+        }
+    }
 
     // 1. SETUP: start container
     info!(task_id = %task.id, "Starting container {}", cname);
@@ -273,10 +290,7 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
     }
 
     // Clone repo (full clone for reliable checkout)
-    let clone_cmd = format!(
-        "git clone https://github.com/{}.git /repo 2>&1",
-        task.repo
-    );
+    let clone_cmd = format!("git clone https://github.com/{}.git /repo 2>&1", task.repo);
     let (code, _, err) = docker_exec(&cname, &clone_cmd, 600).await;
     if code != 0 {
         result.error = Some(format!("Clone failed: {}", truncate(&err, 500)));
@@ -326,6 +340,10 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
             serde_json::from_str::<Vec<super::test_generator::TestFile>>(test_files_json)
         {
             for tf in &files {
+                if let Err(e) = validate_file_path(&tf.path) {
+                    warn!(task_id = %task.id, path = %tf.path, error = %e, "Skipping test file with invalid path");
+                    continue;
+                }
                 let mkdir_cmd = format!("mkdir -p \"$(dirname '/repo/{}')\"", tf.path);
                 docker_exec(&cname, &mkdir_cmd, 10).await;
                 let write_result = docker_write_file(&cname, &tf.path, &tf.content).await;

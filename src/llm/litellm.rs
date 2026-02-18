@@ -324,16 +324,26 @@ impl LiteLlmClient {
     /// * `api_base` - Base URL for the LiteLLM API (e.g., "http://localhost:4000")
     /// * `api_key` - Optional API key for authentication
     /// * `default_model` - Default model to use when none is specified
-    pub fn new(api_base: String, api_key: Option<String>, default_model: String) -> Self {
-        Self {
+    ///
+    /// # Errors
+    ///
+    /// Returns `LlmError::RequestFailed` if the HTTP client cannot be built.
+    pub fn new(
+        api_base: String,
+        api_key: Option<String>,
+        default_model: String,
+    ) -> Result<Self, LlmError> {
+        Ok(Self {
             api_base,
             api_key,
             default_model,
             http_client: Client::builder()
                 .timeout(Duration::from_secs(300))
                 .build()
-                .expect("Failed to build HTTP client"),
-        }
+                .map_err(|e| {
+                    LlmError::RequestFailed(format!("Failed to build HTTP client: {e}"))
+                })?,
+        })
     }
 
     /// Create a new LiteLLM client pre-configured for OpenRouter.
@@ -347,16 +357,22 @@ impl LiteLlmClient {
     /// A client configured with:
     /// - api_base: "https://openrouter.ai/api/v1"
     /// - default_model: "anthropic/claude-opus-4.5"
-    pub fn new_with_defaults(api_key: String) -> Self {
-        Self {
+    ///
+    /// # Errors
+    ///
+    /// Returns `LlmError::RequestFailed` if the HTTP client cannot be built.
+    pub fn new_with_defaults(api_key: String) -> Result<Self, LlmError> {
+        Ok(Self {
             api_base: "https://openrouter.ai/api/v1".to_string(),
             api_key: Some(api_key),
             default_model: "anthropic/claude-opus-4.5".to_string(),
             http_client: Client::builder()
                 .timeout(Duration::from_secs(300))
                 .build()
-                .expect("Failed to build HTTP client"),
-        }
+                .map_err(|e| {
+                    LlmError::RequestFailed(format!("Failed to build HTTP client: {e}"))
+                })?,
+        })
     }
 
     /// Create a new LiteLLM client from environment variables.
@@ -382,7 +398,9 @@ impl LiteLlmClient {
             http_client: Client::builder()
                 .timeout(Duration::from_secs(300))
                 .build()
-                .expect("Failed to build HTTP client"),
+                .map_err(|e| {
+                    LlmError::RequestFailed(format!("Failed to build HTTP client: {e}"))
+                })?,
         })
     }
 
@@ -490,6 +508,10 @@ struct ApiRequest {
     top_p: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     response_format: Option<ResponseFormat>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tools: Option<serde_json::Value>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    tool_choice: Option<serde_json::Value>,
 }
 
 /// Internal response structure from the OpenAI-compatible API.
@@ -506,14 +528,42 @@ struct ApiResponse {
 struct ApiChoice {
     index: u32,
     message: ApiMessage,
-    finish_reason: String,
+    #[serde(default)]
+    finish_reason: Option<String>,
 }
 
 /// Internal message structure from the API response.
+/// Supports reasoning models and tool calls.
 #[derive(Debug, Deserialize)]
 struct ApiMessage {
     role: String,
+    #[serde(default)]
     content: String,
+    #[serde(default)]
+    reasoning: Option<String>,
+    #[serde(default)]
+    reasoning_content: Option<String>,
+    #[serde(default)]
+    tool_calls: Option<Vec<ApiToolCall>>,
+}
+
+/// A tool call returned by the model.
+#[derive(Debug, Deserialize)]
+struct ApiToolCall {
+    #[serde(default)]
+    id: String,
+    #[serde(rename = "type", default)]
+    _tool_type: String,
+    function: ApiToolCallFunction,
+}
+
+/// Function details within a tool call response.
+#[derive(Debug, Deserialize)]
+struct ApiToolCallFunction {
+    #[serde(default)]
+    name: String,
+    #[serde(default)]
+    arguments: String,
 }
 
 /// Internal usage structure from the API response.
@@ -549,6 +599,20 @@ impl LlmProvider for LiteLlmClient {
             request.model.clone()
         };
 
+        let tools =
+            match request.tools {
+                Some(t) => Some(serde_json::to_value(&t).map_err(|e| {
+                    LlmError::RequestFailed(format!("Failed to serialize tools: {e}"))
+                })?),
+                None => None,
+            };
+        let tool_choice = match request.tool_choice {
+            Some(tc) => Some(serde_json::to_value(&tc).map_err(|e| {
+                LlmError::RequestFailed(format!("Failed to serialize tool_choice: {e}"))
+            })?),
+            None => None,
+        };
+
         let api_request = ApiRequest {
             model: model.clone(),
             messages: request.messages,
@@ -556,6 +620,8 @@ impl LlmProvider for LiteLlmClient {
             max_tokens: request.max_tokens,
             top_p: request.top_p,
             response_format: request.response_format,
+            tools,
+            tool_choice,
         };
 
         let url = format!("{}/chat/completions", self.api_base);
@@ -617,15 +683,52 @@ impl LlmProvider for LiteLlmClient {
         let choices = api_response
             .choices
             .into_iter()
-            .map(|choice| Choice {
-                index: choice.index,
-                message: Message {
-                    role: choice.message.role,
-                    content: choice.message.content,
-                    tool_calls: None,
-                    tool_call_id: None,
-                },
-                finish_reason: choice.finish_reason,
+            .map(|choice| {
+                let tool_calls_info = choice.message.tool_calls.as_ref().map(|tcs| {
+                    tcs.iter()
+                        .map(|tc| ToolCallInfo {
+                            id: tc.id.clone(),
+                            call_type: "function".to_string(),
+                            function: ToolCallFunction {
+                                name: tc.function.name.clone(),
+                                arguments: tc.function.arguments.clone(),
+                            },
+                        })
+                        .collect::<Vec<_>>()
+                });
+
+                let content = if let Some(ref tool_calls) = choice.message.tool_calls {
+                    if let Some(first_call) = tool_calls.first() {
+                        if !first_call.function.arguments.is_empty() {
+                            first_call.function.arguments.clone()
+                        } else {
+                            choice.message.content.clone()
+                        }
+                    } else {
+                        choice.message.content.clone()
+                    }
+                } else if !choice.message.content.trim().is_empty() {
+                    choice.message.content
+                } else if let Some(rc) = choice.message.reasoning_content {
+                    if !rc.trim().is_empty() {
+                        rc
+                    } else {
+                        choice.message.reasoning.unwrap_or_default()
+                    }
+                } else {
+                    choice.message.reasoning.unwrap_or_default()
+                };
+
+                Choice {
+                    index: choice.index,
+                    message: Message {
+                        role: choice.message.role,
+                        content,
+                        tool_calls: tool_calls_info,
+                        tool_call_id: None,
+                    },
+                    finish_reason: choice.finish_reason.unwrap_or_else(|| "stop".to_string()),
+                }
             })
             .collect();
 
@@ -849,7 +952,8 @@ mod tests {
             "http://localhost:4000".to_string(),
             Some("test-key".to_string()),
             "gpt-4".to_string(),
-        );
+        )
+        .unwrap();
 
         assert_eq!(client.api_base(), "http://localhost:4000");
         assert_eq!(client.default_model(), "gpt-4");
@@ -862,14 +966,15 @@ mod tests {
             "http://localhost:4000".to_string(),
             None,
             "gpt-4".to_string(),
-        );
+        )
+        .unwrap();
 
         assert!(!client.has_api_key());
     }
 
     #[test]
     fn test_litellm_client_new_with_defaults() {
-        let client = LiteLlmClient::new_with_defaults("test-api-key".to_string());
+        let client = LiteLlmClient::new_with_defaults("test-api-key".to_string()).unwrap();
 
         assert_eq!(client.api_base(), "https://openrouter.ai/api/v1");
         assert_eq!(client.default_model(), "anthropic/claude-opus-4.5");
@@ -883,7 +988,8 @@ mod tests {
             "http://localhost:65535".to_string(), // Use a port that's unlikely to have a server
             None,
             "gpt-4".to_string(),
-        );
+        )
+        .unwrap();
 
         let request = GenerationRequest::new("gpt-4", vec![Message::user("test")]);
         let result = client.generate(request).await;
@@ -903,6 +1009,8 @@ mod tests {
             max_tokens: Some(1000),
             top_p: None,
             response_format: None,
+            tools: None,
+            tool_choice: None,
         };
 
         let json = serde_json::to_string(&request).expect("serialization should succeed");
@@ -910,6 +1018,8 @@ mod tests {
         assert!(json.contains("\"temperature\":0.7"));
         assert!(json.contains("\"max_tokens\":1000"));
         assert!(!json.contains("top_p")); // Should be skipped because None
+        assert!(!json.contains("tools")); // Should be skipped because None
+        assert!(!json.contains("tool_choice")); // Should be skipped because None
     }
 
     #[tokio::test]
@@ -918,7 +1028,8 @@ mod tests {
             "http://localhost:65535".to_string(),
             None,
             "gpt-4".to_string(),
-        );
+        )
+        .unwrap();
         let cache = PromptCache::new(100);
 
         // Create a request with a system prompt

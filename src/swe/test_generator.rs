@@ -701,7 +701,10 @@ impl TestGenerator {
 
         // Reset repo to clean state before applying patch (agent may have modified files)
         sandbox
-            .exec("cd /repo && git checkout -- . 2>/dev/null && git clean -fd 2>/dev/null", 30_000)
+            .exec(
+                "cd /repo && git checkout -- . 2>/dev/null && git clean -fd 2>/dev/null",
+                30_000,
+            )
             .await;
 
         // Re-write test files (they were cleaned by git checkout)
@@ -718,12 +721,18 @@ impl TestGenerator {
         }
 
         let apply_result = sandbox
-            .exec("cd /repo && git apply --allow-empty .swe_forge_pr.patch 2>&1", 30_000)
+            .exec(
+                "cd /repo && git apply --allow-empty .swe_forge_pr.patch 2>&1",
+                30_000,
+            )
             .await;
 
         if apply_result.exit_code != 0 {
             let apply_3way = sandbox
-                .exec("cd /repo && git apply --3way .swe_forge_pr.patch 2>&1", 30_000)
+                .exec(
+                    "cd /repo && git apply --3way .swe_forge_pr.patch 2>&1",
+                    30_000,
+                )
                 .await;
             if apply_3way.exit_code != 0 {
                 tracing::warn!(
@@ -732,7 +741,9 @@ impl TestGenerator {
                     exit = apply_3way.exit_code,
                     "Patch apply failed, rejecting task"
                 );
-                sandbox.exec("cd /repo && git checkout -- . 2>/dev/null", 10_000).await;
+                sandbox
+                    .exec("cd /repo && git checkout -- . 2>/dev/null", 10_000)
+                    .await;
                 return ValidationResult::Rejected(
                     "PR patch could not be applied to the base commit. The test cannot be validated.".to_string()
                 );
@@ -743,10 +754,16 @@ impl TestGenerator {
         for cmd in &submit.fail_to_pass {
             let result = sandbox.exec(cmd, 60_000).await;
             if result.exit_code != 0 {
-                sandbox.exec("cd /repo && git checkout -- . 2>/dev/null", 10_000).await;
-                sandbox.exec("cd /repo && git clean -fd 2>/dev/null", 10_000).await;
+                sandbox
+                    .exec("cd /repo && git checkout -- . 2>/dev/null", 10_000)
+                    .await;
+                sandbox
+                    .exec("cd /repo && git clean -fd 2>/dev/null", 10_000)
+                    .await;
                 for tf in test_files {
-                    let _ = sandbox.write_file(&tf.path, &tf.content).await;
+                    if let Err(e) = sandbox.write_file(&tf.path, &tf.content).await {
+                        tracing::warn!(path = %tf.path, error = %e, "Failed to restore test file after f2p rejection");
+                    }
                 }
                 return ValidationResult::Rejected(format!(
                     "fail_to_pass test '{}' still FAILS after the PR patch is applied (exit={}, stderr={}). \
@@ -762,10 +779,16 @@ impl TestGenerator {
         for cmd in &submit.pass_to_pass {
             let result = sandbox.exec(cmd, 60_000).await;
             if result.exit_code != 0 {
-                sandbox.exec("cd /repo && git checkout -- . 2>/dev/null", 10_000).await;
-                sandbox.exec("cd /repo && git clean -fd 2>/dev/null", 10_000).await;
+                sandbox
+                    .exec("cd /repo && git checkout -- . 2>/dev/null", 10_000)
+                    .await;
+                sandbox
+                    .exec("cd /repo && git clean -fd 2>/dev/null", 10_000)
+                    .await;
                 for tf in test_files {
-                    let _ = sandbox.write_file(&tf.path, &tf.content).await;
+                    if let Err(e) = sandbox.write_file(&tf.path, &tf.content).await {
+                        tracing::warn!(path = %tf.path, error = %e, "Failed to restore test file after p2p rejection");
+                    }
                 }
                 return ValidationResult::Rejected(format!(
                     "pass_to_pass test '{}' FAILS after the PR patch (exit={}, stderr={}). \
@@ -778,10 +801,16 @@ impl TestGenerator {
         }
 
         // Revert to base commit for cleanliness
-        sandbox.exec("cd /repo && git checkout -- . 2>/dev/null", 10_000).await;
-        sandbox.exec("cd /repo && git clean -fd 2>/dev/null", 10_000).await;
+        sandbox
+            .exec("cd /repo && git checkout -- . 2>/dev/null", 10_000)
+            .await;
+        sandbox
+            .exec("cd /repo && git clean -fd 2>/dev/null", 10_000)
+            .await;
         for tf in test_files {
-            let _ = sandbox.write_file(&tf.path, &tf.content).await;
+            if let Err(e) = sandbox.write_file(&tf.path, &tf.content).await {
+                tracing::warn!(path = %tf.path, error = %e, "Failed to restore test file after validation");
+            }
         }
 
         ValidationResult::Accepted
@@ -847,14 +876,17 @@ impl TestGenerator {
                     .await;
                 let output = if !result.stdout.is_empty() {
                     // Parse JSON response from tool server
-                    match serde_json::from_str::<serde_json::Value>(&result.stdout.trim()) {
+                    match serde_json::from_str::<serde_json::Value>(result.stdout.trim()) {
                         Ok(v) => {
                             if let Some(err) = v.get("error").and_then(|e| e.as_str()) {
                                 err.to_string()
                             } else if let Some(out) = v.get("output").and_then(|o| o.as_str()) {
                                 let mut s = out.to_string();
                                 if let Some(total) = v.get("total_lines").and_then(|t| t.as_u64()) {
-                                    if v.get("truncated").and_then(|t| t.as_bool()).unwrap_or(false) {
+                                    if v.get("truncated")
+                                        .and_then(|t| t.as_bool())
+                                        .unwrap_or(false)
+                                    {
                                         s.push_str(&format!("\n\n[Showing {}/{} lines. Use offset/limit to see more.]",
                                             v.get("shown_lines").and_then(|s| s.as_u64()).unwrap_or(0), total));
                                     } else {

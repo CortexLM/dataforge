@@ -22,6 +22,7 @@ Core SWE mining pipeline. Fetches merged pull requests from GH Archive, enriches
 | `pipeline.rs` | Streaming pipeline with semaphore-based concurrency |
 | `github_search.rs` | `GitHubSearchClient` — GitHub Search API as alternative PR source (30 req/min) |
 | `workspace_validator.rs` | `WorkspaceValidator` — pre-export Docker-based validation (install, tests, patch application) |
+| `tool_server.rs` | Embedded Python HTTP tool server injected into Docker containers (read_file, list_dir, grep_files, search_files, apply_patch) |
 | `pr_cache.rs` | SQLite-backed PR deduplication cache |
 | `progress.rs` | `ProgressMonitor` — background progress logging for long-running pipeline runs |
 

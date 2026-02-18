@@ -8,6 +8,7 @@ use std::process::Stdio;
 use tokio::process::Command;
 
 use crate::swe::tool_server::TOOL_SERVER_PY;
+use crate::swe::{validate_file_path, validate_git_ref, validate_repo_name};
 
 /// Shell command output from inside the container.
 pub struct SandboxOutput {
@@ -37,6 +38,11 @@ impl DockerSandbox {
         language: &str,
         image_override: Option<&str>,
     ) -> Result<Self> {
+        validate_repo_name(repo)?;
+        if !base_commit.is_empty() {
+            validate_git_ref(base_commit)?;
+        }
+
         let image = image_override.unwrap_or_else(|| image_for_language(language));
         let safe_name = repo.replace('/', "-").replace(' ', "_");
         let ts_suffix = std::time::SystemTime::now()
@@ -49,12 +55,15 @@ impl DockerSandbox {
         let tool_port = 10_000 + (ts_suffix as u16 % 50_000);
 
         // Remove stale container if it exists
-        let _ = Command::new("docker")
+        if let Err(e) = Command::new("docker")
             .args(["rm", "-f", &container_name])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()
-            .await;
+            .await
+        {
+            tracing::debug!(container = %container_name, error = %e, "Failed to remove stale container (may not exist)");
+        }
 
         let run_output = Command::new("docker")
             .args([
@@ -81,7 +90,10 @@ impl DockerSandbox {
             );
         }
 
-        let sandbox = Self { container_name, tool_port };
+        let sandbox = Self {
+            container_name,
+            tool_port,
+        };
 
         // Install git (only hard dependency; agent installs everything else)
         let install = sandbox
@@ -99,10 +111,7 @@ impl DockerSandbox {
         }
 
         // Clone the repository (full clone for reliable checkout)
-        let clone_cmd = format!(
-            "git clone https://github.com/{}.git /repo 2>&1",
-            repo
-        );
+        let clone_cmd = format!("git clone https://github.com/{}.git /repo 2>&1", repo);
         let clone = sandbox.exec(&clone_cmd, 600_000).await;
         if clone.exit_code != 0 {
             sandbox.destroy().await;
@@ -154,7 +163,10 @@ impl DockerSandbox {
         }
 
         // Use write_file to inject the server script
-        if let Err(e) = self.write_file_abs("/tools/server.py", TOOL_SERVER_PY).await {
+        if let Err(e) = self
+            .write_file_abs("/tools/server.py", TOOL_SERVER_PY)
+            .await
+        {
             tracing::warn!(container = %self.container_name, error = %e, "Failed to write tool server");
             return;
         }
@@ -201,8 +213,13 @@ impl DockerSandbox {
             std::time::Duration::from_millis(2_000),
             Command::new("docker")
                 .args([
-                    "exec", "-w", "/repo", &self.container_name,
-                    "python3", "-c", &check_cmd,
+                    "exec",
+                    "-w",
+                    "/repo",
+                    &self.container_name,
+                    "python3",
+                    "-c",
+                    &check_cmd,
                 ])
                 .stdout(Stdio::null())
                 .stderr(Stdio::null())
@@ -215,6 +232,16 @@ impl DockerSandbox {
     /// Call a tool on the HTTP tool server running inside the container.
     /// Pipes the JSON args via stdin to avoid shell escaping issues.
     pub async fn tool_request(&self, tool_name: &str, args_json: &str) -> SandboxOutput {
+        for ch in tool_name.chars() {
+            if !matches!(ch, 'a'..='z' | 'A'..='Z' | '0'..='9' | '_') {
+                return SandboxOutput {
+                    stdout: String::new(),
+                    stderr: format!("Invalid tool name: {}", tool_name),
+                    exit_code: -1,
+                };
+            }
+        }
+
         let script = format!(
             "import sys, urllib.request, json\n\
              data = sys.stdin.read()\n\
@@ -230,29 +257,31 @@ impl DockerSandbox {
             self.tool_port, tool_name
         );
 
-        let result = tokio::time::timeout(
-            std::time::Duration::from_millis(65_000),
-            async {
-                let mut child = Command::new("docker")
-                    .args([
-                        "exec", "-i", "-w", "/repo",
-                        &self.container_name,
-                        "python3", "-c", &script,
-                    ])
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .stderr(Stdio::piped())
-                    .spawn()?;
+        let result = tokio::time::timeout(std::time::Duration::from_millis(65_000), async {
+            let mut child = Command::new("docker")
+                .args([
+                    "exec",
+                    "-i",
+                    "-w",
+                    "/repo",
+                    &self.container_name,
+                    "python3",
+                    "-c",
+                    &script,
+                ])
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .spawn()?;
 
-                if let Some(ref mut stdin) = child.stdin {
-                    use tokio::io::AsyncWriteExt;
-                    stdin.write_all(args_json.as_bytes()).await?;
-                    stdin.shutdown().await?;
-                }
-
-                child.wait_with_output().await
+            if let Some(ref mut stdin) = child.stdin {
+                use tokio::io::AsyncWriteExt;
+                stdin.write_all(args_json.as_bytes()).await?;
+                stdin.shutdown().await?;
             }
-        )
+
+            child.wait_with_output().await
+        })
         .await;
 
         match result {
@@ -315,14 +344,63 @@ impl DockerSandbox {
     }
 
     /// Write a file to an absolute path inside the container.
+    ///
+    /// Only allows paths under known safe prefixes (`/tools/`).
     async fn write_file_abs(&self, abs_path: &str, content: &str) -> Result<()> {
+        if !abs_path.starts_with("/tools/") {
+            anyhow::bail!(
+                "write_file_abs only allows paths under /tools/, got '{}'",
+                abs_path
+            );
+        }
+        for ch in abs_path.chars() {
+            if matches!(
+                ch,
+                '\'' | '"'
+                    | '`'
+                    | '$'
+                    | '!'
+                    | '&'
+                    | '|'
+                    | ';'
+                    | '('
+                    | ')'
+                    | '{'
+                    | '}'
+                    | '<'
+                    | '>'
+                    | '\\'
+                    | '\0'
+                    | '\n'
+                    | '\r'
+            ) {
+                anyhow::bail!(
+                    "invalid character in absolute path '{}': shell metacharacters not allowed",
+                    abs_path
+                );
+            }
+        }
+        if abs_path.contains("..") {
+            anyhow::bail!(
+                "absolute path '{}' contains '..' (path traversal not allowed)",
+                abs_path
+            );
+        }
+
         let mkdir_cmd = format!("mkdir -p \"$(dirname '{}')\"", abs_path);
         self.exec(&mkdir_cmd, 10_000).await;
 
         let tee_cmd = format!("cat > '{}'", abs_path);
         let mut child = Command::new("docker")
             .args([
-                "exec", "-i", "-w", "/repo", &self.container_name, "bash", "-c", &tee_cmd,
+                "exec",
+                "-i",
+                "-w",
+                "/repo",
+                &self.container_name,
+                "bash",
+                "-c",
+                &tee_cmd,
             ])
             .stdin(Stdio::piped())
             .stdout(Stdio::null())
@@ -348,6 +426,8 @@ impl DockerSandbox {
 
     /// Write a file inside the container by piping content via stdin.
     pub async fn write_file(&self, path: &str, content: &str) -> Result<()> {
+        validate_file_path(path)?;
+
         // First ensure the parent directory exists
         let mkdir_cmd = format!("mkdir -p \"$(dirname '/repo/{}')\"", path);
         self.exec(&mkdir_cmd, 10_000).await;
@@ -389,6 +469,8 @@ impl DockerSandbox {
 
     /// Read a file from inside the container.
     pub async fn read_file(&self, path: &str) -> Result<String> {
+        validate_file_path(path)?;
+
         let cmd = format!("cat '/repo/{}'", path);
         let result = self.exec(&cmd, 10_000).await;
         if result.exit_code != 0 {
@@ -403,12 +485,15 @@ impl DockerSandbox {
 
     /// Destroy the container.
     pub async fn destroy(&self) {
-        let _ = Command::new("docker")
+        if let Err(e) = Command::new("docker")
             .args(["rm", "-f", &self.container_name])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()
-            .await;
+            .await
+        {
+            tracing::debug!(container = %self.container_name, error = %e, "Failed to destroy container");
+        }
         tracing::debug!(container = %self.container_name, "Docker sandbox destroyed");
     }
 
@@ -416,7 +501,6 @@ impl DockerSandbox {
     pub fn name(&self) -> &str {
         &self.container_name
     }
-
 }
 
 /// Ensure the sandbox is destroyed when dropped (best-effort sync cleanup).
