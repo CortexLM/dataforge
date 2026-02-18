@@ -137,10 +137,13 @@ async fn docker_exec(container: &str, cmd: &str, timeout_secs: u64) -> (i32, Str
 }
 
 async fn docker_rm(container: &str) {
-    let _ = Command::new("docker")
+    if let Err(e) = Command::new("docker")
         .args(["rm", "-f", container])
         .output()
-        .await;
+        .await
+    {
+        tracing::debug!(container = container, error = %e, "Failed to remove container (may not exist)");
+    }
 }
 
 async fn docker_write_file(container: &str, path: &str, content: &str) -> Result<()> {

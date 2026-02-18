@@ -55,12 +55,15 @@ impl DockerSandbox {
         let tool_port = 10_000 + (ts_suffix as u16 % 50_000);
 
         // Remove stale container if it exists
-        let _ = Command::new("docker")
+        if let Err(e) = Command::new("docker")
             .args(["rm", "-f", &container_name])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()
-            .await;
+            .await
+        {
+            tracing::debug!(container = %container_name, error = %e, "Failed to remove stale container (may not exist)");
+        }
 
         let run_output = Command::new("docker")
             .args([
@@ -482,12 +485,15 @@ impl DockerSandbox {
 
     /// Destroy the container.
     pub async fn destroy(&self) {
-        let _ = Command::new("docker")
+        if let Err(e) = Command::new("docker")
             .args(["rm", "-f", &self.container_name])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status()
-            .await;
+            .await
+        {
+            tracing::debug!(container = %self.container_name, error = %e, "Failed to destroy container");
+        }
         tracing::debug!(container = %self.container_name, "Docker sandbox destroyed");
     }
 
