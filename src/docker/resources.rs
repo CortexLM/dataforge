@@ -8,6 +8,7 @@ use std::collections::HashMap;
 
 /// Network isolation mode for containers.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "snake_case")]
 pub enum NetworkMode {
     /// No network access at all.
     None,

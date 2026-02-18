@@ -25,9 +25,9 @@ pub struct ProgressSnapshot {
     pub enriched: usize,
     /// Number of PRs that completed pre-classification.
     pub preclassified: usize,
-    /// Number of tasks currently in deep processing.
+    /// Number of tasks that entered deep processing (extraction + test gen + quality).
     pub deep_processing: usize,
-    /// Number of active Docker containers.
+    /// Number of Docker sandbox containers started.
     pub docker_active: usize,
     /// Wall-clock elapsed time since the monitor started.
     pub elapsed: Duration,

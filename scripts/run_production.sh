@@ -81,21 +81,6 @@ count_exported() {
     fi
 }
 
-last_progress_time() {
-    if [ -f "$LOG_FILE" ]; then
-        local last_line
-        last_line=$(grep -E "(Task accepted|Exported task|Pipeline progress)" "$LOG_FILE" 2>/dev/null | tail -1)
-        if [ -n "$last_line" ]; then
-            # Extract timestamp if present, otherwise use file mtime
-            stat -c%Y "$LOG_FILE" 2>/dev/null || stat -f%m "$LOG_FILE" 2>/dev/null || date +%s
-        else
-            echo 0
-        fi
-    else
-        echo 0
-    fi
-}
-
 is_running() {
     if [ -f "$PID_FILE" ]; then
         local pid
@@ -106,12 +91,20 @@ is_running() {
     return 1
 }
 
+json_escape() {
+    printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/\t/\\t/g'
+}
+
 write_summary() {
     local easy_count medium_count hard_count total_exported
     easy_count=$(count_accepted "easy")
     medium_count=$(count_accepted "medium")
     hard_count=$(count_accepted "hard")
     total_exported=$(count_exported)
+
+    local escaped_log_file escaped_output_dir
+    escaped_log_file=$(json_escape "$LOG_FILE")
+    escaped_output_dir=$(json_escape "$OUTPUT_DIR")
 
     cat > "${OUTPUT_DIR}/run_summary.json" <<EOF
 {
@@ -124,8 +117,8 @@ write_summary() {
     "medium": $medium_count,
     "hard": $hard_count
   },
-  "log_file": "$LOG_FILE",
-  "output_dir": "$OUTPUT_DIR"
+  "log_file": "$escaped_log_file",
+  "output_dir": "$escaped_output_dir"
 }
 EOF
     log "Summary written to ${OUTPUT_DIR}/run_summary.json"
@@ -209,9 +202,7 @@ while true; do
     fi
 
     # Progress report
-    local current_exported
     current_exported=$(count_exported)
-    local easy_count medium_count hard_count
     easy_count=$(count_accepted "easy")
     medium_count=$(count_accepted "medium")
     hard_count=$(count_accepted "hard")
@@ -223,7 +214,6 @@ while true; do
         LAST_EXPORTED=$current_exported
         LAST_CHANGE_TIME=$(date +%s)
     else
-        local now stall_duration
         now=$(date +%s)
         stall_duration=$((now - LAST_CHANGE_TIME))
         if [ "$stall_duration" -gt "$STALL_TIMEOUT" ]; then
@@ -237,21 +227,16 @@ while true; do
 
     # Throughput estimation
     if [ "$current_exported" -gt 0 ]; then
-        local elapsed_since_start
         if [ -f "$PID_FILE" ]; then
-            local pid_time
             pid_time=$(stat -c%Y "$PID_FILE" 2>/dev/null || stat -f%m "$PID_FILE" 2>/dev/null || date +%s)
-            local now
             now=$(date +%s)
             elapsed_since_start=$((now - pid_time))
             if [ "$elapsed_since_start" -gt 0 ]; then
-                local rate remaining_tasks eta_secs
                 rate=$(echo "scale=2; $current_exported / $elapsed_since_start * 3600" | bc 2>/dev/null || echo "?")
                 # Parse total target from DIFFICULTY_TARGETS
-                local total_target=0
+                total_target=0
                 IFS=',' read -ra PAIRS <<< "$DIFFICULTY_TARGETS"
                 for pair in "${PAIRS[@]}"; do
-                    local count
                     count=$(echo "$pair" | cut -d: -f2 | tr -d ' ')
                     total_target=$((total_target + count))
                 done

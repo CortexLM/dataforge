@@ -25,6 +25,7 @@ use crate::swe::{
     filters::SweepFilter,
     gharchive::GhArchiveClient,
     orchestrator::DifficultyTargets,
+    progress::ProgressCounters,
     quality::{QualityConfig, QualityScorer},
     test_generator::TestGenerator,
     SweTask,
@@ -84,6 +85,7 @@ pub struct BenchmarkMetrics {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum SwePipelineEvent {
     CollectionStarted {
         requested: usize,
@@ -232,7 +234,8 @@ impl SwePipeline {
         event_tx: Option<Sender<SwePipelineEvent>>,
         export_config: Option<Arc<ExportConfig>>,
     ) -> anyhow::Result<SwePipelineRunResult> {
-        self.run_full(config, event_tx, export_config, None).await
+        self.run_full(config, event_tx, export_config, None, None)
+            .await
     }
 
     /// Full pipeline run with optional disk export and optional dataset (parquet + HF) manager.
@@ -242,6 +245,7 @@ impl SwePipeline {
         event_tx: Option<Sender<SwePipelineEvent>>,
         export_config: Option<Arc<ExportConfig>>,
         dataset_handle: Option<DatasetHandle>,
+        progress: Option<ProgressCounters>,
     ) -> anyhow::Result<SwePipelineRunResult> {
         let pipeline_start = Instant::now();
 
@@ -428,6 +432,7 @@ impl SwePipeline {
                 let languages_m = languages_m.clone();
                 let cancelled = cancelled.clone();
                 let mining_image = config.mining_image.clone();
+                let progress = progress.clone();
                 async move {
                     // Helper: check if all quotas are met (multi-target mode)
                     let all_targets_met = |per_diff: &HashMap<String, usize>, dt: &Option<DifficultyTargets>| -> bool {
@@ -464,10 +469,13 @@ impl SwePipeline {
 
                     // --- Stage 1: Enrich ---
                     let enriched = {
-                        let _permit = enrich_sem.acquire().await.unwrap();
+                        let Ok(_permit) = enrich_sem.acquire().await else { return };
                         match enricher.enrich(&event).await {
                             Ok(e) => {
                                 enriched_count_m.fetch_add(1, Ordering::Relaxed);
+                                if let Some(ref p) = progress {
+                                    p.enriched.fetch_add(1, Ordering::Relaxed);
+                                }
                                 e
                             }
                             Err(_) => {
@@ -523,6 +531,9 @@ impl SwePipeline {
                         &enriched.body,
                     );
                     filtered_count.fetch_add(1, Ordering::Relaxed);
+                    if let Some(ref p) = progress {
+                        p.filtered.fetch_add(1, Ordering::Relaxed);
+                    }
                     if filter_result.accepted {
                         filter_passed_m.fetch_add(1, Ordering::Relaxed);
                     } else {
@@ -551,7 +562,7 @@ impl SwePipeline {
                     // --- Stage 3: Pre-classify difficulty ---
                     // Acquire backpressure permit: blocks if deep processing queue is full,
                     // preventing pre-classification from racing far ahead.
-                    let _backlog_permit = deep_backlog_sem.acquire().await.unwrap();
+                    let Ok(_backlog_permit) = deep_backlog_sem.acquire().await else { return };
                     // Check cache first to avoid redundant LLM calls
                     let cached_triage = cache.triage_difficulty(
                         &enriched.repository, enriched.number
@@ -563,6 +574,9 @@ impl SwePipeline {
                             triage = %cached, "Using cached classification"
                         );
                         preclassify_count_m.fetch_add(1, Ordering::Relaxed);
+                        if let Some(ref p) = progress {
+                            p.preclassified.fetch_add(1, Ordering::Relaxed);
+                        }
                         match cached.as_str() {
                             "easy" => { preclassify_easy_m.fetch_add(1, Ordering::Relaxed); }
                             "medium" => { preclassify_medium_m.fetch_add(1, Ordering::Relaxed); }
@@ -571,7 +585,7 @@ impl SwePipeline {
                         }
                         Some(cached)
                     } else if dt.is_some() || df.is_some() {
-                        let _permit = preclassify_sem.acquire().await.unwrap();
+                        let Ok(_permit) = preclassify_sem.acquire().await else { return };
                         let filter_val = df.as_deref().unwrap_or("medium");
                         let classify_input = crate::swe::quality::ClassifyInput {
                             repo: &enriched.repository,
@@ -587,6 +601,9 @@ impl SwePipeline {
                         match quality.classify(&classify_input, filter_val).await {
                             Ok(pre) => {
                                 preclassify_count_m.fetch_add(1, Ordering::Relaxed);
+                                if let Some(ref p) = progress {
+                                    p.preclassified.fetch_add(1, Ordering::Relaxed);
+                                }
                                 match pre.difficulty.as_str() {
                                     "easy" => { preclassify_easy_m.fetch_add(1, Ordering::Relaxed); }
                                     "medium" => { preclassify_medium_m.fetch_add(1, Ordering::Relaxed); }
@@ -668,7 +685,10 @@ impl SwePipeline {
                     }
 
                     // --- Stage 4: Deep processing (extraction + test gen + quality) ---
-                    let _permit = deep_sem.acquire().await.unwrap();
+                    let Ok(_permit) = deep_sem.acquire().await else { return };
+                    if let Some(ref p) = progress {
+                        p.deep_processing.fetch_add(1, Ordering::Relaxed);
+                    }
 
                     if dt.is_none() && completed.load(Ordering::Relaxed) >= max_tasks && once {
                         return;
@@ -678,6 +698,9 @@ impl SwePipeline {
                     }
 
                     extraction_attempted_m.fetch_add(1, Ordering::Relaxed);
+                    if let Some(ref p) = progress {
+                        p.docker_active.fetch_add(1, Ordering::Relaxed);
+                    }
                     let patch = match extractor.extract_patch(&PatchExtractionInput {
                         repository: &enriched.repository,
                         pull_number: enriched.number,
@@ -689,10 +712,16 @@ impl SwePipeline {
                     }).await {
                         Ok(p) => {
                             extraction_succeeded_m.fetch_add(1, Ordering::Relaxed);
+                            if let Some(ref p2) = progress {
+                                p2.docker_active.fetch_sub(1, Ordering::Relaxed);
+                            }
                             p
                         }
                         Err(err) => {
                             extraction_failed_m.fetch_add(1, Ordering::Relaxed);
+                            if let Some(ref p2) = progress {
+                                p2.docker_active.fetch_sub(1, Ordering::Relaxed);
+                            }
                             tracing::warn!(repo = %enriched.repository, pr = enriched.number, error = %err, "Extraction failed");
                             return;
                         }
@@ -774,6 +803,9 @@ impl SwePipeline {
 
                     scored_count.fetch_add(1, Ordering::Relaxed);
                     quality_scored_m.fetch_add(1, Ordering::Relaxed);
+                    if let Some(ref p) = progress {
+                        p.scored.fetch_add(1, Ordering::Relaxed);
+                    }
 
                     let (score, passed) = (assessment.score, assessment.passed);
                     quality_scores_m.lock().await.push(score);
@@ -869,6 +901,9 @@ impl SwePipeline {
                         }
 
                         accepted_count_m.fetch_add(1, Ordering::Relaxed);
+                        if let Some(ref p) = progress {
+                            p.accepted.fetch_add(1, Ordering::Relaxed);
+                        }
                         {
                             let mut langs = languages_m.lock().await;
                             *langs.entry(task.language.clone()).or_insert(0) += 1;
@@ -921,6 +956,9 @@ impl SwePipeline {
 
                             completed.fetch_add(1, Ordering::Relaxed);
                             extracted_count.fetch_add(1, Ordering::Relaxed);
+                            if let Some(ref p) = progress {
+                                p.extracted.fetch_add(1, Ordering::Relaxed);
+                            }
                             tasks_mu.lock().await.push(task);
                             tracing::info!(
                                 difficulty = %level,
@@ -960,6 +998,9 @@ impl SwePipeline {
                                 }
 
                                 extracted_count.fetch_add(1, Ordering::Relaxed);
+                                if let Some(ref p) = progress {
+                                    p.extracted.fetch_add(1, Ordering::Relaxed);
+                                }
                                 tasks_mu.lock().await.push(task);
                                 tracing::info!(
                                     completed = prev + 1,

@@ -795,15 +795,13 @@ async fn run_swe_mine_command(args: SweMineArgs) -> anyhow::Result<()> {
         .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
         .or_else(|| std::env::var("LITELLM_API_KEY").ok());
 
-    if api_key.is_none() {
-        anyhow::bail!(
-            "OPENROUTER_API_KEY is required but not set.\n\
-             Provide it via --api-key <KEY> or set the OPENROUTER_API_KEY environment variable."
-        );
-    }
-
     let llm_client: Arc<dyn crate::llm::LlmProvider> = {
-        let key = api_key.unwrap();
+        let key = api_key.ok_or_else(|| {
+            anyhow::anyhow!(
+                "OPENROUTER_API_KEY is required but not set.\n\
+                 Provide it via --api-key <KEY> or set the OPENROUTER_API_KEY environment variable."
+            )
+        })?;
         info!(model = %args.model, "Using OpenRouter with specified API key");
         Arc::new(OpenRouterProvider::with_model(key, args.model.clone()))
     };
@@ -947,15 +945,13 @@ async fn run_swe_benchmark_command(args: SweBenchmarkArgs) -> anyhow::Result<()>
         .or_else(|| std::env::var("OPENROUTER_API_KEY").ok())
         .or_else(|| std::env::var("LITELLM_API_KEY").ok());
 
-    if api_key.is_none() {
-        anyhow::bail!(
-            "OPENROUTER_API_KEY is required but not set.\n\
-             Provide it via --api-key <KEY> or set the OPENROUTER_API_KEY environment variable."
-        );
-    }
-
     let llm_client: Arc<dyn crate::llm::LlmProvider> = {
-        let key = api_key.unwrap();
+        let key = api_key.ok_or_else(|| {
+            anyhow::anyhow!(
+                "OPENROUTER_API_KEY is required but not set.\n\
+                 Provide it via --api-key <KEY> or set the OPENROUTER_API_KEY environment variable."
+            )
+        })?;
         info!(model = %args.model, "Using OpenRouter for benchmark");
         Arc::new(OpenRouterProvider::with_model(key, args.model.clone()))
     };

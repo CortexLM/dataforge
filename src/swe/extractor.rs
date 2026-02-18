@@ -6,6 +6,20 @@ use anyhow::Result;
 use crate::swe::docker_sandbox::DockerSandbox;
 use crate::swe::SweTask;
 
+/// Validate a git ref (commit SHA, branch name, or ref range like `a..b`).
+/// Only allows alphanumeric chars, `-`, `_`, `.`, `/`, `~`, `^`, and `..`.
+fn validate_git_ref(git_ref: &str) -> Result<()> {
+    if git_ref.is_empty() {
+        anyhow::bail!("git ref must not be empty");
+    }
+    for ch in git_ref.chars() {
+        if !ch.is_alphanumeric() && !"-_.~/^".contains(ch) {
+            anyhow::bail!("git ref contains invalid character '{}': '{}'", ch, git_ref);
+        }
+    }
+    Ok(())
+}
+
 fn github_token() -> Option<String> {
     std::env::var("GITHUB_TOKEN")
         .ok()
@@ -189,11 +203,14 @@ impl PatchExtractor {
     /// Clone the repo inside a Docker container and extract the diff.
     async fn fetch_diff_from_docker(&self, input: &PatchExtractionInput<'_>) -> Result<String> {
         let base_commit = input.base_commit.unwrap_or("");
+        // DockerSandbox::start already validates repo name and base_commit
         let sandbox =
             DockerSandbox::start(input.repository, base_commit, input.language, None).await?;
 
         let diff_ref = match (input.base_commit, input.merge_commit) {
             (Some(base), Some(merge)) if !base.is_empty() && !merge.is_empty() => {
+                validate_git_ref(merge)?;
+                validate_git_ref(base)?;
                 // Fetch the merge commit (shallow clone may not have it)
                 sandbox
                     .exec(
@@ -204,6 +221,7 @@ impl PatchExtractor {
                 format!("{base}..{merge}")
             }
             (_, Some(merge)) if !merge.is_empty() => {
+                validate_git_ref(merge)?;
                 sandbox
                     .exec(
                         &format!("git fetch origin {} --depth=1 2>&1", merge),

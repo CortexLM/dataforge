@@ -7,6 +7,79 @@ use anyhow::Result;
 use std::process::Stdio;
 use tokio::process::Command;
 
+/// Validate a GitHub repository name (`owner/repo`).
+/// Rejects values containing shell metacharacters.
+fn validate_repo_name(repo: &str) -> Result<()> {
+    if repo.is_empty() {
+        anyhow::bail!("repository name must not be empty");
+    }
+    let parts: Vec<&str> = repo.splitn(2, '/').collect();
+    if parts.len() != 2 || parts[0].is_empty() || parts[1].is_empty() {
+        anyhow::bail!(
+            "repository name must be in 'owner/repo' format, got '{}'",
+            repo
+        );
+    }
+    for ch in repo.chars() {
+        if !ch.is_alphanumeric() && ch != '/' && ch != '-' && ch != '_' && ch != '.' {
+            anyhow::bail!(
+                "repository name contains invalid character '{}': '{}'",
+                ch,
+                repo
+            );
+        }
+    }
+    Ok(())
+}
+
+/// Validate a git ref (commit SHA, branch name, or ref range like `a..b`).
+/// Only allows alphanumeric chars, `-`, `_`, `.`, `/`, `~`, `^`, and `..`.
+fn validate_git_ref(git_ref: &str) -> Result<()> {
+    if git_ref.is_empty() {
+        anyhow::bail!("git ref must not be empty");
+    }
+    for ch in git_ref.chars() {
+        if !ch.is_alphanumeric() && !"-_.~/^".contains(ch) {
+            anyhow::bail!("git ref contains invalid character '{}': '{}'", ch, git_ref);
+        }
+    }
+    Ok(())
+}
+
+/// Validate a file path for use inside a container.
+/// Rejects path traversal (`..`), absolute paths, and shell metacharacters.
+fn validate_container_path(path: &str) -> Result<()> {
+    if path.is_empty() {
+        anyhow::bail!("container path must not be empty");
+    }
+    if path.starts_with('/') {
+        anyhow::bail!("container path must be relative, got '{}'", path);
+    }
+    if path.contains("..") {
+        anyhow::bail!("container path must not contain '..': '{}'", path);
+    }
+    for ch in path.chars() {
+        if ch == '\''
+            || ch == '"'
+            || ch == '`'
+            || ch == '$'
+            || ch == ';'
+            || ch == '|'
+            || ch == '&'
+            || ch == '\n'
+            || ch == '\r'
+            || ch == '\0'
+        {
+            anyhow::bail!(
+                "container path contains shell metacharacter '{}': '{}'",
+                ch,
+                path
+            );
+        }
+    }
+    Ok(())
+}
+
 /// Shell command output from inside the container.
 pub struct SandboxOutput {
     pub stdout: String,
@@ -40,6 +113,11 @@ impl DockerSandbox {
         language: &str,
         image_override: Option<&str>,
     ) -> Result<Self> {
+        validate_repo_name(repo)?;
+        if !base_commit.is_empty() {
+            validate_git_ref(base_commit)?;
+        }
+
         let image = image_override.unwrap_or_else(|| image_for_language(language));
         let safe_name = repo.replace('/', "-").replace(' ', "_");
         let container_name = format!(
@@ -210,6 +288,8 @@ impl DockerSandbox {
 
     /// Write a file inside the container by piping content via stdin.
     pub async fn write_file(&self, path: &str, content: &str) -> Result<()> {
+        validate_container_path(path)?;
+
         // First ensure the parent directory exists
         let mkdir_cmd = format!("mkdir -p \"$(dirname '/repo/{}')\"", path);
         self.exec(&mkdir_cmd, 10_000).await;
@@ -251,6 +331,8 @@ impl DockerSandbox {
 
     /// Read a file from inside the container.
     pub async fn read_file(&self, path: &str) -> Result<String> {
+        validate_container_path(path)?;
+
         let cmd = format!("cat '/repo/{}'", path);
         let result = self.exec(&cmd, 10_000).await;
         if result.exit_code != 0 {
