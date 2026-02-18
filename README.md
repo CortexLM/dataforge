@@ -317,7 +317,7 @@ swe-forge swe mine [OPTIONS]
 
 Options:
   -o, --output <DIR>          Output directory [default: ./swe-datasets]
-  -m, --model <MODEL>         OpenRouter model [default: moonshotai/kimi-k2.5:nitro]
+  -m, --model <MODEL>         OpenRouter model [default: openai/gpt-5.2-codex:nitro]
   -n, --max-tasks <N>         Number of tasks to generate [default: 1]
   -d, --difficulty <LEVEL>    Filter: easy, medium, hard [optional]
       --min-stars <N>         Minimum repo stars [default: 20]
@@ -410,7 +410,7 @@ GitHub API allows 5000 requests/hour per token. The pipeline processes candidate
 
 ### Model selection
 
-The default model is `moonshotai/kimi-k2.5:nitro` via OpenRouter. Any OpenRouter-compatible model that supports function calling can be used:
+The default model is `openai/gpt-5.2-codex:nitro` via OpenRouter. Any OpenRouter-compatible model that supports function calling can be used:
 
 ```bash
 cargo run -- swe mine --model anthropic/claude-sonnet-4 --max-tasks 5
@@ -427,7 +427,7 @@ RUST_LOG=debug cargo run -- swe mine --max-tasks 1 --once  # Debug run
 
 ## Benchmark Results
 
-Benchmark run on **2026-02-17** processing 100 candidate PRs from GH Archive through the full pipeline (GH Archive → enrichment → filtering → LLM classification → patch extraction → Docker-based agentic test generation → quality scoring → export). Model: `moonshotai/kimi-k2.5:nitro` via OpenRouter.
+Benchmark run on **2026-02-17** processing 100 candidate PRs from GH Archive through the full pipeline (GH Archive → enrichment → filtering → LLM classification → patch extraction → Docker-based agentic test generation → quality scoring → export). Model: `openai/gpt-5.2-codex:nitro` via OpenRouter.
 
 ### Pipeline Funnel
 

@@ -253,7 +253,7 @@ def main():
         print("ERROR: OPENROUTER_API_KEY environment variable is required")
         print("Please set it before running: export OPENROUTER_API_KEY=your-key-here")
         sys.exit(1)
-    MODEL = "moonshotai/kimi-k2.5"
+    MODEL = "openai/gpt-5.2-codex"
     OUTPUT_DIR = "./test-outputs/benchmark-eval"
     TASK_COUNT = 10
     
