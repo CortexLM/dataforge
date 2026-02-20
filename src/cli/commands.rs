@@ -175,7 +175,7 @@ pub struct SweMineArgs {
     #[arg(long, default_value = "true")]
     pub validate_workspace: bool,
 
-    /// Override enrichment concurrency (default: 10).
+    /// Override enrichment concurrency (default: 20).
     #[arg(long)]
     pub concurrency_enrich: Option<usize>,
 
@@ -231,7 +231,7 @@ pub struct SweBenchmarkArgs {
     #[arg(long, default_value = "gharchive")]
     pub source: String,
 
-    /// Override enrichment concurrency (default: 10).
+    /// Override enrichment concurrency (default: 20).
     #[arg(long)]
     pub concurrency_enrich: Option<usize>,
 

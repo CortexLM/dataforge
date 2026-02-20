@@ -329,7 +329,7 @@ impl SwePipeline {
         // Each event flows independently through: enrich -> filter -> pre-classify -> deep process.
         // Semaphores control concurrency at each stage. No chunk barriers.
         let deep_concurrency = config.concurrency_deep.unwrap_or(8);
-        let enrich_sem = Arc::new(Semaphore::new(config.concurrency_enrich.unwrap_or(10)));
+        let enrich_sem = Arc::new(Semaphore::new(config.concurrency_enrich.unwrap_or(20)));
         let preclassify_sem =
             Arc::new(Semaphore::new(config.concurrency_preclassify.unwrap_or(25)));
         let deep_sem = Arc::new(Semaphore::new(deep_concurrency));

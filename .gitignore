@@ -46,3 +46,5 @@ mine_test.log
 test-easy-output/
 .cache/
 .cargo/
+swe-forge.log
+auto_publish.log

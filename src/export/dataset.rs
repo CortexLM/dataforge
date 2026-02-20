@@ -221,6 +221,40 @@ impl DatasetManager {
             }
         }
 
+        // Upload task directories (workspace.yaml, prompt.md, tests/) to HF under tasks/
+        if let Some(ref uploader) = self.uploader {
+            let mut task_dirs = Vec::new();
+            Self::find_task_dirs(&self.config.output_dir, &mut task_dirs);
+            for task_dir in &task_dirs {
+                let rel = task_dir
+                    .strip_prefix(&self.config.output_dir)
+                    .unwrap_or(task_dir);
+                let task_id = rel
+                    .to_string_lossy()
+                    .replace(std::path::MAIN_SEPARATOR, "/");
+                let repo_prefix = format!("tasks/{}", task_id);
+                match uploader
+                    .upload_directory(task_dir, &repo_prefix, &format!("Add task {}", task_id))
+                    .await
+                {
+                    Ok(count) => {
+                        tracing::info!(
+                            task_id = %task_id,
+                            files = count,
+                            "Uploaded task directory to HF"
+                        );
+                    }
+                    Err(e) => {
+                        tracing::warn!(
+                            task_id = %task_id,
+                            error = %e,
+                            "Failed to upload task directory to HF"
+                        );
+                    }
+                }
+            }
+        }
+
         let summary = DatasetSummary {
             total_tasks: total,
             shard_count,
@@ -237,6 +271,21 @@ impl DatasetManager {
         );
 
         Ok(summary)
+    }
+
+    fn find_task_dirs(dir: &Path, out: &mut Vec<std::path::PathBuf>) {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for entry in entries.filter_map(|e| e.ok()) {
+                let path = entry.path();
+                if path.is_dir() {
+                    if path.join("workspace.yaml").exists() {
+                        out.push(path);
+                    } else {
+                        Self::find_task_dirs(&path, out);
+                    }
+                }
+            }
+        }
     }
 
     fn generate_dataset_card(name: &str, hf_cfg: &HfUploadConfig) -> String {
