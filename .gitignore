@@ -48,3 +48,6 @@ test-easy-output/
 .cargo/
 swe-forge.log
 auto_publish.log
+auto_publish*.log
+mining*.log
+__pycache__/
