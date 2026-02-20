@@ -4,7 +4,7 @@
 //! (including parquet) to a HuggingFace dataset repository.
 
 use reqwest::Client;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
@@ -16,20 +16,6 @@ pub struct HfUploadConfig {
     pub repo_id: String,
     pub token: String,
     pub private: bool,
-}
-
-#[derive(Debug, Serialize)]
-struct CreateRepoRequest {
-    #[serde(rename = "type")]
-    repo_type: String,
-    name: String,
-    private: bool,
-}
-
-#[derive(Debug, Deserialize)]
-#[allow(dead_code)]
-struct CreateRepoResponse {
-    url: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -68,14 +54,20 @@ impl HfUploader {
     pub async fn ensure_repo_exists(&self) -> anyhow::Result<()> {
         let url = format!("{}/repos/create", HF_API_BASE);
 
-        // Extract org/name for the API
-        let name = self.config.repo_id.clone();
-
-        let body = CreateRepoRequest {
-            repo_type: "dataset".to_string(),
-            name,
-            private: self.config.private,
+        let (organization, name) = if let Some((org, n)) = self.config.repo_id.split_once('/') {
+            (Some(org.to_string()), n.to_string())
+        } else {
+            (None, self.config.repo_id.clone())
         };
+
+        let mut body = serde_json::json!({
+            "type": "dataset",
+            "name": name,
+            "private": self.config.private,
+        });
+        if let Some(org) = organization {
+            body["organization"] = serde_json::Value::String(org);
+        }
 
         let resp = self
             .client
@@ -87,12 +79,16 @@ impl HfUploader {
 
         let status = resp.status();
         if status.is_success() || status.as_u16() == 409 {
-            // 409 = already exists, that's fine
             tracing::info!(repo = %self.config.repo_id, "HF dataset repo ready");
             Ok(())
         } else {
             let text = resp.text().await.unwrap_or_default();
-            anyhow::bail!("Failed to create HF repo ({}): {}", status, text);
+            if text.contains("already created") || text.contains("already exist") {
+                tracing::info!(repo = %self.config.repo_id, "HF dataset repo already exists");
+                Ok(())
+            } else {
+                anyhow::bail!("Failed to create HF repo ({}): {}", status, text);
+            }
         }
     }
 
@@ -226,6 +222,57 @@ impl HfUploader {
     pub async fn upload_dataset_card(&self, card_content: &str) -> anyhow::Result<()> {
         self.upload_file("README.md", card_content.as_bytes(), "Update dataset card")
             .await
+    }
+
+    /// Upload an entire directory tree to the HF repo.
+    /// `local_dir` is the directory on disk.
+    /// `repo_prefix` is the prefix path inside the repo (e.g. "tasks/my-task-id").
+    pub async fn upload_directory(
+        &self,
+        local_dir: &Path,
+        repo_prefix: &str,
+        commit_message: &str,
+    ) -> anyhow::Result<usize> {
+        let mut file_pairs: Vec<(String, Vec<u8>)> = Vec::new();
+
+        fn walk(dir: &Path, prefix: &str, out: &mut Vec<(String, Vec<u8>)>) -> anyhow::Result<()> {
+            for entry in std::fs::read_dir(dir)? {
+                let entry = entry?;
+                let path = entry.path();
+                let name = entry.file_name().to_string_lossy().to_string();
+                let repo_path = if prefix.is_empty() {
+                    name.clone()
+                } else {
+                    format!("{}/{}", prefix, name)
+                };
+                if path.is_dir() {
+                    walk(&path, &repo_path, out)?;
+                } else if path.is_file() {
+                    if let Ok(bytes) = std::fs::read(&path) {
+                        out.push((repo_path, bytes));
+                    }
+                }
+            }
+            Ok(())
+        }
+
+        walk(local_dir, repo_prefix, &mut file_pairs)?;
+
+        if file_pairs.is_empty() {
+            return Ok(0);
+        }
+
+        let total = file_pairs.len();
+
+        for chunk in file_pairs.chunks(20) {
+            let refs: Vec<(&str, &[u8])> = chunk
+                .iter()
+                .map(|(p, b)| (p.as_str(), b.as_slice()))
+                .collect();
+            self.upload_files(&refs, commit_message).await?;
+        }
+
+        Ok(total)
     }
 
     pub fn repo_url(&self) -> String {
