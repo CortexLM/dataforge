@@ -48,4 +48,3 @@ test-easy-output/
 .cargo/
 swe-forge.log
 auto_publish.log
-generated-swe/

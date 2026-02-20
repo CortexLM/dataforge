@@ -52,7 +52,7 @@ src/
 ```
 GH Archive (hourly dumps, 8x concurrent)
   → Pre-filter (merged PRs, no bots, org repos)
-  → GitHub API enrichment (10x concurrent, rate-limited 5000/h)
+  → GitHub API enrichment (20x concurrent, rate-limited 5000/h)
   → Local filter (language, stars, files changed)
   → LLM pre-classification (25x concurrent, title+body only)
   → Patch extraction + agentic test generation (8x concurrent)
@@ -138,7 +138,7 @@ Git hooks are in `.githooks/` and activated via `git config core.hooksPath .gith
 
 4. **Docker containers must have resource limits** — All container creation must use `apply_resource_limits()` from `src/docker/resources.rs`. Difficulty-based limits are enforced: PIDs (100–500), storage (1–5 GB), network mode (none/internal). Never create containers without limits.
 
-5. **Respect GitHub API rate limits (5000 req/h)** — The pipeline uses semaphore-based concurrency (no chunk barriers). Each candidate needs ~2 API calls for enrichment. Never add unbounded concurrent GitHub API calls. Use the existing concurrency limits (enrichment: 10x, pre-classification: 25x, deep processing: 8x).
+5. **Respect GitHub API rate limits (5000 req/h)** — The pipeline uses semaphore-based concurrency (no chunk barriers). Each candidate needs ~2 API calls for enrichment. Never add unbounded concurrent GitHub API calls. Use the existing concurrency limits (enrichment: 20x, pre-classification: 25x, deep processing: 8x).
 
 6. **All async code must be `Send + Sync` compatible** — The codebase uses `Arc<dyn LlmProvider>` extensively. Trait objects must be `Send + Sync`. Never introduce `Rc`, `RefCell`, or non-Send types in async contexts.
 
