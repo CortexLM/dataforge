@@ -302,7 +302,11 @@ impl SweTask {
         (build, test)
     }
 
-    /// Build a simple install command map based on language.
+    /// Initial fallback install commands based on language.
+    ///
+    /// Overridden by LLM-generated commands from the test generator agent
+    /// when available. Kept as a fallback for when the LLM hasn't run yet
+    /// or doesn't return install commands.
     pub fn install_defaults(language: &str) -> BTreeMap<String, String> {
         let mut map = BTreeMap::new();
         match language.to_lowercase().as_str() {

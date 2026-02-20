@@ -39,22 +39,34 @@ EXECUTION:
 - `shell`: execute a shell command in the cloned repository (for installing deps, running tests, etc.).
 
 SUBMISSION:
-- `submit_tests`: return your final validated test commands AND the test files you wrote.
+- `submit_tests`: return your final validated test commands, the test files you wrote, AND the install commands that worked.
 
 IMPORTANT: Use `read_file`, `list_dir`, `grep_files`, `search_files` instead of shell commands
 like `cat`, `ls`, `grep`, `find` when exploring code. They return cleaner, more compact output.
 
 ENVIRONMENT: You are running in a bare `python:3.12-slim` Docker container with ONLY `git` and `python3` pre-installed.
 You MUST install all required tools, runtimes, and dependencies yourself via `shell` before doing anything else.
+The install_commands you submit will be replayed in a FRESH container, so they must be complete and
+self-contained (include apt-get for system deps, pip install, etc.).
 
 WORKFLOW:
-1. SETUP: Detect the project language and install what you need via `shell`:
-   - Python: `pip install -e .` or `pip install -r requirements.txt`
-   - JavaScript/TypeScript: `apt-get update && apt-get install -y nodejs npm && npm install`
-   - Go: `apt-get update && apt-get install -y golang`
-   - Rust: `apt-get update && apt-get install -y curl build-essential && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && . $HOME/.cargo/env && cargo fetch`
-   - Java: `apt-get update && apt-get install -y default-jdk`
-   - Or whatever the repo needs. Check the repo's README, Makefile, Dockerfile, etc.
+1. SETUP — INSTALL DEPENDENCIES (this is critical!):
+   a. First, explore the repo to determine the correct installation procedure:
+      - Check README.md, CONTRIBUTING.md, Makefile, Dockerfile, docker-compose.yml
+      - Check setup.py, pyproject.toml, setup.cfg (Python)
+      - Check package.json (JavaScript/TypeScript)
+      - Check Cargo.toml (Rust), go.mod (Go), pom.xml / build.gradle (Java)
+   b. Run installation commands via `shell` and carefully track which ones SUCCEED (exit code 0).
+      - Python: `pip install -e .` or `pip install -r requirements.txt` or `pip install -e ".[dev]"`
+      - JavaScript/TypeScript: `apt-get update && apt-get install -y nodejs npm && npm install`
+      - Go: `apt-get update && apt-get install -y golang`
+      - Rust: `apt-get update && apt-get install -y curl build-essential && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y && . $HOME/.cargo/env && cargo fetch`
+      - Java: `apt-get update && apt-get install -y default-jdk`
+      - Or whatever the repo needs. Every project is different!
+   c. If the first install attempt fails, read error output, fix the issue, and retry.
+      Common fixes: install system packages first (apt-get install -y build-essential libffi-dev),
+      use a different install command, install optional dependencies separately.
+   d. ONLY include commands that exited with code 0 in your `install_commands` submission.
 2. Use `shell` to explore the repo: project structure, existing tests, build system, dependencies.
 3. Read the PR diff carefully: understand WHAT changed and WHY.
 4. Find existing test suites covering code ADJACENT to the PR changes -- add them as pass_to_pass.
@@ -62,7 +74,7 @@ WORKFLOW:
 6. Run your tests via `shell` to validate: fail_to_pass MUST fail, pass_to_pass MUST pass on base.
 6b. VERIFY pass_to_pass: Run each pass_to_pass command via `shell` and confirm exit code 0.
     If it fails, choose a different existing test or use a build command instead.
-7. Call `submit_tests` with everything.
+7. Call `submit_tests` with everything, including install_commands.
 
 MANDATORY RULES FOR TEST QUALITY:
 
@@ -163,7 +175,7 @@ fn write_file_tool() -> ToolDefinition {
 fn submit_tool() -> ToolDefinition {
     ToolDefinition::function(
         "submit_tests",
-        "Submit the final validated test commands and the test files you wrote.",
+        "Submit the final validated test commands, test files, and install commands.",
         serde_json::json!({
             "type": "object",
             "properties": {
@@ -188,9 +200,14 @@ fn submit_tool() -> ToolDefinition {
                         "required": ["path", "content"]
                     },
                     "description": "Test files written during this session"
+                },
+                "install_commands": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Shell commands that successfully installed all dependencies in this Docker container. Only include commands that exited with code 0. These will be used to reproduce the environment in a fresh container."
                 }
             },
-            "required": ["fail_to_pass", "pass_to_pass", "test_files"]
+            "required": ["fail_to_pass", "pass_to_pass", "test_files", "install_commands"]
         }),
     )
 }
@@ -342,6 +359,8 @@ struct SubmitArgs {
     pass_to_pass: Vec<String>,
     #[serde(default)]
     test_files: Vec<TestFile>,
+    #[serde(default)]
+    install_commands: Vec<String>,
 }
 
 enum ValidationResult {
@@ -498,6 +517,28 @@ impl TestGenerator {
                                 continue;
                             }
 
+                            if submit.install_commands.is_empty() {
+                                if validation_retries < MAX_VALIDATION_RETRIES {
+                                    validation_retries += 1;
+                                    tracing::warn!(
+                                        task_id = %task.id,
+                                        retry = validation_retries,
+                                        "Rejecting empty install_commands"
+                                    );
+                                    messages.push(Message::tool_result(
+                                        &tc.id,
+                                        "REJECTED: install_commands must contain at least one command. \
+                                         Run installation commands via shell first, verify they succeed \
+                                         (exit code 0), then include them in install_commands.".to_string(),
+                                    ));
+                                    continue;
+                                }
+                                tracing::warn!(
+                                    task_id = %task.id,
+                                    "Empty install_commands after max retries, accepting with defaults"
+                                );
+                            }
+
                             // --- Heuristic: reject string-matching tests ---
                             if let Some(rejection) = reject_string_matching_tests(&all_files) {
                                 if validation_retries < MAX_VALIDATION_RETRIES {
@@ -638,6 +679,7 @@ impl TestGenerator {
                                 f2p = submit.fail_to_pass.len(),
                                 p2p = submit.pass_to_pass.len(),
                                 files = all_files.len(),
+                                install_cmds = submit.install_commands.len(),
                                 "Agent submitted tests"
                             );
                             task.fail_to_pass = submit.fail_to_pass;
@@ -646,6 +688,13 @@ impl TestGenerator {
                                 if let Ok(json) = serde_json::to_string(&all_files) {
                                     task.meta.insert("test_files".to_string(), json);
                                 }
+                            }
+                            if !submit.install_commands.is_empty() {
+                                let combined_install = submit.install_commands.join(" && ");
+                                task.install_config
+                                    .insert("install".to_string(), combined_install);
+                                task.meta
+                                    .insert("install_source".to_string(), "llm-agent".to_string());
                             }
                             task.meta.insert(
                                 "test_generation".to_string(),

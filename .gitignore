@@ -44,3 +44,5 @@ test-verify/
 *.db-wal
 mine_test.log
 test-easy-output/
+.cache/
+.cargo/

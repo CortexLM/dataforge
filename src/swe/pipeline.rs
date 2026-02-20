@@ -184,6 +184,7 @@ pub struct SwePipeline {
     test_generator: TestGenerator,
     quality: QualityScorer,
     prompt_rewriter: super::PromptRewriter,
+    llm: Arc<dyn LlmProvider>,
 }
 
 impl SwePipeline {
@@ -205,7 +206,7 @@ impl SwePipeline {
         });
         let test_generator = TestGenerator::with_image(llm.clone(), config.mining_image.clone());
         let quality = QualityScorer::new(llm.clone(), QualityConfig::default());
-        let prompt_rewriter = super::PromptRewriter::new(llm);
+        let prompt_rewriter = super::PromptRewriter::new(llm.clone());
 
         Ok(Self {
             archive,
@@ -215,6 +216,7 @@ impl SwePipeline {
             test_generator,
             quality,
             prompt_rewriter,
+            llm,
         })
     }
 
@@ -443,6 +445,7 @@ impl SwePipeline {
                 let languages_m = languages_m.clone();
                 let cancelled = cancelled.clone();
                 let mining_image = config.mining_image.clone();
+                let pipeline_llm = self.llm.clone();
                 async move {
                     // Helper: check if all quotas are met (multi-target mode)
                     let all_targets_met = |per_diff: &HashMap<String, usize>, dt: &Option<DifficultyTargets>| -> bool {
@@ -862,8 +865,9 @@ impl SwePipeline {
                             validation_attempted_m.fetch_add(1, Ordering::Relaxed);
                             let validator = crate::swe::workspace_validator::WorkspaceValidator::new(
                                 mining_image.clone(),
+                                Some(pipeline_llm.clone()),
                             );
-                            match validator.validate(&task).await {
+                            match validator.validate(&mut task).await {
                                 Ok(crate::swe::workspace_validator::ValidationOutcome::Passed) => {
                                     validation_passed_m.fetch_add(1, Ordering::Relaxed);
                                     tracing::info!(
