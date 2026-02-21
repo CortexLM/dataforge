@@ -1,2 +1,0 @@
-python -m pytest tests/test_yquake2_riscv_config.py -q
-python -m compileall -q python-src

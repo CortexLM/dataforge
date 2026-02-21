@@ -1,4 +1,0 @@
-./gradlew :core:compileJava --no-daemon
-./gradlew :security:compileJava --no-daemon
-./gradlew :core:compileJava --no-daemon -q
-./gradlew :security:compileJava --no-daemon -q

@@ -1,3 +1,0 @@
-PYTHONPATH=/repo python3 tests/test_toml_config_system.py
-PYTHONPATH=/repo python3 tests/test_toml_integration.py
-PYTHONPATH=/repo python3 tests/test_existing_functionality.py
