@@ -27,14 +27,16 @@ swe-forge connects to [GH Archive](https://www.gharchive.org/) to discover recen
 ```mermaid
 graph LR
     subgraph Mine["swe mine"]
-        GHA[GH Archive] --> PRE[Pre-filter] --> ENR[Enrich] --> CLS[Classify] --> EXT[Extract] --> TST[Test Gen] --> QUA[Quality] --> EXP[Export]
+        direction LR
+        A[Archive] --> B[Filter] --> C[Enrich] --> D[Classify] --> E[Extract] --> F[Test Gen] --> G[Score] --> H[Export]
     end
 
     subgraph Harness["swe harness"]
-        LOAD[Load] --> DOCK[Docker] --> SAN[Sanity] --> AGT[Agent] --> VER[Verify] --> RES[Results]
+        direction LR
+        I[Load] --> J[Docker] --> K[Sanity] --> L[Agent] --> M[Verify] --> N[Results]
     end
 
-    EXP -->|workspace.yaml| LOAD
+    H --> I
 ```
 
 ## Install
