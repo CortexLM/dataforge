@@ -1,4 +1,4 @@
-<h1 align="center">swe-forge</h1>
+<h1 align="center">SWE-Forge</h1>
 
 <p align="center">
   <a href="https://www.rust-lang.org/"><img src="https://img.shields.io/badge/rust-1.70%2B-orange.svg" alt="Rust"></a>
