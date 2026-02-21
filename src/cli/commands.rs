@@ -339,11 +339,16 @@ pub struct SweHarnessArgs {
     #[arg(short = 'j', long)]
     pub json: bool,
 
-    /// HuggingFace dataset repo ID to download tasks from (e.g. "CortexLM/swe-forge").
-    /// When provided, tasks are downloaded from the HF dataset's `tasks/` directory
+    /// HuggingFace dataset repo ID to download tasks from.
+    /// Tasks are downloaded from the HF dataset's `tasks/` directory
     /// into the input directory before running the harness.
-    #[arg(long)]
+    /// Use --no-dataset to skip downloading.
+    #[arg(long, default_value = "CortexLM/swe-forge")]
     pub dataset: Option<String>,
+
+    /// Skip downloading tasks from HuggingFace and use local tasks only.
+    #[arg(long, default_value_t = false)]
+    pub no_dataset: bool,
 
     /// Filter to only run a specific task by ID (e.g. "pygments/pygments-3027").
     #[arg(long)]
@@ -719,8 +724,9 @@ async fn run_swe_harness_command(args: SweHarnessArgs) -> anyhow::Result<()> {
 
     let mut input_path = std::path::PathBuf::from(&args.input);
 
-    // If --dataset is provided, download tasks from HuggingFace first
-    if let Some(ref dataset_repo) = args.dataset {
+    // Download tasks from HuggingFace unless --no-dataset is set
+    let effective_dataset = if args.no_dataset { None } else { args.dataset.clone() };
+    if let Some(ref dataset_repo) = effective_dataset {
         download_hf_tasks(dataset_repo, args.task_id.as_deref(), &input_path).await?;
 
         // The HF dataset stores tasks under tasks/ subdirectory
@@ -757,7 +763,7 @@ async fn run_swe_harness_command(args: SweHarnessArgs) -> anyhow::Result<()> {
     };
 
     // If --task-id is specified without --dataset, filter the input directory
-    let effective_input = if args.dataset.is_none() {
+    let effective_input = if effective_dataset.is_none() {
         if let Some(ref tid) = args.task_id {
             let task_dir = input_dir.join(tid);
             if !task_dir.exists() {
