@@ -25,41 +25,13 @@ swe-forge connects to [GH Archive](https://www.gharchive.org/) to discover recen
 ## Architecture overview
 
 ```mermaid
-graph TB
-    subgraph Mining["Mining Pipeline (swe mine)"]
-        GHA[GH Archive]
-        PRE[Pre-filter]
-        ENR[GitHub API Enrichment]
-        LOC[Local Filter]
-        CLS[LLM Pre-classification]
-        EXT[Patch Extraction]
-        TST[Agentic Test Generation]
-        QUA[Quality Scoring]
-        EXP[Export]
-
-        GHA --> PRE
-        PRE --> ENR
-        ENR --> LOC
-        LOC --> CLS
-        CLS --> EXT
-        EXT --> TST
-        TST --> QUA
-        QUA --> EXP
+graph LR
+    subgraph Mine["swe mine"]
+        GHA[GH Archive] --> PRE[Pre-filter] --> ENR[Enrich] --> CLS[Classify] --> EXT[Extract] --> TST[Test Gen] --> QUA[Quality] --> EXP[Export]
     end
 
-    subgraph Harness["Evaluation Harness (swe harness)"]
-        LOAD[Load Tasks]
-        DOCK[Docker Container Setup]
-        SAN[Sanity Check]
-        AGT[Run Agent]
-        VER[Verify Tests]
-        RES[Results Summary]
-
-        LOAD --> DOCK
-        DOCK --> SAN
-        SAN --> AGT
-        AGT --> VER
-        VER --> RES
+    subgraph Harness["swe harness"]
+        LOAD[Load] --> DOCK[Docker] --> SAN[Sanity] --> AGT[Agent] --> VER[Verify] --> RES[Results]
     end
 
     EXP -->|workspace.yaml| LOAD
