@@ -25,18 +25,20 @@ swe-forge connects to [GH Archive](https://www.gharchive.org/) to discover recen
 ## Architecture overview
 
 ```mermaid
-graph LR
+graph TD
     subgraph Mine["swe mine"]
         direction LR
-        A[Archive] --> B[Filter] --> C[Enrich] --> D[Classify] --> E[Extract] --> F[Test Gen] --> G[Score] --> H[Export]
-    end
-
-    subgraph Harness["swe harness"]
-        direction LR
-        I[Load] --> J[Docker] --> K[Sanity] --> L[Agent] --> M[Verify] --> N[Results]
+        A[Archive] --> B[Filter] --> C[Enrich] --> D[Classify]
+        D --> E[Extract] --> F[Test Gen] --> G[Score] --> H[Export]
     end
 
     H --> I
+
+    subgraph Harness["swe harness"]
+        direction LR
+        I[Load] --> J[Docker] --> K[Sanity]
+        K --> L[Agent] --> M[Verify] --> N[Results]
+    end
 ```
 
 ## Install
