@@ -25,20 +25,23 @@ swe-forge connects to [GH Archive](https://www.gharchive.org/) to discover recen
 ## Architecture overview
 
 ```mermaid
-graph TD
-    subgraph Mine["swe mine"]
-        direction LR
-        A[Archive] --> B[Filter] --> C[Enrich] --> D[Classify]
-        D --> E[Extract] --> F[Test Gen] --> G[Score] --> H[Export]
-    end
+sequenceDiagram
+    participant GHA as GH Archive
+    participant SF as swe-forge
+    participant GH as GitHub API
+    participant LLM as LLM (Codex)
+    participant D as Docker
 
-    H --> I
-
-    subgraph Harness["swe harness"]
-        direction LR
-        I[Load] --> J[Docker] --> K[Sanity]
-        K --> L[Agent] --> M[Verify] --> N[Results]
-    end
+    GHA->>SF: Merged PR events
+    SF->>GH: Enrich candidates
+    GH-->>SF: PR metadata + diff
+    SF->>LLM: Classify difficulty
+    LLM-->>SF: easy / medium / hard
+    SF->>D: Clone repo + agentic test gen
+    D-->>SF: fail_to_pass + pass_to_pass
+    SF->>LLM: Quality scoring
+    LLM-->>SF: Accept / reject
+    SF-->>SF: Export workspace.yaml
 ```
 
 ## Install
