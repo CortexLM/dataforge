@@ -683,11 +683,7 @@ print("OK")
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);
-        anyhow::bail!(
-            "Failed to download HF dataset '{}': {}",
-            repo_id,
-            stderr
-        );
+        anyhow::bail!("Failed to download HF dataset '{}': {}", repo_id, stderr);
     }
 
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -710,12 +706,7 @@ async fn run_swe_harness_command(args: SweHarnessArgs) -> anyhow::Result<()> {
 
     // If --dataset is provided, download tasks from HuggingFace first
     if let Some(ref dataset_repo) = args.dataset {
-        download_hf_tasks(
-            dataset_repo,
-            args.task_id.as_deref(),
-            &input_path,
-        )
-        .await?;
+        download_hf_tasks(dataset_repo, args.task_id.as_deref(), &input_path).await?;
 
         // The HF dataset stores tasks under tasks/ subdirectory
         let tasks_subdir = input_path.join("tasks");
