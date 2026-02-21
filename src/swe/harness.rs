@@ -32,7 +32,7 @@ impl Default for HarnessConfig {
     fn default() -> Self {
         Self {
             agent_dir: PathBuf::from("."),
-            agent_cmd: "python -m baseagent".to_string(),
+            agent_cmd: "python /agent/agent.py".to_string(),
             agent_timeout_secs: 600,
             test_timeout_secs: 120,
             docker_image: "python:3.12-slim".to_string(),
@@ -236,6 +236,10 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
 
     let openrouter_key = std::env::var("OPENROUTER_API_KEY").unwrap_or_default();
     let openrouter_env = format!("OPENROUTER_API_KEY={}", openrouter_key);
+    let chutes_key = std::env::var("CHUTES_API_KEY").unwrap_or_default();
+    let chutes_env = format!("CHUTES_API_KEY={}", chutes_key);
+    let github_token = std::env::var("GITHUB_TOKEN").unwrap_or_default();
+    let github_token_env = format!("GITHUB_TOKEN={}", github_token);
     let start_output = Command::new("docker")
         .args([
             "run",
@@ -246,8 +250,10 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
             "--memory=32g",
             "-e",
             &openrouter_env,
-            "-v",
-            &format!("{}:/agent:ro", agent_dir_abs.display()),
+            "-e",
+            &chutes_env,
+            "-e",
+            &github_token_env,
             "-w",
             "/repo",
             &docker_image,
@@ -270,6 +276,30 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
         }
         Err(e) => {
             result.error = Some(format!("Docker not available: {e}"));
+            return result;
+        }
+    }
+
+    // Copy agent directory into the container (avoids bind-mount issues with nested mounts)
+    let agent_src = format!("{}/.", agent_dir_abs.display());
+    let agent_dst = format!("{}:/agent/", cname);
+    let cp_result = Command::new("docker")
+        .args(["cp", &agent_src, &agent_dst])
+        .output()
+        .await;
+    match cp_result {
+        Ok(o) if o.status.success() => {
+            info!(task_id = %task.id, "Copied agent directory into container");
+        }
+        Ok(o) => {
+            result.error = Some(format!(
+                "Failed to copy agent into container: {}",
+                String::from_utf8_lossy(&o.stderr)
+            ));
+            return result;
+        }
+        Err(e) => {
+            result.error = Some(format!("docker cp failed: {e}"));
             return result;
         }
     }
@@ -409,7 +439,7 @@ async fn evaluate_task(task: &SweTask, config: &HarnessConfig) -> HarnessResult 
     info!(task_id = %task.id, "Running agent: {}", config.agent_cmd);
     let prompt_escaped = task.prompt.replace('\'', "'\\''");
     let agent_full_cmd = format!(
-        "cd /repo && {} --prompt '{}' --workdir /repo 2>&1",
+        "cd /repo && {} --instruction '{}' 2>&1",
         config.agent_cmd, prompt_escaped
     );
 
@@ -659,7 +689,7 @@ mod tests {
         assert_eq!(config.docker_image, "python:3.12-slim");
         assert!(!config.keep_containers);
         assert_eq!(config.parallel, 1);
-        assert_eq!(config.agent_cmd, "python -m baseagent");
+        assert_eq!(config.agent_cmd, "python /agent/agent.py");
     }
 
     #[test]

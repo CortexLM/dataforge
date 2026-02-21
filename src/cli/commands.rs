@@ -300,7 +300,7 @@ pub struct SweHarnessArgs {
     pub agent_dir: String,
 
     /// Command to run the agent inside the container.
-    #[arg(long, default_value = "python -m baseagent")]
+    #[arg(long, default_value = "python /agent/agent.py")]
     pub agent_cmd: String,
 
     /// Agent timeout in seconds.
@@ -326,6 +326,16 @@ pub struct SweHarnessArgs {
     /// Output results as JSON.
     #[arg(short = 'j', long)]
     pub json: bool,
+
+    /// HuggingFace dataset repo ID to download tasks from (e.g. "CortexLM/swe-forge").
+    /// When provided, tasks are downloaded from the HF dataset's `tasks/` directory
+    /// into the input directory before running the harness.
+    #[arg(long)]
+    pub dataset: Option<String>,
+
+    /// Filter to only run a specific task by ID (e.g. "pygments/pygments-3027").
+    #[arg(long)]
+    pub task_id: Option<String>,
 }
 
 /// Arguments for `swe_forge swe load`.
@@ -627,14 +637,98 @@ struct SweExportOutput {
     skipped: usize,
 }
 
+/// Download task directories from a HuggingFace dataset repo using `huggingface_hub`.
+///
+/// Uses `snapshot_download` via a Python subprocess to fetch the `tasks/` tree
+/// from the given HF dataset repo into `output_dir`.
+async fn download_hf_tasks(
+    repo_id: &str,
+    task_id_filter: Option<&str>,
+    output_dir: &Path,
+) -> anyhow::Result<()> {
+    info!(repo = repo_id, "Downloading tasks from HuggingFace dataset");
+
+    let allow_pattern = match task_id_filter {
+        Some(tid) => format!("tasks/{}/*", tid),
+        None => "tasks/**/*".to_string(),
+    };
+
+    let py_script = format!(
+        r#"
+import sys
+try:
+    from huggingface_hub import snapshot_download
+except ImportError:
+    import subprocess
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "huggingface_hub"])
+    from huggingface_hub import snapshot_download
+
+snapshot_download(
+    repo_id="{}",
+    repo_type="dataset",
+    allow_patterns="{}",
+    local_dir="{}",
+)
+print("OK")
+"#,
+        repo_id,
+        allow_pattern,
+        output_dir.display()
+    );
+
+    let output = tokio::process::Command::new("python3")
+        .args(["-c", &py_script])
+        .output()
+        .await?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        anyhow::bail!(
+            "Failed to download HF dataset '{}': {}",
+            repo_id,
+            stderr
+        );
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    if !stdout.contains("OK") {
+        warn!("HF download may not have completed cleanly: {}", stdout);
+    }
+
+    info!(
+        repo = repo_id,
+        dir = %output_dir.display(),
+        "HuggingFace tasks downloaded"
+    );
+    Ok(())
+}
+
 async fn run_swe_harness_command(args: SweHarnessArgs) -> anyhow::Result<()> {
     use crate::swe::harness;
 
-    let input_dir = Path::new(&args.input);
+    let mut input_path = std::path::PathBuf::from(&args.input);
+
+    // If --dataset is provided, download tasks from HuggingFace first
+    if let Some(ref dataset_repo) = args.dataset {
+        download_hf_tasks(
+            dataset_repo,
+            args.task_id.as_deref(),
+            &input_path,
+        )
+        .await?;
+
+        // The HF dataset stores tasks under tasks/ subdirectory
+        let tasks_subdir = input_path.join("tasks");
+        if tasks_subdir.exists() {
+            input_path = tasks_subdir;
+        }
+    }
+
+    let input_dir = input_path.as_path();
     if !input_dir.exists() {
         return Err(anyhow::anyhow!(
             "Input directory does not exist: {}",
-            args.input
+            input_dir.display()
         ));
     }
 
@@ -656,11 +750,39 @@ async fn run_swe_harness_command(args: SweHarnessArgs) -> anyhow::Result<()> {
         parallel: args.parallel,
     };
 
+    // If --task-id is specified without --dataset, filter the input directory
+    let effective_input = if args.dataset.is_none() {
+        if let Some(ref tid) = args.task_id {
+            let task_dir = input_dir.join(tid);
+            if !task_dir.exists() {
+                return Err(anyhow::anyhow!(
+                    "Task directory does not exist: {}",
+                    task_dir.display()
+                ));
+            }
+            task_dir
+        } else {
+            input_dir.to_path_buf()
+        }
+    } else if let Some(ref tid) = args.task_id {
+        // With --dataset, the task_id filter was already applied during download,
+        // but we still need to point to the right subdirectory
+        let task_dir = input_dir.join(tid);
+        if task_dir.exists() {
+            task_dir
+        } else {
+            input_dir.to_path_buf()
+        }
+    } else {
+        input_dir.to_path_buf()
+    };
+
     info!(
         "Running SWE harness on {} with agent from {}",
-        args.input, args.agent_dir
+        effective_input.display(),
+        args.agent_dir
     );
-    let summary = harness::run_harness(input_dir, &config).await?;
+    let summary = harness::run_harness(&effective_input, &config).await?;
 
     if args.json {
         let json = serde_json::to_string_pretty(&summary)?;
