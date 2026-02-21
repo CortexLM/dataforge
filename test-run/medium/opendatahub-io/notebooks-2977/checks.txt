@@ -1,2 +1,0 @@
-python -m unittest -v tests.test_aipcc_copr_unittest
-python -m unittest -v tests.pytest_tutorial.test_01_intro.LegacyThing.test_something

@@ -1,2 +1,0 @@
-node tests/issue_templates.test.mjs
-npm test

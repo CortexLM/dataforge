@@ -1,2 +1,0 @@
-npm test -- --runTestsByPath src/__tests__/tracing-core-settings.test.ts src/__tests__/tracing-core-error.test.ts
-npm test -- --runTestsByPath src/__tests__/assets.route.test.ts

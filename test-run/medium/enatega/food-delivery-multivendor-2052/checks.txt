@@ -1,2 +1,0 @@
-cd enatega-multivendor-app && node tests/faqs-accordion.test.js
-cd enatega-multivendor-app && npm install

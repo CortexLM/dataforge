@@ -1,2 +1,0 @@
-bash hawkbit-mcp/src/test/sh/test_mcp_server_start_annotations.sh
-javac -version

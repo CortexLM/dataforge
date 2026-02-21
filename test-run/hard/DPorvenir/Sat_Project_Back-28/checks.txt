@@ -1,2 +1,0 @@
-node --experimental-vm-modules ./node_modules/.bin/jest tests/logs-controller.test.mjs
-node -e "import('./src/utils/ParseCfdiXml.mjs').then(m=>console.log(typeof m.parseCfdiXml))"

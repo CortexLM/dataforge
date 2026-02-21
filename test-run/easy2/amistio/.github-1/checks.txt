@@ -1,2 +1,0 @@
-sh /repo/tests/icon_assets_test.sh
-tar -cf /tmp/amistio_repo.tar -C /repo README.md profile

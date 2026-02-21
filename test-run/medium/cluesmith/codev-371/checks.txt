@@ -1,2 +1,0 @@
-cd packages/codev && npm install --ignore-scripts && npm test -- src/__tests__/gemini-yolo.test.ts
-cd packages/codev && npm test -- src/__tests__/bugfix-280-consult-diff.test.ts

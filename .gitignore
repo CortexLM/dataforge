@@ -51,3 +51,13 @@ auto_publish.log
 auto_publish*.log
 mining*.log
 __pycache__/
+
+# Benchmark / test run artifacts
+benchmark_*.json
+benchmark_*.log
+benchmark_*.md
+validation_summary.json
+agent-tests/
+test-run/
+validated-dataset/
+benchmark-output/

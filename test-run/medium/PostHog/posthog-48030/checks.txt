@@ -1,2 +1,0 @@
-cd frontend && pnpm exec jest src/scenes/max/__tests__/threadDataVisualizationLimitContext.test.ts --runTestsByPath
-python -m compileall posthog
