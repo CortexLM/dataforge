@@ -4,5 +4,6 @@
 //! and export operations.
 
 mod commands;
+pub mod self_update;
 
 pub use commands::{parse_cli, run, run_with_cli};

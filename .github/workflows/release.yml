@@ -10,16 +10,28 @@ env:
   CARGO_NET_RETRY: 10
 
 jobs:
-  release:
-    name: Build & Release
-    runs-on: blacksmith-32vcpu-ubuntu-2404
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            runner: blacksmith-32vcpu-ubuntu-2404
+            arch: x86_64
+          - target: aarch64-unknown-linux-gnu
+            runner: blacksmith-32vcpu-ubuntu-2404-arm
+            arch: aarch64
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install mold linker
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq mold clang
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mold clang
 
       - name: Install Rust nightly
         uses: dtolnay/rust-toolchain@nightly
@@ -31,9 +43,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: release-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
+          key: release-${{ matrix.target }}-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            release-${{ runner.os }}-
+            release-${{ matrix.target }}-${{ runner.os }}-
 
       - name: Build optimized binary
         run: cargo +nightly build --release -j $(nproc)
@@ -42,16 +54,84 @@ jobs:
           CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "1"
           CARGO_PROFILE_RELEASE_OPT_LEVEL: "3"
           CARGO_PROFILE_RELEASE_STRIP: "symbols"
-          RUSTFLAGS: "-C target-cpu=x86-64-v3 -C link-arg=-fuse-ld=mold"
+          RUSTFLAGS: "-C link-arg=-fuse-ld=mold"
 
-      - name: Package
+      - name: Package binary
         run: |
           mkdir -p dist
           cp target/release/swe-forge dist/
-          cd dist && tar czf ../swe-forge-${{ github.ref_name }}-linux-x86_64.tar.gz swe-forge
+          cd dist && tar czf ../swe-forge-${{ github.ref_name }}-linux-${{ matrix.arch }}.tar.gz swe-forge
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: swe-forge-${{ github.ref_name }}-linux-${{ matrix.arch }}
+          path: swe-forge-${{ github.ref_name }}-linux-${{ matrix.arch }}.tar.gz
+          retention-days: 90
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Collect release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -name '*.tar.gz' -exec cp {} release-assets/ \;
+          ls -lh release-assets/
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: swe-forge-${{ github.ref_name }}-linux-x86_64.tar.gz
+          files: release-assets/*
           generate_release_notes: true
+
+  update-latest:
+    name: Update latest release
+    needs: release
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Collect release assets
+        run: |
+          mkdir -p release-assets
+          for f in artifacts/*/*.tar.gz; do
+            base=$(basename "$f")
+            # Rename to use "latest" instead of version tag
+            new_name=$(echo "$base" | sed "s/${{ github.ref_name }}/latest/")
+            cp "$f" "release-assets/$new_name"
+          done
+          ls -lh release-assets/
+
+      - name: Update latest release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Latest Release
+          body: |
+            This is an automatically updated release tracking the latest tagged version (${{ github.ref_name }}).
+
+            Install with:
+            ```bash
+            curl -fsSL https://raw.githubusercontent.com/CortexLM/swe-forge/main/install.sh | sh
+            ```
+          prerelease: false
+          files: release-assets/*
+          make_latest: true

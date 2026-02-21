@@ -65,22 +65,47 @@ graph TB
     EXP -->|workspace.yaml| LOAD
 ```
 
-## Quick start
+## Install
 
-### Prerequisites
+### One-line install (recommended)
 
-- Rust 1.70+
-- [OpenRouter](https://openrouter.ai/) API key
-- GitHub Personal Access Token (PAT) with public repo read access
-- Docker (for the evaluation harness)
+```bash
+curl -fsSL https://raw.githubusercontent.com/CortexLM/swe-forge/main/install.sh | sh
+```
 
-### Build
+This downloads the latest pre-built binary for your platform (Linux x86_64 or aarch64) and installs it to `~/.swe-forge/bin/`. Re-run the command to upgrade.
+
+You can also pin a specific version:
+
+```bash
+SWE_FORGE_VERSION=v1.0.0 curl -fsSL https://raw.githubusercontent.com/CortexLM/swe-forge/main/install.sh | sh
+```
+
+### Auto-update
+
+The binary can update itself:
+
+```bash
+swe-forge self-update
+```
+
+### Build from source
+
+If you prefer to build from source:
 
 ```bash
 git clone https://github.com/CortexLM/swe-forge.git
 cd swe-forge
 cargo build --release
 ```
+
+## Quick start
+
+### Prerequisites
+
+- [OpenRouter](https://openrouter.ai/) API key
+- GitHub Personal Access Token (PAT) with public repo read access
+- Docker (for the evaluation harness)
 
 ### Mine datasets
 

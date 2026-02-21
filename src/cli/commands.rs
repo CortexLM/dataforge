@@ -62,6 +62,18 @@ pub enum Commands {
     /// Run SWE mining pipeline against real GitHub history and export SWE datasets.
     #[command(name = "swe")]
     Swe(Box<SweArgs>),
+
+    /// Update swe-forge to the latest version from GitHub Releases.
+    #[command(name = "self-update", alias = "update")]
+    SelfUpdate(SelfUpdateArgs),
+}
+
+/// Arguments for the self-update command.
+#[derive(Parser, Debug)]
+pub struct SelfUpdateArgs {
+    /// Force re-install even if already on the latest version.
+    #[arg(long, default_value_t = false)]
+    pub force: bool,
 }
 
 /// SWE pipeline entrypoint arguments.
@@ -476,6 +488,9 @@ pub async fn run_with_cli(cli: Cli) -> anyhow::Result<()> {
         }
         Commands::Swe(args) => {
             run_swe_command(*args).await?;
+        }
+        Commands::SelfUpdate(args) => {
+            crate::cli::self_update::run_self_update(args.force).await?;
         }
     }
     Ok(())

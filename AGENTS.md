@@ -79,6 +79,16 @@ GH Archive (hourly dumps, 8x concurrent)
 | Linker | cc (via `.cargo/config.toml`) |
 | LLM provider | OpenRouter (OpenAI-compatible function calling) |
 
+## Installation
+
+```bash
+# One-line install (downloads pre-built binary from GitHub Releases)
+curl -fsSL https://raw.githubusercontent.com/CortexLM/swe-forge/main/install.sh | sh
+
+# Self-update to latest version
+swe-forge self-update
+```
+
 ## Build & Test Commands
 
 ```bash
