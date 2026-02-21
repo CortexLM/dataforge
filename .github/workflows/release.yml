@@ -132,6 +132,5 @@ jobs:
             ```bash
             curl -fsSL https://raw.githubusercontent.com/CortexLM/swe-forge/main/install.sh | sh
             ```
-          prerelease: false
+          prerelease: true
           files: release-assets/*
-          make_latest: true
