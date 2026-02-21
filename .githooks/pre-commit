@@ -7,8 +7,15 @@ if [ "${SKIP_GIT_HOOKS:-0}" = "1" ]; then
   exit 0
 fi
 
-echo "=== pre-commit: checking formatting ==="
-cargo fmt --all -- --check
+echo "=== pre-commit: formatting code ==="
+cargo fmt --all
+
+# Re-stage any files that were reformatted
+git diff --name-only | while read -r file; do
+  if [ -f "$file" ]; then
+    git add "$file"
+  fi
+done
 
 echo "=== pre-commit: running clippy ==="
 cargo clippy --all-targets --all-features -- -D warnings

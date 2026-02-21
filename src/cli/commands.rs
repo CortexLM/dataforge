@@ -725,7 +725,11 @@ async fn run_swe_harness_command(args: SweHarnessArgs) -> anyhow::Result<()> {
     let mut input_path = std::path::PathBuf::from(&args.input);
 
     // Download tasks from HuggingFace unless --no-dataset is set
-    let effective_dataset = if args.no_dataset { None } else { args.dataset.clone() };
+    let effective_dataset = if args.no_dataset {
+        None
+    } else {
+        args.dataset.clone()
+    };
     if let Some(ref dataset_repo) = effective_dataset {
         download_hf_tasks(dataset_repo, args.task_id.as_deref(), &input_path).await?;
 
